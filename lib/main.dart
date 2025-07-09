@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:smart_factory/config/global_color.dart';
+import 'package:smart_factory/config/app_theme.dart';
 import 'package:smart_factory/screen/login/controller/login_controller.dart';
 import 'package:smart_factory/screen/login/controller/user_profile_manager.dart';
 import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
@@ -49,22 +49,8 @@ class MyApp extends StatelessWidget {
           () => GetMaterialApp(
         debugShowCheckedModeBanner: false,
         themeMode: settingController.isDarkMode.value ? ThemeMode.dark : ThemeMode.light,
-        theme: ThemeData.light().copyWith(
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: GlobalColors.primaryButtonLight,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ),
-        darkTheme: ThemeData.dark().copyWith(
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: GlobalColors.primaryButtonDark,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ),
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
         locale: languageController.currentLocale.value,
         localeResolutionCallback: (locale, supportedLocales) {
           return supportedLocales.contains(locale) ? locale : const Locale('vi');
@@ -85,5 +71,4 @@ class MyApp extends StatelessWidget {
         ],
       ),
     );
-  }
-}
+  }}
