@@ -52,6 +52,7 @@ class TokenManager {
       });
       Map<String, String> params = AuthConfig.getBaseParams('refresh_token');
       params['refresh_token'] = refreshToken.value;
+
       final query = Uri(queryParameters: params).query;
       request.write(query);
 
