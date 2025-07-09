@@ -80,6 +80,7 @@ class GlobalColors {
     end: Alignment.bottomRight,
   );
 
+
   static const Color gradientLightStart = Color(0xFF00C4FF);
   static const Color gradientLightEnd = Color(0xFF0288D1);
   static const Color gradientDarkStart = Color(0xFFA3BFFA);

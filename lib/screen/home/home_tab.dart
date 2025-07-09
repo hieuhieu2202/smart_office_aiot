@@ -45,9 +45,53 @@ class _HomeTabState extends State<HomeTab> {
   Widget build(BuildContext context) {
     final S text = S.of(context);
     final bool isDark = settingController.isDarkMode.value;
+    final accent = isDark ? GlobalColors.primaryButtonDark : GlobalColors.primaryButtonLight;
 
     return Obx(() {
       return Scaffold(
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(50),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [GlobalColors.appBarDarkBg, GlobalColors.cardDarkBg]
+                    : [GlobalColors.appBarLightBg, GlobalColors.cardLightBg],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(22),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark ? Colors.black26 : Colors.grey.withOpacity(0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only( top: 10, bottom: 0),
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    text.welcome_factory,
+                    textAlign: TextAlign.center,
+                    style: GlobalTextStyles.bodyLarge(isDark: isDark).copyWith(
+                      fontWeight: FontWeight.bold,
+
+                      fontSize: 20,
+                      color: accent,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         backgroundColor: isDark
             ? GlobalColors.bodyDarkBg
             : GlobalColors.bodyLightBg,

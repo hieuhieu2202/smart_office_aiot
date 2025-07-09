@@ -164,5 +164,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "username": MessageLookupByLibrary.simpleMessage("Username"),
     "version": MessageLookupByLibrary.simpleMessage("Version"),
     "welcome": MessageLookupByLibrary.simpleMessage("Welcome"),
+    "welcome_factory": MessageLookupByLibrary.simpleMessage(
+      "Welcome to MBD-Factory",
+    ),
   };
 }

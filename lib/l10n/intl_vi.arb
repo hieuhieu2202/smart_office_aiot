@@ -75,5 +75,6 @@
   "quick_login_faceid": "Đăng nhập nhanh (FaceID/vân tay)",
   "activate_faceid_note": "Kích hoạt FaceID/vân tay ở Cài đặt sau khi đăng nhập",
   "need_login_first_to_activate_faceid": "Bạn cần đăng nhập trước để kích hoạt đăng nhập nhanh bằng khuôn mặt!",
-  "login_with_another_account": "Đăng nhập bằng tài khoản khác"
+  "login_with_another_account": "Đăng nhập bằng tài khoản khác",
+  "welcome_factory": "Chào mừng đến với MBD-Factory"
 }

@@ -162,5 +162,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "username": MessageLookupByLibrary.simpleMessage("Tài khoản"),
     "version": MessageLookupByLibrary.simpleMessage("Phiên bản"),
     "welcome": MessageLookupByLibrary.simpleMessage("Xin chào"),
+    "welcome_factory": MessageLookupByLibrary.simpleMessage(
+      "Chào mừng đến với MBD-Factory",
+    ),
   };
 }

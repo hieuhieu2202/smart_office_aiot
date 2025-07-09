@@ -668,6 +668,16 @@ class S {
       args: [],
     );
   }
+
+  /// `Welcome to MBD-Factory`
+  String get welcome_factory {
+    return Intl.message(
+      'Welcome to MBD-Factory',
+      name: 'welcome_factory',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {
