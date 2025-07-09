@@ -256,20 +256,33 @@ class LoginController extends GetxController {
     errorMessage.value = '';
   }
 
+  // Future<void> _performLogout() async {
+  //   _refreshTimer?.cancel();
+  //   box.write('isLoggedIn', false);
+  //   // Giữ lại username đã login gần nhất để hiển thị, không xóa quick login/faceid
+  //   TokenManager().clearTokens(box);
+  //   UserProfileManager().clearProfile(box);
+  //   password.value = '';
+  //   errorMessage.value = '';
+  //   isLoginFrozen.value = true;
+  //   username.value = lastUsername.value;
+  //   final selectedLanguage = box.read('selectedLanguage') ?? 'en';
+  //   Get.updateLocale(Locale(selectedLanguage));
+  //   await Get.offAllNamed('/login');
+  //   print('[logout] User: $username');
+  // }
   Future<void> _performLogout() async {
     _refreshTimer?.cancel();
     box.write('isLoggedIn', false);
-    // Giữ lại username đã login gần nhất để hiển thị, không xóa quick login/faceid
-    TokenManager().clearTokens(box);
-    UserProfileManager().clearProfile(box);
-    password.value = '';
-    errorMessage.value = '';
-    isLoginFrozen.value = true;
-    username.value = lastUsername.value;
-    final selectedLanguage = box.read('selectedLanguage') ?? 'en';
-    Get.updateLocale(Locale(selectedLanguage));
+    // box.write('username', '');
+    // TokenManager().clearTokens(box);
+    // UserProfileManager().clearProfile(box);
+    // username.value = '';
+    // password.value = '';
+    // errorMessage.value = '';
+    // final selectedLanguage = box.read('selectedLanguage') ?? 'en';
+    // Get.updateLocale(Locale(selectedLanguage));
     await Get.offAllNamed('/login');
-    print('[logout] User: $username');
   }
 
   void _showToast(String message, {Color? backgroundColor}) {
