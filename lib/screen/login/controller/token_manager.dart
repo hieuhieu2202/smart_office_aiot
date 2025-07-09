@@ -52,7 +52,8 @@ class TokenManager {
       });
       Map<String, String> params = AuthConfig.getBaseParams('refresh_token');
       params['refresh_token'] = refreshToken.value;
-      request.write(params.entries.map((e) => '${e.key}=${e.value}').join('&'));
+      final query = Uri(queryParameters: params).query;
+      request.write(query);
 
       HttpClientResponse response = await request.close();
       String responseBody = await response.transform(utf8.decoder).join();

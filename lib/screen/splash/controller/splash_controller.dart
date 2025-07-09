@@ -24,7 +24,7 @@ class SplashController extends GetxController {
           Get.offNamed('/navbar');
         } else {
           box.write('isLoggedIn', false);
-          box.write('username', '');
+          // box.write('username', '');
           box.save();
           Get.offNamed('/login');
         }
