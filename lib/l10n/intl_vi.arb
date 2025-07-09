@@ -74,6 +74,6 @@
   "notification": "Thông báo",
   "quick_login_faceid": "Đăng nhập nhanh (FaceID/vân tay)",
   "activate_faceid_note": "Kích hoạt FaceID/vân tay ở Cài đặt sau khi đăng nhập",
-  "need_login_first_to_activate_faceid": "Bạn cần đăng nhập trước để kích hoạt đăng nhập nhanh bằng khuôn mặt!"
-
+  "need_login_first_to_activate_faceid": "Bạn cần đăng nhập trước để kích hoạt đăng nhập nhanh bằng khuôn mặt!",
+  "use_another_account": "Dùng tài khoản khác"
 }

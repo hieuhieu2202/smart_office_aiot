@@ -74,6 +74,7 @@
   "notification": "通知",
   "quick_login_faceid": "快捷登录 (人脸/指纹)",
   "activate_faceid_note": "登录后可在设置中激活人脸/指纹登录",
-  "need_login_first_to_activate_faceid": "您需要先登录，然后才能启用人脸识别快捷登录！"
+  "need_login_first_to_activate_faceid": "您需要先登录，然后才能启用人脸识别快捷登录！",
+  "use_another_account": "使用其他账户"
 
 }
