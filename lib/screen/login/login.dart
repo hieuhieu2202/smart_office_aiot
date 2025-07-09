@@ -301,8 +301,11 @@ class LoginScreen extends StatelessWidget {
                                               ),
                                             ),
                                           ),
+
                                         )),
+
                                       ),
+
                                       const SizedBox(width: 12),
                                       // Icon FaceID
                                       Container(

@@ -26,6 +26,16 @@ Smart Factory App
 4: Tính năng Mode dark và light (22/5)
 5: Tính năng kết nối tới winscp gửi ảnh
 6: Tải ảnh. zoom ảnh.
+## Đăng nhập lại khi đã lưu tài khoản
+Khi ứng dụng đã nhớ `username`, trường tài khoản sẽ tự động hiển thị giá trị đã lưu. Nhập mật khẩu của tài khoản hiện tại để tiếp tục đăng nhập. Nếu muốn sử dụng tài khoản khác, chọn **Dùng tài khoản khác** dưới trường username, trường nhập sẽ xóa thông tin cũ và cho phép bạn nhập tên người dùng mới.
 
+## Yêu cầu và cấu hình đăng nhập sinh trắc học
+Ứng dụng có thể kích hoạt xác thực vân tay/Face ID thông qua gói `local_auth`. Thiết bị cần hỗ trợ sinh trắc học và đã thiết lập ít nhất một phương thức bảo mật.
+
+Các bước cấu hình:
+1. Thêm `local_auth` vào `pubspec.yaml` và chạy `flutter pub get`.
+2. Android: khai báo quyền `USE_BIOMETRIC` trong `android/app/src/main/AndroidManifest.xml`.
+3. iOS: thêm khóa `NSFaceIDUsageDescription` vào `ios/Runner/Info.plist`.
+4. Trong màn hình đăng nhập, sử dụng `LocalAuthentication().authenticate()` để xác thực trước khi gọi API đăng nhập.
  
 

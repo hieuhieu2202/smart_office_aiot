@@ -121,6 +121,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "language": MessageLookupByLibrary.simpleMessage("Language"),
     "location": MessageLookupByLibrary.simpleMessage("Location"),
     "login": MessageLookupByLibrary.simpleMessage("Login"),
+    "login_with_another_account": MessageLookupByLibrary.simpleMessage(
+      "Login with another account",
+    ),
     "logout": MessageLookupByLibrary.simpleMessage("Logout"),
     "logout_confirmation": MessageLookupByLibrary.simpleMessage(
       "Logout Confirmation",

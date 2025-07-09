@@ -121,6 +121,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "language": MessageLookupByLibrary.simpleMessage("Ngôn ngữ"),
     "location": MessageLookupByLibrary.simpleMessage("Vị trí"),
     "login": MessageLookupByLibrary.simpleMessage("Đăng nhập"),
+    "login_with_another_account": MessageLookupByLibrary.simpleMessage(
+      "Đăng nhập bằng tài khoản khác",
+    ),
     "logout": MessageLookupByLibrary.simpleMessage("Đăng xuất"),
     "logout_confirmation": MessageLookupByLibrary.simpleMessage(
       "Xác nhận đăng xuất",

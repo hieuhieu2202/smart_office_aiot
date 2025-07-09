@@ -75,6 +75,6 @@
   "quick_login_faceid": "Quick login (FaceID/Fingerprint)",
   "activate_faceid_note": "Activate FaceID/Fingerprint in Settings after login",
   "need_login_first_to_activate_faceid": "You need to log in first to activate quick login with face recognition!",
-  "use_another_account": "Use another account",
+  "login_with_another_account": "Login with another account"
 
 }

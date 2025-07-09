@@ -103,6 +103,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "language": MessageLookupByLibrary.simpleMessage("语言"),
     "location": MessageLookupByLibrary.simpleMessage("位置"),
     "login": MessageLookupByLibrary.simpleMessage("登录"),
+    "login_with_another_account": MessageLookupByLibrary.simpleMessage(
+      "使用其他账号登录",
+    ),
     "logout": MessageLookupByLibrary.simpleMessage("注销"),
     "logout_confirmation": MessageLookupByLibrary.simpleMessage("注销确认"),
     "logout_question": MessageLookupByLibrary.simpleMessage("您确定要注销吗？"),

@@ -658,6 +658,16 @@ class S {
       args: [],
     );
   }
+
+  /// `Login with another account`
+  String get login_with_another_account {
+    return Intl.message(
+      'Login with another account',
+      name: 'login_with_another_account',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {
