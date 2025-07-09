@@ -130,7 +130,7 @@ class LoginScreen extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.all(22.0),
                             child: Obx(() {
-                              final bool hasUsername = controller.username.value.isNotEmpty;
+                              final bool loginFrozen = controller.isLoginFrozen.value;
                               return Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -138,8 +138,8 @@ class LoginScreen extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   LoginTitle(isDark: isDark),
                                   const SizedBox(height: 17),
-                                  // Hiện field nhập username/mật khẩu nếu chưa có username lưu
-                                  if (!hasUsername) ...[
+                                  // Username field or stored username label
+                                  if (!loginFrozen) ...[
                                     TextField(
                                       decoration: InputDecoration(
                                         labelText: text.username,
@@ -174,7 +174,30 @@ class LoginScreen extends StatelessWidget {
                                       onChanged: controller.setUsername,
                                     ),
                                     const SizedBox(height: 15),
-                                    Obx(() => TextField(
+                                  ] else ...[
+                                    Row(
+                                      children: [
+                                        Icon(Icons.person, color: iconColor, size: 22),
+                                        const SizedBox(width: 7),
+                                        Expanded(
+                                          child: Text(
+                                            controller.username.value,
+                                            style: TextStyle(
+                                              color: isDark
+                                                  ? Colors.cyanAccent
+                                                  : Colors.blueAccent,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 18),
+                                  ],
+                                  Obx(() => TextField(
                                       decoration: InputDecoration(
                                         labelText: text.password,
                                         labelStyle: TextStyle(
@@ -220,32 +243,7 @@ class LoginScreen extends StatelessWidget {
                                       obscureText: !controller.showPassword.value,
                                       onChanged: controller.setPassword,
                                     )),
-                                    const SizedBox(height: 24),
-                                  ],
-                                  // Nếu đã có username, hiện text disable + nút đổi tài khoản
-                                  if (hasUsername) ...[
-                                    Row(
-                                      children: [
-                                        Icon(Icons.person, color: iconColor, size: 22),
-                                        const SizedBox(width: 7),
-                                        Expanded(
-                                          child: Text(
-                                            controller.username.value,
-                                            style: TextStyle(
-                                              color: isDark
-                                                  ? Colors.cyanAccent
-                                                  : Colors.blueAccent,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 18),
-                                  ],
+                                  const SizedBox(height: 24),
                                   // --- Nút Đăng nhập + icon FaceID ngang hàng ---
                                   Row(
                                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -362,7 +360,7 @@ class LoginScreen extends StatelessWidget {
                                     ],
                                   ),
                                   // Dòng "Đăng nhập bằng tài khoản khác"
-                                  if (hasUsername)
+                                  if (loginFrozen)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 24),
                                       child: GestureDetector(

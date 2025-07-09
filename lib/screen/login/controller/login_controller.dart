@@ -312,7 +312,8 @@ class LoginController extends GetxController {
 
   // Đăng nhập bằng tài khoản khác (xóa hết local và UI reset)
   void clearUserForNewLogin() {
-    resetAllForNewUser();
-    update();
+    isLoginFrozen.toggle();
+    username.value = '';
+    password.value = '';
   }
 }
