@@ -38,8 +38,10 @@ class _PTHDashboardScreenState extends State<PTHDashboardScreen> with TickerProv
     final data = controller.monitoringData;
 
     // Header gradient color
-    final headerGradient = const LinearGradient(
-      colors: [Color(0xFF3F51B5), Color(0xFF2196F3)],
+    final headerGradient = LinearGradient(
+      colors: isDark
+          ? const [Color(0xFF303F9F), Color(0xFF1A237E)] // darker shades
+          : const [Color(0xFF5C6BC0), Color(0xFF64B5F6)], // lighter shades
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
