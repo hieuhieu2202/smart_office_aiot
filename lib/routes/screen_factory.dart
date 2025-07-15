@@ -3,9 +3,11 @@ import 'package:flutter/cupertino.dart';
 import '../model/AppModel.dart';
 import '../screen/home/widget/project_list_page.dart';
 import '../screen/home/widget/pth_dashboard_screen.dart';
+import '../screen/home/widget/modern_dashboard_screen.dart';
 
 final Map<String, Widget Function(AppProject)> screenBuilderMap = {
-  'pth_dashboard': (project) => PTHDashboardScreen(),
+  'pth_dashboard': (project) => const PTHDashboardScreen(),
+  'modern_dashboard': (project) => const ModernDashboardScreen(),
 };
 /// Hàm trả về đúng màn hình dựa trên AppProject
 Widget buildProjectScreen(AppProject project) {
