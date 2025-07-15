@@ -11,6 +11,8 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
     final runtime = data['runtime'];
     final machines = runtime?['runtimeMachine'] as List? ?? [];
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor =
+        isDark ? GlobalColors.labelDark : GlobalColors.labelLight;
 
     if (machines.isEmpty) {
       return const Text("Không có dữ liệu runtime máy.");
@@ -71,7 +73,17 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
                         gridData: FlGridData(show: true, horizontalInterval: 10),
                         titlesData: FlTitlesData(
                           leftTitles: AxisTitles(
-                            sideTitles: SideTitles(showTitles: true, reservedSize: 30),
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 30,
+                              getTitlesWidget: (value, meta) => Text(
+                                meta.formattedValue,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: labelColor,
+                                ),
+                              ),
+                            ),
                           ),
                           bottomTitles: AxisTitles(
                             sideTitles: SideTitles(
@@ -80,9 +92,15 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
                                 final idx = value.toInt();
                                 return idx < hours.length
                                     ? Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(hours[idx], style: const TextStyle(fontSize: 12)),
-                                )
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          hours[idx],
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: labelColor,
+                                          ),
+                                        ),
+                                      )
                                     : const SizedBox();
                               },
                             ),

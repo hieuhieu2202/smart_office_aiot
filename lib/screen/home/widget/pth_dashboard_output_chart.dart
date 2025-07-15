@@ -13,6 +13,8 @@ class PTHDashboardOutputChart extends StatelessWidget {
       return const Text("Không có dữ liệu output.");
     }
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor =
+        isDark ? GlobalColors.labelDark : GlobalColors.labelLight;
 
     final sections = output.map((e) => (e['section'] ?? e['SECTION']).toString()).toList();
     return Card(
@@ -29,7 +31,17 @@ class PTHDashboardOutputChart extends StatelessWidget {
               gridData: FlGridData(show: true, horizontalInterval: 10),
               titlesData: FlTitlesData(
                 leftTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: true, reservedSize: 28),
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 28,
+                    getTitlesWidget: (value, meta) => Text(
+                      meta.formattedValue,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: labelColor,
+                      ),
+                    ),
+                  ),
                 ),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
@@ -38,9 +50,15 @@ class PTHDashboardOutputChart extends StatelessWidget {
                       final idx = value.toInt();
                       return idx < sections.length
                           ? Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(sections[idx], style: const TextStyle(fontSize: 12)),
-                      )
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                sections[idx],
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: labelColor,
+                                ),
+                              ),
+                            )
                           : const SizedBox();
                     },
                   ),
