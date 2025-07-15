@@ -19,6 +19,7 @@ class _PTHDashboardScreenState extends State<PTHDashboardScreen> with TickerProv
   final PTHDashboardController controller = Get.put(PTHDashboardController());
   bool filterPanelOpen = false;
   late AnimationController _refreshController;
+  bool _backPressed = false;
 
   @override
   void initState() {
@@ -80,6 +81,27 @@ class _PTHDashboardScreenState extends State<PTHDashboardScreen> with TickerProv
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      AnimatedScale(
+                        scale: _backPressed ? 0.9 : 1,
+                        duration: const Duration(milliseconds: 120),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(24),
+                            onTap: () {
+                              Navigator.of(context).maybePop();
+                            },
+                            onTapDown: (_) => setState(() => _backPressed = true),
+                            onTapCancel: () => setState(() => _backPressed = false),
+                            onTapUp: (_) => setState(() => _backPressed = false),
+                            child: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Icon(Icons.arrow_back, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

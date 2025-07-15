@@ -35,7 +35,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
     );
     _offset = Tween<Offset>(begin: const Offset(1,0), end: Offset.zero).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     if (widget.show) _controller.forward();
@@ -95,14 +95,22 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
       child: AnimatedOpacity(
         opacity: widget.show ? 1 : 0,
         duration: const Duration(milliseconds: 220),
-        child: SlideTransition(
-          position: _offset,
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Material(
+        child: Stack(
+          children: [
+            GestureDetector(
+              onTap: widget.onClose,
+              child: Container(color: Colors.transparent),
+            ),
+            SlideTransition(
+              position: _offset,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Material(
               color: Colors.transparent,
+              elevation: 10,
+              borderRadius: BorderRadius.circular(8),
               child: Container(
-                width: w * 0.8,
+                width: w * 0.85,
                 height: double.infinity,
                 decoration: BoxDecoration(
                   color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
@@ -113,10 +121,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                       offset: const Offset(-4, 2),
                     )
                   ],
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(22),
-                    bottomLeft: Radius.circular(22),
-                  ),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
                 child: Column(
@@ -158,6 +163,10 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide.none,
                           ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                          ),
                         ),
                       );
                     }),
@@ -187,6 +196,10 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide.none,
                           ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                          ),
                         ),
                       );
                     }),
@@ -212,6 +225,10 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Color(0xFF4CAF50)),
                           ),
                         ),
                       );
@@ -247,6 +264,10 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide.none,
                         ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                        ),
                         suffixIcon: const Icon(Icons.calendar_today),
                       ),
                     ),
@@ -254,7 +275,10 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF44336),
+                            ),
                             onPressed: widget.onClose,
                             child: const Text("Hủy"),
                           ),
@@ -262,6 +286,9 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4CAF50),
+                            ),
                             onPressed: () {
                               widget.onApply({
                                 'groupName': _group,
@@ -282,6 +309,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
           ),
         ),
       ),
+    );
     );
   }
 }
