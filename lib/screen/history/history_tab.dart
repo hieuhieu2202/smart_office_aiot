@@ -1,36 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../config/global_color.dart';
+import '../../generated/l10n.dart';
+import '../../widget/custom_app_bar.dart';
 import '../login/controller/login_controller.dart';
 import '../setting/controller/setting_controller.dart';
 
-class HistoryTab extends StatelessWidget {
+class HistoryTab extends StatefulWidget {
   const HistoryTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<HistoryTab> createState() => _HistoryTabState();
+}
 
-    final LoginController loginController = Get.find<LoginController>();
-    final SettingController settingController = Get.find<SettingController>();
-    return Obx(() => Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: settingController.isDarkMode.value
-            ? GlobalColors.appBarDarkBg
-            : GlobalColors.appBarLightBg,
-        elevation: 0,
-        title: Text(
-          'Lịch sử',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: settingController.isDarkMode.value
-                ? GlobalColors.appBarDarkText
-                : GlobalColors.appBarLightText,
-          ),
+class _HistoryTabState extends State<HistoryTab> {
+  final SettingController settingController = Get.find<SettingController>();
+
+  @override
+  Widget build(BuildContext context) {
+    final S text = S.of(context);
+    return Obx(() {
+      final bool isDark = settingController.isDarkMode.value; // Đặt vào trong Obx!
+      return Scaffold(
+        appBar: CustomAppBar(
+          title: Text(text.history),
+          isDark: isDark,
+          accent: GlobalColors.accentByIsDark(isDark),
+          titleAlign: TextAlign.left,
         ),
-      ),
-      body: Container(), // Placeholder
-    ));
+        body: Container(), // Placeholder
+      );
+    });
   }
 }

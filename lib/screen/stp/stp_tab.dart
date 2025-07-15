@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:smart_factory/config/global_text_style.dart';
 import 'package:smart_factory/config/global_color.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
+import '../../widget/custom_app_bar.dart';
 import 'controller/stp_controller.dart';
 
 class SftpScreen extends StatelessWidget {
@@ -21,9 +22,8 @@ class SftpScreen extends StatelessWidget {
     }
   }
 
-  Future<void> showCreateFolderDialog() async {
+  Future<void> showCreateFolderDialog(bool isDark) async {
     final TextEditingController folderNameController = TextEditingController();
-    final bool isDark = settingController.isDarkMode.value;
     Get.dialog(
       AlertDialog(
         backgroundColor: isDark
@@ -141,165 +141,165 @@ class SftpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = settingController.isDarkMode.value;
+    return Obx(() {
+      final bool isDark = settingController.isDarkMode.value;
+      final bool isRoot = sftpController.currentPath.value == '/';
 
-    return Scaffold(
-      backgroundColor: isDark
-          ? GlobalColors.bodyDarkBg
-          : GlobalColors.bodyLightBg,
-      appBar: AppBar(
+      return Scaffold(
         backgroundColor: isDark
-            ? GlobalColors.appBarDarkBg
-            : GlobalColors.appBarLightBg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back,
-              color: isDark
-                  ? GlobalColors.darkPrimaryText
-                  : GlobalColors.lightPrimaryText),
-          onPressed: () {
-            if (sftpController.currentPath.value != '/') {
+            ? GlobalColors.bodyDarkBg
+            : GlobalColors.bodyLightBg,
+        appBar: CustomAppBar(
+          isDark: isDark,
+          accent: GlobalColors.accentByIsDark(isDark),
+
+          // Leading: chỉ hiện nút back nếu KHÔNG ở root
+          leading: isRoot
+              ? null
+              : IconButton(
+            icon: Icon(Icons.arrow_back,
+                color: isDark
+                    ? GlobalColors.darkPrimaryText
+                    : GlobalColors.lightPrimaryText),
+            onPressed: () {
               sftpController.goBack();
-            } else {
-              Get.back();
-            }
-          },
-        ),
-        title: Obx(
-              () => SingleChildScrollView(
+            },
+          ),
+          // Title: Breadcrumb
+          title: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: _buildBreadcrumb(sftpController, isDark)),
           ),
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            color: isDark
-                ? GlobalColors.cardDarkBg
-                : GlobalColors.cardLightBg,
-            onSelected: (value) {
-              if (value == 'createFolder') {
-                showCreateFolderDialog();
-              } else if (value == 'uploadFile') {
-                pickFileAndUpload();
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'createFolder',
-                child: Text(
-                  'Tạo thư mục',
-                  style: GlobalTextStyles.bodyMedium(isDark: isDark),
-                ),
-              ),
-              PopupMenuItem(
-                value: 'uploadFile',
-                child: Text(
-                  'Thêm file',
-                  style: GlobalTextStyles.bodyMedium(isDark: isDark),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: Obx(() {
-        if (!sftpController.isConnected.value) {
-          return Center(
-            child: Text(
-              'Đang kết nối... ${sftpController.errorMessage.value}',
-              style: GlobalTextStyles.bodyMedium(isDark: isDark),
-            ),
-          );
-        }
-
-        if (sftpController.filesAndFolders.isEmpty) {
-          return Center(
-            child: Text('Thư mục trống', style: GlobalTextStyles.bodyMedium(isDark: isDark)),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16.0),
-          itemCount: sftpController.filesAndFolders.length,
-          itemBuilder: (context, index) {
-            final itemName = sftpController.filesAndFolders.keys.elementAt(index);
-            final isFolder = sftpController.filesAndFolders[itemName] ?? false;
-
-            return Card(
-              elevation: 2,
+          actions: [
+            PopupMenuButton<String>(
               color: isDark
                   ? GlobalColors.cardDarkBg
                   : GlobalColors.cardLightBg,
-              child: ListTile(
-                leading: Icon(
-                  isFolder ? Icons.folder : _getFileIcon(itemName),
-                  color: isFolder
-                      ? (isDark
-                      ? GlobalColors.primaryButtonDark
-                      : GlobalColors.primaryButtonLight)
-                      : (_getFileIcon(itemName) == Icons.image
-                      ? Colors.green
-                      : (isDark
-                      ? GlobalColors.primaryButtonDark
-                      : GlobalColors.primaryButtonLight)),
+              onSelected: (value) {
+                if (value == 'createFolder') {
+                  showCreateFolderDialog(isDark);
+                } else if (value == 'uploadFile') {
+                  pickFileAndUpload();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'createFolder',
+                  child: Text(
+                    'Tạo thư mục',
+                    style: GlobalTextStyles.bodyMedium(isDark: isDark),
+                  ),
                 ),
-                title: Text(itemName, style: GlobalTextStyles.bodyMedium(isDark: isDark)),
-                trailing: !isFolder
-                    ? PopupMenuButton<String>(
-                  color: isDark
-                      ? GlobalColors.cardDarkBg
-                      : GlobalColors.cardLightBg,
-                  onSelected: (value) {
-                    if (value == 'download') {
-                      sftpController.downloadFile(itemName);
-                    } else if (value == 'delete') {
-                      sftpController.deleteFile(itemName);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'download',
-                      child: Text(
-                        'Tải xuống',
-                        style: GlobalTextStyles.bodyMedium(isDark: isDark),
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text(
-                        'Xóa',
-                        style: GlobalTextStyles.bodyMedium(isDark: isDark),
-                      ),
-                    ),
-                  ],
-                )
-                    : null,
-                onTap: isFolder
-                    ? () => sftpController.navigateTo(itemName)
-                    : () => Get.snackbar(
-                  'Thông tin',
-                  'Đây là tệp: $itemName',
-                  snackStyle: SnackStyle.FLOATING,
-                  backgroundColor: isDark
-                      ? GlobalColors.cardDarkBg
-                      : GlobalColors.cardLightBg,
-                  colorText: isDark
-                      ? GlobalColors.darkPrimaryText
-                      : GlobalColors.lightPrimaryText,
+                PopupMenuItem(
+                  value: 'uploadFile',
+                  child: Text(
+                    'Thêm file',
+                    style: GlobalTextStyles.bodyMedium(isDark: isDark),
+                  ),
                 ),
+              ],
+            ),
+          ],
+        ),
+        body: Obx(() {
+          if (!sftpController.isConnected.value) {
+            return Center(
+              child: Text(
+                'Đang kết nối... ${sftpController.errorMessage.value}',
+                style: GlobalTextStyles.bodyMedium(isDark: isDark),
               ),
             );
-          },
-        );
-      }),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: isDark
-            ? GlobalColors.primaryButtonDark
-            : GlobalColors.primaryButtonLight,
-        onPressed: () =>
-            sftpController.listDirectory(sftpController.currentPath.value),
-        child: const Icon(Icons.refresh, color: Colors.white),
-      ),
-    );
+          }
+
+          if (sftpController.filesAndFolders.isEmpty) {
+            return Center(
+              child: Text('Thư mục trống', style: GlobalTextStyles.bodyMedium(isDark: isDark)),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: sftpController.filesAndFolders.length,
+            itemBuilder: (context, index) {
+              final itemName = sftpController.filesAndFolders.keys.elementAt(index);
+              final isFolder = sftpController.filesAndFolders[itemName] ?? false;
+
+              return Card(
+                elevation: 2,
+                color: isDark
+                    ? GlobalColors.cardDarkBg
+                    : GlobalColors.cardLightBg,
+                child: ListTile(
+                  leading: Icon(
+                    isFolder ? Icons.folder : _getFileIcon(itemName),
+                    color: isFolder
+                        ? (isDark
+                        ? GlobalColors.primaryButtonDark
+                        : GlobalColors.primaryButtonLight)
+                        : (_getFileIcon(itemName) == Icons.image
+                        ? Colors.green
+                        : (isDark
+                        ? GlobalColors.primaryButtonDark
+                        : GlobalColors.primaryButtonLight)),
+                  ),
+                  title: Text(itemName, style: GlobalTextStyles.bodyMedium(isDark: isDark)),
+                  trailing: !isFolder
+                      ? PopupMenuButton<String>(
+                    color: isDark
+                        ? GlobalColors.cardDarkBg
+                        : GlobalColors.cardLightBg,
+                    onSelected: (value) {
+                      if (value == 'download') {
+                        sftpController.downloadFile(itemName);
+                      } else if (value == 'delete') {
+                        sftpController.deleteFile(itemName);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'download',
+                        child: Text(
+                          'Tải xuống',
+                          style: GlobalTextStyles.bodyMedium(isDark: isDark),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Text(
+                          'Xóa',
+                          style: GlobalTextStyles.bodyMedium(isDark: isDark),
+                        ),
+                      ),
+                    ],
+                  )
+                      : null,
+                  onTap: isFolder
+                      ? () => sftpController.navigateTo(itemName)
+                      : () => Get.snackbar(
+                    'Thông tin',
+                    'Đây là tệp: $itemName',
+                    snackStyle: SnackStyle.FLOATING,
+                    backgroundColor: isDark
+                        ? GlobalColors.cardDarkBg
+                        : GlobalColors.cardLightBg,
+                    colorText: isDark
+                        ? GlobalColors.darkPrimaryText
+                        : GlobalColors.lightPrimaryText,
+                  ),
+                ),
+              );
+            },
+          );
+        }),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: isDark
+              ? GlobalColors.primaryButtonDark
+              : GlobalColors.primaryButtonLight,
+          onPressed: () =>
+              sftpController.listDirectory(sftpController.currentPath.value),
+          child: const Icon(Icons.refresh, color: Colors.white),
+        ),
+      );
+    });
   }
 }

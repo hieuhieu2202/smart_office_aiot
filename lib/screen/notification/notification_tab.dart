@@ -2,38 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 import '../../config/global_color.dart';
-import '../login/controller/login_controller.dart';
+import '../../generated/l10n.dart';
+import '../../widget/custom_app_bar.dart';
 
-class NotificationTab extends StatelessWidget {
+class NotificationTab extends StatefulWidget {
   const NotificationTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final SettingController settingController = Get.find<SettingController>();
+  State<NotificationTab> createState() => _NotificationTabState();
+}
 
-    return Obx(
-      () => Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor:
-              settingController.isDarkMode.value
-                  ? GlobalColors.appBarDarkBg
-                  : GlobalColors.appBarLightBg,
-          elevation: 0,
-          title: Text(
-            'Thông báo',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color:
-                  settingController.isDarkMode.value
-                      ? GlobalColors.appBarDarkText
-                      : GlobalColors.appBarLightText,
-            ),
-          ),
+class _NotificationTabState extends State<NotificationTab> {
+  late final SettingController settingController;
+
+  @override
+  void initState() {
+    super.initState();
+    settingController = Get.find<SettingController>();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final S text = S.of(context);
+    return Obx(() {
+      final bool isDark = settingController.isDarkMode.value;
+      return Scaffold(
+        appBar: CustomAppBar(
+          title: Text(text.notification),
+          isDark: isDark,
+          accent: GlobalColors.accentByIsDark(isDark),
+          titleAlign: TextAlign.left,
         ),
         body: Container(), // Placeholder
-      ),
-    );
+      );
+    });
   }
 }

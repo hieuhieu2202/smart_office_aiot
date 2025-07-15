@@ -79,7 +79,9 @@ class GlobalColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-
+  static Color accentByIsDark(bool isDark) {
+    return isDark ? GlobalColors.primaryButtonDark : GlobalColors.primaryButtonLight;
+  }
 
   static const Color gradientLightStart = Color(0xFF00C4FF);
   static const Color gradientLightEnd = Color(0xFF0288D1);

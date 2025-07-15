@@ -10,6 +10,8 @@ import 'package:smart_factory/screen/setting/controller/setting_controller.dart'
 import 'package:smart_factory/lang/language_selection_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
 
+import '../../widget/custom_app_bar.dart';
+
 class SettingTab extends StatelessWidget {
   const SettingTab({super.key});
 
@@ -46,46 +48,11 @@ class SettingTab extends StatelessWidget {
 
       return Scaffold(
         backgroundColor: isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(65),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [GlobalColors.appBarDarkBg, GlobalColors.cardDarkBg]
-                    : [GlobalColors.appBarLightBg, GlobalColors.cardLightBg],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(22),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark ? Colors.black26 : Colors.grey.withOpacity(0.12),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 20, top: 10, bottom: 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    text.settings,
-                    style: GlobalTextStyles.bodyLarge(isDark: isDark).copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 25,
-                      color: accent,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+        appBar: CustomAppBar(
+          title: Text(text.settings),
+          isDark: isDark,
+          accent: GlobalColors.accentByIsDark(isDark),
+          titleAlign: TextAlign.left,
         ),
         body: ListView(
           padding: const EdgeInsets.all(18.0),

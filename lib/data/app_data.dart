@@ -10,6 +10,22 @@ List<AppProject> appProjects = [
     screenType: "automation",
     subProjects: [
       AppProject(
+        name: "AOI MACHINE",
+        progress: 1.0,
+        status: "Ready",
+        icon: Icons.camera_alt,
+        screenType: "aoi",
+        subProjects: [
+          AppProject(
+            name: "PTH_DASHBOARD",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.dashboard,
+            screenType: "pth_dashboard",
+          ),
+        ],
+      ),
+      AppProject(
         name: "PCBA LINE",
         progress: 1.0,
         status: "Running",
@@ -22,13 +38,6 @@ List<AppProject> appProjects = [
         status: "Running",
         icon: Icons.hub,
         screenType: "system_line",
-      ),
-      AppProject(
-        name: "AOI MACHINE",
-        progress: 1.0,
-        status: "Ready",
-        icon: Icons.camera_alt,
-        screenType: "aoi",
       ),
       AppProject(
         name: "AVI MACHINE",
