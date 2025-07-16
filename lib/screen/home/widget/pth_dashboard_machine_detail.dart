@@ -13,7 +13,15 @@ class PTHDashboardMachineDetail extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (machines.isEmpty) {
-      return const SizedBox();
+      return Card(
+        color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const SizedBox(
+          height: 100,
+          child: Center(child: Text('No data available')),
+        ),
+      );
     }
 
     return DefaultTabController(

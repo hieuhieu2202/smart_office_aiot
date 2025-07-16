@@ -9,10 +9,19 @@ class PTHDashboardOutputChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final output = data['output'] as List? ?? [];
-    if (output.isEmpty) {
-      return const Text("Không có dữ liệu output.");
-    }
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (output.isEmpty) {
+      return Card(
+        color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const SizedBox(
+          height: 210,
+          child: Center(child: Text('No data available')),
+        ),
+      );
+    }
+
     final labelColor =
         isDark ? GlobalColors.labelDark : GlobalColors.labelLight;
 

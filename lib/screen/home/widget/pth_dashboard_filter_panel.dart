@@ -310,6 +310,5 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
         ),
       ),
     );
-    );
   }
 }

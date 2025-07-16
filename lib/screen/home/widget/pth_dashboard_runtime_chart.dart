@@ -15,7 +15,15 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
         isDark ? GlobalColors.labelDark : GlobalColors.labelLight;
 
     if (machines.isEmpty) {
-      return const Text("Không có dữ liệu runtime máy.");
+      return Card(
+        color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const SizedBox(
+          height: 220,
+          child: Center(child: Text('No data available')),
+        ),
+      );
     }
 
     // Lấy tất cả giờ xuất hiện trong data (trục X)

@@ -151,9 +151,6 @@ class _PTHDashboardScreenState extends State<PTHDashboardScreen> with TickerProv
                     ],
                   ),
                 ),
-                // Loading indicator
-                if (controller.isLoading.value)
-                  const LinearProgressIndicator(minHeight: 3),
                 // Nội dung dashboard
                 Expanded(
                   child: ListView(
@@ -183,6 +180,13 @@ class _PTHDashboardScreenState extends State<PTHDashboardScreen> with TickerProv
             closeFilter();
           },
         ),
+        // Loading overlay
+        Obx(() => controller.isLoading.value
+            ? Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(child: CircularProgressIndicator()),
+              )
+            : const SizedBox.shrink()),
       ],
     );
   }
