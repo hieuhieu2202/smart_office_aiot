@@ -211,7 +211,7 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
                                       barInGroupSpace +
                                       groupSpace,
                                   child: Stack(
-                                    alignment: Alignment.bottomCenter,
+                                    alignment: Alignment.center,
                                     children: [
                                       Positioned(
                                         bottom: 0,
@@ -312,7 +312,7 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
                           SizedBox(
                             height: 28,
                             child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: List.generate(times.length, (idx) {
                                 final time = times[idx];
                                 return SizedBox(
