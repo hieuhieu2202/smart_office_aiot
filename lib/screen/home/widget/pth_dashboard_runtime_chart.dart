@@ -1,342 +1,422 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'dart:math' as math;
 import '../../../config/global_color.dart';
 
 const _runColor = Color(0xFF4CAF50);
 const _idleColor = Color(0xFFF44336);
 
-class PTHDashboardRuntimeChart extends StatefulWidget {
+class PTHDashboardRuntimeChart extends StatelessWidget {
   final Map data;
+
   const PTHDashboardRuntimeChart({super.key, required this.data});
 
-  @override
-  State<PTHDashboardRuntimeChart> createState() => _PTHDashboardRuntimeChartState();
-}
-
-class _PTHDashboardRuntimeChartState extends State<PTHDashboardRuntimeChart> {
-  int _touchedIndex = -1;
-  bool _highlightRun = false;
-  bool _highlightIdle = false;
-
-  void _toggleRun() {
-    setState(() {
-      _highlightRun = !_highlightRun;
-      if (_highlightRun) _highlightIdle = false;
-    });
+  String _formatTime(String time) {
+    if (data['runtime']?['type'] == 'H') {
+      if (time.contains(":")) return time;
+      if (time.length >= 2) return time.padLeft(2, '0') + ":00";
+      return time;
+    } else {
+      if (time.length == 8 && !time.contains('-')) {
+        return "${time.substring(0, 4)}/${time.substring(4, 6)}/${time.substring(6, 8)}";
+      }
+      return time;
+    }
   }
 
-  void _toggleIdle() {
-    setState(() {
-      _highlightIdle = !_highlightIdle;
-      if (_highlightIdle) _highlightRun = false;
-    });
+  int _timeSort(String a, String b) {
+    if (data['runtime']?['type'] == 'H') {
+      int ah = int.tryParse(a.split(":")[0]) ?? 0;
+      int bh = int.tryParse(b.split(":")[0]) ?? 0;
+      int am = a.contains(":") ? int.tryParse(a.split(":")[1]) ?? 0 : 0;
+      int bm = b.contains(":") ? int.tryParse(b.split(":")[1]) ?? 0 : 0;
+      return ah != bh ? ah.compareTo(bh) : am.compareTo(bm);
+    } else {
+      DateTime ad, bd;
+      try {
+        ad = DateTime.parse(a.replaceAll("/", "-").substring(0, 10));
+      } catch (_) {
+        ad = DateTime(2000);
+      }
+      try {
+        bd = DateTime.parse(b.replaceAll("/", "-").substring(0, 10));
+      } catch (_) {
+        bd = DateTime(2000);
+      }
+      return ad.compareTo(bd);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final runtime = widget.data['runtime'];
-    final machines = runtime?['runtimeMachine'] as List? ?? [];
+    final runtime = data['runtime'];
+    if (runtime == null) return _buildNoDataCard(context);
+    final machines = runtime['runtimeMachine'] as List?;
+    if (machines == null || machines.isEmpty) return _buildNoDataCard(context);
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final labelColor = isDark ? GlobalColors.labelDark : GlobalColors.labelLight;
+    final labelColor =
+        isDark ? GlobalColors.labelDark : GlobalColors.labelLight;
     final bgColor = isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg;
 
-    if (machines.isEmpty) {
-      return Card(
-        color: bgColor,
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: SizedBox(
-          height: 230,
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.bar_chart, size: 48, color: labelColor.withOpacity(0.6)),
-                const SizedBox(height: 8),
-                Text('No runtime data', style: TextStyle(color: labelColor, fontSize: 16)),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Chỉ hiển thị 1 máy
     final machine = machines[0];
-    final runData = machine['runtimeMachineData'].firstWhere((d) => d['status'] == 'Run', orElse: () => null);
-    final idleData = machine['runtimeMachineData'].firstWhere((d) => d['status'] == 'Idle', orElse: () => null);
+    final runData =
+        machine['runtimeMachineData'].firstWhere(
+          (d) => d['status'] == 'Run',
+          orElse: () => null,
+        )?['result'] ??
+        [];
+    final idleData =
+        machine['runtimeMachineData'].firstWhere(
+          (d) => d['status'] == 'Idle',
+          orElse: () => null,
+        )?['result'] ??
+        [];
 
-    // Lấy danh sách giờ (x-axis)
-    final allHours = <String>{};
-    if (runData != null) {
-      for (final r in runData['result']) {
-        allHours.add(r['time'].toString().padLeft(2, '0') + ":00");
-      }
+    final allTimes = <String>{};
+    for (final r in [...runData, ...idleData]) {
+      allTimes.add(r['time'].toString());
     }
-    if (idleData != null) {
-      for (final r in idleData['result']) {
-        allHours.add(r['time'].toString().padLeft(2, '0') + ":00");
-      }
-    }
-    final hours = allHours.toList()..sort();
+    final times = allTimes.toList()..sort(_timeSort);
 
     Map<String, int> runMap = {};
     Map<String, int> idleMap = {};
-    if (runData != null) {
-      for (final r in runData['result']) {
-        runMap[r['time'].toString().padLeft(2, '0') + ":00"] = (r['value'] ?? 0).toInt();
-      }
+    for (final r in runData) {
+      runMap[r['time'].toString()] = (r['value'] ?? 0).toInt();
     }
-    if (idleData != null) {
-      for (final r in idleData['result']) {
-        idleMap[r['time'].toString().padLeft(2, '0') + ":00"] = (r['value'] ?? 0).toInt();
-      }
+    for (final r in idleData) {
+      idleMap[r['time'].toString()] = (r['value'] ?? 0).toInt();
     }
 
-    // Chuẩn hóa: tổng luôn là 60 (hoặc 0 nếu không có dữ liệu)
-    final barMax = 60.0;
-    const barWidth = 30.0;
-    const groupSpace = 20.0;
-    final chartWidth = hours.length * (barWidth + groupSpace) + 20;
+    // Tính max Y cho chart
+    int maxSum = 0;
+    for (var t in times) {
+      maxSum = math.max(maxSum, (runMap[t] ?? 0) + (idleMap[t] ?? 0));
+    }
+    double barMax;
+    if (data['runtime']?['type'] == 'H') {
+      barMax = 60;
+    } else {
+      barMax = 19;
+    }
+
+    const barWidth = 26.0;
+    const barInGroupSpace = 16.0;
+    const groupSpace = 36.0;
+    final minChartWidth = 340.0;
+    final chartWidth = math.max(
+      minChartWidth,
+      times.length * (barWidth * 2 + barInGroupSpace + groupSpace) + 10,
+    );
+    final chartHeight = barMax < 30 ? 120.0 : math.min(barMax * 3.1, 240.0);
+
+    // Tạo nhãn Y
+    List<int> yLabels = [];
+    int yStep = ((barMax / 5).ceil()).clamp(1, 30);
+    for (int v = 0; v <= barMax; v += yStep) {
+      yLabels.add(v);
+    }
+    if (yLabels.last != barMax.toInt()) yLabels.add(barMax.toInt());
 
     return Card(
       color: bgColor,
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
+        padding: const EdgeInsets.fromLTRB(12, 18, 20, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Runtime Analysis - ${machine['machine']}",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-                color: isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+            // Tiêu đề
+            Padding(
+              padding: const EdgeInsets.only(left: 12.0, bottom: 6),
+              child: Text(
+                "Runtime Analysis - ${machine['machine']}",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                  color:
+                      isDark
+                          ? GlobalColors.darkPrimaryText
+                          : GlobalColors.lightPrimaryText,
+                ),
               ),
             ),
-            const SizedBox(height: 10),
-
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: chartWidth,
-                child: Column(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Trục Y cố định
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     SizedBox(
-                      height: 28,
-                      child: Row(
-                        children: List.generate(hours.length, (i) {
-                          final hour = hours[i];
-                          final run = runMap[hour] ?? 0;
-                          final idle = idleMap[hour] ?? 0;
-                          return SizedBox(
-                            width: barWidth + groupSpace,
-                            child: Column(
-                              children: [
-                                if (run > 0)
-                                  Text(
-                                    "$run",
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: _runColor,
-                                      fontWeight: FontWeight.bold,
+                      height: chartHeight + 45,
+                      width: 36,
+                      child: Stack(
+                        children:
+                            yLabels.map((v) {
+                              final top =
+                                  chartHeight - (v / barMax) * chartHeight + 18;
+                              return Positioned(
+                                top: top,
+                                left: 0,
+                                right: 0,
+                                child: Text(
+                                  '$v',
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: labelColor.withOpacity(
+                                      v == 0 ? 0.5 : 1,
                                     ),
                                   ),
-                                if (idle > 0)
-                                  Text(
-                                    "$idle",
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: _idleColor,
-                                      fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 10),
+                // Biểu đồ + số đỏ trên đầu + label X
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: chartWidth,
+                      child: Column(
+                        children: [
+                          // Vùng chart (Stack số trên cột)
+                          SizedBox(
+                            height: chartHeight + 25,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: List.generate(times.length, (idx) {
+                                final time = times[idx];
+                                final run = runMap[time] ?? 0;
+                                final idle = idleMap[time] ?? 0;
+
+                                final barHeightRun =
+                                    chartHeight * (run / barMax);
+                                final barHeightIdle =
+                                    chartHeight * (idle / barMax);
+
+                                final maxBar = math.max(
+                                  barHeightRun,
+                                  barHeightIdle,
+                                );
+
+                                return SizedBox(
+                                  width:
+                                      (barWidth * 2) +
+                                      barInGroupSpace +
+                                      groupSpace,
+                                  child: Stack(
+                                    alignment: Alignment.bottomCenter,
+                                    children: [
+                                      Positioned(
+                                        bottom: 0,
+                                        left: 0,
+                                        child: Column(
+                                          children: [
+                                            Container(
+                                              width: barWidth,
+                                              height: barHeightRun,
+                                              decoration: BoxDecoration(
+                                                color: _runColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(5),
+                                              ),
+                                              alignment: Alignment.topCenter,
+                                              child:
+                                                  run > 0
+                                                      ? Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              bottom: 3,
+                                                            ),
+                                                        child: Text(
+                                                          '$run',
+                                                          style: const TextStyle(
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 13,
+                                                            shadows: [
+                                                              Shadow(
+                                                                blurRadius: 2,
+                                                                color:
+                                                                    Colors
+                                                                        .black,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      )
+                                                      : const SizedBox.shrink(),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Bar IDLE
+                                      Positioned(
+                                        bottom: 0,
+                                        left: barWidth + barInGroupSpace,
+                                        child: Column(
+                                          children: [
+                                            Container(
+                                              width: barWidth,
+                                              height: barHeightIdle,
+                                              decoration: BoxDecoration(
+                                                color: _idleColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(5),
+                                              ),
+                                              alignment: Alignment.topCenter,
+                                              child:
+                                                  idle > 0
+                                                      ? Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              bottom: 3,
+                                                            ),
+                                                        child: Text(
+                                                          '$idle',
+                                                          style: const TextStyle(
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 13,
+                                                            shadows: [
+                                                              Shadow(
+                                                                blurRadius: 2,
+                                                                color:
+                                                                    Colors
+                                                                        .black,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      )
+                                                      : const SizedBox.shrink(),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                          // Trục X: label bên dưới mỗi cặp cột
+                          SizedBox(
+                            height: 28,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: List.generate(times.length, (idx) {
+                                final time = times[idx];
+                                return SizedBox(
+                                  width:
+                                      (barWidth * 2) +
+                                      barInGroupSpace +
+                                      groupSpace,
+                                  child: Center(
+                                    child: Text(
+                                      _formatTime(time),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: labelColor,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
-                              ],
+                                );
+                              }),
                             ),
-                          );
-                        }),
+                          ),
+                        ],
                       ),
-                    ),
-
-                    SizedBox(
-                      height: 160,
-                      child: BarChart(
-                        BarChartData(
-                          alignment: BarChartAlignment.spaceAround,
-                          maxY: barMax,
-                          minY: 0,
-                          borderData: FlBorderData(show: false),
-                  gridData: FlGridData(
-                    show: true,
-                    horizontalInterval: 10,
-                    drawVerticalLine: false,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: labelColor.withOpacity(0.15),
-                      strokeWidth: 1,
-                    ),
-                  ),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 30,
-                        getTitlesWidget: (value, meta) => Text(
-                          value == value.toInt() ? value.toInt().toString() : '',
-                          style: TextStyle(fontSize: 11, color: labelColor),
-                        ),
-                        interval: 10,
-                      ),
-                    ),
-                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final idx = value.toInt();
-                          return idx < hours.length
-                              ? Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              hours[idx],
-                              style: TextStyle(fontSize: 14, color: labelColor, fontWeight: FontWeight.w500),
-                            ),
-                          )
-                              : const SizedBox();
-                        },
-                      ),
-                    ),
-                  ),
-                  barGroups: List.generate(hours.length, (hIdx) {
-                    final hour = hours[hIdx];
-                    final run = runMap[hour] ?? 0;
-                    final idle = idleMap[hour] ?? 0;
-                    final isTouched = hIdx == _touchedIndex;
-                    final width = isTouched ? barWidth + 4 : barWidth;
-                    final runColor =
-                        _highlightIdle && !_highlightRun ? _runColor.withOpacity(0.3) : _runColor;
-                    final idleColor =
-                        _highlightRun && !_highlightIdle ? _idleColor.withOpacity(0.3) : _idleColor;
-
-                    if ((run + idle) == 0) {
-                      return BarChartGroupData(x: hIdx, barRods: [
-                        BarChartRodData(
-                          toY: 0,
-                          width: width,
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(8),
-                        )
-                      ]);
-                    }
-                    return BarChartGroupData(
-                      x: hIdx,
-                      barRods: [
-                        BarChartRodData(
-                          toY: barMax,
-                          width: width,
-                          rodStackItems: [
-                            BarChartRodStackItem(0, run.toDouble(), runColor),
-                            BarChartRodStackItem(run.toDouble(), barMax, idleColor),
-                          ],
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: isTouched
-                              ? const BorderSide(color: Colors.amber, width: 2)
-                              : BorderSide.none,
-                        ),
-                      ],
-                    );
-                  }),
-                  groupsSpace: groupSpace,
-                  barTouchData: BarTouchData(
-                    enabled: true,
-                    handleBuiltInTouches: true,
-                    touchCallback: (event, response) {
-                      if (response == null || response.spot == null) return;
-                      if (event is FlTapUpEvent) {
-                        setState(() {
-                          _touchedIndex = response.spot!.touchedBarGroupIndex;
-                        });
-                      }
-                    },
-                    touchTooltipData: BarTouchTooltipData(
-
-                      tooltipRoundedRadius: 10,
-                      tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                      tooltipMargin: 8,
-                      fitInsideVertically: true,
-                      fitInsideHorizontally: true,
-                      getTooltipItem: (group, groupIdx, rod, rodIdx) {
-                        final hour = hours[group.x.toInt()];
-                        final run = runMap[hour] ?? 0;
-                        final idle = idleMap[hour] ?? 0;
-                        if ((run + idle) == 0) return null;
-                        return BarTooltipItem(
-                          "Run: $run\nIdle: $idle",
-                          const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                        );
-                      },
                     ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 13),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  onTap: _toggleRun,
-                  child: Row(
-                    children: [
-                      _legendDot(color: _runColor),
-                      const SizedBox(width: 5),
-                      Text(
-                        "Run",
-                        style: TextStyle(
-                          color: labelColor,
-                          fontSize: 14,
-                          fontWeight: _highlightRun ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 20),
-                GestureDetector(
-                  onTap: _toggleIdle,
-                  child: Row(
-                    children: [
-                      _legendDot(color: _idleColor),
-                      const SizedBox(width: 5),
-                      Text(
-                        "Idle",
-                        style: TextStyle(
-                          color: labelColor,
-                          fontSize: 14,
-                          fontWeight: _highlightIdle ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                const SizedBox(width: 6),
               ],
             ),
-            const SizedBox(height: 5),
+            // Legend cố định (luôn ở giữa card, không bị cuộn)
+            Padding(
+              padding: const EdgeInsets.only(
+                top: 12.0,
+                left: 18.0,
+                right: 18.0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _legendDot(_runColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Run",
+                    style: TextStyle(
+                      color: labelColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  _legendDot(_idleColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Idle",
+                    style: TextStyle(
+                      color: labelColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _legendDot({required Color color}) {
+  Widget _legendDot(Color color) {
     return Container(
       width: 15,
       height: 15,
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(7.5),
+      ),
+    );
+  }
+
+  Widget _buildNoDataCard(BuildContext context) {
+    final labelColor =
+        Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+    return Card(
+      color: Theme.of(context).cardColor,
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: SizedBox(
+        height: 230,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.bar_chart,
+                size: 48,
+                color: labelColor.withOpacity(0.6),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'No runtime data',
+                style: TextStyle(color: labelColor, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

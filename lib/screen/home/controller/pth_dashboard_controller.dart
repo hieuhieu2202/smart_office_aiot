@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../../../service/pth_dashboard_api.dart';
 
 class PTHDashboardController extends GetxController {
@@ -14,16 +15,17 @@ class PTHDashboardController extends GetxController {
   var isLoading = false.obs;
   var monitoringData = {}.obs;
 
-  final String defaultGroup = "PTH_VI";
+  final String defaultGroup = "PACKING_AVI";
   final String defaultMachine = "ALL";
   final String defaultModel = "ALL";
-  final String defaultRange = "2025/07/15 07:30 - 2025/07/15 19:30";
+  late final String defaultRange ;
   final int defaultOpTime = 30;
 
   @override
   void onInit() {
     super.onInit();
     loadGroups();
+    defaultRange= getDefaultRange();
     fetchMonitoring(
       groupName: defaultGroup,
       machineName: defaultMachine,
@@ -33,6 +35,11 @@ class PTHDashboardController extends GetxController {
     );
   }
 
+  String getDefaultRange() {
+    final now = DateTime.now();
+    String formatDate=DateFormat('yyyy/MM/dd').format(now);
+    return "$formatDate 07:30 - $formatDate 19:30";
+  }
   // Load danh sách group cho dropdown
   void loadGroups() async {
     isLoading.value = true;

@@ -28,6 +28,9 @@ class _PTHDashboardScreenState extends State<PTHDashboardScreen> with TickerProv
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchMonitoring();
+    });
   }
 
   void openFilter() => setState(() => filterPanelOpen = true);

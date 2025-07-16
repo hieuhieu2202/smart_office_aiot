@@ -39,7 +39,7 @@ class PTHDashboardApi {
   }
 
   static Future<List<String>> getModelNames(String groupName, String machineName) async {
-    var url = Uri.parse("${_baseUrl}GetModelNames?groupName=$groupName&machineName=$machineName");
+    var url = Uri.parse("${_baseUrl}GetModelNames?groupName=$groupName");
     var res = await http.get(url, headers: headers);
     print('[DEBUG] GET $url');
     print('[DEBUG] Status: ${res.statusCode}');
