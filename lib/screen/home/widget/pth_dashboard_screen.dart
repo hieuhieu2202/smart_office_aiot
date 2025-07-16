@@ -28,6 +28,7 @@ class _PTHDashboardScreenState extends State<PTHDashboardScreen> with TickerProv
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
+    // Tải data ngay từ đầu
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.fetchMonitoring();
     });
@@ -37,15 +38,22 @@ class _PTHDashboardScreenState extends State<PTHDashboardScreen> with TickerProv
   void closeFilter() => setState(() => filterPanelOpen = false);
 
   @override
+  void dispose() {
+    _refreshController.dispose();
+    // Giữ controller nếu cần dùng lại, hoặc xóa nếu bạn thực sự muốn clear instance
+    // Get.delete<PTHDashboardController>(); // thường KHÔNG cần xóa
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final data = controller.monitoringData;
 
     // Header gradient color
     final headerGradient = LinearGradient(
       colors: isDark
-          ? const [Color(0xFF303F9F), Color(0xFF1A237E)] // darker shades
-          : const [Color(0xFF5C6BC0), Color(0xFF64B5F6)], // lighter shades
+          ? const [Color(0xFF303F9F), Color(0xFF1A237E)]
+          : const [Color(0xFF5C6BC0), Color(0xFF64B5F6)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
@@ -65,6 +73,8 @@ class _PTHDashboardScreenState extends State<PTHDashboardScreen> with TickerProv
             ),
           ),
           body: Obx(() {
+            // *** LẤY DATA Ở ĐÂY ***
+            final data = controller.monitoringData.value ?? {};
             return Column(
               children: [
                 // Header AppBar custom gradient
@@ -186,9 +196,9 @@ class _PTHDashboardScreenState extends State<PTHDashboardScreen> with TickerProv
         // Loading overlay
         Obx(() => controller.isLoading.value
             ? Container(
-                color: Colors.black.withOpacity(0.3),
-                child: const Center(child: CircularProgressIndicator()),
-              )
+          color: Colors.black.withOpacity(0.3),
+          child: const Center(child: CircularProgressIndicator()),
+        )
             : const SizedBox.shrink()),
       ],
     );
