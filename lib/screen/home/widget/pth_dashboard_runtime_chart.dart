@@ -2,13 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../config/global_color.dart';
 
-class PTHDashboardRuntimeChart extends StatelessWidget {
+const _runColor = Color(0xFF4CAF50);
+const _idleColor = Color(0xFFF44336);
+
+class PTHDashboardRuntimeChart extends StatefulWidget {
   final Map data;
   const PTHDashboardRuntimeChart({super.key, required this.data});
 
   @override
+  State<PTHDashboardRuntimeChart> createState() => _PTHDashboardRuntimeChartState();
+}
+
+class _PTHDashboardRuntimeChartState extends State<PTHDashboardRuntimeChart> {
+  int _touchedIndex = -1;
+  bool _highlightRun = false;
+  bool _highlightIdle = false;
+
+  void _toggleRun() {
+    setState(() {
+      _highlightRun = !_highlightRun;
+      if (_highlightRun) _highlightIdle = false;
+    });
+  }
+
+  void _toggleIdle() {
+    setState(() {
+      _highlightIdle = !_highlightIdle;
+      if (_highlightIdle) _highlightRun = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final runtime = data['runtime'];
+    final runtime = widget.data['runtime'];
     final machines = runtime?['runtimeMachine'] as List? ?? [];
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final labelColor = isDark ? GlobalColors.labelDark : GlobalColors.labelLight;
@@ -18,10 +44,19 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
       return Card(
         color: bgColor,
         elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: const SizedBox(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: SizedBox(
           height: 230,
-          child: Center(child: Text('No data available')),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.bar_chart, size: 48, color: labelColor.withOpacity(0.6)),
+                const SizedBox(height: 8),
+                Text('No runtime data', style: TextStyle(color: labelColor, fontSize: 16)),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -60,11 +95,14 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
 
     // Chuẩn hóa: tổng luôn là 60 (hoặc 0 nếu không có dữ liệu)
     final barMax = 60.0;
+    const barWidth = 30.0;
+    const groupSpace = 20.0;
+    final chartWidth = hours.length * (barWidth + groupSpace) + 20;
 
     return Card(
       color: bgColor,
       elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
         child: Column(
@@ -80,52 +118,56 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            // Hiển thị số phút trên đầu từng cột
-            SizedBox(
-              height: 28,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: List.generate(hours.length, (i) {
-                  final hour = hours[i];
-                  final run = runMap[hour] ?? 0;
-                  final idle = idleMap[hour] ?? 0;
-                  if ((run + idle) == 0) {
-                    return const SizedBox(width: 34); // Không có data, để trống
-                  }
-                  return Column(
-                    children: [
-                      if (run > 0)
-                        Text(
-                          "$run",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: const Color(0xFF4CAF50),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      if (idle > 0)
-                        Text(
-                          "$idle",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: const Color(0xFFF44336),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                    ],
-                  );
-                }),
-              ),
-            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: chartWidth,
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 28,
+                      child: Row(
+                        children: List.generate(hours.length, (i) {
+                          final hour = hours[i];
+                          final run = runMap[hour] ?? 0;
+                          final idle = idleMap[hour] ?? 0;
+                          return SizedBox(
+                            width: barWidth + groupSpace,
+                            child: Column(
+                              children: [
+                                if (run > 0)
+                                  Text(
+                                    "$run",
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: _runColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                if (idle > 0)
+                                  Text(
+                                    "$idle",
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: _idleColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
 
-            SizedBox(
-              height: 160,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: barMax,
-                  minY: 0,
-                  borderData: FlBorderData(show: false),
+                    SizedBox(
+                      height: 160,
+                      child: BarChart(
+                        BarChartData(
+                          alignment: BarChartAlignment.spaceAround,
+                          maxY: barMax,
+                          minY: 0,
+                          borderData: FlBorderData(show: false),
                   gridData: FlGridData(
                     show: true,
                     horizontalInterval: 10,
@@ -171,11 +213,18 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
                     final hour = hours[hIdx];
                     final run = runMap[hour] ?? 0;
                     final idle = idleMap[hour] ?? 0;
+                    final isTouched = hIdx == _touchedIndex;
+                    final width = isTouched ? barWidth + 4 : barWidth;
+                    final runColor =
+                        _highlightIdle && !_highlightRun ? _runColor.withOpacity(0.3) : _runColor;
+                    final idleColor =
+                        _highlightRun && !_highlightIdle ? _idleColor.withOpacity(0.3) : _idleColor;
+
                     if ((run + idle) == 0) {
                       return BarChartGroupData(x: hIdx, barRods: [
                         BarChartRodData(
                           toY: 0,
-                          width: 26,
+                          width: width,
                           color: Colors.grey[300],
                           borderRadius: BorderRadius.circular(8),
                         )
@@ -186,20 +235,31 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
                       barRods: [
                         BarChartRodData(
                           toY: barMax,
-                          width: 26,
+                          width: width,
                           rodStackItems: [
-                            BarChartRodStackItem(0, run.toDouble(), const Color(0xFF4CAF50)),
-                            BarChartRodStackItem(run.toDouble(), barMax, const Color(0xFFF44336)),
+                            BarChartRodStackItem(0, run.toDouble(), runColor),
+                            BarChartRodStackItem(run.toDouble(), barMax, idleColor),
                           ],
                           borderRadius: BorderRadius.circular(8),
+                          borderSide: isTouched
+                              ? const BorderSide(color: Colors.amber, width: 2)
+                              : BorderSide.none,
                         ),
                       ],
                     );
                   }),
-                  groupsSpace: 18,
+                  groupsSpace: groupSpace,
                   barTouchData: BarTouchData(
                     enabled: true,
                     handleBuiltInTouches: true,
+                    touchCallback: (event, response) {
+                      if (response == null || response.spot == null) return;
+                      if (event is FlTapUpEvent) {
+                        setState(() {
+                          _touchedIndex = response.spot!.touchedBarGroupIndex;
+                        });
+                      }
+                    },
                     touchTooltipData: BarTouchTooltipData(
 
                       tooltipRoundedRadius: 10,
@@ -226,13 +286,41 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _legendDot(color: const Color(0xFF4CAF50)),
-                const SizedBox(width: 5),
-                Text("Run", style: TextStyle(color: labelColor, fontSize: 14)),
+                GestureDetector(
+                  onTap: _toggleRun,
+                  child: Row(
+                    children: [
+                      _legendDot(color: _runColor),
+                      const SizedBox(width: 5),
+                      Text(
+                        "Run",
+                        style: TextStyle(
+                          color: labelColor,
+                          fontSize: 14,
+                          fontWeight: _highlightRun ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(width: 20),
-                _legendDot(color: const Color(0xFFF44336)),
-                const SizedBox(width: 5),
-                Text("Idle", style: TextStyle(color: labelColor, fontSize: 14)),
+                GestureDetector(
+                  onTap: _toggleIdle,
+                  child: Row(
+                    children: [
+                      _legendDot(color: _idleColor),
+                      const SizedBox(width: 5),
+                      Text(
+                        "Idle",
+                        style: TextStyle(
+                          color: labelColor,
+                          fontSize: 14,
+                          fontWeight: _highlightIdle ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 5),
