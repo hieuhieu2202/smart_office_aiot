@@ -100,10 +100,10 @@ class PTHDashboardOutputChart extends StatelessWidget {
                 touchTooltipData: BarTouchTooltipData(
                   getTooltipItem: (group, groupIdx, rod, rodIdx) {
                     final sec = sections[group.x.toInt()];
-                    return BarTooltipItem(
-                      "${rodIdx == 0 ? "PASS" : "FAIL"}\nSection $sec: ${rod.toY}",
-                      const TextStyle(color: Colors.white, fontSize: 13),
-                    );
+                    // return BarTooltipItem(
+                    //   "${rodIdx == 0 ? "PASS" : "FAIL"}\nSection $sec: ${rod.toY}",
+                    //   const TextStyle(color: Colors.white, fontSize: 13),
+                    // );
                   },
                 ),
               ),

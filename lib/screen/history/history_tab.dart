@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../config/global_color.dart';
 import '../../generated/l10n.dart';
 import '../../widget/custom_app_bar.dart';
-import '../login/controller/login_controller.dart';
 import '../setting/controller/setting_controller.dart';
 
 class HistoryTab extends StatefulWidget {
