@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../screen/login/controller/token_manager.dart';
@@ -115,4 +116,41 @@ class PTHDashboardApi {
       throw Exception('Failed to load monitoring detail by status (${res.statusCode})');
     }
   }
+  static Future<Map<String, dynamic>?> getMonitoringDataById(int id) async {
+    final url = Uri.parse("${_baseUrl}GetMonitoringDataById");
+    final body = json.encode({"id": id});
+    final res = await http.post(url, headers: headers, body: body);
+    print('[DEBUG] POST $url');
+    print('[DEBUG] Body: ${res.body}');
+    if (res.statusCode == 200 && res.body.isNotEmpty) {
+      return json.decode(res.body);
+    }
+    return null;
+  }
+
+  static Future<ImageProvider?> fetchRawImage(String path) async {
+    // Bỏ encode, thay \ thành / để đảm bảo URL hợp lệ
+    final normalizedPath = path.replaceAll("\\", "/");
+
+    // Gắn path trực tiếp vào cuối URL
+    final url = Uri.parse("https://10.220.23.244:4433/api/Image/raw/$normalizedPath");
+
+    try {
+      print("[DEBUG] GET $url");
+      final res = await http.get(url, headers: headers);
+
+      print("[DEBUG] Status: ${res.statusCode}");
+      if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
+        return MemoryImage(res.bodyBytes);
+      } else {
+        print("[ERROR] GET ảnh lỗi: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR] fetchRawImage: $e");
+    }
+    return null;
+  }
+
+
+
 }

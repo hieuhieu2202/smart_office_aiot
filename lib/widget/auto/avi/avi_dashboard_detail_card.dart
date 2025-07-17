@@ -1,13 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:get/get.dart';
 import '../../../config/global_color.dart';
+import '../../../service/pth_dashboard_api.dart';
 import 'avi_dashboard_detail_row.dart';
+import 'avi_dashboard_image_grid_dialog.dart';
 import 'avi_dashboard_status_chip.dart';
 
 class PTHDashboardDetailCard extends StatelessWidget {
   final Map<String, dynamic> item;
 
   const PTHDashboardDetailCard({super.key, required this.item});
+
+  // Hàm mở popup grid ảnh
+  Future<void> _showImages(BuildContext context) async {
+    final int? id = item['id'] is int ? item['id'] : int.tryParse(item['id']?.toString() ?? '');
+    if (id == null) {
+      Get.snackbar("Lỗi", "Không lấy được ID hợp lệ!");
+      return;
+    }
+    // Gọi API lấy chi tiết theo ID
+    final detail = await PTHDashboardApi.getMonitoringDataById(id);
+    if (detail == null) {
+      Get.snackbar("Lỗi", "Không lấy được dữ liệu ảnh!");
+      return;
+    }
+    final String imageDetailsJson = detail['imageDetails'] ?? '';
+    if (imageDetailsJson.isEmpty) {
+      Get.snackbar("Không có ảnh", "Bản ghi không có danh sách ảnh.");
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (ctx) => PTHDashboardImageGridDialog(
+        serialNumber: detail['serialNumber'] ?? '',
+        imageDetailsJson: imageDetailsJson,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,21 +48,19 @@ class PTHDashboardDetailCard extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(18),
-      onTap: () {
-        // TODO: Handle click if needed (e.g., show dialog detail by id)
-      },
+      onTap: () => _showImages(context),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 170),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           gradient: isDark
-              ? LinearGradient(
+              ? const LinearGradient(
             colors: [Color(0xFF26314D), Color(0xFF2B447A)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
-              : LinearGradient(
+              : const LinearGradient(
             colors: [Color(0xFFe3f0fa), Color(0xFFb6d0ea)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -62,7 +90,9 @@ class PTHDashboardDetailCard extends StatelessWidget {
               height: 42,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isFail ? Colors.red.withOpacity(0.07) : Colors.green.withOpacity(0.09),
+                color: isFail
+                    ? Colors.red.withOpacity(0.07)
+                    : Colors.green.withOpacity(0.09),
               ),
               alignment: Alignment.center,
               child: Icon(Icons.qr_code_2, size: 26, color: statusColor),
