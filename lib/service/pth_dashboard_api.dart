@@ -8,7 +8,7 @@ class PTHDashboardApi {
     'Authorization': 'Bearer $token',
     'Content-Type': 'application/json',
   };
-  static final String _baseUrl = "https://10.220.23.244:4433/api/ccdmachine/aoivi/";
+  static final String _baseUrl = "https://10.220.23.244:4433/api/CCDMachine/AOIVI/";
 
   static Future<List<String>> getGroupNames() async {
     var url = Uri.parse("${_baseUrl}GetGroupNames");
@@ -82,6 +82,37 @@ class PTHDashboardApi {
       return {};
     } else {
       throw Exception('Failed to load monitoring data (${res.statusCode})');
+    }
+  }
+  static Future<List<Map<String,dynamic>>> getMonitoringDetailByStatus({
+    required String status,
+    required String groupName,
+    required String machineName,
+    required String modelName,
+    required String rangeDateTime,
+}) async {
+    var url = Uri.parse("${_baseUrl}GetMonitoringDataByStatus");
+    var body = json.encode({
+      "status": status,
+      "groupName": groupName,
+      "machineName": machineName,
+      "modelName": modelName,
+      "rangeDateTime": rangeDateTime,
+    });
+
+    print('[DEBUG] POST $url');
+    print('[DEBUG] Body send: $body');
+
+    var res = await http.post(url, headers: headers, body: body);
+    print('[DEBUG] Status: ${res.statusCode}');
+    print('[DEBUG] Body: ${res.body.substring(0, res.body.length > 200 ? 200 : res.body.length)}');
+
+    if (res.statusCode == 200 && res.body.isNotEmpty) {
+      return List<Map<String,dynamic>>.from(json.decode(res.body));
+    } else if (res.statusCode == 204) {
+      return [];
+    } else {
+      throw Exception('Failed to load monitoring detail by status (${res.statusCode})');
     }
   }
 }

@@ -14,16 +14,16 @@ List<AppProject> appProjects = [
         progress: 1.0,
         status: "Ready",
         icon: Icons.camera_alt,
-        screenType: "aoi",
-        subProjects: [
-          AppProject(
-            name: "PTH_DASHBOARD",
-            progress: 1.0,
-            status: "Ready",
-            icon: Icons.dashboard,
-            screenType: "pth_dashboard",
-          ),
-        ],
+        screenType: "pth_dashboard",
+        // subProjects: [
+        //   AppProject(
+        //     name: "PTH_DASHBOARD",
+        //     progress: 1.0,
+        //     status: "Ready",
+        //     icon: Icons.dashboard,
+        //     screenType: "pth_dashboard",
+        //   ),
+        // ],
       ),
       AppProject(
         name: "PCBA LINE",

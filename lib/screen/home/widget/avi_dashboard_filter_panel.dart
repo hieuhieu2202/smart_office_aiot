@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../config/global_color.dart';
-import '../controller/pth_dashboard_controller.dart';
+import '../controller/avi_dashboard_controller.dart';
 
 class PTHDashboardFilterPanel extends StatefulWidget {
   final bool show;
