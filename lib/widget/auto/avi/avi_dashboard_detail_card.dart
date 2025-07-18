@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import '../../../config/global_color.dart';
-import '../../../service/pth_dashboard_api.dart';
+import '../../../service/aoivi_dashboard_api.dart';
 import 'avi_dashboard_detail_row.dart';
 import 'avi_dashboard_image_grid_dialog.dart';
 import 'avi_dashboard_status_chip.dart';
@@ -19,17 +19,20 @@ class PTHDashboardDetailCard extends StatelessWidget {
       Get.snackbar("Lỗi", "Không lấy được ID hợp lệ!");
       return;
     }
+
     // Gọi API lấy chi tiết theo ID
     final detail = await PTHDashboardApi.getMonitoringDataById(id);
     if (detail == null) {
       Get.snackbar("Lỗi", "Không lấy được dữ liệu ảnh!");
       return;
     }
+
     final String imageDetailsJson = detail['imageDetails'] ?? '';
-    if (imageDetailsJson.isEmpty) {
+    if (imageDetailsJson.isEmpty || imageDetailsJson.toUpperCase() == 'N/A') {
       Get.snackbar("Không có ảnh", "Bản ghi không có danh sách ảnh.");
       return;
     }
+
     showDialog(
       context: context,
       builder: (ctx) => PTHDashboardImageGridDialog(

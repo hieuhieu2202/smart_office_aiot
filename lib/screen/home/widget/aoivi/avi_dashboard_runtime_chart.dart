@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import '../../../config/global_color.dart';
+import '../../../../config/global_color.dart';
 
 const _runColor = Color(0xFF4CAF50);
 const _idleColor = Color(0xFFF44336);

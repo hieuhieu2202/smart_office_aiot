@@ -2,25 +2,25 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:smart_factory/screen/home/widget/avi_dashboard_filter_panel.dart';
-import 'package:smart_factory/screen/home/widget/avi_dashboard_machine_detail.dart';
-import 'package:smart_factory/screen/home/widget/avi_dashboard_output_chart.dart';
-import 'package:smart_factory/screen/home/widget/avi_dashboard_runtime_chart.dart';
-import 'package:smart_factory/screen/home/widget/avi_dashboard_summary.dart';
-import '../../../config/global_color.dart';
-import '../controller/avi_dashboard_controller.dart';
+import '../../../../config/global_color.dart';
+import '../../controller/avi_dashboard_controller.dart';
+import 'avi_dashboard_filter_panel.dart';
+import 'avi_dashboard_machine_detail.dart';
+import 'avi_dashboard_output_chart.dart';
+import 'avi_dashboard_runtime_chart.dart';
+import 'avi_dashboard_summary.dart';
 
 
-class PTHDashboardScreen extends StatefulWidget {
-  const PTHDashboardScreen({super.key});
+class AOIVIDashboardScreen extends StatefulWidget {
+  const AOIVIDashboardScreen({super.key});
 
   @override
-  State<PTHDashboardScreen> createState() => _PTHDashboardScreenState();
+  State<AOIVIDashboardScreen> createState() => _AOIVIDashboardScreenState();
 }
 
-class _PTHDashboardScreenState extends State<PTHDashboardScreen>
+class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
     with TickerProviderStateMixin {
-  final PTHDashboardController controller = Get.put(PTHDashboardController());
+  final AOIVIDashboardController controller = Get.put(AOIVIDashboardController());
   bool filterPanelOpen = false;
   late AnimationController _refreshController;
   bool _backPressed = false;

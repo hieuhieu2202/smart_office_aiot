@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../config/global_color.dart';
+import '../../../../config/global_color.dart';
 
 class PTHDashboardMachineDetail extends StatelessWidget {
   final Map data;

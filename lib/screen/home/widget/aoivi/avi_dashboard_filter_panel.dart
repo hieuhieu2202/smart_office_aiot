@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import '../../../config/global_color.dart';
-import '../controller/avi_dashboard_controller.dart';
+import '../../../../config/global_color.dart';
+import '../../controller/avi_dashboard_controller.dart';
 
 class PTHDashboardFilterPanel extends StatefulWidget {
   final bool show;
@@ -22,7 +22,7 @@ class PTHDashboardFilterPanel extends StatefulWidget {
 class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _offset;
-  late PTHDashboardController dashboardController;
+  late AOIVIDashboardController dashboardController;
 
   String? _group;
   String? _machine;
@@ -40,7 +40,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
     _offset = Tween<Offset>(begin: const Offset(1,0), end: Offset.zero).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     if (widget.show) _controller.forward();
 
-    dashboardController = Get.find<PTHDashboardController>();
+    dashboardController = Get.find<AOIVIDashboardController>();
     _group = dashboardController.selectedGroup.value;
     _machine = dashboardController.selectedMachine.value;
     _model = dashboardController.selectedModel.value;

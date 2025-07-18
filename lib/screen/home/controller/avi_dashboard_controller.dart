@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import '../../../service/pth_dashboard_api.dart';
+import '../../../service/aoivi_dashboard_api.dart';
 
-class PTHDashboardController extends GetxController {
+class AOIVIDashboardController extends GetxController {
   var groupNames = <String>[].obs;
   var machineNames = <String>[].obs;
   var modelNames = <String>[].obs;
@@ -16,7 +16,7 @@ class PTHDashboardController extends GetxController {
   var monitoringData = Rxn<Map>(); // Dùng Rxn để tránh lỗi null
 
   // Thông tin mặc định
-  final String defaultGroup = "PACKING_AVI";
+  final String defaultGroup = "ALL";
   final String defaultMachine = "ALL";
   final String defaultModel = "ALL";
   late final String defaultRange;

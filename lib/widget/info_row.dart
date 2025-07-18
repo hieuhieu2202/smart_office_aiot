@@ -26,9 +26,10 @@ class InfoRow extends StatelessWidget {
             padding: const EdgeInsets.only(right: 10),
             child: Icon(
               icon,
-              color: isDarkMode
-                  ? GlobalColors.primaryButtonDark
-                  : GlobalColors.primaryButtonLight,
+              color:
+                  isDarkMode
+                      ? GlobalColors.primaryButtonDark
+                      : GlobalColors.primaryButtonLight,
               size: 20,
             ),
           ),
@@ -37,9 +38,10 @@ class InfoRow extends StatelessWidget {
           child: Text(
             label,
             style: GlobalTextStyles.bodyMedium(isDark: isDarkMode).copyWith(
-              color: isDarkMode
-                  ? GlobalColors.darkPrimaryText
-                  : GlobalColors.lightPrimaryText,
+              color:
+                  isDarkMode
+                      ? GlobalColors.darkPrimaryText
+                      : GlobalColors.lightPrimaryText,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -50,9 +52,8 @@ class InfoRow extends StatelessWidget {
           child: Text(
             value,
             style: GlobalTextStyles.bodyMedium(isDark: isDarkMode).copyWith(
-              color: isDarkMode
-                  ? GlobalColors.labelDark
-                  : GlobalColors.labelLight,
+              color:
+                  isDarkMode ? GlobalColors.labelDark : GlobalColors.labelLight,
             ),
             softWrap: true,
             maxLines: 3,

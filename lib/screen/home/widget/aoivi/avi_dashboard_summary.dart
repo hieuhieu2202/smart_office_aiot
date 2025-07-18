@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart'; // Nếu chưa có, nhớ import GetX!
-import 'package:smart_factory/screen/home/widget/avi_dashboard_detail_screen.dart';
-import '../../../config/global_color.dart';
-import '../../../config/global_text_style.dart';
-import '../controller/avi_dashboard_controller.dart';
+import 'package:smart_factory/screen/home/widget/aoivi/avi_dashboard_detail_screen.dart';
+import '../../../../config/global_color.dart';
+import '../../../../config/global_text_style.dart';
+import '../../controller/avi_dashboard_controller.dart';
 
 class PTHDashboardSummary extends StatelessWidget {
   final Map data;
@@ -13,7 +13,7 @@ class PTHDashboardSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final summary = data['summary'] ?? {};
-    final controller = Get.find<PTHDashboardController>(); // Lấy filter từ controller
+    final controller = Get.find<AOIVIDashboardController>(); // Lấy filter từ controller
 
     final statList = [
       {
@@ -109,7 +109,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 70,
+      width: 64,
       margin: const EdgeInsets.symmetric(horizontal: 2),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

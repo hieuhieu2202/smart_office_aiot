@@ -17,10 +17,14 @@ class ProfileScreen extends StatelessWidget {
 
     return Obx(() {
       final isDark = settingController.isDarkMode.value;
-      final accentColor = isDark ? GlobalColors.primaryButtonDark : GlobalColors.primaryButtonLight;
+      final accentColor =
+          isDark
+              ? GlobalColors.primaryButtonDark
+              : GlobalColors.primaryButtonLight;
 
       return Scaffold(
-        backgroundColor: isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
+        backgroundColor:
+            isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
         body: SafeArea(
           child: Column(
             children: [
@@ -30,8 +34,12 @@ class ProfileScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.arrow_back,
-                        color: isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+                      icon: Icon(
+                        Icons.arrow_back,
+                        color:
+                            isDark
+                                ? GlobalColors.darkPrimaryText
+                                : GlobalColors.lightPrimaryText,
                         size: 28,
                       ),
                       onPressed: () => Get.back(),
@@ -39,8 +47,13 @@ class ProfileScreen extends StatelessWidget {
                     Expanded(
                       child: Text(
                         text.personal_info, // đa ngôn ngữ
-                        style: GlobalTextStyles.bodyLarge(isDark: isDark).copyWith(
-                          color: isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+                        style: GlobalTextStyles.bodyLarge(
+                          isDark: isDark,
+                        ).copyWith(
+                          color:
+                              isDark
+                                  ? GlobalColors.darkPrimaryText
+                                  : GlobalColors.lightPrimaryText,
                           fontWeight: FontWeight.bold,
                           fontSize: 22,
                         ),
@@ -88,21 +101,33 @@ class ProfileScreen extends StatelessWidget {
                               CircleAvatar(
                                 radius: 44,
                                 backgroundColor: accentColor,
-                                backgroundImage: userProfileManager.avatarUrl.value.isNotEmpty
-                                    ? NetworkImage(userProfileManager.avatarUrl.value)
-                                    : null,
-                                child: userProfileManager.avatarUrl.value.isEmpty
-                                    ? Text(
-                                  userProfileManager.civetUserno.value.isNotEmpty
-                                      ? userProfileManager.civetUserno.value[0]
-                                      : 'U',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 28,
-                                  ),
-                                )
-                                    : null,
+                                backgroundImage:
+                                    userProfileManager
+                                            .avatarUrl
+                                            .value
+                                            .isNotEmpty
+                                        ? NetworkImage(
+                                          userProfileManager.avatarUrl.value,
+                                        )
+                                        : null,
+                                child:
+                                    userProfileManager.avatarUrl.value.isEmpty
+                                        ? Text(
+                                          userProfileManager
+                                                  .civetUserno
+                                                  .value
+                                                  .isNotEmpty
+                                              ? userProfileManager
+                                                  .civetUserno
+                                                  .value[0]
+                                              : 'U',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 28,
+                                          ),
+                                        )
+                                        : null,
                               ),
                             ],
                           ),
@@ -110,13 +135,22 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       Card(
                         elevation: 5,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        color: isDark
-                            ? GlobalColors.cardDarkBg.withOpacity(0.99)
-                            : GlobalColors.cardLightBg.withOpacity(0.99),
-                        margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        color:
+                            isDark
+                                ? GlobalColors.cardDarkBg.withOpacity(0.99)
+                                : GlobalColors.cardLightBg.withOpacity(0.99),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 6,
+                        ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 17, horizontal: 18),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 17,
+                            horizontal: 18,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
@@ -124,7 +158,9 @@ class ProfileScreen extends StatelessWidget {
                                 userProfileManager.cnName.value.isNotEmpty
                                     ? userProfileManager.cnName.value
                                     : text.username,
-                                style: GlobalTextStyles.bodyLarge(isDark: isDark).copyWith(
+                                style: GlobalTextStyles.bodyLarge(
+                                  isDark: isDark,
+                                ).copyWith(
                                   color: accentColor,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 22,
@@ -134,14 +170,26 @@ class ProfileScreen extends StatelessWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.badge, size: 18, color: accentColor.withOpacity(0.65)),
+                                  Icon(
+                                    Icons.badge,
+                                    size: 18,
+                                    color: accentColor.withOpacity(0.65),
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    userProfileManager.civetUserno.value.isNotEmpty
+                                    userProfileManager
+                                            .civetUserno
+                                            .value
+                                            .isNotEmpty
                                         ? "ID: ${userProfileManager.civetUserno.value}"
                                         : text.no_id,
-                                    style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
-                                      color: isDark ? GlobalColors.labelDark : GlobalColors.labelLight,
+                                    style: GlobalTextStyles.bodySmall(
+                                      isDark: isDark,
+                                    ).copyWith(
+                                      color:
+                                          isDark
+                                              ? GlobalColors.labelDark
+                                              : GlobalColors.labelLight,
                                     ),
                                   ),
                                 ],
@@ -219,6 +267,7 @@ class ProfileDetailItem extends StatelessWidget {
   final String label;
   final String value;
   final bool isDark;
+
   const ProfileDetailItem({
     super.key,
     required this.icon,
@@ -229,22 +278,25 @@ class ProfileDetailItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = isDark ? GlobalColors.primaryButtonDark : GlobalColors.primaryButtonLight;
+    final accent =
+        isDark
+            ? GlobalColors.primaryButtonDark
+            : GlobalColors.primaryButtonLight;
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      color: isDark
-          ? GlobalColors.cardDarkBg.withOpacity(0.97)
-          : GlobalColors.cardLightBg.withOpacity(0.98),
+      color:
+          isDark
+              ? GlobalColors.cardDarkBg.withOpacity(0.97)
+              : GlobalColors.cardLightBg.withOpacity(0.98),
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: ListTile(
         leading: Icon(icon, color: accent, size: 28),
         title: Text(
           label,
-          style: GlobalTextStyles.bodyMedium(isDark: isDark).copyWith(
-            color: accent,
-            fontWeight: FontWeight.w600,
-          ),
+          style: GlobalTextStyles.bodyMedium(
+            isDark: isDark,
+          ).copyWith(color: accent, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
           value.isNotEmpty ? value : S.of(context).not_updated ?? "N/A",

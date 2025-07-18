@@ -3,7 +3,8 @@ import 'package:get_storage/get_storage.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:jwt_decoder/jwt_decoder.dart';
-import '../../../config/auth_config.dart';
+
+import 'auth_config.dart';
 
 class TokenManager {
   static final TokenManager _instance = TokenManager._internal();

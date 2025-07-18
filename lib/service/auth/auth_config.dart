@@ -1,9 +1,12 @@
+
+import 'package:smart_factory/service/auth/token_manager.dart';
+
 class AuthConfig {
   static const String baseUrl = 'https://10.220.23.244';
   static const String tokenEndpoint = '/connect/token';
   static const String clientId = 'smartfactoryapp';
   static const String clientSecret = 'smartfactoryapp';
-
+  static String get token => TokenManager().civetToken.value;
   static Map<String, String> getAuthHeaders() {
     return {'Content-Type': 'application/x-www-form-urlencoded'};
   }
@@ -13,6 +16,13 @@ class AuthConfig {
       'client_id': clientId,
       'client_secret': clientSecret,
       'grant_type': grantType,
+    };
+  }
+
+  static Map<String, String> getAuthorizedHeaders() {
+    return {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
     };
   }
 }

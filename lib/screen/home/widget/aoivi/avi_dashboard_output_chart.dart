@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:math' as math;
-import '../../../config/global_color.dart';
+
+import '../../../../config/global_color.dart';
 
 class PTHDashboardOutputChart extends StatelessWidget {
   final Map data;
@@ -91,7 +92,7 @@ class PTHDashboardOutputChart extends StatelessWidget {
                       fontSize: 13,
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 5),
                   _legendDot(const Color(0xFFFF9800)),
                   const SizedBox(width: 4),
                   Text(
@@ -102,7 +103,7 @@ class PTHDashboardOutputChart extends StatelessWidget {
                       fontSize: 13,
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 5),
                   _legendDot(Colors.green),
                   const SizedBox(width: 4),
                   Text(

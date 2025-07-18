@@ -41,7 +41,7 @@ class ImageFullscreenPage extends StatelessWidget {
           ),
           // Overlay thông tin như cũ
           Positioned(
-            top: 40,
+            bottom: 40,
             left: 20,
             child: Text(
               componentName,

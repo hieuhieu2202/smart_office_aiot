@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
+import 'package:smart_factory/screen/home/widget/aoivi/avi_dashboard_screen.dart';
 
 import '../model/AppModel.dart';
 import '../screen/home/widget/project_list_page.dart';
-import '../screen/home/widget/avi_dashboard_screen.dart';
 
 final Map<String, Widget Function(AppProject)> screenBuilderMap = {
-  'pth_dashboard': (project) => PTHDashboardScreen(),
+  'pth_dashboard': (project) => AOIVIDashboardScreen(),
 };
 /// Hàm trả về đúng màn hình dựa trên AppProject
 Widget buildProjectScreen(AppProject project) {

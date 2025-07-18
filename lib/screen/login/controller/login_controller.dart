@@ -6,11 +6,11 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:jwt_decoder/jwt_decoder.dart';
-import '../../../config/auth_config.dart';
+import '../../../service/auth/auth_config.dart';
 import '../../../config/global_color.dart';
+import '../../../service/auth/token_manager.dart';
 import '../../navbar/controller/navbar_controller.dart';
 import '../../setting/controller/setting_controller.dart';
-import 'token_manager.dart';
 import 'user_profile_manager.dart';
 
 class LoginController extends GetxController {
@@ -20,13 +20,21 @@ class LoginController extends GetxController {
   var errorMessage = ''.obs;
   var showPassword = false.obs;
   var isFaceIdEnabled = false.obs;
-  var isLoginFrozen = false.obs;   // true: không cho nhập username, chỉ đăng nhập bằng user hiện tại
-  var lastUsername = ''.obs;       // Username đã đăng nhập gần nhất (hoặc đang hiển thị trên form)
+  var isLoginFrozen =
+      false
+          .obs; // true: không cho nhập username, chỉ đăng nhập bằng user hiện tại
+  var lastUsername =
+      ''.obs; // Username đã đăng nhập gần nhất (hoặc đang hiển thị trên form)
   final box = GetStorage();
   Timer? _refreshTimer;
   final NavbarController navbarController = Get.find<NavbarController>();
 
-  String get _userKey => username.value.isNotEmpty ? username.value : (lastUsername.value.isNotEmpty ? lastUsername.value : (box.read('username') ?? ''));
+  String get _userKey =>
+      username.value.isNotEmpty
+          ? username.value
+          : (lastUsername.value.isNotEmpty
+              ? lastUsername.value
+              : (box.read('username') ?? ''));
 
   @override
   void onInit() {
@@ -75,7 +83,8 @@ class LoginController extends GetxController {
     // Thực hiện login thực tế của bạn tại đây (giữ nguyên như cũ)
     try {
       HttpClient client = HttpClient();
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+      client.badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
 
       HttpClientRequest request = await client.postUrl(
         Uri.parse('${AuthConfig.baseUrl}${AuthConfig.tokenEndpoint}'),
@@ -108,7 +117,8 @@ class LoginController extends GetxController {
         UserProfileManager().updateProfile(decodedToken, username.value, box);
         await _onLoginSuccess();
       } else {
-        errorMessage.value = 'Đăng nhập thất bại! Vui lòng kiểm tra lại thông tin. Mã lỗi: ${response.statusCode}';
+        errorMessage.value =
+            'Đăng nhập thất bại! Vui lòng kiểm tra lại thông tin. Mã lỗi: ${response.statusCode}';
         _showToast(errorMessage.value);
       }
     } catch (e) {
@@ -132,7 +142,9 @@ class LoginController extends GetxController {
     navbarController.currentIndex.value = 0;
     Get.offNamed('/navbar');
     isLoading.value = false;
-    print('[Login] Đăng nhập thành công cho user: ${username.value}, FaceID: ${isFaceIdEnabled.value}');
+    print(
+      '[Login] Đăng nhập thành công cho user: ${username.value}, FaceID: ${isFaceIdEnabled.value}',
+    );
   }
 
   // Đăng xuất: giữ lại username, đóng băng input, chỉ nhập lại mật khẩu, hiện nút đăng nhập bằng tài khoản khác
@@ -147,15 +159,22 @@ class LoginController extends GetxController {
       title: 'Xác nhận đăng xuất',
       middleText: 'Bạn có chắc chắn muốn đăng xuất?',
       titleStyle: TextStyle(
-        color: isDarkMode ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+        color:
+            isDarkMode
+                ? GlobalColors.darkPrimaryText
+                : GlobalColors.lightPrimaryText,
         fontWeight: FontWeight.w600,
         fontSize: 18,
       ),
       middleTextStyle: TextStyle(
-        color: isDarkMode ? GlobalColors.darkSecondaryText : GlobalColors.lightSecondaryText,
+        color:
+            isDarkMode
+                ? GlobalColors.darkSecondaryText
+                : GlobalColors.lightSecondaryText,
         fontSize: 16,
       ),
-      backgroundColor: isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+      backgroundColor:
+          isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
       radius: 12,
       barrierDismissible: false,
       actions: [
@@ -165,7 +184,10 @@ class LoginController extends GetxController {
             Get.back();
           },
           style: TextButton.styleFrom(
-            backgroundColor: isDarkMode ? GlobalColors.primaryButtonDark : GlobalColors.primaryButtonLight,
+            backgroundColor:
+                isDarkMode
+                    ? GlobalColors.primaryButtonDark
+                    : GlobalColors.primaryButtonLight,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             shape: RoundedRectangleBorder(
@@ -174,7 +196,11 @@ class LoginController extends GetxController {
           ),
           child: const Text(
             'Đăng xuất',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         TextButton(
@@ -182,7 +208,10 @@ class LoginController extends GetxController {
             Get.back();
           },
           style: TextButton.styleFrom(
-            foregroundColor: isDarkMode ? GlobalColors.darkSecondaryText : GlobalColors.lightSecondaryText,
+            foregroundColor:
+                isDarkMode
+                    ? GlobalColors.darkSecondaryText
+                    : GlobalColors.lightSecondaryText,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -191,7 +220,10 @@ class LoginController extends GetxController {
           child: Text(
             'Hủy',
             style: TextStyle(
-              color: isDarkMode ? GlobalColors.darkSecondaryText : GlobalColors.lightSecondaryText,
+              color:
+                  isDarkMode
+                      ? GlobalColors.darkSecondaryText
+                      : GlobalColors.lightSecondaryText,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -204,7 +236,9 @@ class LoginController extends GetxController {
   // Đăng nhập nhanh bằng FaceID/vân tay
   Future<void> quickLoginWithFaceId() async {
     final savedPassword = box.read('password_quick_login_$_userKey');
-    if (isFaceIdEnabled.value && savedPassword != null && savedPassword.isNotEmpty) {
+    if (isFaceIdEnabled.value &&
+        savedPassword != null &&
+        savedPassword.isNotEmpty) {
       password.value = savedPassword;
       await login();
     } else {
@@ -221,7 +255,9 @@ class LoginController extends GetxController {
       saveQuickLoginPassword();
     } else {
       box.remove('password_quick_login_$_userKey');
-      print('[saveFaceIdSetting] Đã tắt FaceID và xóa mật khẩu quick login cho user này');
+      print(
+        '[saveFaceIdSetting] Đã tắt FaceID và xóa mật khẩu quick login cho user này',
+      );
     }
   }
 
@@ -229,14 +265,18 @@ class LoginController extends GetxController {
   void saveQuickLoginPassword() {
     if (_userKey.isNotEmpty && password.value.isNotEmpty) {
       box.write('password_quick_login_$_userKey', password.value);
-      print('[saveQuickLoginPassword] User: $_userKey, Đã lưu mật khẩu quick login');
+      print(
+        '[saveQuickLoginPassword] User: $_userKey, Đã lưu mật khẩu quick login',
+      );
     }
   }
 
   // Load trạng thái bật FaceID cho user hiện tại
   void loadFaceIdSetting() {
     isFaceIdEnabled.value = box.read('isFaceIdEnabled_$_userKey') ?? false;
-    print('[loadFaceIdSetting] User: $_userKey, enabled: ${isFaceIdEnabled.value}');
+    print(
+      '[loadFaceIdSetting] User: $_userKey, enabled: ${isFaceIdEnabled.value}',
+    );
   }
 
   // Reset tất cả info để cho phép đăng nhập tài khoản khác
@@ -278,8 +318,13 @@ class LoginController extends GetxController {
       msg: message,
       toastLength: Toast.LENGTH_LONG,
       gravity: ToastGravity.BOTTOM,
-      backgroundColor: backgroundColor ?? (isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg),
-      textColor: isDarkMode ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+      backgroundColor:
+          backgroundColor ??
+          (isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg),
+      textColor:
+          isDarkMode
+              ? GlobalColors.darkPrimaryText
+              : GlobalColors.lightPrimaryText,
       fontSize: 16.0,
       timeInSecForIosWeb: 3,
     );
