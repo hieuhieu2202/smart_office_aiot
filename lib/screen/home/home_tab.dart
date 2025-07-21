@@ -282,7 +282,7 @@ class _HomeTabState extends State<HomeTab> {
                                                                   .darkPrimaryText
                                                               : GlobalColors
                                                                   .lightPrimaryText,
-                                                      fontSize: 12.5,
+                                                      fontSize: 10.5,
                                                     ),
                                                     textAlign: TextAlign.center,
                                                     maxLines: 2,
