@@ -24,6 +24,7 @@ class YieldReportTable extends StatelessWidget {
         final nick = controller.filteredNickNames[idx];
         final models = nick['DataModelNames'] as List? ?? [];
         final nickName = nick['NickName'];
+        final storageKey = nickName ?? 'nick_$idx';
         return Card(
           margin: const EdgeInsets.only(bottom: 18),
           color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
@@ -53,110 +54,132 @@ class YieldReportTable extends StatelessWidget {
                 fontSize: 17,
               ),
             ),
-            children: models.asMap().entries.map<Widget>((entry) {
-              final idx = entry.key;
-              final m = entry.value;
-              final stations = m['DataStations'] as List? ?? [];
-              final dates = controller.dates;
-              final storageKey = '${nickName ?? 'nick'}-$idx';
-              final modelName = m['ModelName']?.toString() ?? '';
-              return Padding(
-                padding: const EdgeInsets.only(top: 7, left: 2, right: 2),
-                child: _buildStationTable(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+                child: _buildNickTable(
                   storageKey,
-                  modelName,
-                  dates,
-                  stations,
+                  models,
+                  controller.dates,
                   isDark,
                 ),
-              );
-            }).toList(),
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildStationTable(
+  Widget _buildNickTable(
     String storageKey,
-    String modelName,
+    List models,
     List dates,
-    List stations,
+
     bool isDark,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 4),
-          child: Text(
-            modelName,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.cyanAccent : Colors.blueAccent,
-              fontSize: 15,
-            ),
+    final rows = <Map<String, dynamic>>[];
+    for (final m in models) {
+      final modelName = m['ModelName']?.toString() ?? '';
+      final stations = m['DataStations'] as List? ?? [];
+      for (final st in stations) {
+        rows.add({
+          'model': modelName,
+          'station': st['Station']?.toString() ?? '',
+          'data': (st['Data'] as List? ?? []).map((e) => e.toString()).toList(),
+        });
+      }
+    }
+
+    final shortDates = dates.map((d) => d.toString().split(' ').first).toList();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8, left: 3, right: 3),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.blueGrey[900] : Colors.blueGrey[50],
+        borderRadius: BorderRadius.circular(13),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black38 : Colors.grey.withOpacity(0.08),
+            blurRadius: 6,
           ),
-        ),
-        Container(
-          margin: const EdgeInsets.only(bottom: 8, left: 3, right: 3),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.blueGrey[900] : Colors.blueGrey[50],
-            borderRadius: BorderRadius.circular(13),
-            boxShadow: [
-              BoxShadow(
-                color: isDark ? Colors.black38 : Colors.grey.withOpacity(0.08),
-                blurRadius: 6,
-              ),
-            ],
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildHeaderCell(
-                      'Station',
-                      110,
-                      isDark,
-                      align: Alignment.center,
-                    ),
-                    ...stations.map(
-                      (st) => Container(
-                        width: 110,
-                        height: 42,
-                        alignment: Alignment.center,
-                        child: Text(
-                          st['Station'] ?? '',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color:
-                                isDark ? Colors.cyanAccent : Colors.blueAccent,
-                            fontSize: 14,
-                          ),
-                        ),
+                _buildHeaderCell(
+                  'Model',
+                  120,
+                  isDark,
+                  align: Alignment.centerLeft,
+                ),
+                ...rows.map(
+                  (r) => Container(
+                    width: 120,
+                    height: 42,
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      r['model'] ?? '',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.cyanAccent : Colors.blueAccent,
+                        fontSize: 14,
                       ),
                     ),
-                  ],
+                  ),
                 ),
-                Flexible(
-                  child: SingleChildScrollView(
-                    key: PageStorageKey('${storageKey}_scroll'),
-                    scrollDirection: Axis.horizontal,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Row(
-                          children:
-                              dates.map((d) => _buildHeaderCell(d, 85, isDark)).toList(),
-                        ),
-                        ...stations.map((st) {
-                          final values =
-                              (st['Data'] as List? ?? []).map((e) => e.toString()).toList();
-                          return Row(
-                            children: values
+              ],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildHeaderCell(
+                  'Station',
+                  110,
+                  isDark,
+                  align: Alignment.center,
+                ),
+                ...rows.map(
+                  (r) => Container(
+                    width: 110,
+                    height: 42,
+                    alignment: Alignment.center,
+                    child: Text(
+                      r['station'] ?? '',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.cyanAccent : Colors.blueAccent,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                key: PageStorageKey('${storageKey}_scroll'),
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      children:
+                          shortDates
+                              .map((d) => _buildHeaderCell(d, 85, isDark))
+                              .toList(),
+                    ),
+                    ...rows.map((r) {
+                      final values = List<String>.from(r['data'] as List);
+                      return Row(
+                        children:
+                            values
                                 .map(
                                   (v) => Container(
                                     width: 85,
@@ -166,26 +189,25 @@ class YieldReportTable extends StatelessWidget {
                                       v,
                                       style: TextStyle(
                                         fontWeight: FontWeight.w600,
-                                        color: isDark
-                                            ? Colors.yellowAccent
-                                            : Colors.blueAccent,
+                                        color:
+                                            isDark
+                                                ? Colors.yellowAccent
+                                                : Colors.blueAccent,
                                         fontSize: 13,
                                       ),
                                     ),
                                   ),
                                 )
                                 .toList(),
-                          );
-                        }).toList(),
-                      ],
-                    ),
-                  ),
+                      );
+                    }).toList(),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 

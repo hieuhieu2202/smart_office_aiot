@@ -95,18 +95,59 @@ class YieldReportController extends GetxController {
   List<Map<String, dynamic>> get filteredNickNames {
     final q = quickFilter.value.trim().toLowerCase();
     if (q.isEmpty) return dataNickNames;
-    return dataNickNames.where((nick) {
-      if ((nick['NickName'] ?? '').toString().toLowerCase().contains(q)) return true;
-      final models = nick['DataModelNames'] as List? ?? [];
-      for (final m in models) {
-        if ((m['ModelName'] ?? '').toString().toLowerCase().contains(q)) return true;
-        final stations = m['DataStations'] as List? ?? [];
-        for (final st in stations) {
-          if ((st['Station'] ?? '').toString().toLowerCase().contains(q)) return true;
+
+    final result = <Map<String, dynamic>>[];
+
+    for (final nick in dataNickNames) {
+      final nickName = (nick['NickName'] ?? '').toString();
+
+      // if nickname matches, keep entire entry
+      if (nickName.toLowerCase().contains(q)) {
+        result.add(nick);
+        continue;
+      }
+
+      final models = <Map<String, dynamic>>[];
+      for (final m in (nick['DataModelNames'] as List? ?? [])) {
+        final modelName = (m['ModelName'] ?? '').toString();
+        final stations = <Map<String, dynamic>>[];
+
+        for (final st in (m['DataStations'] as List? ?? [])) {
+          final station = (st['Station'] ?? '').toString();
+
+          if (modelName.toLowerCase().contains(q) ||
+              station.toLowerCase().contains(q)) {
+            stations.add(st);
+            continue;
+          }
+
+          final values = (st['Data'] as List? ?? [])
+              .map((e) => e.toString().toLowerCase())
+              .join(' ');
+          if (values.contains(q)) {
+            stations.add(st);
+          }
+        }
+
+        if (stations.isNotEmpty || modelName.toLowerCase().contains(q)) {
+          models.add({
+            ...m,
+            'DataStations': stations.isEmpty
+                ? List<Map<String, dynamic>>.from(m['DataStations'] as List? ?? [])
+                : stations,
+          });
         }
       }
-      return false;
-    }).toList();
+
+      if (models.isNotEmpty) {
+        result.add({
+          ...nick,
+          'DataModelNames': models,
+        });
+      }
+    }
+
+    return result;
   }
 
   List<String> get nickNameList => ['All', ...allNickNames];
