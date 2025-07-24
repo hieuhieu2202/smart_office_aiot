@@ -88,27 +88,27 @@ String getStatusText(BuildContext context, String status) {
   final S text = S.of(context);
   switch (status.toUpperCase()) {
     case "ACTIVE":
-      return text.status_active ?? "Active";
+      return text.status_active;
     case "RUNNING":
-      return text.status_running ?? "Running";
+      return text.status_running ;
     case "READY":
-      return text.status_ready ?? "Ready";
+      return text.status_ready;
     case "WARNING":
-      return text.status_warning ?? "Warning";
+      return text.status_warning;
     case "REPORTING":
-      return text.status_reporting ?? "Reporting";
+      return text.status_reporting;
     case "STABLE":
-      return text.status_stable ?? "Stable";
+      return text.status_stable ;
     case "TRACKING":
-      return text.status_tracking ?? "Tracking";
+      return text.status_tracking;
     case "ONLINE":
-      return text.status_online ?? "Online";
+      return text.status_online ;
     case "DASHBOARD":
-      return text.status_dashboard ?? "Dashboard";
+      return text.status_dashboard ;
     case "MONITORING":
-      return text.status_monitoring ?? "Monitoring";
+      return text.status_monitoring;
     case "BURNING":
-      return text.status_burning ?? "Burning";
+      return text.status_burning;
     default:
       return status;
   }
@@ -117,5 +117,5 @@ String getStatusText(BuildContext context, String status) {
 /// Lấy welcome đa ngôn ngữ
 String getWelcomeText(BuildContext context) {
   final S text = S.of(context);
-  return text.welcome ?? "Welcome";
+  return text.welcome;
 }

@@ -1,17 +1,9 @@
 import 'package:flutter/cupertino.dart';
-import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:http/http.dart' as http;
 import 'package:smart_factory/service/auth/auth_config.dart';
 import 'dart:convert';
-import 'auth/token_manager.dart';
 
 class PTHDashboardApi {
-  // static String get token => TokenManager().civetToken.value;
-  // static Map<String, String> get headers => {
-  //   'Authorization': 'Bearer $token',
-  //   'Content-Type': 'application/json',
-  // };
 
   static final String _baseUrl = "https://10.220.23.244:4433/api/CCDMachine/AOIVI/";
 

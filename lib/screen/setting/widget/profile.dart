@@ -202,49 +202,49 @@ class ProfileScreen extends StatelessWidget {
                       // Các thông tin chi tiết
                       ProfileDetailItem(
                         icon: Icons.person_outline,
-                        label: text.fullname ?? "Fullname",
+                        label: text.fullname ,
                         value: userProfileManager.vnName.value,
                         isDark: isDark,
                       ),
                       ProfileDetailItem(
                         icon: Icons.assignment_ind,
-                        label: text.job_title ?? "Job title",
+                        label: text.job_title ,
                         value: userProfileManager.jobTitle.value,
                         isDark: isDark,
                       ),
                       ProfileDetailItem(
                         icon: Icons.account_tree_outlined,
-                        label: text.department ?? "Department",
+                        label: text.department,
                         value: userProfileManager.department.value,
                         isDark: isDark,
                       ),
                       ProfileDetailItem(
                         icon: Icons.info_outline_rounded,
-                        label: text.department_detail ?? "Department Detail",
+                        label: text.department_detail ,
                         value: userProfileManager.departmentDetail.value,
                         isDark: isDark,
                       ),
                       ProfileDetailItem(
                         icon: Icons.location_on,
-                        label: text.location ?? "Location",
+                        label: text.location,
                         value: userProfileManager.location.value,
                         isDark: isDark,
                       ),
                       ProfileDetailItem(
                         icon: Icons.groups_3_outlined,
-                        label: text.managers ?? "Managers",
+                        label: text.managers,
                         value: userProfileManager.managers.value,
                         isDark: isDark,
                       ),
                       ProfileDetailItem(
                         icon: Icons.event,
-                        label: text.hire_date ?? "Hire Date",
+                        label: text.hire_date,
                         value: userProfileManager.hireDate.value,
                         isDark: isDark,
                       ),
                       ProfileDetailItem(
                         icon: Icons.email,
-                        label: text.email ?? "Email",
+                        label: text.email,
                         value: userProfileManager.email.value,
                         isDark: isDark,
                       ),
@@ -299,7 +299,7 @@ class ProfileDetailItem extends StatelessWidget {
           ).copyWith(color: accent, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
-          value.isNotEmpty ? value : S.of(context).not_updated ?? "N/A",
+          value.isNotEmpty ? value : S.of(context).not_updated,
           style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
             color: isDark ? GlobalColors.labelDark : GlobalColors.labelLight,
             fontSize: 15,

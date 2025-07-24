@@ -22,11 +22,11 @@ class NavbarScreen extends StatelessWidget {
 
     // Đa ngôn ngữ cho label
     final List<String> tabLabels = [
-      text.home ?? "Home",
-      "WinSCP", // Nếu bạn muốn đa ngôn ngữ đổi sang text.sftp hoặc tương tự
-      text.history ?? "History",
-      text.notification ?? "Notification",
-      text.settings ?? "Setting",
+      text.home,
+      "WinSCP",
+      text.history ,
+      text.notification ,
+      text.settings,
     ];
 
     return Scaffold(

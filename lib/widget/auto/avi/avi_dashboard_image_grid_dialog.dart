@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import '../../../service/aoivi_dashboard_api.dart';
 import 'image_fullscreen_page.dart';
 
