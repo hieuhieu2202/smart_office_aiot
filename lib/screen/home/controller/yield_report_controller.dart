@@ -27,7 +27,7 @@ class YieldReportController extends GetxController {
   void onInit() {
     super.onInit();
     final now = DateTime.now();
-    startDateTime = Rx<DateTime>(DateTime(now.year, now.month, now.day - 2, 7, 30));
+    startDateTime = Rx<DateTime>(DateTime(now.year, now.month, now.day - 7, 7, 30));
     endDateTime = Rx<DateTime>(DateTime(now.year, now.month, now.day, 19, 30));
     fetchReport();
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
