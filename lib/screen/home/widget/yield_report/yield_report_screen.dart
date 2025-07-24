@@ -30,126 +30,189 @@ class YieldReportScreen extends StatelessWidget {
     final bgColor = isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg;
 
     return Obx(() => Scaffold(
-          appBar: AppBar(
-            title: const Text('Yield Rate Report'),
-            centerTitle: true,
-          ),
-          backgroundColor:
-              isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
-          body: controller.isLoading.value
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
+      appBar: AppBar(
+        title: const Text('📊 Yield Rate Report'),
+        centerTitle: true,
+        backgroundColor: isDark ? Colors.black : Colors.white,
+        foregroundColor: isDark ? Colors.white : Colors.black87,
+        elevation: 0.5,
+      ),
+      backgroundColor:
+      isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
+      body: controller.isLoading.value
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+        children: [
+          // Filter Card
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              color: bgColor,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 20),
+                child: Row(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Card(
-                        color: bgColor,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    final picked = await _pickDateTime(
-                                        context, controller.startDateTime.value);
-                                    if (picked != null) {
-                                      controller.updateStart(picked);
-                                    }
-                                  },
-                                  child: Obx(() => Text(
-                                        'From: ${DateFormat('yyyy/MM/dd HH:mm').format(controller.startDateTime.value)}',
-                                        style: TextStyle(
-                                            color: isDark
-                                                ? GlobalColors.darkPrimaryText
-                                                : GlobalColors.lightPrimaryText),
-                                      )),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    final picked = await _pickDateTime(
-                                        context, controller.endDateTime.value);
-                                    if (picked != null) {
-                                      controller.updateEnd(picked);
-                                    }
-                                  },
-                                  child: Obx(() => Text(
-                                        'To:   ${DateFormat('yyyy/MM/dd HH:mm').format(controller.endDateTime.value)}',
-                                        style: TextStyle(
-                                            color: isDark
-                                                ? GlobalColors.darkPrimaryText
-                                                : GlobalColors.lightPrimaryText),
-                                      )),
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.search),
-                                onPressed: () => controller.fetchReport(),
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                     Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: controller.dataNickNames.length,
-                        itemBuilder: (context, idx) {
-                          final nick = controller.dataNickNames[idx];
-                          final models = nick['DataModelNames'] as List? ?? [];
-                          return Card(
-                            color: bgColor,
-                            child: ExpansionTile(
-                              title: Text(nick['NickName'] ?? ''),
-                              children: models.map<Widget>((m) {
-                                final stations = m['DataStations'] as List? ?? [];
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(m['ModelName'] ?? '',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 6),
-                                      SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: DataTable(
-                                          columns: [
-                                            const DataColumn(label: Text('Station')),
-                                            ...controller.dates
-                                                .map((d) => DataColumn(label: Text(d)))
-                                                .toList(),
-                                          ],
-                                          rows: stations.map<DataRow>((st) {
-                                            final values = (st['Data'] as List? ?? [])
-                                                .map((e) => e.toString())
-                                                .toList();
-                                            return DataRow(cells: [
-                                              DataCell(Text(st['Station'] ?? '')),
-                                              ...values
-                                                  .map((v) => DataCell(Text(v)))
-                                                  .toList(),
-                                            ]);
-                                          }).toList(),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          );
+                      child: GestureDetector(
+                        onTap: () async {
+                          final picked = await _pickDateTime(
+                              context, controller.startDateTime.value);
+                          if (picked != null) {
+                            controller.updateStart(picked);
+                          }
                         },
+                        child: Obx(() => Column(
+                          crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                          children: [
+                            const Text("From:",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('yyyy/MM/dd HH:mm').format(
+                                  controller.startDateTime.value),
+                              style: TextStyle(
+                                  color: isDark
+                                      ? GlobalColors.darkPrimaryText
+                                      : GlobalColors.lightPrimaryText),
+                            ),
+                          ],
+                        )),
                       ),
                     ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final picked = await _pickDateTime(
+                              context, controller.endDateTime.value);
+                          if (picked != null) {
+                            controller.updateEnd(picked);
+                          }
+                        },
+                        child: Obx(() => Column(
+                          crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                          children: [
+                            const Text("To:",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('yyyy/MM/dd HH:mm').format(
+                                  controller.endDateTime.value),
+                              style: TextStyle(
+                                  color: isDark
+                                      ? GlobalColors.darkPrimaryText
+                                      : GlobalColors.lightPrimaryText),
+                            ),
+                          ],
+                        )),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => controller.fetchReport(),
+                      icon: const Icon(Icons.search),
+                      label: const Text("Filter"),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    )
                   ],
                 ),
-        ));
+              ),
+            ),
+          ),
+
+          // Data Display
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: controller.dataNickNames.length,
+              itemBuilder: (context, idx) {
+                final nick = controller.dataNickNames[idx];
+                final models = nick['DataModelNames'] as List? ?? [];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  color: bgColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ExpansionTile(
+                    title: Text(
+                      nick['NickName'] ?? '',
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    children: models.map<Widget>((m) {
+                      final stations = m['DataStations'] as List? ?? [];
+                      return Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              m['ModelName'] ?? '',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: DataTable(
+                                headingRowColor:
+                                MaterialStateProperty.all(
+                                    Colors.blue.shade100),
+                                border: TableBorder.all(
+                                    width: 0.5,
+                                    color: Colors.grey.shade300),
+                                columns: [
+                                  const DataColumn(
+                                      label: Text('Station')),
+                                  ...controller.dates
+                                      .map((d) => DataColumn(
+                                      label: Text(
+                                        d,
+                                        style: const TextStyle(
+                                            fontWeight:
+                                            FontWeight.w600),
+                                      )))
+                                      .toList(),
+                                ],
+                                rows: stations.map<DataRow>((st) {
+                                  final values = (st['Data'] as List? ?? [])
+                                      .map((e) => e.toString())
+                                      .toList();
+                                  return DataRow(cells: [
+                                    DataCell(Text(st['Station'] ?? '')),
+                                    ...values
+                                        .map((v) => DataCell(Text(v)))
+                                        .toList(),
+                                  ]);
+                                }).toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ));
   }
 }
