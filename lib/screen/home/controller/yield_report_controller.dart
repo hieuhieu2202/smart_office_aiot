@@ -8,6 +8,7 @@ class YieldReportController extends GetxController {
   var dates = <String>[].obs;
   var dataNickNames = <Map<String, dynamic>>[].obs;
   var isLoading = false.obs;
+  var allNickNames = <String>[].obs;
 
   late Rx<DateTime> startDateTime;
   late Rx<DateTime> endDateTime;
@@ -53,6 +54,13 @@ class YieldReportController extends GetxController {
       final res = data['Data'] ?? {};
       dates.value = List<String>.from(res['ClassDates'] ?? []);
       dataNickNames.value = List<Map<String, dynamic>>.from(res['DataNickNames'] ?? []);
+      // capture all nick names when loading unfiltered data
+      if ((nickName ?? selectedNickName.value) == 'All') {
+        allNickNames.value = dataNickNames
+            .map((e) => e['NickName'].toString())
+            .toSet()
+            .toList();
+      }
       // ✅ không reset expandedNickNames
     } catch (e) {
       Get.snackbar('Error', e.toString());
@@ -101,8 +109,7 @@ class YieldReportController extends GetxController {
     }).toList();
   }
 
-  List<String> get nickNameList =>
-      ['All', ...dataNickNames.map((e) => e['NickName'].toString()).toSet().toList()];
+  List<String> get nickNameList => ['All', ...allNickNames];
 
   bool get isDefaultFilter =>
       selectedNickName.value == 'All' &&
