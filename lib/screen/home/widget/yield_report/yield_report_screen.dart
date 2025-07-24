@@ -142,12 +142,15 @@ class YieldReportScreen extends StatelessWidget {
               nickName ?? '',
               style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.lightBlue[100] : Colors.blue[900], fontSize: 17),
             ),
-            children: models.map<Widget>((m) {
+            children: models.asMap().entries.map<Widget>((entry) {
+              final idx = entry.key;
+              final m = entry.value;
               final stations = m['DataStations'] as List? ?? [];
               final dates = controller.dates;
+              final storageKey = '${nickName ?? 'nick'}-$idx';
               return Padding(
                 padding: const EdgeInsets.only(top: 7, left: 2, right: 2),
-                child: _buildStationTable(dates, stations, isDark),
+                child: _buildStationTable(storageKey, dates, stations, isDark),
               );
             }).toList(),
           ),
@@ -156,7 +159,7 @@ class YieldReportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStationTable(List dates, List stations, bool isDark) {
+  Widget _buildStationTable(String storageKey, List dates, List stations, bool isDark) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8, left: 3, right: 3),
       decoration: BoxDecoration(
@@ -194,6 +197,7 @@ class YieldReportScreen extends StatelessWidget {
             ),
             Flexible(
               child: SingleChildScrollView(
+                key: PageStorageKey('${storageKey}_scroll'),
                 scrollDirection: Axis.horizontal,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
