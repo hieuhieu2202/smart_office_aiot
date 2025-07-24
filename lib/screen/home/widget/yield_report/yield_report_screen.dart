@@ -148,9 +148,10 @@ class YieldReportScreen extends StatelessWidget {
               final stations = m['DataStations'] as List? ?? [];
               final dates = controller.dates;
               final storageKey = '${nickName ?? 'nick'}-$idx';
+              final modelName = m['ModelName']?.toString() ?? '';
               return Padding(
                 padding: const EdgeInsets.only(top: 7, left: 2, right: 2),
-                child: _buildStationTable(storageKey, dates, stations, isDark),
+                child: _buildStationTable(storageKey, modelName, dates, stations, isDark),
               );
             }).toList(),
           ),
@@ -159,12 +160,26 @@ class YieldReportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStationTable(String storageKey, List dates, List stations, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8, left: 3, right: 3),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.blueGrey[900] : Colors.blueGrey[50],
-        borderRadius: BorderRadius.circular(13),
+  Widget _buildStationTable(String storageKey, String modelName, List dates, List stations, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 4),
+          child: Text(
+            modelName,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.cyanAccent : Colors.blueAccent,
+              fontSize: 15,
+            ),
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.only(bottom: 8, left: 3, right: 3),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.blueGrey[900] : Colors.blueGrey[50],
+            borderRadius: BorderRadius.circular(13),
         boxShadow: [
           BoxShadow(
             color: isDark ? Colors.black38 : Colors.grey.withOpacity(0.08),
@@ -230,6 +245,7 @@ class YieldReportScreen extends StatelessWidget {
           ],
         ),
       ),
+      ],
     );
   }
 
