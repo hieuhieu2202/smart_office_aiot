@@ -1,183 +1,207 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import '../../controller/yield_report_controller.dart';
+import '../../../../config/global_color.dart';
 
-class YieldReportFilterPanel extends StatefulWidget {
-  final bool show;
-  final DateTime start;
-  final DateTime end;
-  final String? nickName;
-  final List<String> nickNameOptions;
-  final void Function(DateTime start, DateTime end, String? nickName) onApply;
-  final VoidCallback onClose;
+class YieldReportTable extends StatelessWidget {
+  final YieldReportController controller;
   final bool isDark;
+  final ScrollController scrollController;
 
-  const YieldReportFilterPanel({
+  const YieldReportTable({
     super.key,
-    required this.show,
-    required this.start,
-    required this.end,
-    required this.nickName,
-    required this.nickNameOptions,
-    required this.onApply,
-    required this.onClose,
+    required this.controller,
     required this.isDark,
+    required this.scrollController,
   });
 
   @override
-  State<YieldReportFilterPanel> createState() => _YieldReportFilterPanelState();
-}
-
-class _YieldReportFilterPanelState extends State<YieldReportFilterPanel> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _offset;
-  late DateTime _start;
-  late DateTime _end;
-  String? _nickName;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 220));
-    _offset = Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    if (widget.show) _controller.forward();
-    _start = widget.start;
-    _end = widget.end;
-    _nickName = widget.nickName;
-  }
-
-  @override
-  void didUpdateWidget(covariant YieldReportFilterPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.show) {
-      _controller.forward();
-    } else {
-      _controller.reverse();
-    }
-    _start = widget.start;
-    _end = widget.end;
-    _nickName = widget.nickName;
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isDark = widget.isDark;
-    final format = DateFormat('yyyy/MM/dd HH:mm');
-    return IgnorePointer(
-      ignoring: !widget.show,
-      child: AnimatedOpacity(
-        opacity: widget.show ? 1 : 0,
-        duration: const Duration(milliseconds: 180),
-        child: Stack(
-          children: [
-            GestureDetector(
-              onTap: widget.onClose,
-              child: Container(color: Colors.black26),
+    return ListView.builder(
+      controller: scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
+      itemCount: controller.filteredNickNames.length,
+      itemBuilder: (context, idx) {
+        final nick = controller.filteredNickNames[idx];
+        final models = nick['DataModelNames'] as List? ?? [];
+        final nickName = nick['NickName'];
+        final storageKey = nickName ?? 'nick_$idx';
+        return Card(
+          margin: const EdgeInsets.only(bottom: 18),
+          color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+          elevation: 6,
+          shadowColor: isDark ? Colors.black45 : Colors.grey[200],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: ExpansionTile(
+            key: PageStorageKey(nickName),
+            initiallyExpanded: controller.expandedNickNames.contains(nickName),
+            onExpansionChanged: (expanded) {
+              if (expanded) {
+                controller.expandedNickNames.add(nickName);
+              } else {
+                controller.expandedNickNames.remove(nickName);
+              }
+            },
+            tilePadding: const EdgeInsets.symmetric(horizontal: 18),
+            childrenPadding: const EdgeInsets.only(bottom: 16),
+            maintainState: true,
+            title: Text(
+              nickName ?? '',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.lightBlue[100] : Colors.blue[900],
+                fontSize: 17,
+              ),
             ),
-            SlideTransition(
-              position: _offset,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Material(
-                  color: Colors.transparent,
-                  elevation: 10,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 370,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF232F34) : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.16),
-                          blurRadius: 20,
-                        )
-                      ],
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Spacer(),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 28),
-                              onPressed: widget.onClose,
-                            )
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Text("Lọc báo cáo", style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                          color: isDark ? Colors.white : Colors.black,
-                        )),
-                        const SizedBox(height: 28),
-                        Text("Từ ngày", style: TextStyle(fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 8),
-                        _DateTimePicker(
-                          date: _start,
-                          isDark: isDark,
-                          onChanged: (d) => setState(() => _start = d),
-                        ),
-                        const SizedBox(height: 16),
-                        Text("Đến ngày", style: TextStyle(fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 8),
-                        _DateTimePicker(
-                          date: _end,
-                          isDark: isDark,
-                          onChanged: (d) => setState(() => _end = d),
-                        ),
-                        const SizedBox(height: 22),
-                        Text("NickName", style: TextStyle(fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: _nickName,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: isDark ? Colors.grey[900] : Colors.grey[100],
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                          ),
-                          items: widget.nickNameOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                          onChanged: (v) => setState(() => _nickName = v),
-                        ),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[600],
-                                ),
-                                onPressed: widget.onClose,
-                                child: const Text("Huỷ"),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blueAccent,
-                                ),
-                                onPressed: () {
-                                  widget.onApply(_start, _end, _nickName);
-                                },
-                                child: const Text("Áp dụng"),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+                child: _buildNickTable(
+                  storageKey,
+                  models,
+                  controller.dates,
+                  isDark,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNickTable(
+    String storageKey,
+    List models,
+    List dates,
+
+    bool isDark,
+  ) {
+    final rows = <Map<String, dynamic>>[];
+    for (final m in models) {
+      final modelName = m['ModelName']?.toString() ?? '';
+      final stations = m['DataStations'] as List? ?? [];
+      for (final st in stations) {
+        rows.add({
+          'model': modelName,
+          'station': st['Station']?.toString() ?? '',
+          'data': (st['Data'] as List? ?? []).map((e) => e.toString()).toList(),
+        });
+      }
+    }
+
+    final shortDates = dates.map((d) => d.toString().split(' ').first).toList();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8, left: 3, right: 3),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.blueGrey[900] : Colors.blueGrey[50],
+        borderRadius: BorderRadius.circular(13),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black38 : Colors.grey.withOpacity(0.08),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildHeaderCell(
+                  'Model',
+                  120,
+                  isDark,
+                  align: Alignment.centerLeft,
+                ),
+                ...rows.map(
+                  (r) => Container(
+                    width: 120,
+                    height: 42,
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      r['model'] ?? '',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.cyanAccent : Colors.blueAccent,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
+                ),
+              ],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildHeaderCell(
+                  'Station',
+                  110,
+                  isDark,
+                  align: Alignment.center,
+                ),
+                ...rows.map(
+                  (r) => Container(
+                    width: 110,
+                    height: 42,
+                    alignment: Alignment.center,
+                    child: Text(
+                      r['station'] ?? '',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.cyanAccent : Colors.blueAccent,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                key: PageStorageKey('${storageKey}_scroll'),
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      children:
+                          shortDates
+                              .map((d) => _buildHeaderCell(d, 85, isDark))
+                              .toList(),
+                    ),
+                    ...rows.map((r) {
+                      final values = List<String>.from(r['data'] as List);
+                      return Row(
+                        children:
+                            values
+                                .map(
+                                  (v) => Container(
+                                    width: 85,
+                                    height: 42,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      v,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            isDark
+                                                ? Colors.yellowAccent
+                                                : Colors.blueAccent,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                      );
+                    }).toList(),
+                  ],
                 ),
               ),
             ),
@@ -186,45 +210,24 @@ class _YieldReportFilterPanelState extends State<YieldReportFilterPanel> with Si
       ),
     );
   }
-}
 
-class _DateTimePicker extends StatelessWidget {
-  final DateTime date;
-  final bool isDark;
-  final ValueChanged<DateTime> onChanged;
-  const _DateTimePicker({required this.date, required this.isDark, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final format = DateFormat('yyyy/MM/dd HH:mm');
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: date,
-          firstDate: DateTime(date.year - 1),
-          lastDate: DateTime(date.year + 1),
-          builder: (ctx, child) => Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: isDark ? const ColorScheme.dark(primary: Colors.blueAccent) : const ColorScheme.light(primary: Colors.blue),
-            ),
-            child: child!,
-          ),
-        );
-        if (picked == null) return;
-        final t = TimeOfDay.fromDateTime(date);
-        final pickedTime = await showTimePicker(context: context, initialTime: t);
-        if (pickedTime == null) return;
-        onChanged(DateTime(picked.year, picked.month, picked.day, pickedTime.hour, pickedTime.minute));
-      },
-      borderRadius: BorderRadius.circular(7),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 13),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.blueGrey[900] : Colors.blueGrey[50],
-          borderRadius: BorderRadius.circular(7),
+  Widget _buildHeaderCell(
+    String label,
+    double width,
+    bool isDark, {
+    Alignment align = Alignment.center,
+  }) {
+    return Container(
+      width: width,
+      height: 42,
+      alignment: align,
+      color: isDark ? Colors.teal[900] : Colors.blue[100],
+      child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: isDark ? Colors.yellowAccent : Colors.blueAccent,
         ),
-        child: Text(format.format(date), style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87)),
       ),
     );
   }
