@@ -1,27 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+
 import '../../../../config/global_color.dart';
 import '../../controller/yield_report_controller.dart';
 
 class YieldReportScreen extends StatelessWidget {
   const YieldReportScreen({super.key});
-
-  Future<DateTime?> _pickDateTime(BuildContext context, DateTime initial) async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(initial.year - 1),
-      lastDate: DateTime(initial.year + 1),
-    );
-    if (date == null) return null;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(initial),
-    );
-    if (time == null) return null;
-    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +18,13 @@ class YieldReportScreen extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Yield Rate Report'),
             centerTitle: true,
+            elevation: 0,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: controller.fetchReport,
+              ),
+            ],
           ),
           backgroundColor:
               isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
@@ -49,45 +41,34 @@ class YieldReportScreen extends StatelessWidget {
                           child: Row(
                             children: [
                               Expanded(
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    final picked = await _pickDateTime(
-                                        context, controller.startDateTime.value);
-                                    if (picked != null) {
-                                      controller.updateStart(picked);
-                                    }
-                                  },
-                                  child: Obx(() => Text(
-                                        'From: ${DateFormat('yyyy/MM/dd HH:mm').format(controller.startDateTime.value)}',
-                                        style: TextStyle(
-                                            color: isDark
-                                                ? GlobalColors.darkPrimaryText
-                                                : GlobalColors.lightPrimaryText),
-                                      )),
-                                ),
+                                child: Obx(() => _DateTimeField(
+                                      label: 'From',
+                                      value: controller.startDateTime.value,
+                                      isDark: isDark,
+                                      onChanged: controller.updateStart,
+                                    )),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    final picked = await _pickDateTime(
-                                        context, controller.endDateTime.value);
-                                    if (picked != null) {
-                                      controller.updateEnd(picked);
-                                    }
-                                  },
-                                  child: Obx(() => Text(
-                                        'To:   ${DateFormat('yyyy/MM/dd HH:mm').format(controller.endDateTime.value)}',
-                                        style: TextStyle(
-                                            color: isDark
-                                                ? GlobalColors.darkPrimaryText
-                                                : GlobalColors.lightPrimaryText),
-                                      )),
-                                ),
+                                child: Obx(() => _DateTimeField(
+                                      label: 'To',
+                                      value: controller.endDateTime.value,
+                                      isDark: isDark,
+                                      onChanged: controller.updateEnd,
+                                    )),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.search),
-                                onPressed: () => controller.fetchReport(),
+                              const SizedBox(width: 8),
+                              Material(
+                                color: GlobalColors.accentByIsDark(isDark),
+                                borderRadius: BorderRadius.circular(12),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: controller.fetchReport,
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: Icon(Icons.filter_list, color: Colors.white),
+                                  ),
+                                ),
                               )
                             ],
                           ),
@@ -105,6 +86,9 @@ class YieldReportScreen extends StatelessWidget {
                             color: bgColor,
                             child: ExpansionTile(
                               title: Text(nick['NickName'] ?? ''),
+                              tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+                              childrenPadding: const EdgeInsets.only(bottom: 12),
+                              maintainState: true,
                               children: models.map<Widget>((m) {
                                 final stations = m['DataStations'] as List? ?? [];
                                 return Padding(
@@ -120,6 +104,12 @@ class YieldReportScreen extends StatelessWidget {
                                       SingleChildScrollView(
                                         scrollDirection: Axis.horizontal,
                                         child: DataTable(
+                                          headingRowColor: MaterialStateProperty.all(
+                                              GlobalColors.accentByIsDark(isDark).withOpacity(0.1)),
+                                          border: TableBorder.all(
+                                            width: 0.5,
+                                            color: isDark ? Colors.white24 : Colors.black26,
+                                          ),
                                           columns: [
                                             const DataColumn(label: Text('Station')),
                                             ...controller.dates
@@ -151,5 +141,95 @@ class YieldReportScreen extends StatelessWidget {
                   ],
                 ),
         ));
+  }
+}
+
+class _DateTimeField extends StatelessWidget {
+  final String label;
+  final DateTime value;
+  final ValueChanged<DateTime> onChanged;
+  final bool isDark;
+
+  const _DateTimeField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    required this.isDark,
+  });
+
+  Future<void> _select(BuildContext context) async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: value,
+      firstDate: DateTime(value.year - 1),
+      lastDate: DateTime(value.year + 1),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: GlobalColors.accentDark,
+                    surface: GlobalColors.cardDarkBg,
+                    onSurface: GlobalColors.darkPrimaryText,
+                  )
+                : const ColorScheme.light(
+                    primary: GlobalColors.accentLight,
+                    surface: GlobalColors.cardLightBg,
+                    onSurface: GlobalColors.lightPrimaryText,
+                  ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (date == null) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(value),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: GlobalColors.accentDark,
+                    surface: GlobalColors.cardDarkBg,
+                    onSurface: GlobalColors.darkPrimaryText,
+                  )
+                : const ColorScheme.light(
+                    primary: GlobalColors.accentLight,
+                    surface: GlobalColors.cardLightBg,
+                    onSurface: GlobalColors.lightPrimaryText,
+                  ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (time == null) return;
+    onChanged(DateTime(date.year, date.month, date.day, time.hour, time.minute));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _select(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? Colors.white24 : Colors.black26,
+          ),
+        ),
+        child: Text(
+          '$label: ${DateFormat('yyyy/MM/dd HH:mm').format(value)}',
+          style: TextStyle(
+            color:
+                isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+          ),
+        ),
+      ),
+    );
   }
 }
