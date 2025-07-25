@@ -22,55 +22,76 @@ class YieldReportTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: stationWidth + cellWidth * dates.length,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.blueGrey[800] : Colors.blueGrey[100],
-            border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
-          ),
-          child: Text(
-            modelName,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.cyanAccent : Colors.blueAccent,
-              fontSize: 15,
+    final tableWidth = stationWidth + cellWidth * dates.length;
+
+    return Align(
+      alignment: Alignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: tableWidth.toDouble(),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.blueGrey[800] : Colors.blueGrey[100],
+              border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
             ),
-          ),
-        ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: stations
-                  .map<Widget>((st) => _cell(st['Station'] ?? '', alignLeft: true))
-                  .toList(),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                key: PageStorageKey('${storageKey}_scroll'),
-                controller: ScrollController(keepScrollOffset: false),
-                scrollDirection: Axis.horizontal,
-                child: Column(
-                  children: stations.map<Widget>((st) {
-                    final values = (st['Data'] as List? ?? [])
-                        .map((e) => e.toString())
-                        .toList();
-                    return Row(
-                      children: values.map((v) => _cell(v)).toList(),
-                    );
-                  }).toList(),
-                ),
+            child: Text(
+              modelName,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.cyanAccent : Colors.blueAccent,
+                fontSize: 15,
               ),
             ),
-          ],
-        ),
-      ],
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: stations
+                    .map<Widget>((st) => _cell(st['Station'] ?? '', alignLeft: true))
+                    .toList(),
+              ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final contentWidth = cellWidth * dates.length;
+                    final bool canCenter = contentWidth < constraints.maxWidth;
+                    return SingleChildScrollView(
+                      key: PageStorageKey('${storageKey}_scroll'),
+                      controller: ScrollController(keepScrollOffset: false),
+                      scrollDirection: Axis.horizontal,
+                      physics: canCenter ? const NeverScrollableScrollPhysics() : null,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                        child: Align(
+                          alignment: canCenter ? Alignment.center : Alignment.centerLeft,
+                          child: SizedBox(
+                            width: contentWidth.toDouble(),
+                            child: Column(
+                              children: stations.map<Widget>((st) {
+                                final values = (st['Data'] as List? ?? [])
+                                    .map((e) => e.toString())
+                                    .toList();
+                                return Row(
+                                  children: values.map((v) => _cell(v)).toList(),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

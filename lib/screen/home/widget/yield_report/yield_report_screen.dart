@@ -216,22 +216,39 @@ class YieldReportScreen extends StatelessWidget {
     Widget cell(String text, {bool alignLeft = false}) =>
         YieldReportTable.buildCell(text, isDark,
             header: true, alignLeft: alignLeft);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        cell('Station', alignLeft: true),
-        Expanded(
-          child: SingleChildScrollView(
-            key: const PageStorageKey('header_scroll'),
-            controller: ScrollController(keepScrollOffset: false),
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: dates.map<Widget>((d) => cell(d.toString())).toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final contentWidth = YieldReportTable.cellWidth * dates.length;
+        final available = constraints.maxWidth - YieldReportTable.stationWidth;
+        final canCenter = contentWidth < available;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            cell('Station', alignLeft: true),
+            Expanded(
+              child: SingleChildScrollView(
+                key: const PageStorageKey('header_scroll'),
+                controller: ScrollController(keepScrollOffset: false),
+                scrollDirection: Axis.horizontal,
+                physics: canCenter
+                    ? const NeverScrollableScrollPhysics()
+                    : null,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: available),
+                  child: Align(
+                    alignment:
+                        canCenter ? Alignment.center : Alignment.centerLeft,
+                    child: Row(
+                      children:
+                          dates.map<Widget>((d) => cell(d.toString())).toList(),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
