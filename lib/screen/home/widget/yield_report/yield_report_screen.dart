@@ -29,10 +29,7 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
 
   @override
   void dispose() {
-    _headerController.dispose();
-    for (final c in _tableControllers) {
-      c.dispose();
-    }
+    // LinkedScrollControllerGroup already disposes all controllers
     _hGroup.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -42,9 +39,8 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
     while (_tableControllers.length < count) {
       _tableControllers.add(_hGroup.addAndGet());
     }
-    while (_tableControllers.length > count) {
-      _tableControllers.removeLast().dispose();
-    }
+    // Keep any extra controllers around to avoid disposing ones
+    // still attached to widgets being removed this frame.
   }
 
   @override
