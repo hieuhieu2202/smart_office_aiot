@@ -189,7 +189,7 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
           child: _buildHeaderRow(
             controller.dates,
             isDark,
@@ -276,7 +276,8 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
         final available =
             constraints.maxWidth - YieldReportTable.stationWidth;
         double cw = YieldReportTable.cellWidth;
-        if (dates.length * YieldReportTable.cellWidth < available) {
+        if (dates.isNotEmpty &&
+            dates.length * YieldReportTable.cellWidth < available) {
           cw = available / dates.length;
         }
         final contentWidth = cw * dates.length;
