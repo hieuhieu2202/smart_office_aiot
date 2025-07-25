@@ -16,39 +16,12 @@ class YieldReportTable extends StatelessWidget {
     required this.isDark,
   });
 
+  static const double _stationWidth = 110;
+  static const double _cellWidth = 85;
+  static const double _cellHeight = 42;
+
   @override
   Widget build(BuildContext context) {
-    final columns = <DataColumn>[
-      DataColumn(label: _headerCell('Station')),
-      ...dates.map((d) => DataColumn(label: _headerCell(d))).toList(),
-    ];
-
-    final rows = stations.map<DataRow>((st) {
-      final values = (st['Data'] as List? ?? [])
-          .map((e) => e.toString())
-          .toList();
-      return DataRow(
-        cells: [
-          DataCell(Text(
-            st['Station'] ?? '',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.cyanAccent : Colors.blueAccent,
-            ),
-          )),
-          ...values.map(
-            (v) => DataCell(Text(
-              v,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.yellowAccent : Colors.blueAccent,
-              ),
-            )),
-          ),
-        ],
-      );
-    }).toList();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -63,33 +36,76 @@ class YieldReportTable extends StatelessWidget {
             ),
           ),
         ),
-        SingleChildScrollView(
-          key: PageStorageKey('${storageKey}_scroll'),
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            headingRowHeight: 42,
-            dataRowMinHeight: 42,
-            dataRowMaxHeight: 42,
-            columns: columns,
-            rows: rows,
-            headingRowColor: MaterialStateProperty.all(
-                isDark ? Colors.teal[900] : Colors.blue[100]),
-            dataRowColor: MaterialStateProperty.all(
-                isDark ? Colors.blueGrey[900] : Colors.blueGrey[50]),
-            dividerThickness: 1,
-            columnSpacing: 16,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildCell('Station', header: true, alignLeft: true),
+                ...stations.map<Widget>(
+                  (st) => _buildCell(
+                    st['Station'] ?? '',
+                    alignLeft: true,
+                  ),
+                ),
+              ],
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                key: PageStorageKey('${storageKey}_scroll'),
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  children: [
+                    Row(
+                      children: dates
+                          .map((d) => _buildCell(d, header: true))
+                          .toList(),
+                    ),
+                    ...stations.map<Widget>((st) {
+                      final values = (st['Data'] as List? ?? [])
+                          .map((e) => e.toString())
+                          .toList();
+                      return Row(
+                        children:
+                            values.map((v) => _buildCell(v)).toList(),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _headerCell(String label) {
-    return Text(
-      label,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: isDark ? Colors.yellowAccent : Colors.blueAccent,
+  Widget _buildCell(
+    String text, {
+    bool header = false,
+    bool alignLeft = false,
+  }) {
+    return Container(
+      width: alignLeft ? _stationWidth : _cellWidth,
+      height: _cellHeight,
+      alignment: alignLeft ? Alignment.centerLeft : Alignment.center,
+      padding: alignLeft ? const EdgeInsets.only(left: 8) : null,
+      decoration: BoxDecoration(
+        border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
+        color: header
+            ? (isDark ? Colors.teal[900] : Colors.blue[100])
+            : Colors.transparent,
+      ),
+      child: Text(
+        text,
+        textAlign: alignLeft ? TextAlign.left : TextAlign.center,
+        style: TextStyle(
+          fontWeight:
+              header || alignLeft ? FontWeight.bold : FontWeight.w500,
+          color: isDark ? Colors.yellowAccent : Colors.blueAccent,
+          fontSize: 13,
+        ),
       ),
     );
   }
