@@ -238,7 +238,14 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
                     ...models.map<Widget>((m) {
                       final stations = m['DataStations'] as List? ?? [];
                       final modelName = m['ModelName']?.toString() ?? '';
-                      final sc = _tableControllers[tableIndex++];
+                      ScrollController sc;
+                      if (tableIndex < _tableControllers.length) {
+                        sc = _tableControllers[tableIndex];
+                      } else {
+                        sc = _hGroup.addAndGet();
+                        _tableControllers.add(sc);
+                      }
+                      tableIndex++;
                       return Padding(
                         padding: const EdgeInsets.only(top: 7, left: 2, right: 2),
                         child: YieldReportTable(
@@ -274,32 +281,40 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
         }
         final contentWidth = cw * dates.length;
         final canCenter = contentWidth <= available;
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            cell('Station', alignLeft: true),
-            Expanded(
-              child: SingleChildScrollView(
-                controller: controller,
-                scrollDirection: Axis.horizontal,
-                physics: canCenter
-                    ? const NeverScrollableScrollPhysics()
-                    : null,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minWidth: available),
-                  child: Align(
-                    alignment:
-                        canCenter ? Alignment.center : Alignment.centerLeft,
-                    child: Row(
-                      children: dates
-                          .map<Widget>((d) => cell(d.toString(), width: cw))
-                          .toList(),
+        final tableWidth = YieldReportTable.stationWidth + contentWidth;
+
+        return Align(
+          alignment: Alignment.center,
+          child: SizedBox(
+            width: tableWidth,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                cell('Station', alignLeft: true),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: controller,
+                    scrollDirection: Axis.horizontal,
+                    physics:
+                        canCenter ? const NeverScrollableScrollPhysics() : null,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: available),
+                      child: Align(
+                        alignment: canCenter
+                            ? Alignment.center
+                            : Alignment.centerLeft,
+                        child: Row(
+                          children: dates
+                              .map<Widget>((d) => cell(d.toString(), width: cw))
+                              .toList(),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
