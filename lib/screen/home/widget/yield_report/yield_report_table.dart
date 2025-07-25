@@ -58,8 +58,13 @@ class YieldReportTable extends StatelessWidget {
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final contentWidth = cellWidth * dates.length;
-                    final bool canCenter = contentWidth < constraints.maxWidth;
+                    final available = constraints.maxWidth;
+                    double cw = cellWidth;
+                    if (dates.length * cellWidth < available) {
+                      cw = available / dates.length;
+                    }
+                    final contentWidth = cw * dates.length;
+                    final bool canCenter = contentWidth <= available;
                     return SingleChildScrollView(
                       key: PageStorageKey('${storageKey}_scroll'),
                       controller: ScrollController(keepScrollOffset: false),
@@ -77,7 +82,9 @@ class YieldReportTable extends StatelessWidget {
                                     .map((e) => e.toString())
                                     .toList();
                                 return Row(
-                                  children: values.map((v) => _cell(v)).toList(),
+                                  children: values
+                                      .map((v) => _cell(v, width: cw))
+                                      .toList(),
                                 );
                               }).toList(),
                             ),
@@ -100,9 +107,10 @@ class YieldReportTable extends StatelessWidget {
     bool isDark, {
     bool header = false,
     bool alignLeft = false,
+    double? width,
   }) {
     return Container(
-      width: alignLeft ? stationWidth : cellWidth,
+      width: width ?? (alignLeft ? stationWidth : cellWidth),
       height: cellHeight,
       alignment: alignLeft ? Alignment.centerLeft : Alignment.center,
       padding: alignLeft ? const EdgeInsets.only(left: 8) : null,
@@ -132,6 +140,8 @@ class YieldReportTable extends StatelessWidget {
     String text, {
     bool header = false,
     bool alignLeft = false,
+    double? width,
   }) =>
-      buildCell(text, isDark, header: header, alignLeft: alignLeft);
+      buildCell(text, isDark,
+          header: header, alignLeft: alignLeft, width: width);
 }

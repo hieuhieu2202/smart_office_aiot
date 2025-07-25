@@ -213,14 +213,19 @@ class YieldReportScreen extends StatelessWidget {
   }
 
   Widget _buildHeaderRow(List dates, bool isDark) {
-    Widget cell(String text, {bool alignLeft = false}) =>
+    Widget cell(String text, {bool alignLeft = false, double? width}) =>
         YieldReportTable.buildCell(text, isDark,
-            header: true, alignLeft: alignLeft);
+            header: true, alignLeft: alignLeft, width: width);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final contentWidth = YieldReportTable.cellWidth * dates.length;
-        final available = constraints.maxWidth - YieldReportTable.stationWidth;
-        final canCenter = contentWidth < available;
+        final available =
+            constraints.maxWidth - YieldReportTable.stationWidth;
+        double cw = YieldReportTable.cellWidth;
+        if (dates.length * YieldReportTable.cellWidth < available) {
+          cw = available / dates.length;
+        }
+        final contentWidth = cw * dates.length;
+        final canCenter = contentWidth <= available;
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -239,8 +244,9 @@ class YieldReportScreen extends StatelessWidget {
                     alignment:
                         canCenter ? Alignment.center : Alignment.centerLeft,
                     child: Row(
-                      children:
-                          dates.map<Widget>((d) => cell(d.toString())).toList(),
+                      children: dates
+                          .map<Widget>((d) => cell(d.toString(), width: cw))
+                          .toList(),
                     ),
                   ),
                 ),
