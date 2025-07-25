@@ -7,7 +7,11 @@ class LinkedScrollControllerGroup {
 
   /// Adds a new controller to the group and returns it.
   ScrollController addAndGet() {
-    final controller = ScrollController();
+    // Disable keepScrollOffset so controllers don't read/write values
+    // from PageStorage. This avoids type cast issues when an ancestor
+    // uses the same [PageStorageKey] for unrelated state like
+    // [ExpansionTile]'s expansion boolean.
+    final controller = ScrollController(keepScrollOffset: false);
     _controllers.add(controller);
     controller.addListener(() {
       if (_syncing) return;
