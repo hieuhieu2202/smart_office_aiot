@@ -74,15 +74,12 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
           ),
         ),
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                key: PageStorageKey('scroll_$modelName'),
-                scrollDirection: Axis.horizontal,
-                child: ConstrainedBox(
-                  constraints:
-                      BoxConstraints(minWidth: constraints.maxWidth),
-                  child: DataTable2(
+          SingleChildScrollView(
+            key: PageStorageKey('scroll_$modelName'),
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: double.infinity),
+              child: DataTable2(
                     fixedLeftColumns: 1,
                     columnSpacing: 12,
                     columns: const [
@@ -115,12 +112,10 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                     ),
                   ),
                 ),
-              );
-            },
-          )
-        ],
-      ),
-    );
+              ),
+          ],
+        ),
+      );
   }
 
   @override
