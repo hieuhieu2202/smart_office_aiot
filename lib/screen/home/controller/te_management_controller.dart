@@ -11,6 +11,11 @@ class TEManagementController extends GetxController {
   late Rx<DateTime> endDate;
   final DateFormat _fmt = DateFormat('yyyy/MM/dd HH:mm');
 
+  RxString modelSerial = 'SWITCH'.obs;
+  RxString model = ''.obs;
+  RxString quickFilter = ''.obs;
+  RxBool filterPanelOpen = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -29,6 +34,8 @@ class TEManagementController extends GetxController {
       error.value = '';
       final res = await TEManagementApi.fetchTableDetail(
         rangeDateTime: range,
+        modelSerial: modelSerial.value,
+        model: model.value,
       );
       data.value = res;
     } catch (e) {
@@ -36,5 +43,47 @@ class TEManagementController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void updateQuickFilter(String v) => quickFilter.value = v;
+
+  void openFilterPanel() => filterPanelOpen.value = true;
+  void closeFilterPanel() => filterPanelOpen.value = false;
+
+  void applyFilter(
+    DateTime start,
+    DateTime end,
+    String serial,
+    String modelName,
+  ) {
+    startDate.value = start;
+    endDate.value = end;
+    modelSerial.value = serial;
+    model.value = modelName;
+    fetchData();
+    closeFilterPanel();
+  }
+
+  List<List<Map<String, dynamic>>> get filteredData {
+    final q = quickFilter.value.trim().toLowerCase();
+    if (q.isEmpty) return data;
+
+    final List<List<Map<String, dynamic>>> result = [];
+    for (final group in data) {
+      if (group.isEmpty) continue;
+      final modelName = (group.first['MODEL_NAME'] ?? '').toString();
+      if (modelName.toLowerCase().contains(q)) {
+        result.add(group);
+        continue;
+      }
+      final filtered = group.where((row) {
+        for (final v in row.values) {
+          if (v.toString().toLowerCase().contains(q)) return true;
+        }
+        return false;
+      }).toList();
+      if (filtered.isNotEmpty) result.add(filtered);
+    }
+    return result;
   }
 }

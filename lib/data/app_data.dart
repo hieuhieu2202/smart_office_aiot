@@ -163,6 +163,13 @@ List<AppProject> appProjects = [
         screenType: "yield_report",
       ),
       AppProject(
+        name: "TE MANAGEMENT",
+        progress: 1.0,
+        status: "Ready",
+        icon: Icons.storage,
+        screenType: "te_management",
+      ),
+      AppProject(
         name: "ROOM MONITORING",
         progress: 1.0,
         status: "Ready",
@@ -176,13 +183,7 @@ List<AppProject> appProjects = [
         icon: Icons.description,
         screenType: "ict_management",
       ),
-      AppProject(
-        name: "TE MANAGEMENT",
-        progress: 1.0,
-        status: "Ready",
-        icon: Icons.storage,
-        screenType: "te_management",
-      ),
+
       AppProject(
         name: "KANBAN TRACKING",
         progress: 1.0,
