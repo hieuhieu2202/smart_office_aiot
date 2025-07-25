@@ -5,12 +5,47 @@ import '../../../../config/global_color.dart';
 import '../../controller/yield_report_controller.dart';
 import 'yield_report_filter_panel.dart';
 import 'yield_report_table.dart';
+import '../../../util/linked_scroll_controller.dart';
 
-class YieldReportScreen extends StatelessWidget {
+class YieldReportScreen extends StatefulWidget {
   YieldReportScreen({super.key});
 
+  @override
+  State<YieldReportScreen> createState() => _YieldReportScreenState();
+}
+
+class _YieldReportScreenState extends State<YieldReportScreen> {
   final ScrollController _scrollController = ScrollController();
-  final ScrollController _horizontalController = ScrollController(keepScrollOffset: false);
+  late final LinkedScrollControllerGroup _hGroup;
+  late final ScrollController _headerController;
+  final List<ScrollController> _tableControllers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _hGroup = LinkedScrollControllerGroup();
+    _headerController = _hGroup.addAndGet();
+  }
+
+  @override
+  void dispose() {
+    _headerController.dispose();
+    for (final c in _tableControllers) {
+      c.dispose();
+    }
+    _hGroup.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _ensureTableControllers(int count) {
+    while (_tableControllers.length < count) {
+      _tableControllers.add(_hGroup.addAndGet());
+    }
+    while (_tableControllers.length > count) {
+      _tableControllers.removeLast().dispose();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,73 +181,86 @@ class YieldReportScreen extends StatelessWidget {
     YieldReportController controller,
     bool isDark,
   ) {
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
-      itemCount: controller.filteredNickNames.length,
-      itemBuilder: (context, idx) {
-        final nick = controller.filteredNickNames[idx];
-        final models = nick['DataModelNames'] as List? ?? [];
-        final nickName = nick['NickName'];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 18),
-          color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-          elevation: 6,
-          shadowColor: isDark ? Colors.black45 : Colors.grey[200],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+    final nickNames = controller.filteredNickNames;
+    int modelCount = 0;
+    for (final nick in nickNames) {
+      modelCount += (nick['DataModelNames'] as List? ?? []).length;
+    }
+    _ensureTableControllers(modelCount);
+
+    int tableIndex = 0;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: _buildHeaderRow(
+            controller.dates,
+            isDark,
+            _headerController,
           ),
-          child: ExpansionTile(
-            key: PageStorageKey(nickName),
-            initiallyExpanded: controller.expandedNickNames.contains(nickName),
-            onExpansionChanged: (expanded) {
-              if (expanded) {
-                controller.expandedNickNames.add(nickName);
-              } else {
-                controller.expandedNickNames.remove(nickName);
-              }
-            },
-            tilePadding: const EdgeInsets.symmetric(horizontal: 18),
-            childrenPadding: const EdgeInsets.only(bottom: 16),
-            maintainState: true,
-            title: Text(
-              nickName ?? '',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.lightBlue[100] : Colors.blue[900],
-                fontSize: 17,
-              ),
-            ),
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: _buildHeaderRow(
-                  controller.dates,
-                  isDark,
-                  _horizontalController,
+        ),
+        Expanded(
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
+            itemCount: nickNames.length,
+            itemBuilder: (context, idx) {
+              final nick = nickNames[idx];
+              final models = nick['DataModelNames'] as List? ?? [];
+              final nickName = nick['NickName'];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 18),
+                color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+                elevation: 6,
+                shadowColor: isDark ? Colors.black45 : Colors.grey[200],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
                 ),
-              ),
-              ...models.asMap().entries.map<Widget>((entry) {
-                final idx = entry.key;
-                final m = entry.value;
-                final stations = m['DataStations'] as List? ?? [];
-                final dates = controller.dates;
-                final modelName = m['ModelName']?.toString() ?? '';
-                return Padding(
-                  padding: const EdgeInsets.only(top: 7, left: 2, right: 2),
-                  child: YieldReportTable(
-                    modelName: modelName,
-                    dates: dates.cast<String>(),
-                    stations: stations,
-                    isDark: isDark,
-                    scrollController: _horizontalController,
+                child: ExpansionTile(
+                  key: PageStorageKey(nickName),
+                  initiallyExpanded: controller.expandedNickNames.contains(nickName),
+                  onExpansionChanged: (expanded) {
+                    if (expanded) {
+                      controller.expandedNickNames.add(nickName);
+                    } else {
+                      controller.expandedNickNames.remove(nickName);
+                    }
+                  },
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 18),
+                  childrenPadding: const EdgeInsets.only(bottom: 16),
+                  maintainState: true,
+                  title: Text(
+                    nickName ?? '',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.lightBlue[100] : Colors.blue[900],
+                      fontSize: 17,
+                    ),
                   ),
-                );
-              }).toList(),
-            ],
+                  children: [
+                    ...models.map<Widget>((m) {
+                      final stations = m['DataStations'] as List? ?? [];
+                      final modelName = m['ModelName']?.toString() ?? '';
+                      final sc = _tableControllers[tableIndex++];
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 7, left: 2, right: 2),
+                        child: YieldReportTable(
+                          modelName: modelName,
+                          dates: controller.dates.cast<String>(),
+                          stations: stations,
+                          isDark: isDark,
+                          scrollController: sc,
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
