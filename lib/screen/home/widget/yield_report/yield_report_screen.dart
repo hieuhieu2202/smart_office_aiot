@@ -2,10 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../config/global_color.dart';
+import '../../../../util/linked_scroll_controller.dart';
 import '../../controller/yield_report_controller.dart';
 import 'yield_report_filter_panel.dart';
 import 'yield_report_table.dart';
-import '../../../util/linked_scroll_controller.dart';
 
 class YieldReportScreen extends StatefulWidget {
   YieldReportScreen({super.key});
