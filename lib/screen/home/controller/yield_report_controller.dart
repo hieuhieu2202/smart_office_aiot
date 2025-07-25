@@ -95,18 +95,54 @@ class YieldReportController extends GetxController {
   List<Map<String, dynamic>> get filteredNickNames {
     final q = quickFilter.value.trim().toLowerCase();
     if (q.isEmpty) return dataNickNames;
-    return dataNickNames.where((nick) {
-      if ((nick['NickName'] ?? '').toString().toLowerCase().contains(q)) return true;
-      final models = nick['DataModelNames'] as List? ?? [];
+
+    final List<Map<String, dynamic>> result = [];
+
+    for (final nick in dataNickNames) {
+      final nickName = (nick['NickName'] ?? '').toString();
+      final models = List<Map<String, dynamic>>.from(nick['DataModelNames'] ?? []);
+
+      if (nickName.toLowerCase().contains(q)) {
+        result.add(nick);
+        continue;
+      }
+
+      final filteredModels = <Map<String, dynamic>>[];
+
       for (final m in models) {
-        if ((m['ModelName'] ?? '').toString().toLowerCase().contains(q)) return true;
-        final stations = m['DataStations'] as List? ?? [];
-        for (final st in stations) {
-          if ((st['Station'] ?? '').toString().toLowerCase().contains(q)) return true;
+        final modelName = (m['ModelName'] ?? '').toString();
+        final stations = List<Map<String, dynamic>>.from(m['DataStations'] ?? []);
+
+        if (modelName.toLowerCase().contains(q)) {
+          filteredModels.add(m);
+          continue;
+        }
+
+        final filteredStations = stations.where((st) {
+          final stationName = (st['Station'] ?? '').toString();
+          if (stationName.toLowerCase().contains(q)) return true;
+          final data = st['Data'] as List? ?? [];
+          for (final v in data) {
+            if (v.toString().toLowerCase().contains(q)) return true;
+          }
+          return false;
+        }).toList();
+
+        if (filteredStations.isNotEmpty) {
+          final newModel = Map<String, dynamic>.from(m);
+          newModel['DataStations'] = filteredStations;
+          filteredModels.add(newModel);
         }
       }
-      return false;
-    }).toList();
+
+      if (filteredModels.isNotEmpty) {
+        final newNick = Map<String, dynamic>.from(nick);
+        newNick['DataModelNames'] = filteredModels;
+        result.add(newNick);
+      }
+    }
+
+    return result;
   }
 
   List<String> get nickNameList => ['All', ...allNickNames];
