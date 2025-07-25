@@ -6,6 +6,7 @@ class YieldReportTable extends StatelessWidget {
   final List<String> dates;
   final List stations;
   final bool isDark;
+  final ScrollController scrollController;
 
   const YieldReportTable({
     super.key,
@@ -14,6 +15,7 @@ class YieldReportTable extends StatelessWidget {
     required this.dates,
     required this.stations,
     required this.isDark,
+    required this.scrollController,
   });
 
   static const double stationWidth = 120;
@@ -22,60 +24,60 @@ class YieldReportTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tableWidth = stationWidth + cellWidth * dates.length;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth - stationWidth;
+        double cw = cellWidth;
+        if (dates.length * cellWidth < available) {
+          cw = available / dates.length;
+        }
+        final contentWidth = cw * dates.length;
+        final bool canCenter = contentWidth <= available;
+        final tableWidth = stationWidth + cw * dates.length;
 
-    return Align(
-      alignment: Alignment.center,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: tableWidth.toDouble(),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.blueGrey[800] : Colors.blueGrey[100],
-              border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
-            ),
-            child: Text(
-              modelName,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.cyanAccent : Colors.blueAccent,
-                fontSize: 15,
-              ),
-            ),
-          ),
-          Row(
+        return Align(
+          alignment: Alignment.center,
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: stations
-                    .map<Widget>((st) => _cell(st['Station'] ?? '', alignLeft: true))
-                    .toList(),
+              Container(
+                width: tableWidth,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.blueGrey[800] : Colors.blueGrey[100],
+                  border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
+                ),
+                child: Text(
+                  modelName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.cyanAccent : Colors.blueAccent,
+                    fontSize: 15,
+                  ),
+                ),
               ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final available = constraints.maxWidth;
-                    double cw = cellWidth;
-                    if (dates.length * cellWidth < available) {
-                      cw = available / dates.length;
-                    }
-                    final contentWidth = cw * dates.length;
-                    final bool canCenter = contentWidth <= available;
-                    return SingleChildScrollView(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: stations
+                        .map<Widget>((st) => _cell(st['Station'] ?? '', alignLeft: true, width: stationWidth))
+                        .toList(),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
                       key: PageStorageKey('${storageKey}_scroll'),
-                      controller: ScrollController(keepScrollOffset: false),
+                      controller: scrollController,
                       scrollDirection: Axis.horizontal,
                       physics: canCenter ? const NeverScrollableScrollPhysics() : null,
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                        constraints: BoxConstraints(minWidth: available),
                         child: Align(
                           alignment: canCenter ? Alignment.center : Alignment.centerLeft,
                           child: SizedBox(
-                            width: contentWidth.toDouble(),
+                            width: contentWidth,
                             child: Column(
                               children: stations.map<Widget>((st) {
                                 final values = (st['Data'] as List? ?? [])
@@ -91,14 +93,14 @@ class YieldReportTable extends StatelessWidget {
                           ),
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

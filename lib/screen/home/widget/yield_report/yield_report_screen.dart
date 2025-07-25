@@ -151,6 +151,7 @@ class YieldReportScreen extends StatelessWidget {
       itemCount: controller.filteredNickNames.length,
       itemBuilder: (context, idx) {
         final nick = controller.filteredNickNames[idx];
+        final horizontalController = ScrollController(keepScrollOffset: false);
         final models = nick['DataModelNames'] as List? ?? [];
         final nickName = nick['NickName'];
         return Card(
@@ -185,7 +186,7 @@ class YieldReportScreen extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
-                child: _buildHeaderRow(controller.dates, isDark),
+                child: _buildHeaderRow(controller.dates, isDark, horizontalController),
               ),
               ...models.asMap().entries.map<Widget>((entry) {
                 final idx = entry.key;
@@ -202,6 +203,7 @@ class YieldReportScreen extends StatelessWidget {
                     dates: dates.cast<String>(),
                     stations: stations,
                     isDark: isDark,
+                    scrollController: horizontalController,
                   ),
                 );
               }).toList(),
@@ -212,7 +214,7 @@ class YieldReportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderRow(List dates, bool isDark) {
+  Widget _buildHeaderRow(List dates, bool isDark, ScrollController controller) {
     Widget cell(String text, {bool alignLeft = false, double? width}) =>
         YieldReportTable.buildCell(text, isDark,
             header: true, alignLeft: alignLeft, width: width);
@@ -233,7 +235,7 @@ class YieldReportScreen extends StatelessWidget {
             Expanded(
               child: SingleChildScrollView(
                 key: const PageStorageKey('header_scroll'),
-                controller: ScrollController(keepScrollOffset: false),
+                controller: controller,
                 scrollDirection: Axis.horizontal,
                 physics: canCenter
                     ? const NeverScrollableScrollPhysics()
