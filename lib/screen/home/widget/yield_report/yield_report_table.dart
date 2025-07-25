@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class YieldReportTable extends StatelessWidget {
-  final String storageKey;
   final String modelName;
   final List<String> dates;
   final List stations;
@@ -10,7 +9,6 @@ class YieldReportTable extends StatelessWidget {
 
   const YieldReportTable({
     super.key,
-    required this.storageKey,
     required this.modelName,
     required this.dates,
     required this.stations,
@@ -68,7 +66,6 @@ class YieldReportTable extends StatelessWidget {
                   ),
                   Expanded(
                     child: SingleChildScrollView(
-                      key: PageStorageKey('${storageKey}_scroll'),
                       controller: scrollController,
                       scrollDirection: Axis.horizontal,
                       physics: canCenter ? const NeverScrollableScrollPhysics() : null,

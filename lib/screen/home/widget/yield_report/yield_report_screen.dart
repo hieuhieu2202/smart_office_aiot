@@ -10,6 +10,7 @@ class YieldReportScreen extends StatelessWidget {
   YieldReportScreen({super.key});
 
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _horizontalController = ScrollController(keepScrollOffset: false);
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +152,6 @@ class YieldReportScreen extends StatelessWidget {
       itemCount: controller.filteredNickNames.length,
       itemBuilder: (context, idx) {
         final nick = controller.filteredNickNames[idx];
-        final horizontalController = ScrollController(keepScrollOffset: false);
         final models = nick['DataModelNames'] as List? ?? [];
         final nickName = nick['NickName'];
         return Card(
@@ -186,24 +186,26 @@ class YieldReportScreen extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
-                child: _buildHeaderRow(controller.dates, isDark, horizontalController),
+                child: _buildHeaderRow(
+                  controller.dates,
+                  isDark,
+                  _horizontalController,
+                ),
               ),
               ...models.asMap().entries.map<Widget>((entry) {
                 final idx = entry.key;
                 final m = entry.value;
                 final stations = m['DataStations'] as List? ?? [];
                 final dates = controller.dates;
-                final storageKey = '${nickName ?? 'nick'}-$idx';
                 final modelName = m['ModelName']?.toString() ?? '';
                 return Padding(
                   padding: const EdgeInsets.only(top: 7, left: 2, right: 2),
                   child: YieldReportTable(
-                    storageKey: storageKey,
                     modelName: modelName,
                     dates: dates.cast<String>(),
                     stations: stations,
                     isDark: isDark,
-                    scrollController: horizontalController,
+                    scrollController: _horizontalController,
                   ),
                 );
               }).toList(),
@@ -234,7 +236,6 @@ class YieldReportScreen extends StatelessWidget {
             cell('Station', alignLeft: true),
             Expanded(
               child: SingleChildScrollView(
-                key: const PageStorageKey('header_scroll'),
                 controller: controller,
                 scrollDirection: Axis.horizontal,
                 physics: canCenter
