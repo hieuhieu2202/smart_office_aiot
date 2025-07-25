@@ -8,7 +8,6 @@ class YieldReportController extends GetxController {
   var dates = <String>[].obs;
   var dataNickNames = <Map<String, dynamic>>[].obs;
   var isLoading = false.obs;
-  var allNickNames = <String>[].obs;
 
   late Rx<DateTime> startDateTime;
   late Rx<DateTime> endDateTime;
@@ -54,13 +53,6 @@ class YieldReportController extends GetxController {
       final res = data['Data'] ?? {};
       dates.value = List<String>.from(res['ClassDates'] ?? []);
       dataNickNames.value = List<Map<String, dynamic>>.from(res['DataNickNames'] ?? []);
-      // capture all nick names when loading unfiltered data
-      if ((nickName ?? selectedNickName.value) == 'All') {
-        allNickNames.value = dataNickNames
-            .map((e) => e['NickName'].toString())
-            .toSet()
-            .toList();
-      }
       // ✅ không reset expandedNickNames
     } catch (e) {
       Get.snackbar('Error', e.toString());
@@ -95,57 +87,22 @@ class YieldReportController extends GetxController {
   List<Map<String, dynamic>> get filteredNickNames {
     final q = quickFilter.value.trim().toLowerCase();
     if (q.isEmpty) return dataNickNames;
-
-    final List<Map<String, dynamic>> result = [];
-
-    for (final nick in dataNickNames) {
-      final nickName = (nick['NickName'] ?? '').toString();
-      final models = List<Map<String, dynamic>>.from(nick['DataModelNames'] ?? []);
-
-      if (nickName.toLowerCase().contains(q)) {
-        result.add(nick);
-        continue;
-      }
-
-      final filteredModels = <Map<String, dynamic>>[];
-
+    return dataNickNames.where((nick) {
+      if ((nick['NickName'] ?? '').toString().toLowerCase().contains(q)) return true;
+      final models = nick['DataModelNames'] as List? ?? [];
       for (final m in models) {
-        final modelName = (m['ModelName'] ?? '').toString();
-        final stations = List<Map<String, dynamic>>.from(m['DataStations'] ?? []);
-
-        if (modelName.toLowerCase().contains(q)) {
-          filteredModels.add(m);
-          continue;
-        }
-
-        final filteredStations = stations.where((st) {
-          final stationName = (st['Station'] ?? '').toString();
-          if (stationName.toLowerCase().contains(q)) return true;
-          final data = st['Data'] as List? ?? [];
-          for (final v in data) {
-            if (v.toString().toLowerCase().contains(q)) return true;
-          }
-          return false;
-        }).toList();
-
-        if (filteredStations.isNotEmpty) {
-          final newModel = Map<String, dynamic>.from(m);
-          newModel['DataStations'] = filteredStations;
-          filteredModels.add(newModel);
+        if ((m['ModelName'] ?? '').toString().toLowerCase().contains(q)) return true;
+        final stations = m['DataStations'] as List? ?? [];
+        for (final st in stations) {
+          if ((st['Station'] ?? '').toString().toLowerCase().contains(q)) return true;
         }
       }
-
-      if (filteredModels.isNotEmpty) {
-        final newNick = Map<String, dynamic>.from(nick);
-        newNick['DataModelNames'] = filteredModels;
-        result.add(newNick);
-      }
-    }
-
-    return result;
+      return false;
+    }).toList();
   }
 
-  List<String> get nickNameList => ['All', ...allNickNames];
+  List<String> get nickNameList =>
+      ['All', ...dataNickNames.map((e) => e['NickName'].toString()).toSet().toList()];
 
   bool get isDefaultFilter =>
       selectedNickName.value == 'All' &&

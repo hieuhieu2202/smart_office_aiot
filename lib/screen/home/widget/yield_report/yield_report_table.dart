@@ -1,149 +1,231 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-class YieldReportTable extends StatelessWidget {
-  final String modelName;
-  final List<String> dates;
-  final List stations;
+class YieldReportFilterPanel extends StatefulWidget {
+  final bool show;
+  final DateTime start;
+  final DateTime end;
+  final String? nickName;
+  final List<String> nickNameOptions;
+  final void Function(DateTime start, DateTime end, String? nickName) onApply;
+  final VoidCallback onClose;
   final bool isDark;
-  final ScrollController scrollController;
 
-  const YieldReportTable({
+  const YieldReportFilterPanel({
     super.key,
-    required this.modelName,
-    required this.dates,
-    required this.stations,
+    required this.show,
+    required this.start,
+    required this.end,
+    required this.nickName,
+    required this.nickNameOptions,
+    required this.onApply,
+    required this.onClose,
     required this.isDark,
-    required this.scrollController,
   });
 
-  static const double stationWidth = 120;
-  static const double cellWidth = 90;
-  static const double cellHeight = 42;
+  @override
+  State<YieldReportFilterPanel> createState() => _YieldReportFilterPanelState();
+}
+
+class _YieldReportFilterPanelState extends State<YieldReportFilterPanel> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offset;
+  late DateTime _start;
+  late DateTime _end;
+  String? _nickName;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 220));
+    _offset = Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    if (widget.show) _controller.forward();
+    _start = widget.start;
+    _end = widget.end;
+    _nickName = widget.nickName;
+  }
+
+  @override
+  void didUpdateWidget(covariant YieldReportFilterPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.show) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+    _start = widget.start;
+    _end = widget.end;
+    _nickName = widget.nickName;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxWidth = constraints.hasBoundedWidth
-            ? constraints.maxWidth
-            : MediaQuery.of(context).size.width;
-        final available = maxWidth - stationWidth;
-        double cw = cellWidth;
-        if (dates.isNotEmpty && dates.length * cellWidth < available) {
-          cw = available / dates.length;
-        }
-        final contentWidth = cw * dates.length;
-        final bool canCenter = contentWidth <= available;
-        final tableWidth = stationWidth + contentWidth;
-
-        return Align(
-          alignment: Alignment.center,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: tableWidth,
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.blueGrey[800] : Colors.blueGrey[100],
-                  border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
-                ),
-                child: Text(
-                  modelName,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.cyanAccent : Colors.blueAccent,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: stations
-                        .map<Widget>((st) => _cell(st['Station'] ?? '', alignLeft: true, width: stationWidth))
-                        .toList(),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      scrollDirection: Axis.horizontal,
-                      physics: canCenter ? const NeverScrollableScrollPhysics() : null,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(minWidth: available),
-                        child: Align(
-                          alignment: canCenter ? Alignment.center : Alignment.centerLeft,
-                          child: SizedBox(
-                            width: contentWidth,
-                            child: Column(
-                              children: stations.map<Widget>((st) {
-                                final values = (st['Data'] as List? ?? [])
-                                    .map((e) => e.toString())
-                                    .toList();
-                                return Row(
-                                  children: values
-                                      .map((v) => _cell(v, width: cw))
-                                      .toList(),
-                                );
-                              }).toList(),
-                            ),
-                          ),
+    final isDark = widget.isDark;
+    final format = DateFormat('yyyy/MM/dd HH:mm');
+    return IgnorePointer(
+      ignoring: !widget.show,
+      child: AnimatedOpacity(
+        opacity: widget.show ? 1 : 0,
+        duration: const Duration(milliseconds: 180),
+        child: Stack(
+          children: [
+            GestureDetector(
+              onTap: widget.onClose,
+              child: Container(color: Colors.black26),
+            ),
+            SlideTransition(
+              position: _offset,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Material(
+                  color: Colors.transparent,
+                  elevation: 10,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 370,
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF232F34) : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.16),
+                          blurRadius: 20,
+                        )
+                      ],
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 28),
+                              onPressed: widget.onClose,
+                            )
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        Text("Lọc báo cáo", style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 20,
+                          color: isDark ? Colors.white : Colors.black,
+                        )),
+                        const SizedBox(height: 28),
+                        Text("Từ ngày", style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        _DateTimePicker(
+                          date: _start,
+                          isDark: isDark,
+                          onChanged: (d) => setState(() => _start = d),
+                        ),
+                        const SizedBox(height: 16),
+                        Text("Đến ngày", style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        _DateTimePicker(
+                          date: _end,
+                          isDark: isDark,
+                          onChanged: (d) => setState(() => _end = d),
+                        ),
+                        const SizedBox(height: 22),
+                        Text("NickName", style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: _nickName,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: isDark ? Colors.grey[900] : Colors.grey[100],
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          ),
+                          items: widget.nickNameOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                          onChanged: (v) => setState(() => _nickName = v),
+                        ),
+                        const Spacer(),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey[600],
+                                ),
+                                onPressed: widget.onClose,
+                                child: const Text("Huỷ"),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blueAccent,
+                                ),
+                                onPressed: () {
+                                  widget.onApply(_start, _end, _nickName);
+                                },
+                                child: const Text("Áp dụng"),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  static Widget buildCell(
-    String text,
-    bool isDark, {
-    bool header = false,
-    bool alignLeft = false,
-    double? width,
-  }) {
-    return Container(
-      width: width ?? (alignLeft ? stationWidth : cellWidth),
-      height: cellHeight,
-      alignment: alignLeft ? Alignment.centerLeft : Alignment.center,
-      padding: alignLeft ? const EdgeInsets.only(left: 8) : null,
-      decoration: BoxDecoration(
-        border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
-        color: header
-            ? (isDark ? Colors.teal[900] : Colors.blue[100])
-            : Colors.transparent,
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          text,
-          textAlign: alignLeft ? TextAlign.left : TextAlign.center,
-          style: TextStyle(
-            fontWeight:
-                header || alignLeft ? FontWeight.bold : FontWeight.w500,
-            color: isDark ? Colors.yellowAccent : Colors.blueAccent,
-            fontSize: 13,
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _cell(
-    String text, {
-    bool header = false,
-    bool alignLeft = false,
-    double? width,
-  }) =>
-      buildCell(text, isDark,
-          header: header, alignLeft: alignLeft, width: width);
+class _DateTimePicker extends StatelessWidget {
+  final DateTime date;
+  final bool isDark;
+  final ValueChanged<DateTime> onChanged;
+  const _DateTimePicker({required this.date, required this.isDark, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final format = DateFormat('yyyy/MM/dd HH:mm');
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: date,
+          firstDate: DateTime(date.year - 1),
+          lastDate: DateTime(date.year + 1),
+          builder: (ctx, child) => Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: isDark ? const ColorScheme.dark(primary: Colors.blueAccent) : const ColorScheme.light(primary: Colors.blue),
+            ),
+            child: child!,
+          ),
+        );
+        if (picked == null) return;
+        final t = TimeOfDay.fromDateTime(date);
+        final pickedTime = await showTimePicker(context: context, initialTime: t);
+        if (pickedTime == null) return;
+        onChanged(DateTime(picked.year, picked.month, picked.day, pickedTime.hour, pickedTime.minute));
+      },
+      borderRadius: BorderRadius.circular(7),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 13),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.blueGrey[900] : Colors.blueGrey[50],
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: Text(format.format(date), style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87)),
+      ),
+    );
+  }
 }
