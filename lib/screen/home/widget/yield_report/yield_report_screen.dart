@@ -6,6 +6,8 @@ import '../../../../util/linked_scroll_controller.dart';
 import '../../controller/yield_report_controller.dart';
 import 'yield_report_filter_panel.dart';
 import 'yield_report_table.dart';
+import 'yield_report_header_row.dart';
+import 'yield_report_search_bar.dart';
 
 class YieldReportScreen extends StatefulWidget {
   YieldReportScreen({super.key});
@@ -85,52 +87,9 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
           children: [
             Column(
               children: [
-                Container(
-                  margin: const EdgeInsets.fromLTRB(13, 18, 13, 0),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        isDark
-                            ? GlobalColors.cardDarkBg
-                            : GlobalColors.cardLightBg,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            isDark
-                                ? Colors.black.withOpacity(0.10)
-                                : Colors.grey.withOpacity(0.13),
-                        blurRadius: 7,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search,
-                        color: isDark ? Colors.white54 : Colors.grey[700],
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: TextField(
-                          style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black87,
-                            fontSize: 16,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: "Tìm kiếm NickName, Model, Station...",
-                            border: InputBorder.none,
-                            hintStyle: TextStyle(fontWeight: FontWeight.w400),
-                          ),
-                          onChanged: (val) => controller.updateQuickFilter(val),
-                        ),
-                      ),
-                    ],
-                  ),
+                YieldReportSearchBar(
+                  controller: controller,
+                  isDark: isDark,
                 ),
                 const SizedBox(height: 10),
                 const SizedBox(height: 7),
@@ -190,10 +149,10 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
-          child: _buildHeaderRow(
-            controller.dates,
-            isDark,
-            _headerController,
+          child: YieldReportHeaderRow(
+            dates: controller.dates,
+            isDark: isDark,
+            controller: _headerController,
           ),
         ),
         Expanded(
@@ -267,57 +226,4 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
     );
   }
 
-  Widget _buildHeaderRow(List dates, bool isDark, ScrollController controller) {
-    Widget cell(String text, {bool alignLeft = false, double? width}) =>
-        YieldReportTable.buildCell(text, isDark,
-            header: true, alignLeft: alignLeft, width: width);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final available =
-            constraints.maxWidth - YieldReportTable.stationWidth;
-        double cw = YieldReportTable.cellWidth;
-        if (dates.isNotEmpty &&
-            dates.length * YieldReportTable.cellWidth < available) {
-          cw = available / dates.length;
-        }
-        final contentWidth = cw * dates.length;
-        final canCenter = contentWidth <= available;
-        final tableWidth = YieldReportTable.stationWidth + contentWidth;
-
-        return Align(
-          alignment: Alignment.center,
-          child: SizedBox(
-            width: tableWidth,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                cell('Station', alignLeft: true),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: controller,
-                    scrollDirection: Axis.horizontal,
-                    physics:
-                        canCenter ? const NeverScrollableScrollPhysics() : null,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: available),
-                      child: Align(
-                        alignment: canCenter
-                            ? Alignment.center
-                            : Alignment.centerLeft,
-                        child: Row(
-                          children: dates
-                              .map<Widget>((d) => cell(d.toString(), width: cw))
-                              .toList(),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 }
