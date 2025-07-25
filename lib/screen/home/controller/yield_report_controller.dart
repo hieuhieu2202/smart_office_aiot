@@ -27,7 +27,7 @@ class YieldReportController extends GetxController {
   void onInit() {
     super.onInit();
     final now = DateTime.now();
-    startDateTime = Rx<DateTime>(DateTime(now.year, now.month, now.day - 7, 7, 30));
+    startDateTime = Rx<DateTime>(DateTime(now.year, now.month, now.day - 2, 7, 30));
     endDateTime = Rx<DateTime>(DateTime(now.year, now.month, now.day, 19, 30));
     fetchReport();
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -96,54 +96,49 @@ class YieldReportController extends GetxController {
     final q = quickFilter.value.trim().toLowerCase();
     if (q.isEmpty) return dataNickNames;
 
-    final result = <Map<String, dynamic>>[];
+    final List<Map<String, dynamic>> result = [];
 
     for (final nick in dataNickNames) {
       final nickName = (nick['NickName'] ?? '').toString();
+      final models = List<Map<String, dynamic>>.from(nick['DataModelNames'] ?? []);
 
-      // if nickname matches, keep entire entry
       if (nickName.toLowerCase().contains(q)) {
         result.add(nick);
         continue;
       }
 
-      final models = <Map<String, dynamic>>[];
-      for (final m in (nick['DataModelNames'] as List? ?? [])) {
+      final filteredModels = <Map<String, dynamic>>[];
+
+      for (final m in models) {
         final modelName = (m['ModelName'] ?? '').toString();
-        final stations = <Map<String, dynamic>>[];
+        final stations = List<Map<String, dynamic>>.from(m['DataStations'] ?? []);
 
-        for (final st in (m['DataStations'] as List? ?? [])) {
-          final station = (st['Station'] ?? '').toString();
-
-          if (modelName.toLowerCase().contains(q) ||
-              station.toLowerCase().contains(q)) {
-            stations.add(st);
-            continue;
-          }
-
-          final values = (st['Data'] as List? ?? [])
-              .map((e) => e.toString().toLowerCase())
-              .join(' ');
-          if (values.contains(q)) {
-            stations.add(st);
-          }
+        if (modelName.toLowerCase().contains(q)) {
+          filteredModels.add(m);
+          continue;
         }
 
-        if (stations.isNotEmpty || modelName.toLowerCase().contains(q)) {
-          models.add({
-            ...m,
-            'DataStations': stations.isEmpty
-                ? List<Map<String, dynamic>>.from(m['DataStations'] as List? ?? [])
-                : stations,
-          });
+        final filteredStations = stations.where((st) {
+          final stationName = (st['Station'] ?? '').toString();
+          if (stationName.toLowerCase().contains(q)) return true;
+          final data = st['Data'] as List? ?? [];
+          for (final v in data) {
+            if (v.toString().toLowerCase().contains(q)) return true;
+          }
+          return false;
+        }).toList();
+
+        if (filteredStations.isNotEmpty) {
+          final newModel = Map<String, dynamic>.from(m);
+          newModel['DataStations'] = filteredStations;
+          filteredModels.add(newModel);
         }
       }
 
-      if (models.isNotEmpty) {
-        result.add({
-          ...nick,
-          'DataModelNames': models,
-        });
+      if (filteredModels.isNotEmpty) {
+        final newNick = Map<String, dynamic>.from(nick);
+        newNick['DataModelNames'] = filteredModels;
+        result.add(newNick);
       }
     }
 
