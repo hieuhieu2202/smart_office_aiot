@@ -103,10 +103,18 @@ class YieldReportScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 const SizedBox(height: 7),
                 Expanded(
-                  child:
-                      controller.isLoading.value
-                          ? const Center(child: CircularProgressIndicator())
-                          : _buildDataTable(context, controller, isDark),
+                  child: Stack(
+                    children: [
+                      _buildDataTable(context, controller, isDark),
+                      if (controller.isLoading.value)
+                        const Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: LinearProgressIndicator(minHeight: 2),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -215,10 +223,11 @@ class YieldReportScreen extends StatelessWidget {
         cell('Station', alignLeft: true),
         Expanded(
           child: SingleChildScrollView(
+            key: const PageStorageKey('header_scroll'),
+            controller: ScrollController(keepScrollOffset: false),
             scrollDirection: Axis.horizontal,
             child: Row(
-              children:
-                  dates.map<Widget>((d) => cell(d.toString())).toList(),
+              children: dates.map<Widget>((d) => cell(d.toString())).toList(),
             ),
           ),
         ),

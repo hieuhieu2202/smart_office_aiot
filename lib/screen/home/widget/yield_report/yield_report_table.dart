@@ -16,8 +16,8 @@ class YieldReportTable extends StatelessWidget {
     required this.isDark,
   });
 
-  static const double stationWidth = 110;
-  static const double cellWidth = 85;
+  static const double stationWidth = 120;
+  static const double cellWidth = 90;
   static const double cellHeight = 42;
 
   @override
@@ -54,6 +54,7 @@ class YieldReportTable extends StatelessWidget {
             Expanded(
               child: SingleChildScrollView(
                 key: PageStorageKey('${storageKey}_scroll'),
+                controller: ScrollController(keepScrollOffset: false),
                 scrollDirection: Axis.horizontal,
                 child: Column(
                   children: stations.map<Widget>((st) {
@@ -90,14 +91,17 @@ class YieldReportTable extends StatelessWidget {
             ? (isDark ? Colors.teal[900] : Colors.blue[100])
             : Colors.transparent,
       ),
-      child: Text(
-        text,
-        textAlign: alignLeft ? TextAlign.left : TextAlign.center,
-        style: TextStyle(
-          fontWeight:
-              header || alignLeft ? FontWeight.bold : FontWeight.w500,
-          color: isDark ? Colors.yellowAccent : Colors.blueAccent,
-          fontSize: 13,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          textAlign: alignLeft ? TextAlign.left : TextAlign.center,
+          style: TextStyle(
+            fontWeight:
+                header || alignLeft ? FontWeight.bold : FontWeight.w500,
+            color: isDark ? Colors.yellowAccent : Colors.blueAccent,
+            fontSize: 13,
+          ),
         ),
       ),
     );
