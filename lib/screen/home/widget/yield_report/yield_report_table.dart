@@ -16,17 +16,23 @@ class YieldReportTable extends StatelessWidget {
     required this.isDark,
   });
 
-  static const double _stationWidth = 110;
-  static const double _cellWidth = 85;
-  static const double _cellHeight = 42;
+  static const double stationWidth = 110;
+  static const double cellWidth = 85;
+  static const double cellHeight = 42;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 4),
+        Container(
+          width: stationWidth + cellWidth * dates.length,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.blueGrey[800] : Colors.blueGrey[100],
+            border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
+          ),
           child: Text(
             modelName,
             style: TextStyle(
@@ -41,37 +47,23 @@ class YieldReportTable extends StatelessWidget {
           children: [
             Column(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildCell('Station', header: true, alignLeft: true),
-                ...stations.map<Widget>(
-                  (st) => _buildCell(
-                    st['Station'] ?? '',
-                    alignLeft: true,
-                  ),
-                ),
-              ],
+              children: stations
+                  .map<Widget>((st) => _cell(st['Station'] ?? '', alignLeft: true))
+                  .toList(),
             ),
             Expanded(
               child: SingleChildScrollView(
                 key: PageStorageKey('${storageKey}_scroll'),
                 scrollDirection: Axis.horizontal,
                 child: Column(
-                  children: [
-                    Row(
-                      children: dates
-                          .map((d) => _buildCell(d, header: true))
-                          .toList(),
-                    ),
-                    ...stations.map<Widget>((st) {
-                      final values = (st['Data'] as List? ?? [])
-                          .map((e) => e.toString())
-                          .toList();
-                      return Row(
-                        children:
-                            values.map((v) => _buildCell(v)).toList(),
-                      );
-                    }).toList(),
-                  ],
+                  children: stations.map<Widget>((st) {
+                    final values = (st['Data'] as List? ?? [])
+                        .map((e) => e.toString())
+                        .toList();
+                    return Row(
+                      children: values.map((v) => _cell(v)).toList(),
+                    );
+                  }).toList(),
                 ),
               ),
             ),
@@ -81,14 +73,15 @@ class YieldReportTable extends StatelessWidget {
     );
   }
 
-  Widget _buildCell(
-    String text, {
+  static Widget buildCell(
+    String text,
+    bool isDark, {
     bool header = false,
     bool alignLeft = false,
   }) {
     return Container(
-      width: alignLeft ? _stationWidth : _cellWidth,
-      height: _cellHeight,
+      width: alignLeft ? stationWidth : cellWidth,
+      height: cellHeight,
       alignment: alignLeft ? Alignment.centerLeft : Alignment.center,
       padding: alignLeft ? const EdgeInsets.only(left: 8) : null,
       decoration: BoxDecoration(
@@ -109,4 +102,11 @@ class YieldReportTable extends StatelessWidget {
       ),
     );
   }
+
+  Widget _cell(
+    String text, {
+    bool header = false,
+    bool alignLeft = false,
+  }) =>
+      buildCell(text, isDark, header: header, alignLeft: alignLeft);
 }

@@ -174,28 +174,55 @@ class YieldReportScreen extends StatelessWidget {
                 fontSize: 17,
               ),
             ),
-            children:
-                models.asMap().entries.map<Widget>((entry) {
-                  final idx = entry.key;
-                  final m = entry.value;
-                  final stations = m['DataStations'] as List? ?? [];
-                  final dates = controller.dates;
-                  final storageKey = '${nickName ?? 'nick'}-$idx';
-                  final modelName = m['ModelName']?.toString() ?? '';
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 7, left: 2, right: 2),
-                    child: YieldReportTable(
-                      storageKey: storageKey,
-                      modelName: modelName,
-                      dates: dates.cast<String>(),
-                      stations: stations,
-                      isDark: isDark,
-                    ),
-                  );
-                }).toList(),
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: _buildHeaderRow(controller.dates, isDark),
+              ),
+              ...models.asMap().entries.map<Widget>((entry) {
+                final idx = entry.key;
+                final m = entry.value;
+                final stations = m['DataStations'] as List? ?? [];
+                final dates = controller.dates;
+                final storageKey = '${nickName ?? 'nick'}-$idx';
+                final modelName = m['ModelName']?.toString() ?? '';
+                return Padding(
+                  padding: const EdgeInsets.only(top: 7, left: 2, right: 2),
+                  child: YieldReportTable(
+                    storageKey: storageKey,
+                    modelName: modelName,
+                    dates: dates.cast<String>(),
+                    stations: stations,
+                    isDark: isDark,
+                  ),
+                );
+              }).toList(),
+            ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildHeaderRow(List dates, bool isDark) {
+    Widget cell(String text, {bool alignLeft = false}) =>
+        YieldReportTable.buildCell(text, isDark,
+            header: true, alignLeft: alignLeft);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        cell('Station', alignLeft: true),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children:
+                  dates.map<Widget>((d) => cell(d.toString())).toList(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
