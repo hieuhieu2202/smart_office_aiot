@@ -1,230 +1,95 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-class YieldReportFilterPanel extends StatefulWidget {
-  final bool show;
-  final DateTime start;
-  final DateTime end;
-  final String? nickName;
-  final List<String> nickNameOptions;
-  final void Function(DateTime start, DateTime end, String? nickName) onApply;
-  final VoidCallback onClose;
+class YieldReportTable extends StatelessWidget {
+  final String storageKey;
+  final String modelName;
+  final List<String> dates;
+  final List stations;
   final bool isDark;
 
-  const YieldReportFilterPanel({
+  const YieldReportTable({
     super.key,
-    required this.show,
-    required this.start,
-    required this.end,
-    required this.nickName,
-    required this.nickNameOptions,
-    required this.onApply,
-    required this.onClose,
+    required this.storageKey,
+    required this.modelName,
+    required this.dates,
+    required this.stations,
     required this.isDark,
   });
 
   @override
-  State<YieldReportFilterPanel> createState() => _YieldReportFilterPanelState();
-}
-
-class _YieldReportFilterPanelState extends State<YieldReportFilterPanel> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _offset;
-  late DateTime _start;
-  late DateTime _end;
-  String? _nickName;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 220));
-    _offset = Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    if (widget.show) _controller.forward();
-    _start = widget.start;
-    _end = widget.end;
-    _nickName = widget.nickName;
-  }
-
-  @override
-  void didUpdateWidget(covariant YieldReportFilterPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.show) {
-      _controller.forward();
-    } else {
-      _controller.reverse();
-    }
-    _start = widget.start;
-    _end = widget.end;
-    _nickName = widget.nickName;
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isDark = widget.isDark;
-    final format = DateFormat('yyyy/MM/dd HH:mm');
-    return IgnorePointer(
-      ignoring: !widget.show,
-      child: AnimatedOpacity(
-        opacity: widget.show ? 1 : 0,
-        duration: const Duration(milliseconds: 180),
-        child: Stack(
-          children: [
-            GestureDetector(
-              onTap: widget.onClose,
-              child: Container(color: Colors.black26),
+    final columns = <DataColumn>[
+      DataColumn(label: _headerCell('Station')),
+      ...dates.map((d) => DataColumn(label: _headerCell(d))).toList(),
+    ];
+
+    final rows = stations.map<DataRow>((st) {
+      final values = (st['Data'] as List? ?? [])
+          .map((e) => e.toString())
+          .toList();
+      return DataRow(
+        cells: [
+          DataCell(Text(
+            st['Station'] ?? '',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.cyanAccent : Colors.blueAccent,
             ),
-            SlideTransition(
-              position: _offset,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Material(
-                  color: Colors.transparent,
-                  elevation: 10,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 370,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF232F34) : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.16),
-                          blurRadius: 20,
-                        )
-                      ],
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Spacer(),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 28),
-                              onPressed: widget.onClose,
-                            )
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Text("Lọc báo cáo", style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                          color: isDark ? Colors.white : Colors.black,
-                        )),
-                        const SizedBox(height: 28),
-                        Text("Từ ngày", style: TextStyle(fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 8),
-                        _DateTimePicker(
-                          date: _start,
-                          isDark: isDark,
-                          onChanged: (d) => setState(() => _start = d),
-                        ),
-                        const SizedBox(height: 16),
-                        Text("Đến ngày", style: TextStyle(fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 8),
-                        _DateTimePicker(
-                          date: _end,
-                          isDark: isDark,
-                          onChanged: (d) => setState(() => _end = d),
-                        ),
-                        const SizedBox(height: 22),
-                        Text("NickName", style: TextStyle(fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: _nickName,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: isDark ? Colors.grey[900] : Colors.grey[100],
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                          ),
-                          items: widget.nickNameOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                          onChanged: (v) => setState(() => _nickName = v),
-                        ),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[600],
-                                ),
-                                onPressed: widget.onClose,
-                                child: const Text("Huỷ"),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blueAccent,
-                                ),
-                                onPressed: () {
-                                  widget.onApply(_start, _end, _nickName);
-                                },
-                                child: const Text("Áp dụng"),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+          )),
+          ...values.map(
+            (v) => DataCell(Text(
+              v,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.yellowAccent : Colors.blueAccent,
               ),
+            )),
+          ),
+        ],
+      );
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 4),
+          child: Text(
+            modelName,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.cyanAccent : Colors.blueAccent,
+              fontSize: 15,
             ),
-          ],
+          ),
         ),
-      ),
+        SingleChildScrollView(
+          key: PageStorageKey('${storageKey}_scroll'),
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            headingRowHeight: 42,
+            dataRowMinHeight: 42,
+            dataRowMaxHeight: 42,
+            columns: columns,
+            rows: rows,
+            headingRowColor: MaterialStateProperty.all(
+                isDark ? Colors.teal[900] : Colors.blue[100]),
+            dataRowColor: MaterialStateProperty.all(
+                isDark ? Colors.blueGrey[900] : Colors.blueGrey[50]),
+            dividerThickness: 1,
+            columnSpacing: 16,
+          ),
+        ),
+      ],
     );
   }
-}
 
-class _DateTimePicker extends StatelessWidget {
-  final DateTime date;
-  final bool isDark;
-  final ValueChanged<DateTime> onChanged;
-  const _DateTimePicker({required this.date, required this.isDark, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final format = DateFormat('yyyy/MM/dd HH:mm');
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: date,
-          firstDate: DateTime(date.year - 1),
-          lastDate: DateTime(date.year + 1),
-          builder: (ctx, child) => Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: isDark ? const ColorScheme.dark(primary: Colors.blueAccent) : const ColorScheme.light(primary: Colors.blue),
-            ),
-            child: child!,
-          ),
-        );
-        if (picked == null) return;
-        final t = TimeOfDay.fromDateTime(date);
-        final pickedTime = await showTimePicker(context: context, initialTime: t);
-        if (pickedTime == null) return;
-        onChanged(DateTime(picked.year, picked.month, picked.day, pickedTime.hour, pickedTime.minute));
-      },
-      borderRadius: BorderRadius.circular(7),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 13),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.blueGrey[900] : Colors.blueGrey[50],
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: Text(format.format(date), style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87)),
+  Widget _headerCell(String label) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: isDark ? Colors.yellowAccent : Colors.blueAccent,
       ),
     );
   }
