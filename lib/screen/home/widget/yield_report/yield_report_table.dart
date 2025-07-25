@@ -26,7 +26,7 @@ class YieldReportTable extends StatelessWidget {
       builder: (context, constraints) {
         final available = constraints.maxWidth - stationWidth;
         double cw = cellWidth;
-        if (dates.length * cellWidth < available) {
+        if (dates.isNotEmpty && dates.length * cellWidth < available) {
           cw = available / dates.length;
         }
         final contentWidth = cw * dates.length;
