@@ -24,14 +24,17 @@ class YieldReportTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final available = constraints.maxWidth - stationWidth;
+        final maxWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : MediaQuery.of(context).size.width;
+        final available = maxWidth - stationWidth;
         double cw = cellWidth;
-        if (dates.length * cellWidth < available) {
+        if (dates.isNotEmpty && dates.length * cellWidth < available) {
           cw = available / dates.length;
         }
         final contentWidth = cw * dates.length;
         final bool canCenter = contentWidth <= available;
-        final tableWidth = stationWidth + cw * dates.length;
+        final tableWidth = stationWidth + contentWidth;
 
         return Align(
           alignment: Alignment.center,

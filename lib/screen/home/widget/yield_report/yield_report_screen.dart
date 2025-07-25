@@ -205,60 +205,45 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
               final nick = nickNames[idx];
               final models = nick['DataModelNames'] as List? ?? [];
               final nickName = nick['NickName'];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 18),
-                color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-                elevation: 6,
-                shadowColor: isDark ? Colors.black45 : Colors.grey[200],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: ExpansionTile(
-                  key: PageStorageKey(nickName),
-                  initiallyExpanded: controller.expandedNickNames.contains(nickName),
-                  onExpansionChanged: (expanded) {
-                    if (expanded) {
-                      controller.expandedNickNames.add(nickName);
-                    } else {
-                      controller.expandedNickNames.remove(nickName);
-                    }
-                  },
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 18),
-                  childrenPadding: const EdgeInsets.only(bottom: 16),
-                  maintainState: true,
-                  title: Text(
-                    nickName ?? '',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.lightBlue[100] : Colors.blue[900],
-                      fontSize: 17,
-                    ),
-                  ),
-                  children: [
-                    ...models.map<Widget>((m) {
-                      final stations = m['DataStations'] as List? ?? [];
-                      final modelName = m['ModelName']?.toString() ?? '';
-                      ScrollController sc;
-                      if (tableIndex < _tableControllers.length) {
-                        sc = _tableControllers[tableIndex];
-                      } else {
-                        sc = _hGroup.addAndGet();
-                        _tableControllers.add(sc);
-                      }
-                      tableIndex++;
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 7, left: 2, right: 2),
-                        child: YieldReportTable(
-                          modelName: modelName,
-                          dates: controller.dates.cast<String>(),
-                          stations: stations,
-                          isDark: isDark,
-                          scrollController: sc,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (nickName != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Text(
+                        nickName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.lightBlue[100] : Colors.blue[900],
+                          fontSize: 17,
                         ),
-                      );
-                    }).toList(),
-                  ],
-                ),
+                      ),
+                    ),
+                  ...models.map<Widget>((m) {
+                    final stations = m['DataStations'] as List? ?? [];
+                    final modelName = m['ModelName']?.toString() ?? '';
+                    ScrollController sc;
+                    if (tableIndex < _tableControllers.length) {
+                      sc = _tableControllers[tableIndex];
+                    } else {
+                      sc = _hGroup.addAndGet();
+                      _tableControllers.add(sc);
+                    }
+                    tableIndex++;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14, left: 2, right: 2),
+                      child: YieldReportTable(
+                        modelName: modelName,
+                        dates: controller.dates.cast<String>(),
+                        stations: stations,
+                        isDark: isDark,
+                        scrollController: sc,
+                      ),
+                    );
+                  }).toList(),
+                  const SizedBox(height: 12),
+                ],
               );
             },
           ),
@@ -271,12 +256,17 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
     Widget cell(String text, {bool alignLeft = false, double? width}) =>
         YieldReportTable.buildCell(text, isDark,
             header: true, alignLeft: alignLeft, width: width);
+    if (dates.isEmpty) {
+      return Row(children: [cell('Station', alignLeft: true)]);
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
-        final available =
-            constraints.maxWidth - YieldReportTable.stationWidth;
+        final maxWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : MediaQuery.of(context).size.width;
+        final available = maxWidth - YieldReportTable.stationWidth;
         double cw = YieldReportTable.cellWidth;
-        if (dates.length * YieldReportTable.cellWidth < available) {
+        if (dates.isNotEmpty && dates.length * YieldReportTable.cellWidth < available) {
           cw = available / dates.length;
         }
         final contentWidth = cw * dates.length;
@@ -300,9 +290,8 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
                     child: ConstrainedBox(
                       constraints: BoxConstraints(minWidth: available),
                       child: Align(
-                        alignment: canCenter
-                            ? Alignment.center
-                            : Alignment.centerLeft,
+                        alignment:
+                            canCenter ? Alignment.center : Alignment.centerLeft,
                         child: Row(
                           children: dates
                               .map<Widget>((d) => cell(d.toString(), width: cw))
