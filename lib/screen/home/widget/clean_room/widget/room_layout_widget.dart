@@ -41,10 +41,11 @@ class RoomLayoutWidget extends StatelessWidget {
                           final leftPercentStr = sensor['Left']?.toString().replaceAll('%', '') ?? '0';
                           final topPercent = double.tryParse(topPercentStr) ?? 0.0;
                           final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
+                          const circleDiameter = 17.0;
                           final topPos =
-                              (topPercent.isNaN ? 0.0 : topPercent) / 100 * height - 5;
+                              (topPercent.isNaN ? 0.0 : topPercent) / 100 * height - circleDiameter / 2;
                           final leftPos =
-                              (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * width - 5;
+                              (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * width - circleDiameter / 2;
 
                           Map<String, dynamic>? dataEntry;
                           try {
