@@ -41,6 +41,25 @@ class RoomLayoutWidget extends StatelessWidget {
                           final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
                           final topPos = (topPercent.isNaN ? 0.0 : topPercent) / 100 * height;
                           final leftPos = (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * width;
+
+                          Map<String, dynamic>? dataEntry;
+                          try {
+                            dataEntry = controller.sensorData.firstWhere(
+                              (e) => e['sensorName'] == sensor['SensorName'],
+                            );
+                          } catch (_) {
+                            dataEntry = null;
+                          }
+
+                          bool hasData = false;
+                          if (dataEntry != null && dataEntry['series'] is List) {
+                            final series = dataEntry['series'] as List;
+                            hasData = series.any((s) =>
+                                s is Map && s['data'] is List && (s['data'] as List).isNotEmpty);
+                          }
+
+                          final markerColor = hasData ? Colors.green : Colors.grey;
+
                           return Positioned(
                             top: topPos,
                             left: leftPos,
@@ -56,7 +75,7 @@ class RoomLayoutWidget extends StatelessWidget {
                                 width: 26,
                                 height: 26,
                                 decoration: BoxDecoration(
-                                  color: Colors.redAccent,
+                                  color: markerColor,
                                   shape: BoxShape.circle,
                                   border: Border.all(color: Colors.white, width: 2),
                                 ),
