@@ -66,6 +66,7 @@ class RoomLayoutWidget extends StatelessWidget {
                           final areaName = dataEntry?['sensorDesc']?.toString() ?? '';
                           final menu = sensor['menu']?.toString().toLowerCase() ?? '';
                           final labelOnTop = !menu.contains('bottom');
+                          final triangleAtLeft = menu.contains('left');
 
                           return Positioned(
                             top: topPos,
@@ -88,6 +89,7 @@ class RoomLayoutWidget extends StatelessWidget {
                                   sensorName: sensor['SensorName'],
                                   areaName: areaName,
                                   online: hasData,
+                                  triangleAtLeft: triangleAtLeft,
                                   labelOnTop: labelOnTop,
                                 ),
                               ),

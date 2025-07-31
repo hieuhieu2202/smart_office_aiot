@@ -4,6 +4,7 @@ class SensorMarker extends StatelessWidget {
   final String sensorName;
   final String areaName;
   final bool online;
+  final bool triangleAtLeft; // true: tam giác lệch trái, false: lệch phải
   final bool labelOnTop; // true: label nằm trên, false: bên dưới
 
   const SensorMarker({
@@ -11,6 +12,7 @@ class SensorMarker extends StatelessWidget {
     required this.sensorName,
     required this.areaName,
     required this.online,
+    this.triangleAtLeft = true,
     this.labelOnTop = true,
   });
 
@@ -18,10 +20,9 @@ class SensorMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color boxColor = Colors.blue.shade700.withOpacity(0.95);
 
-    // Widget: label box + tam giác hướng xuống, căn giữa
+    // Widget: label box + tam giác lệch, hướng xuống
     Widget labelWithTriangle() => Stack(
       clipBehavior: Clip.none,
-      alignment: Alignment.topCenter,
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -53,8 +54,8 @@ class SensorMarker extends StatelessWidget {
         ),
         Positioned(
           bottom: -10,
-          left: 0,
-          right: 0,
+          left: triangleAtLeft ? 12 : null,
+          right: triangleAtLeft ? null : 12,
           child: CustomPaint(
             size: const Size(16, 12),
             painter: _TrianglePainter(color: boxColor, downward: true),
@@ -66,12 +67,11 @@ class SensorMarker extends StatelessWidget {
     // Widget: label box + tam giác lệch, hướng lên
     Widget labelWithTriangleUp() => Stack(
       clipBehavior: Clip.none,
-      alignment: Alignment.bottomCenter,
       children: [
         Positioned(
           top: -10,
-          left: 0,
-          right: 0,
+          left: triangleAtLeft ? 12 : null,
+          right: triangleAtLeft ? null : 12,
           child: CustomPaint(
             size: const Size(16, 12),
             painter: _TrianglePainter(color: boxColor, downward: false),
@@ -110,8 +110,9 @@ class SensorMarker extends StatelessWidget {
 
     // Widget: chấm tròn trạng thái ở giữa
     Widget statusCircle() => Align(
-      alignment: Alignment.center,
+      alignment: triangleAtLeft ? Alignment.centerLeft : Alignment.centerRight,
       child: Container(
+        margin: EdgeInsets.only(left: triangleAtLeft ? 20 : 0, right: triangleAtLeft ? 0 : 20),
         width: 17,
         height: 17,
         decoration: BoxDecoration(
