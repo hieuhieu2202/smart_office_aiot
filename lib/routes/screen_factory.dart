@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:smart_factory/screen/home/widget/aoivi/avi_dashboard_screen.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/clean_room_screen.dart';
 import 'package:smart_factory/screen/home/widget/racks_monitor/racks_monitor_screen.dart';
 import 'package:smart_factory/screen/home/widget/yield_report/yield_report_screen.dart';
 import 'package:smart_factory/screen/home/widget/te_management/te_management_screen.dart';
@@ -12,6 +13,7 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
   'racks_monitor': (project) => RacksMonitorScreen(project: project),
   'yield_report': (project) =>  YieldReportScreen(),
   'te_management': (project) => TEManagementScreen(),
+  'clean_room': (project) => CleanRoomScreen(),
 };
 /// Hàm trả về đúng màn hình dựa trên AppProject
 Widget buildProjectScreen(AppProject project) {

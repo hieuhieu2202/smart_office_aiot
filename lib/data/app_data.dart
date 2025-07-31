@@ -33,11 +33,11 @@ List<AppProject> appProjects = [
         screenType: "pcba",
       ),
       AppProject(
-        name: "SYSTEM LINE",
+        name: "Clean Room",
         progress: 1.0,
         status: "Running",
         icon: Icons.hub,
-        screenType: "system_line",
+        screenType: "clean_room",
       ),
       AppProject(
         name: "AVI MACHINE",

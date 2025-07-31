@@ -24,101 +24,111 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
 
   DataRow _buildRow(Map<String, dynamic> row, bool isDark) {
     double parseDouble(dynamic v) => double.tryParse(v?.toString() ?? '') ?? 0.0;
-    return DataRow(cells: [
-      DataCell(Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        color: isDark ? Colors.blueGrey[900] : Colors.blueGrey[50],
-        child: Text(row['GROUP_NAME']?.toString() ?? '',
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-      )),
-      DataCell(Text(row['WIP_QTY']?.toString() ?? '')),
-      DataCell(Text(row['INPUT']?.toString() ?? '')),
-      DataCell(Text(row['FIRST_FAIL']?.toString() ?? '',
-          style: TextStyle(color: isDark ? Colors.redAccent : Colors.red))),
-      DataCell(Text(row['REPAIR_QTY']?.toString() ?? '')),
-      DataCell(Text(row['FIRST_PASS']?.toString() ?? '')),
-      DataCell(Text(row['PASS']?.toString() ?? '',
-          style: TextStyle(color: isDark ? Colors.greenAccent : Colors.green))),
-      DataCell(Text(row['R_PASS']?.toString() ?? '')),
-      DataCell(Text(row['FPR']?.toString() ?? '',
-          style: TextStyle(color: _rateColor(parseDouble(row['FPR']), isDark)))),
-      DataCell(Text(row['SPR']?.toString() ?? '',
-          style: TextStyle(color: _rateColor(parseDouble(row['SPR']), isDark)))),
-      DataCell(Text(row['YR']?.toString() ?? '',
-          style: TextStyle(color: _rateColor(parseDouble(row['YR']), isDark)))),
-      DataCell(Text(row['RR']?.toString() ?? '')),
-    ]);
+    return DataRow(
+      cells: [
+        DataCell(Text(row['GROUP_NAME']?.toString() ?? '')),
+        DataCell(Text(row['WIP_QTY']?.toString() ?? '')),
+        DataCell(Text(row['INPUT']?.toString() ?? '')),
+        DataCell(
+          Text(
+            row['FIRST_FAIL']?.toString() ?? '',
+            style: TextStyle(color: isDark ? Colors.redAccent : Colors.red),
+          ),
+        ),
+        DataCell(Text(row['REPAIR_QTY']?.toString() ?? '')),
+        DataCell(Text(row['FIRST_PASS']?.toString() ?? '')),
+        DataCell(
+          Text(
+            row['PASS']?.toString() ?? '',
+            style: TextStyle(color: isDark ? Colors.greenAccent : Colors.green),
+          ),
+        ),
+        DataCell(Text(row['R_PASS']?.toString() ?? '')),
+        DataCell(
+          Text(
+            row['FPR']?.toString() ?? '',
+            style: TextStyle(color: _rateColor(parseDouble(row['FPR']), isDark)),
+          ),
+        ),
+        DataCell(
+          Text(
+            row['SPR']?.toString() ?? '',
+            style: TextStyle(color: _rateColor(parseDouble(row['SPR']), isDark)),
+          ),
+        ),
+        DataCell(
+          Text(
+            row['YR']?.toString() ?? '',
+            style: TextStyle(color: _rateColor(parseDouble(row['YR']), isDark)),
+          ),
+        ),
+        DataCell(Text(row['RR']?.toString() ?? '')),
+      ],
+    );
   }
 
   Widget _buildGroup(List<Map<String, dynamic>> group, bool isDark) {
     final modelName = group.first['MODEL_NAME']?.toString() ?? '';
-    final rows = group.map((r) => _buildRow(r, isDark)).toList();
+    final rows = group.map((row) => _buildRow(row, isDark)).toList();
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 18, left: 11, right: 11),
+      margin: const EdgeInsets.only(top: 18, left: 11, right: 11),
       color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
       elevation: 8,
       shape: RoundedRectangleBorder(
         side: BorderSide(
-          color:
-              isDark ? Colors.blueAccent.withOpacity(.4) : Colors.blueAccent.withOpacity(.3),
+          color: isDark ? Colors.blueAccent.withOpacity(.4) : Colors.blueAccent.withOpacity(.3),
         ),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: ExpansionTile(
-        key: PageStorageKey(modelName),
-        title: Text(
-          modelName,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.lightBlue[100] : Colors.blue[900],
-          ),
-        ),
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                key: PageStorageKey('scroll_$modelName'),
-                scrollDirection: Axis.horizontal,
-                child: ConstrainedBox(
-                  constraints:
-                      BoxConstraints(minWidth: constraints.maxWidth),
-                  child: DataTable2(
-                    fixedLeftColumns: 1,
-                    columnSpacing: 12,
-                    columns: const [
-                      DataColumn2(label: Text('GROUP'), size: ColumnSize.L),
-                      DataColumn2(label: Text('WIP')),
-                      DataColumn2(label: Text('INPUT')),
-                      DataColumn2(label: Text('FAIL')),
-                      DataColumn2(label: Text('REPAIR')),
-                      DataColumn2(label: Text('FIRST_PASS')),
-                      DataColumn2(label: Text('PASS')),
-                      DataColumn2(label: Text('R_PASS')),
-                      DataColumn2(label: Text('FPR')),
-                      DataColumn2(label: Text('SPR')),
-                      DataColumn2(label: Text('YR')),
-                      DataColumn2(label: Text('RR')),
-                    ],
-                    rows: rows,
-                    headingRowColor: MaterialStateProperty.resolveWith(
-                      (_) => isDark
-                          ? Colors.blueGrey[700]
-                          : Colors.blueGrey[100],
-                    ),
-                    dataRowColor: MaterialStateProperty.resolveWith(
-                      (_) =>
-                          isDark ? Colors.blueGrey[800] : Colors.white,
-                    ),
-                    headingTextStyle: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                  ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              modelName,
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.lightBlue[100] : Colors.blue[900],
+              ),
+            ),
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columnSpacing: 12,
+                columns: const [
+                  DataColumn(label: Text('GROUP', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('WIP', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('INPUT', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('FAIL', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('REPAIR', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('FIRST_PASS', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('PASS', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('R_PASS', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('FPR', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('SPR', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('YR', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('RR', style: TextStyle(fontWeight: FontWeight.bold))),
+                ],
+                rows: rows,
+                headingRowColor: MaterialStateProperty.resolveWith(
+                      (_) => isDark ? Colors.blueGrey[700] : Colors.blueGrey[100],
                 ),
-              );
-            },
-          )
-        ],
+                dataRowColor: MaterialStateProperty.resolveWith(
+                      (_) => isDark ? Colors.blueGrey[800] : Colors.white,
+                ),
+                headingTextStyle: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -127,17 +137,14 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Obx(
-      () => Scaffold(
-        backgroundColor:
-            isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
+          () => Scaffold(
+        backgroundColor: isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
         appBar: AppBar(
           title: const Text('TE Management'),
           centerTitle: true,
-          backgroundColor:
-              isDark ? GlobalColors.appBarDarkBg : GlobalColors.appBarLightBg,
+          backgroundColor: isDark ? GlobalColors.appBarDarkBg : GlobalColors.appBarLightBg,
           iconTheme: IconThemeData(
-            color:
-                isDark ? GlobalColors.appBarDarkText : GlobalColors.appBarLightText,
+            color: isDark ? GlobalColors.appBarDarkText : GlobalColors.appBarLightText,
           ),
           actions: [
             IconButton(
@@ -156,9 +163,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
               children: [
                 TEManagementSearchBar(controller: controller, isDark: isDark),
                 const SizedBox(height: 10),
-                Expanded(
-                  child: _buildBody(isDark),
-                ),
+                Expanded(child: _buildBody(isDark)),
               ],
             ),
             if (controller.filterPanelOpen.value)

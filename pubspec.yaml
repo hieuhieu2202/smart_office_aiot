@@ -60,6 +60,8 @@ dependencies:
   shimmer: ^3.0.0
   data_table_2: ^2.5.8
   animations: ^2.0.11
+#  device_preview: ^1.2.0
+  syncfusion_flutter_charts: ^26.2.9
 
 
 icons_launcher:

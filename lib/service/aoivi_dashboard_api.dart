@@ -4,8 +4,8 @@ import 'package:smart_factory/service/auth/auth_config.dart';
 import 'dart:convert';
 
 class PTHDashboardApi {
-
-  static final String _baseUrl = "https://10.220.23.244:4433/api/CCDMachine/AOIVI/";
+  static final String _baseUrl =
+      "https://10.220.23.244:4433/api/CCDMachine/AOIVI/";
 
   static Future<List<String>> getGroupNames() async {
     var url = Uri.parse("${_baseUrl}GetGroupNames");
@@ -35,7 +35,10 @@ class PTHDashboardApi {
     }
   }
 
-  static Future<List<String>> getModelNames(String groupName, String machineName) async {
+  static Future<List<String>> getModelNames(
+    String groupName,
+    String machineName,
+  ) async {
     var url = Uri.parse("${_baseUrl}GetModelNames?groupName=$groupName");
     var res = await http.get(url, headers: AuthConfig.getAuthorizedHeaders());
     print('[DEBUG] GET $url');
@@ -65,13 +68,18 @@ class PTHDashboardApi {
       "opTime": opTime,
     });
 
-
     print('[DEBUG] POST $url');
     print('[DEBUG] Body send: $body');
 
-    var res = await http.post(url, headers: AuthConfig.getAuthorizedHeaders(), body: body);
+    var res = await http.post(
+      url,
+      headers: AuthConfig.getAuthorizedHeaders(),
+      body: body,
+    );
     print('[DEBUG] Status: ${res.statusCode}');
-    print('[DEBUG] Body: ${res.body.substring(0, res.body.length > 200 ? 200 : res.body.length)}');
+    print(
+      '[DEBUG] Body: ${res.body.substring(0, res.body.length > 200 ? 200 : res.body.length)}',
+    );
 
     if (res.statusCode == 200 && res.body.isNotEmpty) {
       return json.decode(res.body) as Map<String, dynamic>;
@@ -81,13 +89,14 @@ class PTHDashboardApi {
       throw Exception('Failed to load monitoring data (${res.statusCode})');
     }
   }
-  static Future<List<Map<String,dynamic>>> getMonitoringDetailByStatus({
+
+  static Future<List<Map<String, dynamic>>> getMonitoringDetailByStatus({
     required String status,
     required String groupName,
     required String machineName,
     required String modelName,
     required String rangeDateTime,
-}) async {
+  }) async {
     var url = Uri.parse("${_baseUrl}GetMonitoringDataByStatus");
     var body = json.encode({
       "status": status,
@@ -100,22 +109,35 @@ class PTHDashboardApi {
     print('[DEBUG] POST $url');
     print('[DEBUG] Body send: $body');
 
-    var res = await http.post(url, headers: AuthConfig.getAuthorizedHeaders(), body: body);
+    var res = await http.post(
+      url,
+      headers: AuthConfig.getAuthorizedHeaders(),
+      body: body,
+    );
     print('[DEBUG] Status: ${res.statusCode}');
-    print('[DEBUG] Body: ${res.body.substring(0, res.body.length > 200 ? 200 : res.body.length)}');
+    print(
+      '[DEBUG] Body: ${res.body.substring(0, res.body.length > 200 ? 200 : res.body.length)}',
+    );
 
     if (res.statusCode == 200 && res.body.isNotEmpty) {
-      return List<Map<String,dynamic>>.from(json.decode(res.body));
+      return List<Map<String, dynamic>>.from(json.decode(res.body));
     } else if (res.statusCode == 204) {
       return [];
     } else {
-      throw Exception('Failed to load monitoring detail by status (${res.statusCode})');
+      throw Exception(
+        'Failed to load monitoring detail by status (${res.statusCode})',
+      );
     }
   }
+
   static Future<Map<String, dynamic>?> getMonitoringDataById(int id) async {
     final url = Uri.parse("${_baseUrl}GetMonitoringDataById");
     final body = json.encode({"id": id});
-    final res = await http.post(url, headers: AuthConfig.getAuthorizedHeaders(), body: body);
+    final res = await http.post(
+      url,
+      headers: AuthConfig.getAuthorizedHeaders(),
+      body: body,
+    );
     print('[DEBUG] POST $url');
     print('[DEBUG] Body: ${res.body}');
     if (res.statusCode == 200 && res.body.isNotEmpty) {
@@ -129,11 +151,16 @@ class PTHDashboardApi {
     final normalizedPath = path.replaceAll("\\", "/");
 
     // Gắn path trực tiếp vào cuối URL
-    final url = Uri.parse("https://10.220.23.244:4433/api/Image/raw/$normalizedPath");
+    final url = Uri.parse(
+      "https://10.220.23.244:4433/api/Image/raw/$normalizedPath",
+    );
 
     try {
       print("[DEBUG] GET $url");
-      final res = await http.get(url, headers: AuthConfig.getAuthorizedHeaders());
+      final res = await http.get(
+        url,
+        headers: AuthConfig.getAuthorizedHeaders(),
+      );
 
       print("[DEBUG] Status: ${res.statusCode}");
       if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
@@ -146,7 +173,4 @@ class PTHDashboardApi {
     }
     return null;
   }
-
-
-
 }
