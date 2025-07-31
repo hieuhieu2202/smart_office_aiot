@@ -37,5 +37,23 @@ Các bước cấu hình:
 2. Android: khai báo quyền `USE_BIOMETRIC` trong `android/app/src/main/AndroidManifest.xml`.
 3. iOS: thêm khóa `NSFaceIDUsageDescription` vào `ios/Runner/Info.plist`.
 4. Trong màn hình đăng nhập, sử dụng `LocalAuthentication().authenticate()` để xác thực trước khi gọi API đăng nhập.
+
+## Clean Room Dashboard
+
+The project includes a complete dashboard for clean room monitoring.
+It fetches sensor information from the backend APIs (customers, factories,
+floors and rooms) and displays charts for current readings, historical data
+and area statistics.
+
+To open the dashboard after logging in:
+
+1. From the home page choose the **Clean Room** module.
+2. Use the filter button (top‑right) to select a date range and location.
+3. The screen shows sensor overview numbers, room layout with sensor
+positions and multiple charts (`SensorDataChartWidget`, `SensorHistoryChartWidget`,
+`BarChartWidget` and `AreaChartWidget`).
+
+These widgets live under `lib/screen/home/widget/clean_room/` and are powered
+by API calls in `lib/service/clean_room_api.dart`.
  
 

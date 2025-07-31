@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
+import 'dashboard_card.dart';
 
 class LocationInfoWidget extends StatelessWidget {
   @override
@@ -8,23 +9,40 @@ class LocationInfoWidget extends StatelessWidget {
     final CleanRoomController controller = Get.find<CleanRoomController>();
 
     return Obx(
-          () => Card(
-        margin: EdgeInsets.all(8.0),
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Thông tin vị trí', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-              Text('Khách hàng: ${controller.selectedCustomer.value.isEmpty ? "Chưa chọn" : controller.selectedCustomer.value}'),
-              Text('Nhà máy: ${controller.selectedFactory.value.isEmpty ? "Chưa chọn" : controller.selectedFactory.value}'),
-              Text('Tầng: ${controller.selectedFloor.value.isEmpty ? "Chưa chọn" : controller.selectedFloor.value}'),
-              Text('Phòng: ${controller.selectedRoom.value.isEmpty ? "Chưa chọn" : controller.selectedRoom.value}'),
-            ],
-          ),
+      () => DashboardCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Thông tin vị trí',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 16,
+              runSpacing: 6,
+              children: [
+                _buildItem('Khách hàng', controller.selectedCustomer.value),
+                _buildItem('Nhà máy', controller.selectedFactory.value),
+                _buildItem('Tầng', controller.selectedFloor.value),
+                _buildItem('Phòng', controller.selectedRoom.value),
+              ],
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildItem(String label, String value) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text(value.isEmpty ? 'Chưa chọn' : value),
+      ],
     );
   }
 }
