@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
 import '../common/dashboard_card.dart';
 import 'sensor_detail_dialog.dart';
-import 'sensor_marker.dart';
+import 'marker/sensor_marker.dart';
 
 class RoomLayoutWidget extends StatelessWidget {
   @override
