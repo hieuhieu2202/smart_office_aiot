@@ -5,9 +5,9 @@ import 'package:smart_factory/screen/home/widget/clean_room/widget/area_chart_wi
 import 'package:smart_factory/screen/home/widget/clean_room/widget/bar_chart_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/location_info_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/room_layout_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/sensor_chart_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/sensor_data_chart_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/sensor_history_chart_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/sensor_overview_widget.dart';
 import 'cleanroom_filter_panel.dart';
 
 
@@ -29,18 +29,17 @@ class CleanRoomScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                LocationInfoWidget(),
-                RoomLayoutWidget(),
-                SensorOverviewWidget(),
-                SensorDataChartWidget(),
-                SensorHistoryChartWidget(),
-                BarChartWidget(),
-                AreaChartWidget(),
-              ],
-            ),
+          ListView(
+            padding: const EdgeInsets.only(bottom: 20),
+            children: [
+              LocationInfoWidget(),
+              RoomLayoutWidget(),
+              SensorOverviewWidget(),
+              SensorDataChartWidget(),
+              SensorHistoryChartWidget(),
+              BarChartWidget(),
+              AreaChartWidget(),
+            ],
           ),
           Obx(
                 () => CleanroomFilterPanel(

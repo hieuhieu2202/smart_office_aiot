@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
+import 'dashboard_card.dart';
+import 'sensor_detail_dialog.dart';
+import 'sensor_marker.dart';
 
 class RoomLayoutWidget extends StatelessWidget {
   @override
@@ -8,64 +11,96 @@ class RoomLayoutWidget extends StatelessWidget {
     final CleanRoomController controller = Get.find<CleanRoomController>();
 
     return Obx(
-          () => Card(
-        margin: EdgeInsets.all(8.0),
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Bố cục phòng', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-              if (controller.roomImage.value != null &&
-                  controller.configData.containsKey('data') &&
-                  controller.configData['data'] is List &&
-                  (controller.configData['data'] as List).isNotEmpty)
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  child: Stack(
-                    children: [
-                      Image(image: controller.roomImage.value!, fit: BoxFit.contain),
-                      ...(controller.configData['data'] as List<dynamic>).map((sensor) {
-                        double top = double.parse(sensor['Top'].replaceAll('%', '')) / 100 * 185;
-                        double left = double.parse(sensor['Left'].replaceAll('%', '')) / 100 * MediaQuery.of(context).size.width*0.8;
-                        return Positioned(
-                          top: top,
-                          left: left,
-                          child: GestureDetector(
-                            onTap: () {
-                              Get.snackbar(
-                                sensor['SensorName'],
-                                'Menu: ${sensor['menu']}',
-                                snackPosition: SnackPosition.BOTTOM,
-                              );
-                            },
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  sensor['SensorName'],
-                                  style: TextStyle(fontSize: 8, color: Colors.white),
+      () => DashboardCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Bố cục phòng',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    )),
+            const SizedBox(height: 8),
+            if (controller.roomImage.value != null &&
+                controller.configData['data'] is List &&
+                (controller.configData['data'] as List).isNotEmpty)
+              LayoutBuilder(
+                builder: (ctx, cons) {
+                  final sensors = controller.configData['data'] as List<dynamic>;
+                  final image = controller.roomImage.value!;
+                  final width = cons.maxWidth;
+                  final height = width / 1.6; // match AspectRatio
+                  return AspectRatio(
+                    aspectRatio: 1.6,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Image(image: image, fit: BoxFit.contain),
+                        ),
+                        ...sensors.map((sensor) {
+                          final topPercentStr = sensor['Top']?.toString().replaceAll('%', '') ?? '0';
+                          final leftPercentStr = sensor['Left']?.toString().replaceAll('%', '') ?? '0';
+                          final topPercent = double.tryParse(topPercentStr) ?? 0.0;
+                          final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
+                          final topPos =
+                              (topPercent.isNaN ? 0.0 : topPercent) / 100 * height - 5;
+                          final leftPos =
+                              (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * width - 5;
+
+                          Map<String, dynamic>? dataEntry;
+                          try {
+                            dataEntry = controller.sensorData.firstWhere(
+                              (e) => e['sensorName'] == sensor['SensorName'],
+                            );
+                          } catch (_) {
+                            dataEntry = null;
+                          }
+
+                          bool hasData = false;
+                          if (dataEntry != null && dataEntry['series'] is List) {
+                            final series = dataEntry['series'] as List;
+                            hasData = series.any((s) =>
+                                s is Map && s['data'] is List && (s['data'] as List).isNotEmpty);
+                          }
+
+                          final areaName = dataEntry?['sensorDesc']?.toString() ?? '';
+                          final menu = sensor['menu']?.toString().toLowerCase() ?? '';
+                          final labelOnLeft = menu.contains('left');
+
+                          return Positioned(
+                            top: topPos,
+                            left: leftPos,
+                            child: GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => SensorDetailDialog(
+                                    sensorName: sensor['SensorName'],
+                                    dataEntry: dataEntry,
+                                    online: hasData,
+                                  ),
+                                );
+                              },
+                              child: Tooltip(
+                                message:
+                                    '${sensor['SensorName']} - ${hasData ? 'Online' : 'Offline'}',
+                                child: SensorMarker(
+                                  sensorName: sensor['SensorName'],
+                                  areaName: areaName,
+                                  online: hasData,
+                                  labelOnLeft: labelOnLeft,
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      }).toList(),
-                    ],
-                  ),
-                )
-              else
-                Text('Không có hình ảnh hoặc dữ liệu cảm biến'),
-            ],
-          ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                  );
+                },
+              )
+            else
+              const Text('Không có hình ảnh hoặc dữ liệu cảm biến'),
+          ],
         ),
       ),
     );
