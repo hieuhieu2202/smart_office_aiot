@@ -87,7 +87,7 @@ class RoomLayoutWidget extends StatelessWidget {
                                   sensorName: sensor['SensorName'],
                                   areaName: areaName,
                                   online: hasData,
-                                  labelOnLeft: labelOnLeft,
+                                  labelOnTop: true, // hoặc false nếu muốn label nằm dưới
                                 ),
                               ),
                             ),

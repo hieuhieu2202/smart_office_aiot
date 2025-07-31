@@ -4,94 +4,169 @@ class SensorMarker extends StatelessWidget {
   final String sensorName;
   final String areaName;
   final bool online;
-  final bool labelOnLeft;
+  final bool triangleAtLeft; // true: tam giác lệch trái, false: lệch phải
+  final bool labelOnTop;     // true: label trên, false: label dưới
+
   const SensorMarker({
     super.key,
     required this.sensorName,
     required this.areaName,
     required this.online,
-    this.labelOnLeft = false,
+    this.triangleAtLeft = true,
+    this.labelOnTop = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = const Color(0xFF052C54);
-    final lineColor = Colors.lightBlueAccent.withOpacity(0.3);
+    final Color boxColor = Colors.blue.shade700.withOpacity(0.95);
 
-    final circle = Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(
-        color: online ? Colors.greenAccent : Colors.grey,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1),
-      ),
+    // Widget: label box + tam giác lệch
+    Widget labelWithTriangle() => Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // BOX
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: boxColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                sensorName,
+                style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                online ? 'ONLINE' : 'OFFLINE',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: online ? Colors.greenAccent : Colors.redAccent,
+                ),
+              ),
+              Text(
+                areaName,
+                style: const TextStyle(fontSize: 9, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+        // Tam giác lệch góc trái/phải, hướng xuống
+        Positioned(
+          left: triangleAtLeft ? 12 : null,
+          right: triangleAtLeft ? null : 12,
+          bottom: -10,
+          child: CustomPaint(
+            size: const Size(16, 12),
+            painter: _TrianglePainter(color: boxColor, downward: true),
+          ),
+        ),
+      ],
     );
 
-    final arrow = Transform.rotate(
-      angle: labelOnLeft ? 3.1416 : 0,
-      child: Icon(Icons.arrow_right_alt,
-          size: 12, color: online ? Colors.greenAccent : Colors.grey),
+    // Widget: label box + tam giác lệch, hướng lên
+    Widget labelWithTriangleUp() => Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Tam giác lệch góc trái/phải, hướng lên
+        Positioned(
+          left: triangleAtLeft ? 12 : null,
+          right: triangleAtLeft ? null : 12,
+          top: -10,
+          child: CustomPaint(
+            size: const Size(16, 12),
+            painter: _TrianglePainter(color: boxColor, downward: false),
+          ),
+        ),
+        // BOX
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: boxColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                sensorName,
+                style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                online ? 'ONLINE' : 'OFFLINE',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: online ? Colors.greenAccent : Colors.redAccent,
+                ),
+              ),
+              Text(
+                areaName,
+                style: const TextStyle(fontSize: 9, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
 
-    final label = CustomPaint(
-      painter: _StripedPainter(lineColor),
+    // Widget: chấm tròn trạng thái, căn theo vị trí tam giác
+    Widget statusCircle() => Align(
+      alignment: triangleAtLeft ? Alignment.centerLeft : Alignment.centerRight,
       child: Container(
-        padding: const EdgeInsets.all(6),
+        margin: EdgeInsets.only(left: triangleAtLeft ? 12 + 8 : 0, right: triangleAtLeft ? 0 : 12 + 8),
+        width: 17,
+        height: 17,
         decoration: BoxDecoration(
-          color: bgColor.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white.withOpacity(0.4)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$sensorName - ${online ? 'ON' : 'OFF'}',
-              style: TextStyle(
-                color: online ? Colors.greenAccent : Colors.redAccent,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              areaName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-              ),
-            ),
-          ],
+          color: online ? Colors.greenAccent : Colors.grey,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.black, width: 1.2),
         ),
       ),
     );
 
-    final children = labelOnLeft
-        ? [label, const SizedBox(width: 4), arrow, const SizedBox(width: 4), circle]
-        : [circle, const SizedBox(width: 4), arrow, const SizedBox(width: 4), label];
-
-    return Row(
+    // Build layout chính
+    return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: children,
+      children: labelOnTop
+          ? [
+        labelWithTriangle(),
+        const SizedBox(height: 15),
+        statusCircle(),
+      ]
+          : [
+        statusCircle(),
+        const SizedBox(height: 15),
+        labelWithTriangleUp(),
+      ],
     );
   }
 }
 
-class _StripedPainter extends CustomPainter {
-  final Color lineColor;
-  _StripedPainter(this.lineColor);
+// Tam giác vẽ bằng CustomPainter, cho phép chọn hướng lên/xuống
+class _TrianglePainter extends CustomPainter {
+  final Color color;
+  final bool downward; // true: tam giác xuống, false: lên
+
+  _TrianglePainter({required this.color, this.downward = true});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = lineColor
-      ..strokeWidth = 1;
-    for (double y = 0; y <= size.height; y += 4) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    final paint = Paint()..color = color;
+    final path = Path();
+    if (downward) {
+      path.moveTo(0, 0);
+      path.lineTo(size.width / 2, size.height);
+      path.lineTo(size.width, 0);
+    } else {
+      path.moveTo(0, size.height);
+      path.lineTo(size.width / 2, 0);
+      path.lineTo(size.width, size.height);
     }
+    path.close();
+    canvas.drawPath(path, paint);
   }
 
   @override
