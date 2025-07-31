@@ -56,5 +56,9 @@ positions and multiple charts (`SensorDataChartWidget`, `SensorHistoryChartWidge
 
 These widgets live under `lib/screen/home/widget/clean_room/` and are powered
 by API calls in `lib/service/clean_room_api.dart`.
+
+Sensor coordinates and the room image are fetched via the
+`Location/GetConfigMapping` endpoint. The image is returned as a Base64 string
+and the coordinates are used to place interactive markers on the layout.
  
 
