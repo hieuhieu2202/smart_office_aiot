@@ -26,11 +26,13 @@ class BarChartWidget extends StatelessWidget {
                 child: SfCartesianChart(
                   primaryXAxis: CategoryAxis(),
                   legend: const Legend(isVisible: true),
+                  tooltipBehavior: TooltipBehavior(enable: true),
                   series: (controller.barData['series'] as List<dynamic>)
                       .where((serie) => serie['data'] != null && (serie['data'] as List).isNotEmpty)
                       .map((serie) => BarSeries<dynamic, String>(
                             name: serie['name'] ?? '',
                             dataSource: serie['data'] as List,
+                            dataLabelSettings: const DataLabelSettings(isVisible: true),
                             xValueMapper: (dynamic data, int index) =>
                                 index < (controller.barData['categories'] as List).length
                                     ? controller.barData['categories'][index].toString()

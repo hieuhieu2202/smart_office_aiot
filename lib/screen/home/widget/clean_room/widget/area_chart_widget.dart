@@ -26,11 +26,13 @@ class AreaChartWidget extends StatelessWidget {
                 child: SfCartesianChart(
                   primaryXAxis: CategoryAxis(),
                   legend: const Legend(isVisible: true),
+                  tooltipBehavior: TooltipBehavior(enable: true),
                   series: (controller.areaData['series'] as List<dynamic>)
                       .where((serie) => serie['data'] != null && (serie['data'] as List).isNotEmpty)
                       .map((serie) => LineSeries<dynamic, String>(
                             name: serie['name'] ?? '',
                             dataSource: serie['data'] as List,
+                            markerSettings: const MarkerSettings(isVisible: true),
                             xValueMapper: (dynamic data, int index) =>
                                 index < (controller.areaData['categories'] as List).length
                                     ? controller.areaData['categories'][index].toString()

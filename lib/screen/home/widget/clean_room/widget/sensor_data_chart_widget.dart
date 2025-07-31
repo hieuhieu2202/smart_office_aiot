@@ -26,6 +26,7 @@ class SensorDataChartWidget extends StatelessWidget {
                 child: SfCartesianChart(
                   primaryXAxis: CategoryAxis(),
                   legend: const Legend(isVisible: true),
+                  tooltipBehavior: TooltipBehavior(enable: true),
                   series: controller.sensorData
                       .map((sensor) => sensor['series'] as List<dynamic>)
                       .expand((series) => series)
@@ -33,6 +34,7 @@ class SensorDataChartWidget extends StatelessWidget {
                       .map((serie) => LineSeries<dynamic, String>(
                             name: serie['name'] ?? '',
                             dataSource: serie['data'] as List,
+                            markerSettings: const MarkerSettings(isVisible: true),
                             xValueMapper: (dynamic data, int index) =>
                                 index < (controller.sensorData[0]['categories'] as List).length
                                     ? controller.sensorData[0]['categories'][index].toString()

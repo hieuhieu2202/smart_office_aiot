@@ -43,7 +43,8 @@ Các bước cấu hình:
 The project includes a complete dashboard for clean room monitoring.
 It fetches sensor information from the backend APIs (customers, factories,
 floors and rooms) and displays charts for current readings, historical data
-and area statistics.
+and area statistics. Charts now include tooltips and visible markers for
+better readability.
 
 To open the dashboard after logging in:
 

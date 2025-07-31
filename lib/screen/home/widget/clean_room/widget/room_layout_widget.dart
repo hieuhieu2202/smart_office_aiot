@@ -33,11 +33,15 @@ class RoomLayoutWidget extends StatelessWidget {
                           child: Image(image: image, fit: BoxFit.contain),
                         ),
                         ...sensors.map((sensor) {
-                          final topPercent = double.tryParse(sensor['Top'].toString().replaceAll('%', '')) ?? 0;
-                          final leftPercent = double.tryParse(sensor['Left'].toString().replaceAll('%', '')) ?? 0;
+                          final topPercentStr = sensor['Top']?.toString().replaceAll('%', '') ?? '0';
+                          final leftPercentStr = sensor['Left']?.toString().replaceAll('%', '') ?? '0';
+                          final topPercent = double.tryParse(topPercentStr) ?? 0.0;
+                          final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
+                          final topPos = (topPercent.isNaN ? 0.0 : topPercent) / 100 * cons.maxHeight;
+                          final leftPos = (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * cons.maxWidth;
                           return Positioned(
-                            top: topPercent / 100 * cons.maxHeight,
-                            left: leftPercent / 100 * cons.maxWidth,
+                            top: topPos,
+                            left: leftPos,
                             child: GestureDetector(
                               onTap: () {
                                 Get.snackbar(
