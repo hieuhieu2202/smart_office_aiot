@@ -65,6 +65,11 @@ Markers now change color based on sensor status. The dashboard checks the
 `GetSensorDataOverview` endpoint: markers are **green** when data is available
 for a sensor and **grey** when the sensor is offline.
 
+Each marker is drawn as a small dark blue rectangle with light horizontal
+stripes. It shows the sensor name and its **ON/OFF** status in green, followed
+by the area label in white. A green dot with an arrow appears below the text to
+highlight the marker position.
+
 Tapping a marker opens a small dialog showing recent readings for that sensor.
  
 

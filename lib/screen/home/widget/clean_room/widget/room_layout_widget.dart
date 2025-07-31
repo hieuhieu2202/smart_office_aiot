@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
 import 'dashboard_card.dart';
 import 'sensor_detail_dialog.dart';
+import 'sensor_marker.dart';
 
 class RoomLayoutWidget extends StatelessWidget {
   @override
@@ -59,7 +60,7 @@ class RoomLayoutWidget extends StatelessWidget {
                                 s is Map && s['data'] is List && (s['data'] as List).isNotEmpty);
                           }
 
-                          final markerColor = hasData ? Colors.green : Colors.grey;
+                          final areaName = dataEntry?['sensorDesc']?.toString() ?? '';
 
                           return Positioned(
                             top: topPos,
@@ -78,20 +79,10 @@ class RoomLayoutWidget extends StatelessWidget {
                               child: Tooltip(
                                 message:
                                     '${sensor['SensorName']} - ${hasData ? 'Online' : 'Offline'}',
-                                child: Container(
-                                  width: 26,
-                                  height: 26,
-                                  decoration: BoxDecoration(
-                                    color: markerColor,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 2),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      sensor['SensorName'],
-                                      style: const TextStyle(fontSize: 10, color: Colors.white),
-                                    ),
-                                  ),
+                                child: SensorMarker(
+                                  sensorName: sensor['SensorName'],
+                                  areaName: areaName,
+                                  online: hasData,
                                 ),
                               ),
                             ),
