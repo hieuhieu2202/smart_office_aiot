@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/area_chart_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/bar_chart_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/location_info_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/room_layout_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/sensor_data_chart_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/sensor_history_chart_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/sensor_overview_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/area_chart_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/bar_chart_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/info/location_info_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/layout/room_layout_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_data_chart_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_history_chart_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/overview/sensor_overview_widget.dart';
 import 'cleanroom_filter_panel.dart';
 
 

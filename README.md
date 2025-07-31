@@ -54,7 +54,8 @@ To open the dashboard after logging in:
 positions and multiple charts (`SensorDataChartWidget`, `SensorHistoryChartWidget`,
 `BarChartWidget` and `AreaChartWidget`).
 
-These widgets live under `lib/screen/home/widget/clean_room/` and are powered
+These widgets live under `lib/screen/home/widget/clean_room/widget/` (with
+subfolders like `charts/` and `layout/`) and are powered
 by API calls in `lib/service/clean_room_api.dart`.
 
 Sensor coordinates and the room image are fetched via the

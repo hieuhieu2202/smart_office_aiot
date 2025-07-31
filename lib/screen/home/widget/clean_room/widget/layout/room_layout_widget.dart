@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
-import 'dashboard_card.dart';
+import '../common/dashboard_card.dart';
 import 'sensor_detail_dialog.dart';
 import 'sensor_marker.dart';
 

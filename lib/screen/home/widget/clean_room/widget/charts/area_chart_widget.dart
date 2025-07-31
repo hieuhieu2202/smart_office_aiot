@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
-import 'dashboard_card.dart';
+import '../common/dashboard_card.dart';
 
-class SensorHistoryChartWidget extends StatelessWidget {
+class AreaChartWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final CleanRoomController controller = Get.find<CleanRoomController>();
@@ -13,31 +13,29 @@ class SensorHistoryChartWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Lịch sử cảm biến',
+            Text('Dữ liệu khu vực',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            if (controller.sensorHistories.isNotEmpty &&
-                controller.sensorHistories[0].containsKey('series') &&
-                controller.sensorHistories[0].containsKey('categories') &&
-                (controller.sensorHistories[0]['series'] as List).isNotEmpty &&
-                (controller.sensorHistories[0]['categories'] as List).isNotEmpty)
+            if (controller.areaData.isNotEmpty &&
+                controller.areaData.containsKey('series') &&
+                controller.areaData.containsKey('categories') &&
+                (controller.areaData['series'] as List).isNotEmpty &&
+                (controller.areaData['categories'] as List).isNotEmpty)
               SizedBox(
                 height: 300,
                 child: SfCartesianChart(
                   primaryXAxis: CategoryAxis(),
                   legend: const Legend(isVisible: true),
                   tooltipBehavior: TooltipBehavior(enable: true),
-                  series: controller.sensorHistories
-                      .map((sensor) => sensor['series'] as List<dynamic>)
-                      .expand((series) => series)
+                  series: (controller.areaData['series'] as List<dynamic>)
                       .where((serie) => serie['data'] != null && (serie['data'] as List).isNotEmpty)
                       .map((serie) => LineSeries<dynamic, String>(
                             name: serie['name'] ?? '',
                             dataSource: serie['data'] as List,
                             markerSettings: const MarkerSettings(isVisible: true),
                             xValueMapper: (dynamic data, int index) =>
-                                index < (controller.sensorHistories[0]['categories'] as List).length
-                                    ? controller.sensorHistories[0]['categories'][index].toString()
+                                index < (controller.areaData['categories'] as List).length
+                                    ? controller.areaData['categories'][index].toString()
                                     : '',
                             yValueMapper: (dynamic data, int index) => data,
                           ))
@@ -45,7 +43,7 @@ class SensorHistoryChartWidget extends StatelessWidget {
                 ),
               )
             else
-              const Text('Không có lịch sử cảm biến'),
+              const Text('Không có dữ liệu khu vực'),
           ],
         ),
       ),
