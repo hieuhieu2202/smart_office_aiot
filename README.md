@@ -64,5 +64,7 @@ and the coordinates are used to place interactive markers on the layout.
 Markers now change color based on sensor status. The dashboard checks the
 `GetSensorDataOverview` endpoint: markers are **green** when data is available
 for a sensor and **grey** when the sensor is offline.
+
+Tapping a marker opens a small dialog showing recent readings for that sensor.
  
 

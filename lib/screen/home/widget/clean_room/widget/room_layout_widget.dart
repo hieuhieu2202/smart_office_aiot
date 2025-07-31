@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
 import 'dashboard_card.dart';
+import 'sensor_detail_dialog.dart';
 
 class RoomLayoutWidget extends StatelessWidget {
   @override
@@ -65,24 +66,31 @@ class RoomLayoutWidget extends StatelessWidget {
                             left: leftPos,
                             child: GestureDetector(
                               onTap: () {
-                                Get.snackbar(
-                                  sensor['SensorName'],
-                                  'Menu: ${sensor['menu']}',
-                                  snackPosition: SnackPosition.BOTTOM,
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => SensorDetailDialog(
+                                    sensorName: sensor['SensorName'],
+                                    dataEntry: dataEntry,
+                                    online: hasData,
+                                  ),
                                 );
                               },
-                              child: Container(
-                                width: 26,
-                                height: 26,
-                                decoration: BoxDecoration(
-                                  color: markerColor,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    sensor['SensorName'],
-                                    style: const TextStyle(fontSize: 10, color: Colors.white),
+                              child: Tooltip(
+                                message:
+                                    '${sensor['SensorName']} - ${hasData ? 'Online' : 'Offline'}',
+                                child: Container(
+                                  width: 26,
+                                  height: 26,
+                                  decoration: BoxDecoration(
+                                    color: markerColor,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      sensor['SensorName'],
+                                      style: const TextStyle(fontSize: 10, color: Colors.white),
+                                    ),
                                   ),
                                 ),
                               ),
