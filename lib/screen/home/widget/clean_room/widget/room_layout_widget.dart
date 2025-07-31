@@ -25,6 +25,8 @@ class RoomLayoutWidget extends StatelessWidget {
                 builder: (ctx, cons) {
                   final sensors = controller.configData['data'] as List<dynamic>;
                   final image = controller.roomImage.value!;
+                  final width = cons.maxWidth;
+                  final height = width / 1.6; // match AspectRatio
                   return AspectRatio(
                     aspectRatio: 1.6,
                     child: Stack(
@@ -37,8 +39,8 @@ class RoomLayoutWidget extends StatelessWidget {
                           final leftPercentStr = sensor['Left']?.toString().replaceAll('%', '') ?? '0';
                           final topPercent = double.tryParse(topPercentStr) ?? 0.0;
                           final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
-                          final topPos = (topPercent.isNaN ? 0.0 : topPercent) / 100 * cons.maxHeight;
-                          final leftPos = (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * cons.maxWidth;
+                          final topPos = (topPercent.isNaN ? 0.0 : topPercent) / 100 * height;
+                          final leftPos = (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * width;
                           return Positioned(
                             top: topPos,
                             left: leftPos,
