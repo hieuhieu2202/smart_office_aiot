@@ -44,7 +44,8 @@ The project includes a complete dashboard for clean room monitoring.
 It fetches sensor information from the backend APIs (customers, factories,
 floors and rooms) and displays charts for current readings, historical data
 and area statistics. Charts now include tooltips and a custom color palette
-for better readability.
+for better readability. The line charts use smooth spline series instead of
+dotted points so trends are easier to follow.
 
 To open the dashboard after logging in:
 

@@ -45,10 +45,10 @@ class SensorDataChartWidget extends StatelessWidget {
                       .map((sensor) => sensor['series'] as List<dynamic>)
                       .expand((series) => series)
                       .where((serie) => serie['data'] != null && (serie['data'] as List).isNotEmpty)
-                      .map((serie) => LineSeries<dynamic, String>(
+                      .map((serie) => SplineSeries<dynamic, String>(
                             name: serie['name'] ?? '',
                             dataSource: serie['data'] as List,
-                            markerSettings: const MarkerSettings(isVisible: true),
+                            markerSettings: const MarkerSettings(isVisible: false),
                             xValueMapper: (dynamic data, int index) =>
                                 index < (controller.sensorData[0]['categories'] as List).length
                                     ? controller.sensorData[0]['categories'][index].toString()
