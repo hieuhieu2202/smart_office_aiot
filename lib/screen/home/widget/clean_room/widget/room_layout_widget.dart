@@ -64,8 +64,14 @@ class RoomLayoutWidget extends StatelessWidget {
                           }
 
                           final areaName = dataEntry?['sensorDesc']?.toString() ?? '';
-                          final menu = sensor['menu']?.toString().toLowerCase() ?? '';
-                          final labelOnTop = !menu.contains('bottom');
+                          // Determine label orientation using mobile menu config when available
+                          final menuMobile =
+                              sensor['menu-mobile']?.toString().toLowerCase() ?? '';
+                          final menu =
+                              sensor['menu']?.toString().toLowerCase() ?? '';
+                          final orientation =
+                          menuMobile.isNotEmpty ? menuMobile : menu;
+                          final labelOnTop = !orientation.contains('bottom');
                           final triangleAtLeft = menu.contains('left');
 
                           return Positioned(
