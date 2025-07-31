@@ -3,11 +3,14 @@ import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
 import '../common/dashboard_card.dart';
+import 'chart_style.dart';
+import 'package:smart_factory/config/global_color.dart';
 
 class BarChartWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final CleanRoomController controller = Get.find<CleanRoomController>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Obx(
       () => DashboardCard(
         child: Column(
@@ -24,9 +27,20 @@ class BarChartWidget extends StatelessWidget {
               SizedBox(
                 height: 300,
                 child: SfCartesianChart(
-                  primaryXAxis: CategoryAxis(),
+                  palette: CleanRoomChartStyle.palette(isDark),
+                  primaryXAxis: CategoryAxis(
+                    majorGridLines: const MajorGridLines(width: 0),
+                  ),
+                  primaryYAxis: NumericAxis(
+                    majorGridLines: const MajorGridLines(dashArray: [4, 4]),
+                  ),
                   legend: const Legend(isVisible: true),
-                  tooltipBehavior: TooltipBehavior(enable: true),
+                  tooltipBehavior: TooltipBehavior(
+                    enable: true,
+                    color: isDark
+                        ? GlobalColors.tooltipBgDark
+                        : GlobalColors.tooltipBgLight,
+                  ),
                   series: (controller.barData['series'] as List<dynamic>)
                       .where((serie) => serie['data'] != null && (serie['data'] as List).isNotEmpty)
                       .map((serie) => BarSeries<dynamic, String>(

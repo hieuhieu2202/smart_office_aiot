@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../config/global_color.dart';
+import 'package:smart_factory/config/global_color.dart';
 
 class DashboardCard extends StatelessWidget {
   final Widget child;
