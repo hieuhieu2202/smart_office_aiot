@@ -64,7 +64,7 @@ class RoomLayoutWidget extends StatelessWidget {
 
                           final areaName = dataEntry?['sensorDesc']?.toString() ?? '';
                           final menu = sensor['menu']?.toString().toLowerCase() ?? '';
-                          final labelOnLeft = menu.contains('left');
+                          final labelOnTop = !menu.contains('bottom');
 
                           return Positioned(
                             top: topPos,
@@ -87,7 +87,7 @@ class RoomLayoutWidget extends StatelessWidget {
                                   sensorName: sensor['SensorName'],
                                   areaName: areaName,
                                   online: hasData,
-                                  labelOnTop: true, // hoặc false nếu muốn label nằm dưới
+                                  labelOnTop: labelOnTop,
                                 ),
                               ),
                             ),

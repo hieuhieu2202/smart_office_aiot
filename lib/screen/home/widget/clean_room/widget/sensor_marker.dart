@@ -4,15 +4,13 @@ class SensorMarker extends StatelessWidget {
   final String sensorName;
   final String areaName;
   final bool online;
-  final bool triangleAtLeft; // true: tam giác lệch trái, false: lệch phải
-  final bool labelOnTop;     // true: label trên, false: label dưới
+  final bool labelOnTop; // true: label nằm trên, false: bên dưới
 
   const SensorMarker({
     super.key,
     required this.sensorName,
     required this.areaName,
     required this.online,
-    this.triangleAtLeft = true,
     this.labelOnTop = true,
   });
 
@@ -20,11 +18,11 @@ class SensorMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color boxColor = Colors.blue.shade700.withOpacity(0.95);
 
-    // Widget: label box + tam giác lệch
+    // Widget: label box + tam giác hướng xuống, căn giữa
     Widget labelWithTriangle() => Stack(
       clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
       children: [
-        // BOX
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
@@ -53,11 +51,10 @@ class SensorMarker extends StatelessWidget {
             ],
           ),
         ),
-        // Tam giác lệch góc trái/phải, hướng xuống
         Positioned(
-          left: triangleAtLeft ? 12 : null,
-          right: triangleAtLeft ? null : 12,
           bottom: -10,
+          left: 0,
+          right: 0,
           child: CustomPaint(
             size: const Size(16, 12),
             painter: _TrianglePainter(color: boxColor, downward: true),
@@ -69,18 +66,17 @@ class SensorMarker extends StatelessWidget {
     // Widget: label box + tam giác lệch, hướng lên
     Widget labelWithTriangleUp() => Stack(
       clipBehavior: Clip.none,
+      alignment: Alignment.bottomCenter,
       children: [
-        // Tam giác lệch góc trái/phải, hướng lên
         Positioned(
-          left: triangleAtLeft ? 12 : null,
-          right: triangleAtLeft ? null : 12,
           top: -10,
+          left: 0,
+          right: 0,
           child: CustomPaint(
             size: const Size(16, 12),
             painter: _TrianglePainter(color: boxColor, downward: false),
           ),
         ),
-        // BOX
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
@@ -112,11 +108,10 @@ class SensorMarker extends StatelessWidget {
       ],
     );
 
-    // Widget: chấm tròn trạng thái, căn theo vị trí tam giác
+    // Widget: chấm tròn trạng thái ở giữa
     Widget statusCircle() => Align(
-      alignment: triangleAtLeft ? Alignment.centerLeft : Alignment.centerRight,
+      alignment: Alignment.center,
       child: Container(
-        margin: EdgeInsets.only(left: triangleAtLeft ? 12 + 8 : 0, right: triangleAtLeft ? 0 : 12 + 8),
         width: 17,
         height: 17,
         decoration: BoxDecoration(
