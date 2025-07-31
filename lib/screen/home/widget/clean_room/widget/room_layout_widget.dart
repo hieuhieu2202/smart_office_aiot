@@ -41,8 +41,10 @@ class RoomLayoutWidget extends StatelessWidget {
                           final leftPercentStr = sensor['Left']?.toString().replaceAll('%', '') ?? '0';
                           final topPercent = double.tryParse(topPercentStr) ?? 0.0;
                           final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
-                          final topPos = (topPercent.isNaN ? 0.0 : topPercent) / 100 * height;
-                          final leftPos = (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * width;
+                          final topPos =
+                              (topPercent.isNaN ? 0.0 : topPercent) / 100 * height - 5;
+                          final leftPos =
+                              (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * width - 5;
 
                           Map<String, dynamic>? dataEntry;
                           try {
@@ -61,6 +63,8 @@ class RoomLayoutWidget extends StatelessWidget {
                           }
 
                           final areaName = dataEntry?['sensorDesc']?.toString() ?? '';
+                          final menu = sensor['menu']?.toString().toLowerCase() ?? '';
+                          final labelOnLeft = menu.contains('left');
 
                           return Positioned(
                             top: topPos,
@@ -83,6 +87,7 @@ class RoomLayoutWidget extends StatelessWidget {
                                   sensorName: sensor['SensorName'],
                                   areaName: areaName,
                                   online: hasData,
+                                  labelOnLeft: labelOnLeft,
                                 ),
                               ),
                             ),

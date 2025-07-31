@@ -67,9 +67,10 @@ for a sensor and **grey** when the sensor is offline.
 
 Each marker starts with a small colored circle showing the sensor position.
 An arrow points from the circle to a dark blue label with light horizontal
-stripes. The label displays the sensor name and its **ON/OFF** status in green
-and the area label in white. The circle stays visible so you can clearly see the
-exact location.
+stripes. Depending on the configuration, this label can appear either to the
+left or to the right of the dot so that markers do not overlap. The label
+displays the sensor name and its **ON/OFF** status in green and the area name in
+white. The circle stays visible so you can clearly see the exact location.
 
 Tapping a marker opens a small dialog showing recent readings for that sensor.
  
