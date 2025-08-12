@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../../config/global_color.dart';
+import '../../../../widget/animation/loading/eva_scanner.dart';
 import '../../controller/avi_dashboard_controller.dart';
 import 'avi_dashboard_filter_panel.dart';
 import 'avi_dashboard_machine_detail.dart';
@@ -262,7 +263,9 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
               () => controller.isLoading.value
               ? Container(
             color: Colors.black.withOpacity(0.3),
-            child: const Center(child: CircularProgressIndicator()),
+                   child: Center(child: EvaScanner(size: 300)) // hoặc 340 tuỳ layout
+
+                // child: const Center(child: CircularProgressIndicator()),
           )
               : const SizedBox.shrink(),
         ),

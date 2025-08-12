@@ -33,6 +33,7 @@ class RackCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ===== Colors / Styles =====
     final colorDot = isInactive
         ? (isDark ? Colors.grey : Colors.grey[400])
         : (isDark ? GlobalColors.iconDark : GlobalColors.iconLight);
@@ -47,9 +48,9 @@ class RackCard extends StatelessWidget {
 
     final passTextColor = isDark ? GlobalColors.iconDark : GlobalColors.iconLight;
     final rackTextColor = isDark ? GlobalColors.iconDark : GlobalColors.iconLight;
-    final modelTextColor = isDark
-        ? GlobalColors.darkSecondaryText
-        : GlobalColors.lightSecondaryText;
+    final modelTextColor =
+    isDark ? GlobalColors.darkSecondaryText : GlobalColors.lightSecondaryText;
+
     final progressBg = isDark
         ? Colors.blueGrey[800]!.withOpacity(0.18)
         : Colors.blueGrey[100]!.withOpacity(0.45);
@@ -60,7 +61,7 @@ class RackCard extends StatelessWidget {
     final slotTextColor = isDark ? Colors.white : GlobalColors.lightPrimaryText;
     final slotProgressBg = isDark
         ? Colors.blueGrey[700]!.withOpacity(0.23)
-        : Colors.blue[100]!.withOpacity(0.3);
+        : Colors.blue[100]!.withOpacity(0.30);
     final slotPassBg = isDark
         ? GlobalColors.iconDark.withOpacity(0.18)
         : GlobalColors.iconLight.withOpacity(0.09);
@@ -71,8 +72,13 @@ class RackCard extends StatelessWidget {
         : GlobalColors.iconLight.withOpacity(0.18);
     final tooltipText = isDark ? GlobalColors.iconDark : GlobalColors.iconLight;
 
+    // ===== Layout tuning =====
+    const double desiredSlotHeight = 76.0; // cao hơn 72 để font to + thoáng
+    const double gridSpacing = 15.0;       // khoảng cách giữa các row/col của slot
+    const double cardPad = 10.0;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(cardPad),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
@@ -88,13 +94,15 @@ class RackCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,               // co đúng theo nội dung
+        crossAxisAlignment: CrossAxisAlignment.center, // căn trái đẹp hơn
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Header
+          // ===== Header =====
           Row(
             children: [
-              Icon(Icons.circle, size: 13, color: colorDot),
-              const SizedBox(width: 8),
+              Icon(Icons.circle, size: 14, color: colorDot), // +1
+              const SizedBox(width: 10),                     // tăng spacing
               Expanded(
                 child: RichText(
                   maxLines: 2,
@@ -106,7 +114,7 @@ class RackCard extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: rackTextColor,
-                          fontSize: 16,
+                          fontSize: 17, // 16 -> 17
                         ),
                       ),
                       TextSpan(
@@ -114,19 +122,20 @@ class RackCard extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
                           color: modelTextColor,
-                          fontSize: 14,
+                          fontSize: 15, // 14 -> 15
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
+              const SizedBox(width: 10),
               Text(
                 '$totalPass pcs',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: passTextColor,
-                  fontSize: 15,
+                  fontSize: 16, // 15 -> 16
                   letterSpacing: 0.2,
                   shadows: [
                     Shadow(
@@ -138,16 +147,17 @@ class RackCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
 
-          // YR Progress
+          const SizedBox(height: 12), // 10 -> 12
+
+          // ===== YR Progress =====
           AnimatedBuilder(
             animation: animation,
             builder: (context, _) {
               final animatedValue = animation.value * ((yr).clamp(0, 100) / 100);
               return LinearProgressIndicator(
                 value: isInactive ? ((yr).clamp(0, 100) / 100) : animatedValue,
-                minHeight: 6,
+                minHeight: 7, // 6 -> 7
                 backgroundColor: progressBg,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   isInactive
@@ -158,143 +168,156 @@ class RackCard extends StatelessWidget {
             },
           ),
 
-          const SizedBox(height: 7),
+          const SizedBox(height: 9), // 7 -> 9
+
+          // ===== UT / YR =====
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('UT: ${ut.toStringAsFixed(1)}%', style: TextStyle(fontSize: 11, color: utColor)),
-              Text('YR: ${yr.toStringAsFixed(1)}%', style: TextStyle(fontSize: 11, color: yrColor)),
+              Text('UT: ${ut.toStringAsFixed(1)}%',
+                  style: TextStyle(fontSize: 12, color: utColor)), // 11 -> 12
+              Text('YR: ${yr.toStringAsFixed(1)}%',
+                  style: TextStyle(fontSize: 12, color: yrColor)), // 11 -> 12
             ],
           ),
-          const SizedBox(height: 11),
 
-          // Slots
-          Flexible(
-            child: GridView.builder(
-              itemCount: slots.length,
-              padding: EdgeInsets.zero,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 6,
-                crossAxisSpacing: 6,
-                childAspectRatio: 2.5,
-              ),
-              itemBuilder: (context, i) {
-                final slot = slots[i];
-                final slotName = slot['SlotName'] ?? '';
-                final slotNumber = slot['SlotNumber']?.toString() ?? (i + 1).toString();
-                final slotPass = slot['Total_Pass'] ?? 0;
-                final slotFail = slot['Fail'] ?? 0;
-                final slotYr = slot['YR'] ?? 0;
-                final status = slot['Status'] ?? '';
-                final color = getStatusColor(status);
+          const SizedBox(height: 14), // 11 -> 14
 
-                return AnimatedBuilder(
-                  animation: slotAnimation,
-                  builder: (context, child) {
-                    final opacity = 0.6 + (slotAnimation.value * 0.4);
-                    return Opacity(
-                      opacity: opacity,
-                      child: child,
-                    );
-                  },
-                  child: Tooltip(
-                    message: status,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: tooltipBg,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: tooltipBorder, width: 1.1),
-                    ),
-                    textStyle: TextStyle(
-                      fontSize: 13,
-                      color: tooltipText,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+          // ===== Slots grid =====
+          LayoutBuilder(
+            builder: (context, c) {
+              const cross = 2;
+              final tileWidth = (c.maxWidth - (cross - 1) * gridSpacing) / cross;
+              final slotRatio = tileWidth / desiredSlotHeight; // width / height
+
+              return GridView.builder(
+                itemCount: slots.length,
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cross,
+                  mainAxisSpacing: gridSpacing,
+                  crossAxisSpacing: gridSpacing,
+                  childAspectRatio: slotRatio,
+                ),
+                itemBuilder: (context, i) {
+                  final slot = slots[i];
+                  final slotName = slot['SlotName'] ?? '';
+                  final slotNumber = slot['SlotNumber']?.toString() ?? (i + 1).toString();
+                  final slotPass = slot['Total_Pass'] ?? 0;
+                  final slotFail = slot['Fail'] ?? 0;
+                  final slotYr = slot['YR'] ?? 0;
+                  final status = slot['Status'] ?? '';
+                  final color = getStatusColor(status);
+
+                  return AnimatedBuilder(
+                    animation: slotAnimation,
+                    builder: (context, child) {
+                      final opacity = 0.6 + (slotAnimation.value * 0.4);
+                      return Opacity(opacity: opacity, child: child);
+                    },
+                    child: Tooltip(
+                      message: status,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.blueGrey[800]!.withOpacity(0.95) : Colors.grey[50],
+                        color: tooltipBg,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: color.withOpacity(0.20),
-                          width: 1.0,
+                        border: Border.all(color: tooltipBorder, width: 1.1),
+                      ),
+                      textStyle: TextStyle(
+                        fontSize: 14, // 13 -> 14
+                        color: tooltipText,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.blueGrey[800]!.withOpacity(0.95)
+                              : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(10), // bo góc tăng nhẹ
+                          border: Border.all(
+                            color: color.withOpacity(0.20),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(getStatusIcon(status), color: color, size: 16), // 15 ->16
+                                const SizedBox(width: 6), // 5 -> 6
+                                Expanded(
+                                  child: Text(
+                                    '$slotName-$slotNumber',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14, // 13 -> 14
+                                      color: slotTextColor,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10), // 8 -> 10
+                                Text(
+                                  '${slotYr.toString()}%',
+                                  style: TextStyle(
+                                    fontSize: 13, // 12 -> 13
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? GlobalColors.iconDark
+                                        : GlobalColors.iconLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6), // 4 -> 6
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: LinearProgressIndicator(
+                                      value: (slotYr is num ? slotYr.clamp(0, 100) : 0) / 100,
+                                      minHeight: 6, // 5 -> 6
+                                      backgroundColor: slotProgressBg,
+                                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10), // 8 -> 10
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: slotPassBg,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '$slotPass/${slotPass + slotFail}',
+                                      style: TextStyle(
+                                        fontSize: 12, // 11 -> 12
+                                        color: slotTextColor,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.1,
+                                      ),
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(getStatusIcon(status), color: color, size: 15),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                child: Text(
-                                  '$slotName-$slotNumber',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                    color: slotTextColor,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${slotYr.toString()}%',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? GlobalColors.iconDark : GlobalColors.iconLight,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: LinearProgressIndicator(
-                                    value: (slotYr is num ? slotYr.clamp(0, 100) : 0) / 100,
-                                    minHeight: 5,
-                                    backgroundColor: slotProgressBg,
-                                    valueColor: AlwaysStoppedAnimation<Color>(color),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: slotPassBg,
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                  child: Text(
-                                    '$slotPass/${slotPass + slotFail}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: slotTextColor,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.1,
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              );
+            },
           ),
         ],
       ),

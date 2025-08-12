@@ -1,4 +1,3 @@
-// 📁 yield_report_controller.dart
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -19,7 +18,8 @@ class YieldReportController extends GetxController {
   RxBool filterPanelOpen = false.obs;
   Timer? _refreshTimer;
 
-  final expandedNickNames = <String>{}.obs; // ✅ giữ danh sách Nick đang mở khi refresh
+  final expandedNickNames =
+      <String>{}.obs; // ✅ giữ danh sách Nick đang mở khi refresh
 
   final DateFormat _format = DateFormat('yyyy/MM/dd HH:mm');
 
@@ -27,7 +27,9 @@ class YieldReportController extends GetxController {
   void onInit() {
     super.onInit();
     final now = DateTime.now();
-    startDateTime = Rx<DateTime>(DateTime(now.year, now.month, now.day - 2, 7, 30));
+    startDateTime = Rx<DateTime>(
+      DateTime(now.year, now.month, now.day - 2, 7, 30),
+    );
     endDateTime = Rx<DateTime>(DateTime(now.year, now.month, now.day, 19, 30));
     fetchReport();
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -53,13 +55,13 @@ class YieldReportController extends GetxController {
       );
       final res = data['Data'] ?? {};
       dates.value = List<String>.from(res['ClassDates'] ?? []);
-      dataNickNames.value = List<Map<String, dynamic>>.from(res['DataNickNames'] ?? []);
+      dataNickNames.value = List<Map<String, dynamic>>.from(
+        res['DataNickNames'] ?? [],
+      );
       // capture all nick names when loading unfiltered data
       if ((nickName ?? selectedNickName.value) == 'All') {
-        allNickNames.value = dataNickNames
-            .map((e) => e['NickName'].toString())
-            .toSet()
-            .toList();
+        allNickNames.value =
+            dataNickNames.map((e) => e['NickName'].toString()).toSet().toList();
       }
       // ✅ không reset expandedNickNames
     } catch (e) {
@@ -70,15 +72,20 @@ class YieldReportController extends GetxController {
   }
 
   void updateStart(DateTime dt) => startDateTime.value = dt;
+
   void updateEnd(DateTime dt) => endDateTime.value = dt;
+
   void updateQuickFilter(String v) => quickFilter.value = v;
+
   void openFilterPanel() => filterPanelOpen.value = true;
+
   void closeFilterPanel() => filterPanelOpen.value = false;
 
   void applyFilter(DateTime start, DateTime end, String? nickName) {
     startDateTime.value = start;
     endDateTime.value = end;
-    selectedNickName.value = (nickName == null || nickName.isEmpty) ? 'All' : nickName;
+    selectedNickName.value =
+        (nickName == null || nickName.isEmpty) ? 'All' : nickName;
     closeFilterPanel();
     fetchReport(nickName: selectedNickName.value);
   }
@@ -100,7 +107,9 @@ class YieldReportController extends GetxController {
 
     for (final nick in dataNickNames) {
       final nickName = (nick['NickName'] ?? '').toString();
-      final models = List<Map<String, dynamic>>.from(nick['DataModelNames'] ?? []);
+      final models = List<Map<String, dynamic>>.from(
+        nick['DataModelNames'] ?? [],
+      );
 
       if (nickName.toLowerCase().contains(q)) {
         result.add(nick);
@@ -111,22 +120,25 @@ class YieldReportController extends GetxController {
 
       for (final m in models) {
         final modelName = (m['ModelName'] ?? '').toString();
-        final stations = List<Map<String, dynamic>>.from(m['DataStations'] ?? []);
+        final stations = List<Map<String, dynamic>>.from(
+          m['DataStations'] ?? [],
+        );
 
         if (modelName.toLowerCase().contains(q)) {
           filteredModels.add(m);
           continue;
         }
 
-        final filteredStations = stations.where((st) {
-          final stationName = (st['Station'] ?? '').toString();
-          if (stationName.toLowerCase().contains(q)) return true;
-          final data = st['Data'] as List? ?? [];
-          for (final v in data) {
-            if (v.toString().toLowerCase().contains(q)) return true;
-          }
-          return false;
-        }).toList();
+        final filteredStations =
+            stations.where((st) {
+              final stationName = (st['Station'] ?? '').toString();
+              if (stationName.toLowerCase().contains(q)) return true;
+              final data = st['Data'] as List? ?? [];
+              for (final v in data) {
+                if (v.toString().toLowerCase().contains(q)) return true;
+              }
+              return false;
+            }).toList();
 
         if (filteredStations.isNotEmpty) {
           final newModel = Map<String, dynamic>.from(m);
@@ -149,6 +161,10 @@ class YieldReportController extends GetxController {
 
   bool get isDefaultFilter =>
       selectedNickName.value == 'All' &&
-          startDateTime.value.isBefore(DateTime.now().subtract(const Duration(days: 2))) &&
-          endDateTime.value.isAfter(DateTime.now().subtract(const Duration(hours: 23)));
+      startDateTime.value.isBefore(
+        DateTime.now().subtract(const Duration(days: 2)),
+      ) &&
+      endDateTime.value.isAfter(
+        DateTime.now().subtract(const Duration(hours: 23)),
+      );
 }
