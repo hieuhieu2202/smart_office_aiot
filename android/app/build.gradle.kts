@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.smart_office_aiot"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973" // Cập nhật NDK phiên bản cao nhất
+    ndkVersion = "29.0.13846066" // Cập nhật NDK phiên bản cao nhất
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
