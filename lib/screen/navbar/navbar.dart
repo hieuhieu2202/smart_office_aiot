@@ -10,7 +10,6 @@ import '../setting/controller/setting_controller.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
 
-
 final NavbarController navbarController = Get.put(NavbarController());
 
 class NavbarScreen extends StatelessWidget {
@@ -23,7 +22,7 @@ class NavbarScreen extends StatelessWidget {
     final SettingController settingController = Get.find<SettingController>();
     final S text = S.of(context);
 
-    // Đa ngôn ngữ cho label
+    // Danh sách nhãn (hỗ trợ đa ngôn ngữ)
     final List<String> tabLabels = [
       text.home,
       "WinSCP",
@@ -32,29 +31,35 @@ class NavbarScreen extends StatelessWidget {
       text.settings,
     ];
 
-    return Scaffold(
-      body: Obx(
-            () => IndexedStack(
-          index: navbarController.currentIndex.value,
+    // Lazy cache cho QRScreen để tránh rebuild liên tục
+    Widget? qrScreenCache;
+
+    return Obx(() {
+      final currentIndex = navbarController.currentIndex.value;
+
+      return Scaffold(
+        body: IndexedStack(
+          index: currentIndex,
           children: [
             HomeTab(),
             SftpScreen(),
-            QRScanScreen(),
-            NotificationTab(),
+            currentIndex == 2
+                ? (qrScreenCache ??= QRScanScreen())
+                : SizedBox.shrink(),
             SettingTab(),
           ],
+
         ),
-      ),
-      bottomNavigationBar: Obx(() {
-        final isDark = settingController.isDarkMode.value;
-        final accent = isDark ? Colors.blue[200] : Colors.blue;
-        return Container(
+        bottomNavigationBar: Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.grey[900] : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+            color: settingController.isDarkMode.value
+                ? Colors.grey[900]
+                : Colors.white,
+            borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(18)),
             boxShadow: [
               BoxShadow(
-                color: isDark
+                color: settingController.isDarkMode.value
                     ? Colors.black.withOpacity(0.13)
                     : Colors.grey.withOpacity(0.10),
                 blurRadius: 12,
@@ -70,38 +75,42 @@ class NavbarScreen extends StatelessWidget {
             showUnselectedLabels: true,
             selectedFontSize: 13,
             unselectedFontSize: 12,
-            selectedItemColor: accent,
-            unselectedItemColor: isDark ? Colors.grey[400] : Colors.grey[600],
-            currentIndex: navbarController.currentIndex.value,
+            selectedItemColor: settingController.isDarkMode.value
+                ? Colors.blue[200]
+                : Colors.blue,
+            unselectedItemColor: settingController.isDarkMode.value
+                ? Colors.grey[400]
+                : Colors.grey[600],
+            currentIndex: currentIndex,
             onTap: (index) {
               print('🟦 Chuyển tab sang index: $index');
               navbarController.changTab(index);
             },
             items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded),
+                icon: const Icon(Icons.home_rounded),
                 label: tabLabels[0],
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.public_rounded),
+                icon: const Icon(Icons.public_rounded),
                 label: tabLabels[1],
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.qr_code_scanner),
+                icon: const Icon(Icons.qr_code_scanner),
                 label: tabLabels[2],
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.notifications_active_rounded),
+                icon: const Icon(Icons.notifications_active_rounded),
                 label: tabLabels[3],
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.settings),
+                icon: const Icon(Icons.settings),
                 label: tabLabels[4],
               ),
             ],
           ),
-        );
-      }),
-    );
+        ),
+      );
+    });
   }
 }
