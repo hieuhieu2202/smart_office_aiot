@@ -70,7 +70,6 @@
   "email": "Email",
   "not_updated": "Not updated",
   "home": "Home",
-  "history": "History",
   "notification": "Notification",
   "quick_login_faceid": "Quick login (FaceID/Fingerprint)",
   "activate_faceid_note": "Activate FaceID/Fingerprint in Settings after login",
