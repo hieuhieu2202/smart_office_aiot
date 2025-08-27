@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
-import 'package:smart_factory/screen/history/history_tab.dart';
 import 'package:smart_factory/screen/home/home_tab.dart';
 import 'package:smart_factory/screen/notification/notification_tab.dart';
 import 'package:smart_factory/screen/setting/setting_tab.dart';
