@@ -39,30 +39,31 @@ dependencies:
   icons_launcher: ^3.0.0
   fluttertoast: ^8.2.8
   dartssh2: ^2.8.2  # Thay ssh2 bằng dartssh2
-  photo_view: ^0.14.0
+  photo_view: ^0.15.0
   cached_network_image: ^3.3.1
-  permission_handler: ^11.0.0  # Thêm package để quản lý quyền
-  http: ^0.13.6  # Downgrade để tương thích với gallery_saver
+  permission_handler: ^12.0.1  # Thêm package để quản lý quyền
+  http: ^1.5.0  # Downgrade để tương thích với gallery_saver
   image_gallery_saver_plus: ^4.0.1
   file_picker: ^10.1.9
-  app_links: ^3.5.0
+  app_links: ^6.4.1
   url_launcher: ^6.3.0 # Thêm package url_launcher
   connectivity_plus: ^6.0.3  # Thêm package này
   jwt_decoder: ^2.0.1
   table_calendar: ^3.0.9
-  fl_chart: ^0.68.0
+  fl_chart: ^1.0.0
   flutter_localizations:
     sdk: flutter
   intl: ^0.19.0
   smooth_page_indicator: ^1.1.0
   local_auth: ^2.2.0
-  google_fonts: ^4.0.4
+  google_fonts: ^6.3.0
   shimmer: ^3.0.0
   data_table_2: ^2.5.8
   animations: ^2.0.11
 #  device_preview: ^1.2.0
-  syncfusion_flutter_charts: ^26.2.9
+  syncfusion_flutter_charts: ^30.2.7
 
+  mobile_scanner: ^7.0.1
 
 icons_launcher:
   image_path: 'assets/images/icon_app.png'
@@ -75,6 +76,7 @@ icons_launcher:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

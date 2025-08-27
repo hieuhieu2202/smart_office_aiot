@@ -9,6 +9,8 @@ import 'package:smart_factory/screen/stp/stp_tab.dart';
 import '../home/controller/home_controller.dart';
 import '../setting/controller/setting_controller.dart';
 import 'package:smart_factory/generated/l10n.dart';
+import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
+
 
 class NavbarScreen extends StatelessWidget {
   const NavbarScreen({super.key});
@@ -24,7 +26,7 @@ class NavbarScreen extends StatelessWidget {
     final List<String> tabLabels = [
       text.home,
       "WinSCP",
-      text.history ,
+      // text.qrScan,
       text.notification ,
       text.settings,
     ];
@@ -36,7 +38,11 @@ class NavbarScreen extends StatelessWidget {
           children:  [
             HomeTab(),
             SftpScreen(),
-            HistoryTab(),
+            Builder(
+              builder: (_) => navbarController.currentIndex.value == 2
+                  ? const QRScanScreen()
+                  : const SizedBox.shrink(),
+            ),
             NotificationTab(),
             SettingTab(),
           ],
@@ -80,7 +86,7 @@ class NavbarScreen extends StatelessWidget {
                   label: tabLabels[1],
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.history),
+                  icon: Icon(Icons.qr_code_scanner),
                   label: tabLabels[2],
                 ),
                 BottomNavigationBarItem(
