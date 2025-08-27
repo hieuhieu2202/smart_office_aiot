@@ -26,7 +26,7 @@ class NavbarScreen extends StatelessWidget {
     final List<String> tabLabels = [
       text.home,
       "WinSCP",
-      // text.qrScan,
+      text.qrScan,
       text.notification ,
       text.settings,
     ];
