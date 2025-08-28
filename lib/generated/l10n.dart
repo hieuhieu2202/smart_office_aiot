@@ -614,11 +614,6 @@ class S {
     return Intl.message('Home', name: 'home', desc: '', args: []);
   }
 
-  /// `History`
-  String get history {
-    return Intl.message('History', name: 'history', desc: '', args: []);
-  }
-
   /// `Notification`
   String get notification {
     return Intl.message(

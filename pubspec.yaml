@@ -76,6 +76,7 @@ icons_launcher:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  intl_utils: ^2.8.5
 
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -135,3 +136,5 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 flutter_intl:
   enabled: true
+  arb-dir: lib/l10n
+  output_dir: lib/generated

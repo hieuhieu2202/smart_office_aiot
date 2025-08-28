@@ -97,7 +97,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "email": MessageLookupByLibrary.simpleMessage("邮箱"),
     "fullname": MessageLookupByLibrary.simpleMessage("姓名"),
     "hire_date": MessageLookupByLibrary.simpleMessage("入职日期"),
-    "history": MessageLookupByLibrary.simpleMessage("历史"),
     "home": MessageLookupByLibrary.simpleMessage("首页"),
     "job_title": MessageLookupByLibrary.simpleMessage("职位"),
     "language": MessageLookupByLibrary.simpleMessage("语言"),

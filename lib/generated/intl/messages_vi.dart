@@ -115,7 +115,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "email": MessageLookupByLibrary.simpleMessage("Email"),
     "fullname": MessageLookupByLibrary.simpleMessage("Họ và tên"),
     "hire_date": MessageLookupByLibrary.simpleMessage("Ngày vào làm"),
-    "history": MessageLookupByLibrary.simpleMessage("Lịch sử"),
     "home": MessageLookupByLibrary.simpleMessage("Trang chủ"),
     "job_title": MessageLookupByLibrary.simpleMessage("Chức vụ"),
     "language": MessageLookupByLibrary.simpleMessage("Ngôn ngữ"),

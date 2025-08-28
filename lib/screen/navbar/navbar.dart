@@ -46,6 +46,7 @@ class NavbarScreen extends StatelessWidget {
             currentIndex == 2
                 ? (qrScreenCache ??= QRScanScreen())
                 : SizedBox.shrink(),
+            NotificationTab(),
             SettingTab(),
           ],
 
