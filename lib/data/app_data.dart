@@ -30,7 +30,7 @@ List<AppProject> appProjects = [
         progress: 1.0,
         status: "Running",
         icon: Icons.developer_board,
-        screenType: "pcba",
+        screenType: 'pcba_line_dashboard',
       ),
       AppProject(
         name: "Clean Room",
