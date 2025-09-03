@@ -6,4 +6,5 @@ class ApiConfig {
       : 'http://192.168.0.197:5511';  // Server local/dev
 
   static String get fixtureEndpoint => '$baseUrl/Fixture/GetFixtureByQr';
+  static String get logFileBase => '$baseUrl/Data/Fixture';
 }

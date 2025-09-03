@@ -2,8 +2,11 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../service/pcba_line_api.dart';
 
+/// ===================
+/// Models
+/// ===================
 class PcbaLinePoint {
-  final DateTime date; // yyyy/MM/dd
+  final DateTime date;
   final int pass;
   final int fail;
   PcbaLinePoint({required this.date, required this.pass, required this.fail});
@@ -15,24 +18,42 @@ class PcbaYieldPoint {
   PcbaYieldPoint({required this.date, required this.yieldRate});
 }
 
+/// ===================
+/// Controller
+/// ===================
 class PcbaLineDashboardController extends GetxController {
-  // ===== Filter state =====
+  // ===== FILTER STATE =====
   final rangeDateTime = '2025/08/12 07:30 - 2025/08/19 19:30'.obs;
   final machineName = ''.obs;
 
-  // ===== UI state =====
+  // ===== UI STATE =====
   final loading = false.obs;
   final errorMessage = RxnString();
 
-  // ===== Data series =====
-  final passFailPoints = <PcbaLinePoint>[].obs;   // cho bar chart + card list
-  final yieldPoints = <PcbaYieldPoint>[].obs;     // cho line chart
-  final avgCycleTime = RxnDouble();               // KPI header
+  // ===== DATA SERIES (Daily) =====
+  final passFailPoints = <PcbaLinePoint>[].obs;
+  final yieldPoints = <PcbaYieldPoint>[].obs;
+  final avgCycleTime = RxnDouble();
 
-  // ===== KPI tổng =====
+  // ===== KPI Tổng =====
   final totalPass = 0.obs;
   final totalFail = 0.obs;
-  final totalYieldRate = 0.0.obs; // % tổng = pass / (pass+fail) * 100
+  final totalYieldRate = 0.0.obs;
+
+  // ===== Chi tiết theo máy cho 1 ngày (sau khi click cột) =====
+  final machineChartData = <Map<String, dynamic>>[].obs;
+
+  // ======= Getters hiển thị KPI =======
+  String get formattedAvgCycleTime {
+    final val = avgCycleTime.value;
+    if (val == null) return '--';
+    return '${NumberFormat('#,##0').format(val)} s';
+  }
+
+  String get formattedYieldRate {
+    final val = totalYieldRate.value;
+    return '${NumberFormat('#,##0.00').format(val)} %';
+  }
 
   @override
   void onInit() {
@@ -40,52 +61,62 @@ class PcbaLineDashboardController extends GetxController {
     fetchAll();
   }
 
+  /// ===================
+  /// Fetch tất cả dữ liệu tổng quan (daily)
+  /// ===================
   Future<void> fetchAll() async {
     loading.value = true;
     errorMessage.value = null;
+
     try {
-      // 1) Pass/Fail
+      // 1) Pass/Fail Daily series
       final rawPF = await PcbaLineApi.fetchPassFailSeries(
         rangeDateTime: rangeDateTime.value,
         machineName: machineName.value,
       );
+      // rawPF: List<List<Map>> — mỗi phần tử là 1 "bucket" cho 1 ngày
+      // Trong bucket:
+      //   - Bản ghi tổng ngày: { "Date": "yyyy/MM/dd", "Pass": x, "Fail": y, "MachineName": null }
+      //   - Các bản ghi chi tiết theo máy: { "Date": null, "Pass": x, "Fail": y, "MachineName": "..." }
 
-      // Lấy record có Date != null làm daily total
       final pfDaily = <PcbaLinePoint>[];
       int sumPass = 0, sumFail = 0;
 
       for (final dayList in rawPF) {
+        // lấy record tổng ngày (Date != null)
         final totalRec = dayList.firstWhere(
               (e) => e['Date'] != null,
-          orElse: () => {},
+          orElse: () => <String, dynamic>{},
         );
+
         if (totalRec.isNotEmpty) {
           final dateStr = totalRec['Date'] as String;
           final pass = (totalRec['Pass'] ?? 0) as int;
           final fail = (totalRec['Fail'] ?? 0) as int;
 
+          // Parse yyyy/MM/dd
           final parts = dateStr.split('/');
-          // "yyyy/MM/dd"
           final dt = DateTime(
             int.parse(parts[0]),
             int.parse(parts[1]),
             int.parse(parts[2]),
           );
+
           pfDaily.add(PcbaLinePoint(date: dt, pass: pass, fail: fail));
           sumPass += pass;
           sumFail += fail;
         }
       }
 
-      // 2) Yield
+      // 2) Yield Daily series
       final rawYield = await PcbaLineApi.fetchYieldRate(
         rangeDateTime: rangeDateTime.value,
         machineName: machineName.value,
       );
+
       final yDaily = <PcbaYieldPoint>[];
       for (final m in rawYield) {
         final dateStr = m['Date'] as String?;
-        final yieldStr = m['Yield']?.toString() ?? '0';
         if (dateStr == null) continue;
 
         final parts = dateStr.split('/');
@@ -94,24 +125,29 @@ class PcbaLineDashboardController extends GetxController {
           int.parse(parts[1]),
           int.parse(parts[2]),
         );
-        final y = double.tryParse(yieldStr) ?? 0;
+
+        final y = double.tryParse(m['Yield']?.toString() ?? '0') ?? 0;
         yDaily.add(PcbaYieldPoint(date: dt, yieldRate: y));
       }
 
-      // 3) Avg Cycle
+      // 3) Avg Cycle Time
       final avg = await PcbaLineApi.fetchAvgCycleTime(
         rangeDateTime: rangeDateTime.value,
         machineName: machineName.value,
       );
 
-      // Cập nhật state
-      passFailPoints.assignAll(pfDaily..sort((a, b) => a.date.compareTo(b.date)));
-      yieldPoints.assignAll(yDaily..sort((a, b) => a.date.compareTo(b.date)));
+      // Assign & sort
+      pfDaily.sort((a, b) => a.date.compareTo(b.date));
+      yDaily.sort((a, b) => a.date.compareTo(b.date));
+
+      passFailPoints.assignAll(pfDaily);
+      yieldPoints.assignAll(yDaily);
       avgCycleTime.value = avg;
 
+      // KPI
       totalPass.value = sumPass;
       totalFail.value = sumFail;
-      final denom = (sumPass + sumFail);
+      final denom = sumPass + sumFail;
       totalYieldRate.value = denom == 0 ? 0 : (sumPass / denom) * 100;
     } catch (e) {
       errorMessage.value = e.toString();
@@ -120,6 +156,43 @@ class PcbaLineDashboardController extends GetxController {
     }
   }
 
+  /// ===================
+  /// Lấy CHI TIẾT THEO MÁY cho 1 ngày
+  /// - Dựa đúng cấu trúc JSON demo:
+  ///   + Tìm "bucket" có record tổng ngày (`Date == yyyy/MM/dd`)
+  ///   + Chi tiết là những record `Date == null` trong bucket đó
+  /// ===================
+  Future<void> fetchMachineChartDataForDate(DateTime date) async {
+    try {
+      final raw = await PcbaLineApi.fetchPassFailSeries(
+        rangeDateTime: rangeDateTime.value,
+        machineName: '', // giữ cả line
+      );
+
+      // Dẹt list theo ngày -> bản ghi máy (Date == null)
+      final flat = raw.expand((e) => e).toList();
+
+      final machineRecords = flat.where((e) {
+        // Bỏ record tổng ngày
+        if (e['Date'] != null) return false;
+
+        // Từ CreateDate lọc đúng ngày
+        final dStr = e['CreateDate']?.toString() ?? '';
+        if (dStr.isEmpty) return false;
+
+        final dt = DateTime.tryParse(dStr);
+        if (dt == null) return false;
+
+        return dt.year == date.year && dt.month == date.month && dt.day == date.day;
+      }).toList();
+
+      machineChartData.assignAll(machineRecords);
+    } catch (_) {
+      machineChartData.clear();
+    }
+  }
+
+  /// Filter helpers
   void applyRange(String newRange) {
     rangeDateTime.value = newRange;
     fetchAll();

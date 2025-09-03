@@ -15,6 +15,11 @@ import 'package:smart_factory/lang/controller/language_controller.dart';
 import 'package:smart_factory/lang/language_selection_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/service/auth/token_manager.dart';
+import 'package:syncfusion_flutter_core/core.dart';
+
+
+
+
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -34,8 +39,10 @@ void main() async {
   Get.put(UserProfileManager());
   Get.put(SettingController());
   Get.put(LanguageController());
-
+  // // key SyncfusionLicense để đọc file pdf
+  // SyncfusionLicense.registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF1cWWhAYVppR2Nbek5xdF9HZlZRRmY/P1ZhSXxWdkxjW31ccXJVRGZcWUF9XEI=');
   runApp(const MyApp());
+
   // runApp(
   //   DevicePreview(
   //     enabled: true, // hoặc: !kReleaseMode,

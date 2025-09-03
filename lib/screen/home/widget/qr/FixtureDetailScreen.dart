@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:smart_factory/config/ApiConfig.dart';
+import 'package:smart_factory/screen/home/widget/qr/pdf_viewer_screen.dart';
 
 class FixtureDetailScreen extends StatelessWidget {
   final String model;
@@ -17,16 +19,49 @@ class FixtureDetailScreen extends StatelessWidget {
     return (v == null || v.toString().trim().isEmpty) ? '-' : v.toString();
   }
 
+  /// Trả về URL PDF (xử lý cả khi API trả full URL)
+  String _buildPdfUrl(String fileName) {
+    final clean = fileName.trim();
+    final isFull = clean.startsWith('http://') || clean.startsWith('https://');
+    final url = isFull ? clean : '${ApiConfig.logFileBase}/${Uri.encodeComponent(clean)}';
+    debugPrint('[Fixture] PDF URL = $url');
+    return url;
+  }
+
+  /// Lấy tên file từ API và log để đối chiếu
+  String _apiFileName() {
+    final raw = _str("File_Name");
+    final clean = raw.trim();
+    debugPrint('[Fixture] API File_Name (raw)  = "$raw"');
+    debugPrint('[Fixture] API File_Name (trim) = "$clean"');
+    return clean;
+  }
+
+  void _openLogFile(BuildContext context) {
+    final file = _apiFileName();
+    if (file.isEmpty || file == '-') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không có file để mở')),
+      );
+      return;
+    }
+    final url = _buildPdfUrl(file);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PdfViewerScreen(url: url, title: file),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "$model - $station",
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
+        title: Text("$model - $station", style: const TextStyle(fontWeight: FontWeight.w600)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -49,7 +84,7 @@ class FixtureDetailScreen extends StatelessWidget {
               const Divider(height: 1),
               _buildRow("Phân xưởng", _str("Part"), theme),
               const Divider(height: 1),
-              _buildRow("File", _str("File_Name"), theme),
+              _buildFileRow(context, theme),
             ],
           ),
         ),
@@ -67,10 +102,7 @@ class FixtureDetailScreen extends StatelessWidget {
             width: 120,
             child: Text(
               label,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: theme.colorScheme.primary,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w500, color: theme.colorScheme.primary),
             ),
           ),
           Expanded(
@@ -84,6 +116,53 @@ class FixtureDetailScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFileRow(BuildContext context, ThemeData theme) {
+    final file = _apiFileName();
+    final hasFile = file.isNotEmpty && file != '-';
+
+    return InkWell(
+      onTap: hasFile ? () => _openLogFile(context) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 120,
+              child: Text(
+                "File",
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      file,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: hasFile ? Colors.blue : theme.colorScheme.onSurface,
+                        decoration: hasFile ? TextDecoration.underline : TextDecoration.none,
+                      ),
+                    ),
+                  ),
+                  if (hasFile) const Icon(Icons.picture_as_pdf, size: 18, color: Colors.red),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
