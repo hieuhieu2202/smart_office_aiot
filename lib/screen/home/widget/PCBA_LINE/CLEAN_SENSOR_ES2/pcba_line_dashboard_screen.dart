@@ -63,7 +63,7 @@ class PcbaLineDashboardScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildKpiBox("Total Pass", controller.totalPass.value.toString(), Colors.green),
-                        _buildKpiBox("Total Fail", controller.totalFail.value.toString(), Colors.red),
+                        _buildKpiBox("Total Fail", controller.totalFail.value.toString(), Colors.purpleAccent),
                         _buildKpiBox("Yield Rate", controller.formattedYieldRate, Colors.amber),
                         _buildKpiBox("Avg Cycle", controller.formattedAvgCycleTime, Colors.blue),
                       ],

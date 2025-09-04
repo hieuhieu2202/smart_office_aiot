@@ -15,7 +15,8 @@ class QRScanScreen extends StatefulWidget {
   State<QRScanScreen> createState() => _QRScanScreenState();
 }
 
-class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderStateMixin {
+class _QRScanScreenState extends State<QRScanScreen>
+    with SingleTickerProviderStateMixin {
   final MobileScannerController controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
     detectionTimeoutMs: 700,
@@ -33,7 +34,8 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _scanAnim = AnimationController(vsync: this, duration: const Duration(seconds: 2))
+    _scanAnim =
+    AnimationController(vsync: this, duration: const Duration(seconds: 2))
       ..repeat(reverse: true);
     _scanTween = CurvedAnimation(parent: _scanAnim, curve: Curves.linear);
   }
@@ -47,14 +49,19 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
 
   void _showSnack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  // Parse linh hoạt: hỗ trợ model=&station= (đã URL-encode) và các phân tách # / _ |
   ({String model, String station})? _parseQr(String code) {
     if (code.isEmpty) return null;
-    final raw = code.trim().replaceFirst(RegExp(r'^\s*QR:\s*', caseSensitive: false), '');
-
+    final raw = code
+        .trim()
+        .replaceFirst(RegExp(r'^\s*QR:\s*', caseSensitive: false), '');
     final lower = raw.toLowerCase();
+
+    // Dạng query string
     if (lower.contains('model=') && lower.contains('station=')) {
       final parts = raw.split(RegExp(r'[&;]'));
       String? model, station;
@@ -63,8 +70,12 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
         if (kv.length == 2) {
           final k = kv[0].trim().toLowerCase();
           final v = kv[1].trim();
-          if (k == 'model' || k == 'modelname') model = v;
-          if (k == 'station' || k == 'stationname') station = v;
+          if (k == 'model' || k == 'modelname') {
+            model = Uri.decodeComponent(v); // decode để không bị double-encode
+          }
+          if (k == 'station' || k == 'stationname') {
+            station = Uri.decodeComponent(v);
+          }
         }
       }
       if ((model ?? '').isNotEmpty && (station ?? '').isNotEmpty) {
@@ -72,6 +83,7 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
       }
     }
 
+    // Dạng tách theo ký tự
     const ds = ['#', '/', '_', '|'];
     for (final d in ds) {
       if (raw.contains(d)) {
@@ -95,8 +107,7 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
     try {
       final parsed = _parseQr(code);
       if (parsed == null) {
-        // không spam toast; chỉ log
-        debugPrint("QR không hợp lệ: không parse được model/station.");
+        debugPrint("QR không hợp lệ, raw=$code");
         return;
       }
 
@@ -108,9 +119,9 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
             '?model=${Uri.encodeComponent(model)}'
             '&station=${Uri.encodeComponent(station)}',
       );
+      debugPrint('[QR] GET $url');
 
       final response = await http.get(url);
-
       if (!mounted) return;
 
       if (response.statusCode == 200 && response.body.isNotEmpty) {
@@ -119,7 +130,9 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
             (decoded['success'] == true || decoded['Success'] == true) &&
             (decoded['data'] != null || decoded['Data'] != null);
 
-        final data = decoded is Map ? (decoded['data'] ?? decoded['Data']) : null;
+        final data = decoded is Map
+            ? (decoded['data'] ?? decoded['Data'])
+            : null;
 
         if (ok && data != null && data is Map<String, dynamic>) {
           setState(() => _showScanner = false);
@@ -138,14 +151,16 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
 
           if (!mounted) return;
           setState(() => _showScanner = true);
-          await controller.start();   // auto resume scan
+          await controller.start();
         } else {
-          debugPrint("Không tìm thấy thông tin cho QR này.");
+          debugPrint(
+              "Không tìm thấy thông tin cho QR này. body=${response.body}");
         }
       } else if (response.statusCode == 204) {
         debugPrint("Không có dữ liệu (204).");
       } else {
         _showSnack("Lỗi server: HTTP ${response.statusCode}");
+        debugPrint('Body: ${response.body}');
       }
     } catch (e) {
       _showSnack("Lỗi kết nối: $e");
@@ -170,15 +185,13 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.flash_on),
-              onPressed: () => controller.toggleTorch(),
-              tooltip: 'Bật/tắt đèn',
-            ),
+                icon: const Icon(Icons.flash_on),
+                onPressed: () => controller.toggleTorch(),
+                tooltip: 'Bật/tắt đèn'),
             IconButton(
-              icon: const Icon(Icons.cameraswitch),
-              onPressed: () => controller.switchCamera(),
-              tooltip: 'Đổi camera',
-            ),
+                icon: const Icon(Icons.cameraswitch),
+                onPressed: () => controller.switchCamera(),
+                tooltip: 'Đổi camera'),
           ],
         ),
         body: _showScanner
@@ -204,11 +217,9 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
                       final String? value = b.rawValue;
                       if (value == null || value.isEmpty) continue;
 
-                      final okFormat =
-                          RegExp(r'^[A-Za-z0-9.\-]+[_#\/|][A-Za-z0-9.\-]+$').hasMatch(value) ||
-                              (value.toLowerCase().contains('model=') &&
-                                  value.toLowerCase().contains('station='));
-                      if (!okFormat) continue;
+                      // giữ UI cũ, chỉ thêm parse linh hoạt
+                      final parsed = _parseQr(value);
+                      if (parsed == null) continue;
 
                       await controller.stop();
                       await _handleCode(value);
@@ -216,6 +227,7 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
                     }
                   },
                 ),
+                // === Overlay: nền tối + khung bo góc + vạch vàng chạy ===
                 AnimatedBuilder(
                   animation: _scanTween,
                   builder: (context, _) {
@@ -251,9 +263,12 @@ class _ScanOverlayPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // overlay tối “đục lỗ” phần khung
     final overlay = Paint()..color = Colors.black.withOpacity(0.5);
-    final pathScreen = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final pathHole = Path()..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)));
-    final diff = Path.combine(PathOperation.difference, pathScreen, pathHole);
+    final pathScreen =
+    Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final pathHole =
+    Path()..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)));
+    final diff =
+    Path.combine(PathOperation.difference, pathScreen, pathHole);
     canvas.drawPath(diff, overlay);
 
     // viền khung trắng
@@ -261,7 +276,8 @@ class _ScanOverlayPainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
-    canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), border);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(16)), border);
 
     // vạch vàng chạy
     final scanY = rect.top + rect.height * t;
@@ -269,11 +285,12 @@ class _ScanOverlayPainter extends CustomPainter {
       ..color = Colors.amber
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
-    canvas.drawLine(Offset(rect.left + 8, scanY), Offset(rect.right - 8, scanY), scanLine);
+    canvas.drawLine(
+        Offset(rect.left + 8, scanY), Offset(rect.right - 8, scanY), scanLine);
   }
 
   @override
-  bool shouldRepaint(covariant _ScanOverlayPainter oldDelegate) {
-    return oldDelegate.t != t || oldDelegate.rect != rect;
+  bool shouldRepaint(covariant _ScanOverlayPainter old) {
+    return old.t != t || old.rect != rect;
   }
 }

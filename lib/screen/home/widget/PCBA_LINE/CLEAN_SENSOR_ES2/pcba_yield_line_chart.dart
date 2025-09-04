@@ -5,7 +5,6 @@ import '../../../controller/pcba_line_controller.dart';
 
 class PcbaYieldRateLineChart extends StatelessWidget {
   final PcbaLineDashboardController controller;
-
   const PcbaYieldRateLineChart({super.key, required this.controller});
 
   @override
@@ -16,85 +15,100 @@ class PcbaYieldRateLineChart extends StatelessWidget {
     final spots = <FlSpot>[];
     final labels = <String>[];
     for (int i = 0; i < data.length; i++) {
-      final point = data[i];
-      spots.add(FlSpot(i.toDouble(), point.yieldRate));
-      labels.add(DateFormat('MM/dd').format(point.date));
+      spots.add(FlSpot(i.toDouble(), data[i].yieldRate.toDouble()));
+      labels.add(DateFormat('MM/dd').format(data[i].date));
     }
 
+    // padding 2 đầu trục X để không bị cắt dot/line
+    final double minX = -0.9;
+    final double maxX = (spots.length - 1).toDouble() + 0.9;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            '≫ Yield Rate',
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+        const Text(
+          'Yield Rate',
+          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         AspectRatio(
           aspectRatio: 2.5,
           child: LineChart(
             LineChartData(
-              gridData: FlGridData(show: true),
+              minX: minX,
+              maxX: maxX,
+              minY: 0.0,
+              maxY: 102.0, // dư đầu trên để không “đè” đường target
+              gridData: FlGridData(show: false),
               titlesData: FlTitlesData(
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: true, reservedSize: 48),
-                ),
+                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
                     interval: 1,
                     getTitlesWidget: (value, meta) {
-                      final index = value.toInt();
+                      const eps = 0.001;
+                      final isIntTick = (value - value.roundToDouble()).abs() < eps;
+                      if (!isIntTick) return const SizedBox.shrink();
+
+                      final idx = value.round();
+                      if (idx < 0 || idx >= labels.length) return const SizedBox.shrink();
+
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          index >= 0 && index < labels.length ? labels[index] : '',
+                          labels[idx],
                           style: const TextStyle(color: Colors.white, fontSize: 10),
                         ),
                       );
                     },
                   ),
                 ),
-                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
-              borderData: FlBorderData(show: false),
+
+              borderData: FlBorderData(
+                show: true,
+                border: const Border(
+                  bottom: BorderSide(color: Color(0x33FFFFFF), width: 1), // mờ nhẹ
+                  left: BorderSide(color: Colors.transparent),
+                  right: BorderSide(color: Colors.transparent),
+                  top: BorderSide(color: Colors.transparent),
+                ),
+              ),
               lineBarsData: [
                 LineChartBarData(
                   spots: spots,
                   isCurved: false,
-                  color: Colors.purpleAccent,
+                  color: const Color(0xFFB44DFF), // tím
                   barWidth: 2,
                   isStrokeCapRound: true,
-                  dotData: FlDotData(show: true),
+                  dotData: const FlDotData(show: true),
                 ),
               ],
-              // Hover (tooltip)
               lineTouchData: LineTouchData(
                 enabled: true,
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipItems: (touchedSpots) {
-                    return touchedSpots.map((spot) {
-                      final index = spot.x.toInt();
-                      final date = labels[index];
-                      final yieldRate = spot.y.toStringAsFixed(2);
+                    return touchedSpots.map((s) {
+                      final i = s.x.toInt();
+                      final date = (i >= 0 && i < labels.length) ? labels[i] : '';
                       return LineTooltipItem(
-                        'Date: $date\nYieldRate: $yieldRate%',
+                        'Date: $date\nYieldRate: ${s.y.toStringAsFixed(2)}%',
                         const TextStyle(color: Colors.white),
                       );
                     }).toList();
                   },
                 ),
               ),
-
-              // Đường target 99%
+              // Đường mục tiêu 99%
               extraLinesData: ExtraLinesData(horizontalLines: [
                 HorizontalLine(
-                  y: 99,
+                  y: 99.0,
                   color: Colors.greenAccent,
                   strokeWidth: 2,
-                  dashArray: [6, 4],
+                  dashArray: const [6, 4],
                   label: HorizontalLineLabel(
                     show: true,
                     alignment: Alignment.topRight,
@@ -103,8 +117,6 @@ class PcbaYieldRateLineChart extends StatelessWidget {
                   ),
                 ),
               ]),
-              minY: 0,
-              maxY: 100,
             ),
           ),
         ),
