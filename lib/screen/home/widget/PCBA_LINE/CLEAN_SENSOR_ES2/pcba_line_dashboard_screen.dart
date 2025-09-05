@@ -4,14 +4,20 @@ import '../../../controller/pcba_line_controller.dart';
 import 'pcba_pass_bar_chart/pcba_pass_bar_chart.dart';
 import 'pcba_fail_bar_chart/pcba_fail_bar_chart.dart';
 import 'pcba_yield_line_chart.dart';
-import 'pcba_line_filter_panel.dart';
+import 'pcba_line_filter_panel.dart'; // icon filter (mở bottom-sheet From/To)
 
 class PcbaLineDashboardScreen extends StatelessWidget {
   const PcbaLineDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final PcbaLineDashboardController controller = Get.put(PcbaLineDashboardController());
+    final controller = Get.put(PcbaLineDashboardController());
+
+    // Auto reset mỗi lần vào màn hình
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.updateDefaultDateRange(force: true);
+      controller.fetchAll();
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -19,7 +25,12 @@ class PcbaLineDashboardScreen extends StatelessWidget {
         backgroundColor: Colors.blueGrey.shade900,
         foregroundColor: Colors.white,
         actions: [
+          // 🔹 Icon filter gọn (giống ảnh TE, mở popup From/To + Cancel/Apply)
+          PcbaLineFilterPanel(controller: controller),
+
+          // 🔄 Refresh
           IconButton(
+            tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),
             onPressed: () => controller.refreshAll(),
           ),
@@ -30,7 +41,6 @@ class PcbaLineDashboardScreen extends StatelessWidget {
         if (controller.loading.value) {
           return const Center(child: CircularProgressIndicator());
         }
-
         if (controller.errorMessage.value != null) {
           return Center(
             child: Text(
@@ -48,10 +58,6 @@ class PcbaLineDashboardScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // === Bộ lọc thời gian ===
-                PcbaLineFilterPanel(controller: controller),
-                const SizedBox(height: 16),
-
                 // === KPI Header ===
                 Card(
                   color: Colors.white12,
@@ -71,15 +77,11 @@ class PcbaLineDashboardScreen extends StatelessWidget {
                   ),
                 ),
 
-                // === Pass Chart ===
+                // === Charts ===
                 PcbaPassBarChart(controller: controller),
                 const SizedBox(height: 24),
-
-                // === Fail Chart ===
                 PcbaFailBarChart(controller: controller),
                 const SizedBox(height: 24),
-
-                // === Yield Line Chart ===
                 PcbaYieldRateLineChart(controller: controller),
               ],
             ),
@@ -96,11 +98,7 @@ class PcbaLineDashboardScreen extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
-            color: color,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ],
     );

@@ -71,8 +71,7 @@ class PcbaYieldRateLineChart extends StatelessWidget {
               borderData: FlBorderData(
                 show: true,
                 border: const Border(
-                  bottom: BorderSide(color: Color(0x33FFFFFF), width: 1), // mờ nhẹ
-                  left: BorderSide(color: Colors.transparent),
+                  bottom: BorderSide(color: Color(0x33FFFFFF), width: 1),
                   right: BorderSide(color: Colors.transparent),
                   top: BorderSide(color: Colors.transparent),
                 ),
@@ -102,7 +101,6 @@ class PcbaYieldRateLineChart extends StatelessWidget {
                   },
                 ),
               ),
-              // Đường mục tiêu 99%
               extraLinesData: ExtraLinesData(horizontalLines: [
                 HorizontalLine(
                   y: 99.0,

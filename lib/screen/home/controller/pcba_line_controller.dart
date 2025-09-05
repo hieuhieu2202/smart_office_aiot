@@ -2,9 +2,6 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../service/pcba_line_api.dart';
 
-/// ===================
-/// Models
-/// ===================
 class PcbaLinePoint {
   final DateTime date;
   final int pass;
@@ -18,12 +15,9 @@ class PcbaYieldPoint {
   PcbaYieldPoint({required this.date, required this.yieldRate});
 }
 
-/// ===================
-/// Controller
-/// ===================
 class PcbaLineDashboardController extends GetxController {
   // ===== FILTER STATE =====
-  final rangeDateTime = '2025/08/12 07:30 - 2025/08/19 19:30'.obs;
+  final rangeDateTime = ''.obs; // sẽ được set ở onInit()/màn hình
   final machineName = ''.obs;
 
   // ===== UI STATE =====
@@ -40,10 +34,9 @@ class PcbaLineDashboardController extends GetxController {
   final totalFail = 0.obs;
   final totalYieldRate = 0.0.obs;
 
-  // ===== Chi tiết theo máy cho 1 ngày (sau khi click cột) =====
+  // ===== Chi tiết theo máy =====
   final machineChartData = <Map<String, dynamic>>[].obs;
 
-  // ======= Getters hiển thị KPI =======
   String get formattedAvgCycleTime {
     final val = avgCycleTime.value;
     if (val == null) return '--';
@@ -55,46 +48,51 @@ class PcbaLineDashboardController extends GetxController {
     return '${NumberFormat('#,##0.00').format(val)} %';
   }
 
+  String _fmt(DateTime dt) => DateFormat('yyyy/MM/dd HH:mm').format(dt);
+
+  /// end = hôm qua 19:30; start = end - 7 ngày 07:30 (8 ngày inclusive)
+  void updateDefaultDateRange({bool force = true}) {
+    if (!force && rangeDateTime.value.trim().isNotEmpty) return;
+
+    final now = DateTime.now();
+    final endDay = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
+    final end = DateTime(endDay.year, endDay.month, endDay.day, 19, 30);
+    final startDay = endDay.subtract(const Duration(days: 7));
+    final start = DateTime(startDay.year, startDay.month, startDay.day, 7, 30);
+
+    rangeDateTime.value = '${_fmt(start)} - ${_fmt(end)}';
+  }
+
   @override
   void onInit() {
     super.onInit();
+    updateDefaultDateRange(force: true);
     fetchAll();
   }
 
-  /// ===================
-  /// Fetch tất cả dữ liệu tổng quan (daily)
-  /// ===================
   Future<void> fetchAll() async {
     loading.value = true;
     errorMessage.value = null;
 
     try {
-      // 1) Pass/Fail Daily series
       final rawPF = await PcbaLineApi.fetchPassFailSeries(
         rangeDateTime: rangeDateTime.value,
         machineName: machineName.value,
       );
-      // rawPF: List<List<Map>> — mỗi phần tử là 1 "bucket" cho 1 ngày
-      // Trong bucket:
-      //   - Bản ghi tổng ngày: { "Date": "yyyy/MM/dd", "Pass": x, "Fail": y, "MachineName": null }
-      //   - Các bản ghi chi tiết theo máy: { "Date": null, "Pass": x, "Fail": y, "MachineName": "..." }
 
       final pfDaily = <PcbaLinePoint>[];
       int sumPass = 0, sumFail = 0;
 
       for (final dayList in rawPF) {
-        // lấy record tổng ngày (Date != null)
         final totalRec = dayList.firstWhere(
               (e) => e['Date'] != null,
           orElse: () => <String, dynamic>{},
         );
-
         if (totalRec.isNotEmpty) {
           final dateStr = totalRec['Date'] as String;
           final pass = (totalRec['Pass'] ?? 0) as int;
           final fail = (totalRec['Fail'] ?? 0) as int;
 
-          // Parse yyyy/MM/dd
           final parts = dateStr.split('/');
           final dt = DateTime(
             int.parse(parts[0]),
@@ -108,7 +106,6 @@ class PcbaLineDashboardController extends GetxController {
         }
       }
 
-      // 2) Yield Daily series
       final rawYield = await PcbaLineApi.fetchYieldRate(
         rangeDateTime: rangeDateTime.value,
         machineName: machineName.value,
@@ -130,13 +127,11 @@ class PcbaLineDashboardController extends GetxController {
         yDaily.add(PcbaYieldPoint(date: dt, yieldRate: y));
       }
 
-      // 3) Avg Cycle Time
       final avg = await PcbaLineApi.fetchAvgCycleTime(
         rangeDateTime: rangeDateTime.value,
         machineName: machineName.value,
       );
 
-      // Assign & sort
       pfDaily.sort((a, b) => a.date.compareTo(b.date));
       yDaily.sort((a, b) => a.date.compareTo(b.date));
 
@@ -144,7 +139,6 @@ class PcbaLineDashboardController extends GetxController {
       yieldPoints.assignAll(yDaily);
       avgCycleTime.value = avg;
 
-      // KPI
       totalPass.value = sumPass;
       totalFail.value = sumFail;
       final denom = sumPass + sumFail;
@@ -156,33 +150,21 @@ class PcbaLineDashboardController extends GetxController {
     }
   }
 
-  /// ===================
-  /// Lấy CHI TIẾT THEO MÁY cho 1 ngày
-  /// - Dựa đúng cấu trúc JSON demo:
-  ///   + Tìm "bucket" có record tổng ngày (`Date == yyyy/MM/dd`)
-  ///   + Chi tiết là những record `Date == null` trong bucket đó
-  /// ===================
   Future<void> fetchMachineChartDataForDate(DateTime date) async {
     try {
       final raw = await PcbaLineApi.fetchPassFailSeries(
         rangeDateTime: rangeDateTime.value,
-        machineName: '', // giữ cả line
+        machineName: '',
       );
 
-      // Dẹt list theo ngày -> bản ghi máy (Date == null)
       final flat = raw.expand((e) => e).toList();
 
       final machineRecords = flat.where((e) {
-        // Bỏ record tổng ngày
         if (e['Date'] != null) return false;
-
-        // Từ CreateDate lọc đúng ngày
         final dStr = e['CreateDate']?.toString() ?? '';
         if (dStr.isEmpty) return false;
-
         final dt = DateTime.tryParse(dStr);
         if (dt == null) return false;
-
         return dt.year == date.year && dt.month == date.month && dt.day == date.day;
       }).toList();
 
@@ -192,7 +174,6 @@ class PcbaLineDashboardController extends GetxController {
     }
   }
 
-  /// Filter helpers
   void applyRange(String newRange) {
     rangeDateTime.value = newRange;
     fetchAll();
