@@ -217,7 +217,6 @@ class _QRScanScreenState extends State<QRScanScreen>
                       final String? value = b.rawValue;
                       if (value == null || value.isEmpty) continue;
 
-                      // giữ UI cũ, chỉ thêm parse linh hoạt
                       final parsed = _parseQr(value);
                       if (parsed == null) continue;
 
@@ -227,7 +226,6 @@ class _QRScanScreenState extends State<QRScanScreen>
                     }
                   },
                 ),
-                // === Overlay: nền tối + khung bo góc + vạch vàng chạy ===
                 AnimatedBuilder(
                   animation: _scanTween,
                   builder: (context, _) {
@@ -252,7 +250,7 @@ class _QRScanScreenState extends State<QRScanScreen>
   }
 }
 
-/// Overlay: nền tối, khung bo góc, vạch vàng chạy lên/xuống.
+
 class _ScanOverlayPainter extends CustomPainter {
   final Rect rect;
   final double t;
@@ -261,7 +259,6 @@ class _ScanOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // overlay tối “đục lỗ” phần khung
     final overlay = Paint()..color = Colors.black.withOpacity(0.5);
     final pathScreen =
     Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
