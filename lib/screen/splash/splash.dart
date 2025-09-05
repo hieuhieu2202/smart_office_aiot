@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:smart_factory/config/global_text_style.dart';
 import '../../config/global_color.dart';
 import 'controller/splash_controller.dart';
+import 'package:smart_factory/service/update_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -74,6 +75,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Khởi tạo controller
     Get.put(SplashController());
+
+    // gọi kiểm tra cập nhật sau khi frame đầu đã render (không chặn animation)
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await UpdateService().checkAndPrompt(context);
+    });
   }
 
   @override

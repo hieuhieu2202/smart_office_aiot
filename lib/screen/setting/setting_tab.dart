@@ -9,6 +9,7 @@ import 'package:smart_factory/screen/setting/widget/profile.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 import 'package:smart_factory/lang/language_selection_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../widget/custom_app_bar.dart';
 
@@ -208,12 +209,18 @@ class SettingTab extends StatelessWidget {
             ),
 
             // Phiên bản
-            _settingTile(
-              icon: Icons.info_outline,
-              color: accent,
-              title: text.version,
-              isDark: isDark,
-              subtitle: '1.0.0',
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snap) {
+                final version = snap.data?.version ?? '...';
+                return _settingTile(
+                  icon: Icons.info_outline,
+                  color: accent,
+                  title: text.version,
+                  isDark: isDark,
+                  subtitle: version,
+                );
+              },
             ),
 
             // Đăng xuất
