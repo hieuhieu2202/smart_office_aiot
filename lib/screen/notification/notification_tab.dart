@@ -4,6 +4,7 @@ import 'package:smart_factory/screen/setting/controller/setting_controller.dart'
 import '../../config/global_color.dart';
 import '../../generated/l10n.dart';
 import '../../widget/custom_app_bar.dart';
+import '../../widget/top_notification.dart';
 
 class NotificationTab extends StatefulWidget {
   const NotificationTab({super.key});
@@ -33,7 +34,13 @@ class _NotificationTabState extends State<NotificationTab> {
           accent: GlobalColors.accentByIsDark(isDark),
           titleAlign: TextAlign.left,
         ),
-        body: Container(), // Placeholder
+        body: Center(
+          child: ElevatedButton(
+            onPressed: () =>
+                TopNotification.show(context, 'No notifications'),
+            child: const Text('Show notification'),
+          ),
+        ),
       );
     });
   }
