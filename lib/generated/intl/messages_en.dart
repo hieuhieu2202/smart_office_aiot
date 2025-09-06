@@ -115,7 +115,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "email": MessageLookupByLibrary.simpleMessage("Email"),
     "fullname": MessageLookupByLibrary.simpleMessage("Full name"),
     "hire_date": MessageLookupByLibrary.simpleMessage("Hire Date"),
-    "history": MessageLookupByLibrary.simpleMessage("History"),
     "home": MessageLookupByLibrary.simpleMessage("Home"),
     "job_title": MessageLookupByLibrary.simpleMessage("Job title"),
     "language": MessageLookupByLibrary.simpleMessage("Language"),

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/smart_office_aiot-master.iml" filepath="$PROJECT_DIR$/.idea/smart_office_aiot-master.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/smart_office_aiot.iml" filepath="$PROJECT_DIR$/.idea/smart_office_aiot.iml" />
     </modules>
   </component>
 </project>
