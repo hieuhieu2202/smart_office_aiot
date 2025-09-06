@@ -22,7 +22,7 @@ class _HistoryTabState extends State<HistoryTab> {
       final bool isDark = settingController.isDarkMode.value; // Đặt vào trong Obx!
       return Scaffold(
         appBar: CustomAppBar(
-          title: Text(text.history),
+          title: Text('History'),
           isDark: isDark,
           accent: GlobalColors.accentByIsDark(isDark),
           titleAlign: TextAlign.left,
