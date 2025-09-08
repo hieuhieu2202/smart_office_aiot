@@ -10,14 +10,16 @@ import 'package:smart_factory/screen/home/widget/PCBA_LINE/CLEAN_SENSOR_ES2/pcba
 import '../model/AppModel.dart';
 import '../screen/home/widget/project_list_page.dart';
 
+String _toGroupName(String name) => name.trim().toUpperCase().replaceAll(' ', '_');
+
 final Map<String, Widget Function(AppProject)> screenBuilderMap = {
-  'pth_dashboard': (project) => AOIVIDashboardScreen(),
+  'pth_dashboard': (project) =>
+      AOIVIDashboardScreen(defaultGroupName: _toGroupName(project.name)),
   'racks_monitor': (project) => RacksMonitorScreen(project: project),
-  'yield_report': (project) =>  YieldReportScreen(),
+  'yield_report': (project) => YieldReportScreen(),
   'te_management': (project) => TEManagementScreen(),
   'clean_room': (project) => CleanRoomScreen(),
   'pcba_line_dashboard': (project) => PcbaLineDashboardScreen(),
-
 };
 /// Hàm trả về đúng màn hình dựa trên AppProject
 Widget buildProjectScreen(AppProject project) {
