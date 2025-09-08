@@ -12,7 +12,8 @@ import 'avi_dashboard_runtime_chart.dart';
 import 'avi_dashboard_summary.dart';
 
 class AOIVIDashboardScreen extends StatefulWidget {
-  const AOIVIDashboardScreen({super.key});
+  final String initialGroup;
+  const AOIVIDashboardScreen({super.key, required this.initialGroup});
 
   @override
   State<AOIVIDashboardScreen> createState() => _AOIVIDashboardScreenState();
@@ -29,7 +30,7 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
   @override
   void initState() {
     super.initState();
-    controller = Get.put(AOIVIDashboardController());
+    controller = Get.put(AOIVIDashboardController(defaultGroup: widget.initialGroup));
     _refreshController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
