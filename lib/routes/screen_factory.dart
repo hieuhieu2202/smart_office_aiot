@@ -11,7 +11,7 @@ import '../model/AppModel.dart';
 import '../screen/home/widget/project_list_page.dart';
 
 final Map<String, Widget Function(AppProject)> screenBuilderMap = {
-  'avi_dashboard': (project) => AOIVIDashboardScreen(initialGroup: project.name),
+  'pth_dashboard': (project) => AOIVIDashboardScreen(),
   'racks_monitor': (project) => RacksMonitorScreen(project: project),
   'yield_report': (project) =>  YieldReportScreen(),
   'te_management': (project) => TEManagementScreen(),

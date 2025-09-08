@@ -3,15 +3,7 @@ import 'package:intl/intl.dart';
 import '../../../service/aoivi_dashboard_api.dart';
 
 class AOIVIDashboardController extends GetxController {
-  AOIVIDashboardController({this.defaultGroup = "ALL"});
-
-  // Thông tin mặc định
-  final String defaultGroup;
-  final String defaultMachine = "ALL";
-  final String defaultModel = "ALL";
-  late final String defaultRange;
-  final int defaultOpTime = 30;
-
+  var groupNames = <String>[].obs;
   var machineNames = <String>[].obs;
   var modelNames = <String>[].obs;
 
@@ -25,6 +17,13 @@ class AOIVIDashboardController extends GetxController {
   var isFilterLoading = false.obs;
   var monitoringData = Rxn<Map>(); // Dùng Rxn để tránh lỗi null
 
+  // Thông tin mặc định
+  final String defaultGroup = "ALL";
+  final String defaultMachine = "ALL";
+  final String defaultModel = "ALL";
+  late final String defaultRange;
+  final int defaultOpTime = 30;
+
   // Thời gian cập nhật gần nhất
   var lastUpdateTime = ''.obs;
 
@@ -36,7 +35,7 @@ class AOIVIDashboardController extends GetxController {
     selectedMachine.value = defaultMachine;
     selectedModel.value = defaultModel;
     selectedRangeDateTime.value = defaultRange;
-    loadMachines(selectedGroup.value);
+    loadGroups();
     fetchMonitoring(
       groupName: defaultGroup,
       machineName: defaultMachine,
@@ -56,16 +55,36 @@ class AOIVIDashboardController extends GetxController {
 
   /// Reset filter về giá trị mặc định
   void resetFilters() {
+    selectedGroup.value = defaultGroup;
     selectedMachine.value = defaultMachine;
     selectedModel.value = defaultModel;
     selectedRangeDateTime.value = getDefaultRange();
     fetchMonitoring(
+      groupName: defaultGroup,
       machineName: defaultMachine,
       modelName: defaultModel,
       rangeDateTime: getDefaultRange(),
       opTime: defaultOpTime,
       showLoading: true,
     );
+  }
+
+  /// Load danh sách group
+  Future<void> loadGroups() async {
+    isFilterLoading.value = true;
+    try {
+      final names = await PTHDashboardApi.getGroupNames();
+      names.removeWhere((item) => item == "ALL");
+      names.insert(0, "ALL");
+      groupNames.value = names;
+      // Nếu chưa có selected, set về mặc định
+      if (!groupNames.contains(selectedGroup.value)) {
+        selectedGroup.value = defaultGroup;
+      }
+      await loadMachines(selectedGroup.value);
+    } finally {
+      isFilterLoading.value = false;
+    }
   }
 
   /// Load danh sách machine theo group

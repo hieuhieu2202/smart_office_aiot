@@ -11,10 +11,8 @@ import 'avi_dashboard_output_chart.dart';
 import 'avi_dashboard_runtime_chart.dart';
 import 'avi_dashboard_summary.dart';
 
-
 class AOIVIDashboardScreen extends StatefulWidget {
-  final String initialGroup;
-  const AOIVIDashboardScreen({super.key, required this.initialGroup});
+  const AOIVIDashboardScreen({super.key});
 
   @override
   State<AOIVIDashboardScreen> createState() => _AOIVIDashboardScreenState();
@@ -31,19 +29,16 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
   @override
   void initState() {
     super.initState();
-    controller =
-        Get.put(AOIVIDashboardController(defaultGroup: widget.initialGroup));
+    controller = Get.put(AOIVIDashboardController());
     _refreshController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
 
-    // Lấy dữ liệu ban đầu
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _fetchDataWithUpdateTime();
     });
 
-    // Set timer tự động refresh 30s/lần (load ngầm)
     _autoTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
       await _fetchDataWithUpdateTime(showLoading: false);
     });
@@ -72,7 +67,8 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
+          backgroundColor:
+              isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
           appBar: AppBar(
             titleSpacing: 0,
             title: Column(
@@ -187,7 +183,6 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
             );
           }),
         ),
-        // ===== FILTER PANEL SLIDE IN/OUT =====
         PTHDashboardFilterPanel(
           show: filterPanelOpen,
           onClose: closeFilter,
@@ -197,15 +192,12 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
             closeFilter();
           },
         ),
-        // Loading overlay
         Obx(
-              () => controller.isLoading.value
+          () => controller.isLoading.value
               ? Container(
-            color: Colors.black.withOpacity(0.3),
-                   child: Center(child: EvaScanner(size: 300)) // hoặc 340 tuỳ layout
-
-                // child: const Center(child: CircularProgressIndicator()),
-          )
+                  color: Colors.black.withOpacity(0.3),
+                  child: Center(child: EvaScanner(size: 300)),
+                )
               : const SizedBox.shrink(),
         ),
       ],
