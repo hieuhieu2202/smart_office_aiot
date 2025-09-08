@@ -34,7 +34,9 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
   void initState() {
     super.initState();
     controller = Get.put(
-        AOIVIDashboardController(defaultGroupName: widget.defaultGroupName));
+      AOIVIDashboardController(defaultGroupName: widget.defaultGroupName),
+      tag: widget.defaultGroupName,
+    );
     _refreshController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -63,6 +65,7 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
   void dispose() {
     _refreshController.dispose();
     _autoTimer?.cancel();
+    Get.delete<AOIVIDashboardController>(tag: widget.defaultGroupName);
     super.dispose();
   }
 
@@ -236,7 +239,7 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
                     return ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                        PTHDashboardSummary(data: data),
+                        PTHDashboardSummary(data: data, controller: controller),
                         const SizedBox(height: 14),
                         PTHDashboardRuntimeChart(data: data),
                         const SizedBox(height: 18),
@@ -261,6 +264,7 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
             _lastUpdateTime.value = DateTime.now();
             closeFilter();
           },
+          controller: controller,
         ),
         // Loading overlay
         Obx(

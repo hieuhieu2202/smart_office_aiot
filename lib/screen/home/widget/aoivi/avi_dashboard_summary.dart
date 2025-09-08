@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart'; // Nếu chưa có, nhớ import GetX!
+import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/widget/aoivi/avi_dashboard_detail_screen.dart';
 import '../../../../config/global_color.dart';
 import '../../../../config/global_text_style.dart';
@@ -7,13 +7,13 @@ import '../../controller/avi_dashboard_controller.dart';
 
 class PTHDashboardSummary extends StatelessWidget {
   final Map data;
-  const PTHDashboardSummary({super.key, required this.data});
+  final AOIVIDashboardController controller;
+  const PTHDashboardSummary({super.key, required this.data, required this.controller});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final summary = data['summary'] ?? {};
-    final controller = Get.find<AOIVIDashboardController>(); // Lấy filter từ controller
 
     final statList = [
       {

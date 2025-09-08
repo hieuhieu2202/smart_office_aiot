@@ -8,11 +8,13 @@ class PTHDashboardFilterPanel extends StatefulWidget {
   final bool show;
   final void Function() onClose;
   final void Function(Map<String, dynamic> filters) onApply;
+  final AOIVIDashboardController controller;
   const PTHDashboardFilterPanel({
     super.key,
     required this.show,
     required this.onClose,
     required this.onApply,
+    required this.controller,
   });
 
   @override
@@ -37,10 +39,11 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
       vsync: this,
       duration: const Duration(milliseconds: 250),
     );
-    _offset = Tween<Offset>(begin: const Offset(1,0), end: Offset.zero).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _offset = Tween<Offset>(begin: const Offset(1,0), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     if (widget.show) _controller.forward();
 
-    dashboardController = Get.find<AOIVIDashboardController>();
+    dashboardController = widget.controller;
     _group = dashboardController.selectedGroup.value;
     _machine = dashboardController.selectedMachine.value;
     _model = dashboardController.selectedModel.value;
