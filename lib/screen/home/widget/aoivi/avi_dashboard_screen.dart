@@ -77,6 +77,132 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
       children: [
         Scaffold(
           backgroundColor: isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
+          appBar: PreferredSize(
+            preferredSize: const Size.fromHeight(120),
+            child: AppBar(
+              automaticallyImplyLeading: false,
+              elevation: 6,
+              backgroundColor: Colors.transparent,
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+                  gradient: headerGradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.18),
+                      offset: const Offset(0, 2),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+              titleSpacing: 0,
+              leading: AnimatedScale(
+                scale: _backPressed ? 0.9 : 1,
+                duration: const Duration(milliseconds: 120),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () {
+                      Navigator.of(context).maybePop();
+                    },
+                    onTapDown: (_) => setState(() => _backPressed = true),
+                    onTapCancel: () => setState(() => _backPressed = false),
+                    onTapUp: (_) => setState(() => _backPressed = false),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Obx(() => Text(
+                        '${controller.selectedGroup.value} | ${controller.selectedMachine.value} | ${controller.selectedModel.value}',
+                        style: const TextStyle(
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      )),
+                  const SizedBox(height: 2),
+                  Obx(() => Text(
+                        controller.selectedRangeDateTime.value,
+                        style: const TextStyle(
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w400,
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      )),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: AnimatedBuilder(
+                    animation: _refreshController,
+                    builder: (context, child) {
+                      return Transform.rotate(
+                        angle: _refreshController.value * 6.3,
+                        child: child,
+                      );
+                    },
+                    child: const Icon(
+                      Icons.refresh,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                  onPressed: () async {
+                    _refreshController.repeat();
+                    await _fetchDataWithUpdateTime();
+                    _refreshController.stop();
+                  },
+                  tooltip: "Làm mới",
+                ),
+              ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(24),
+                child: Obx(() {
+                  final time = _lastUpdateTime.value;
+                  return AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: time != null ? 1 : 0,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.access_time, color: Colors.white70, size: 18),
+                          const SizedBox(width: 4),
+                          Text(
+                            time != null
+                                ? 'Đã cập nhật lúc ${DateFormat.Hms().format(time)}'
+                                : '',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ),
           floatingActionButton: AnimatedScale(
             scale: filterPanelOpen ? 0 : 1,
             duration: const Duration(milliseconds: 250),
@@ -93,157 +219,17 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
           ),
           body: Obx(() {
             final data = controller.monitoringData.value ?? {};
-            return Column(
+            return ListView(
+              padding: const EdgeInsets.all(16),
               children: [
-                // Header AppBar custom gradient
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.only(
-                    top: 44,
-                    bottom: 16,
-                    left: 24,
-                    right: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: headerGradient,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.18),
-                        offset: const Offset(0, 2),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          AnimatedScale(
-                            scale: _backPressed ? 0.9 : 1,
-                            duration: const Duration(milliseconds: 120),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(24),
-                                onTap: () {
-                                  Navigator.of(context).maybePop();
-                                },
-                                onTapDown: (_) => setState(() => _backPressed = true),
-                                onTapCancel: () => setState(() => _backPressed = false),
-                                onTapUp: (_) => setState(() => _backPressed = false),
-                                child: const Padding(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: Icon(
-                                    Icons.arrow_back,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Obx(() => Text(
-                                  '${controller.selectedGroup.value} | ${controller.selectedMachine.value} | ${controller.selectedModel.value}',
-                                  style: const TextStyle(
-                                    fontFamily: 'Roboto',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                    color: Colors.white,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                )),
-                                const SizedBox(height: 2),
-                                Obx(() => Text(
-                                  controller.selectedRangeDateTime.value,
-                                  style: const TextStyle(
-                                    fontFamily: 'Roboto',
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                  ),
-                                )),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: AnimatedBuilder(
-                              animation: _refreshController,
-                              builder: (context, child) {
-                                return Transform.rotate(
-                                  angle: _refreshController.value * 6.3,
-                                  child: child,
-                                );
-                              },
-                              child: const Icon(
-                                Icons.refresh,
-                                color: Colors.white,
-                                size: 30,
-                              ),
-                            ),
-                            onPressed: () async {
-                              _refreshController.repeat();
-                              await _fetchDataWithUpdateTime();
-                              _refreshController.stop();
-                            },
-                            tooltip: "Làm mới",
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      // Dòng cập nhật thời gian mới nhất
-                      Obx(() {
-                        final time = _lastUpdateTime.value;
-                        return AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          opacity: time != null ? 1 : 0,
-                          child: Row(
-                            children: [
-                              const Icon(Icons.access_time, color: Colors.white70, size: 18),
-                              const SizedBox(width: 4),
-                              Text(
-                                time != null
-                                    ? 'Đã cập nhật lúc ${DateFormat.Hms().format(time)}'
-                                    : '',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                  fontStyle: FontStyle.italic,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-                // Nội dung dashboard
-                Expanded(
-                  child: Obx(() {
-                    final data = controller.monitoringData.value ?? {};
-                    return ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        PTHDashboardSummary(data: data),
-                        const SizedBox(height: 14),
-                        PTHDashboardRuntimeChart(data: data),
-                        const SizedBox(height: 18),
-                        PTHDashboardOutputChart(data: data),
-                        const SizedBox(height: 18),
-                        PTHDashboardMachineDetail(data: data),
-                        const SizedBox(height: 38),
-                      ],
-                    );
-                  }),
-                ),
+                PTHDashboardSummary(data: data),
+                const SizedBox(height: 14),
+                PTHDashboardRuntimeChart(data: data),
+                const SizedBox(height: 18),
+                PTHDashboardOutputChart(data: data),
+                const SizedBox(height: 18),
+                PTHDashboardMachineDetail(data: data),
+                const SizedBox(height: 38),
               ],
             );
           }),
