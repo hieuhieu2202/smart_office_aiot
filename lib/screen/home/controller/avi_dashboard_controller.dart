@@ -13,6 +13,8 @@ class AOIVIDashboardController extends GetxController {
   var selectedRangeDateTime = ''.obs;
 
   var isLoading = false.obs;
+  // Loading trạng thái cho việc tải filter (group/machine/model)
+  var isFilterLoading = false.obs;
   var monitoringData = Rxn<Map>(); // Dùng Rxn để tránh lỗi null
 
   // Thông tin mặc định
@@ -68,8 +70,8 @@ class AOIVIDashboardController extends GetxController {
   }
 
   /// Load danh sách group
-  void loadGroups() async {
-    isLoading.value = true;
+  Future<void> loadGroups() async {
+    isFilterLoading.value = true;
     try {
       final names = await PTHDashboardApi.getGroupNames();
       names.removeWhere((item) => item == "ALL");
@@ -79,15 +81,15 @@ class AOIVIDashboardController extends GetxController {
       if (!groupNames.contains(selectedGroup.value)) {
         selectedGroup.value = defaultGroup;
       }
-      loadMachines(selectedGroup.value);
+      await loadMachines(selectedGroup.value);
     } finally {
-      isLoading.value = false;
+      isFilterLoading.value = false;
     }
   }
 
   /// Load danh sách machine theo group
-  void loadMachines(String group) async {
-    isLoading.value = true;
+  Future<void> loadMachines(String group) async {
+    isFilterLoading.value = true;
     try {
       final names = await PTHDashboardApi.getMachineNames(group);
       machineNames.value =
@@ -99,15 +101,15 @@ class AOIVIDashboardController extends GetxController {
         selectedMachine.value =
             machineNames.isNotEmpty ? machineNames.first : defaultMachine;
       }
-      loadModels(group, selectedMachine.value);
+      await loadModels(group, selectedMachine.value);
     } finally {
-      isLoading.value = false;
+      isFilterLoading.value = false;
     }
   }
 
   /// Load danh sách model theo group + machine
-  void loadModels(String group, String machine) async {
-    isLoading.value = true;
+  Future<void> loadModels(String group, String machine) async {
+    isFilterLoading.value = true;
     try {
       final names = await PTHDashboardApi.getModelNames(group, machine);
       modelNames.value =
@@ -118,7 +120,7 @@ class AOIVIDashboardController extends GetxController {
         selectedModel.value = modelNames.first;
       }
     } finally {
-      isLoading.value = false;
+      isFilterLoading.value = false;
     }
   }
 

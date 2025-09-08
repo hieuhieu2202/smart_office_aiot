@@ -136,23 +136,29 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                         )
                       ],
                     ),
+                    Obx(() => dashboardController.isFilterLoading.value
+                        ? const LinearProgressIndicator()
+                        : const SizedBox.shrink()),
                     const SizedBox(height: 12),
                     Obx(() {
                       final groups = dashboardController.groupNames;
+                      final loading = dashboardController.isFilterLoading.value;
                       return DropdownButtonFormField<String>(
                         value: _group,
                         items: groups
                             .map((g) => DropdownMenuItem(value: g, child: Text(g)))
                             .toList(),
-                        onChanged: (val) {
-                          if (val == null) return;
-                          setState(() {
-                            _group = val;
-                            _machine = null;
-                            _model = null;
-                          });
-                          dashboardController.loadMachines(val);
-                        },
+                        onChanged: loading
+                            ? null
+                            : (val) {
+                                if (val == null) return;
+                                setState(() {
+                                  _group = val;
+                                  _machine = null;
+                                  _model = null;
+                                });
+                                dashboardController.loadMachines(val);
+                              },
                         decoration: InputDecoration(
                           labelText: 'Group',
                           filled: true,
@@ -173,19 +179,23 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                     const SizedBox(height: 12),
                     Obx(() {
                       final machines = dashboardController.machineNames;
+                      final loading = dashboardController.isFilterLoading.value;
                       return DropdownButtonFormField<String>(
                         value: _machine,
                         items: machines
                             .map((m) => DropdownMenuItem(value: m, child: Text(m)))
                             .toList(),
-                        onChanged: (val) {
-                          if (val == null) return;
-                          setState(() {
-                            _machine = val;
-                            _model = null;
-                          });
-                          dashboardController.loadModels(_group ?? '', val);
-                        },
+                        onChanged: loading
+                            ? null
+                            : (val) {
+                                if (val == null) return;
+                                setState(() {
+                                  _machine = val;
+                                  _model = null;
+                                });
+                                dashboardController
+                                    .loadModels(_group ?? '', val);
+                              },
                         decoration: InputDecoration(
                           labelText: 'Machine',
                           filled: true,
@@ -206,16 +216,19 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                     const SizedBox(height: 12),
                     Obx(() {
                       final models = dashboardController.modelNames;
+                      final loading = dashboardController.isFilterLoading.value;
                       return DropdownButtonFormField<String>(
                         value: _model,
                         items: models
                             .map((m) => DropdownMenuItem(value: m, child: Text(m)))
                             .toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            _model = val;
-                          });
-                        },
+                        onChanged: loading
+                            ? null
+                            : (val) {
+                                setState(() {
+                                  _model = val;
+                                });
+                              },
                         decoration: InputDecoration(
                           labelText: 'Model',
                           filled: true,
