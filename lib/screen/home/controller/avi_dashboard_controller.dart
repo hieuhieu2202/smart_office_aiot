@@ -16,9 +16,6 @@ class AOIVIDashboardController extends GetxController {
   var monitoringData = Rxn<Map>(); // Dùng Rxn để tránh lỗi null
 
   // Thông tin mặc định
-  final String defaultGroup = "ALL";
-  final String defaultMachine = "ALL";
-  final String defaultModel = "ALL";
   late final String defaultRange;
   final int defaultOpTime = 30;
 
@@ -29,19 +26,8 @@ class AOIVIDashboardController extends GetxController {
   void onInit() {
     super.onInit();
     defaultRange = getDefaultRange();
-    selectedGroup.value = defaultGroup;
-    selectedMachine.value = defaultMachine;
-    selectedModel.value = defaultModel;
     selectedRangeDateTime.value = defaultRange;
     loadGroups();
-    fetchMonitoring(
-      groupName: defaultGroup,
-      machineName: defaultMachine,
-      modelName: defaultModel,
-      rangeDateTime: defaultRange,
-      opTime: defaultOpTime,
-      showLoading: true,
-    );
   }
 
   /// Trả về khung giờ mặc định: hôm nay 07:30 - 19:30
@@ -52,71 +38,52 @@ class AOIVIDashboardController extends GetxController {
   }
 
   /// Reset filter về giá trị mặc định
-  void resetFilters() {
-    selectedGroup.value = defaultGroup;
-    selectedMachine.value = defaultMachine;
-    selectedModel.value = defaultModel;
+  Future<void> resetFilters() async {
     selectedRangeDateTime.value = getDefaultRange();
-    fetchMonitoring(
-      groupName: defaultGroup,
-      machineName: defaultMachine,
-      modelName: defaultModel,
-      rangeDateTime: getDefaultRange(),
-      opTime: defaultOpTime,
-      showLoading: true,
-    );
+    await loadGroups();
   }
 
   /// Load danh sách group
-  void loadGroups() async {
+  Future<void> loadGroups() async {
     isLoading.value = true;
     try {
       final names = await PTHDashboardApi.getGroupNames();
-      names.removeWhere((item) => item == "ALL");
-      names.insert(0, "ALL");
       groupNames.value = names;
-      // Nếu chưa có selected, set về mặc định
-      if (!groupNames.contains(selectedGroup.value)) {
-        selectedGroup.value = defaultGroup;
-      }
-      loadMachines(selectedGroup.value);
+      selectedGroup.value = names.isNotEmpty ? names.first : '';
+      await loadMachines(selectedGroup.value);
     } finally {
       isLoading.value = false;
     }
   }
 
   /// Load danh sách machine theo group
-  void loadMachines(String group) async {
+  Future<void> loadMachines(String group) async {
     isLoading.value = true;
     try {
       final names = await PTHDashboardApi.getMachineNames(group);
-      machineNames.value =
-          names.isEmpty
-              ? []
-              : (["ALL", ...names.where((item) => item != "ALL")]);
-      // Nếu chưa có selected, set về mặc định
-      if (!machineNames.contains(selectedMachine.value)) {
-        selectedMachine.value =
-            machineNames.isNotEmpty ? machineNames.first : defaultMachine;
-      }
-      loadModels(group, selectedMachine.value);
+      machineNames.value = names;
+      selectedMachine.value = names.isNotEmpty ? names.first : '';
+      await loadModels(group, selectedMachine.value);
     } finally {
       isLoading.value = false;
     }
   }
 
   /// Load danh sách model theo group + machine
-  void loadModels(String group, String machine) async {
+  Future<void> loadModels(String group, String machine) async {
     isLoading.value = true;
     try {
       final names = await PTHDashboardApi.getModelNames(group, machine);
-      modelNames.value =
-          names.isEmpty
-              ? ["ALL"]
-              : (["ALL", ...names.where((item) => item != "ALL")]);
-      if (!modelNames.contains(selectedModel.value)) {
-        selectedModel.value = modelNames.first;
-      }
+      modelNames.value = names.isEmpty ? [] : names;
+      selectedModel.value = modelNames.isNotEmpty ? modelNames.first : '';
+      await fetchMonitoring(
+        groupName: selectedGroup.value,
+        machineName: selectedMachine.value,
+        modelName: selectedModel.value,
+        rangeDateTime: selectedRangeDateTime.value,
+        opTime: defaultOpTime,
+        showLoading: false,
+      );
     } finally {
       isLoading.value = false;
     }
