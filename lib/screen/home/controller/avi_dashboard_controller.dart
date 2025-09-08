@@ -16,6 +16,7 @@ class AOIVIDashboardController extends GetxController {
   var monitoringData = Rxn<Map>(); // Dùng Rxn để tránh lỗi null
 
   // Thông tin mặc định
+  final String defaultGroupName = 'AOI';
   late final String defaultRange;
   final int defaultOpTime = 30;
 
@@ -49,7 +50,9 @@ class AOIVIDashboardController extends GetxController {
     try {
       final names = await PTHDashboardApi.getGroupNames();
       groupNames.value = names;
-      selectedGroup.value = names.isNotEmpty ? names.first : '';
+      selectedGroup.value = names.contains(defaultGroupName)
+          ? defaultGroupName
+          : (names.isNotEmpty ? names.first : '');
       await loadMachines(selectedGroup.value);
     } finally {
       isLoading.value = false;
@@ -60,6 +63,7 @@ class AOIVIDashboardController extends GetxController {
   Future<void> loadMachines(String group) async {
     isLoading.value = true;
     try {
+      selectedGroup.value = group;
       final names = await PTHDashboardApi.getMachineNames(group);
       machineNames.value = names;
       selectedMachine.value = names.isNotEmpty ? names.first : '';
@@ -73,6 +77,7 @@ class AOIVIDashboardController extends GetxController {
   Future<void> loadModels(String group, String machine) async {
     isLoading.value = true;
     try {
+      selectedMachine.value = machine;
       final names = await PTHDashboardApi.getModelNames(group, machine);
       modelNames.value = names.isEmpty ? [] : names;
       selectedModel.value = modelNames.isNotEmpty ? modelNames.first : '';
