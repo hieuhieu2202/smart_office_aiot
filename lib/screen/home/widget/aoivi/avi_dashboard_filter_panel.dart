@@ -140,148 +140,156 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                         ? const LinearProgressIndicator()
                         : const SizedBox.shrink()),
                     const SizedBox(height: 12),
-                    Obx(() {
-                      final groups = dashboardController.groupNames;
-                      final loading = dashboardController.isFilterLoading.value;
-                      return DropdownButtonFormField<String>(
-                        value: _group,
-                        items: groups
-                            .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                            .toList(),
-                        onChanged: loading
-                            ? null
-                            : (val) {
-                                if (val == null) return;
-                                setState(() {
-                                  _group = val;
-                                  _machine = null;
-                                  _model = null;
-                                });
-                                dashboardController.loadMachines(val);
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Obx(() {
+                              final groups = dashboardController.groupNames;
+                              final loading = dashboardController.isFilterLoading.value;
+                              return DropdownButtonFormField<String>(
+                                value: groups.contains(_group) ? _group : null,
+                                items: groups
+                                    .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                                    .toList(),
+                                onChanged: loading
+                                    ? null
+                                    : (val) {
+                                        if (val == null) return;
+                                        setState(() {
+                                          _group = val;
+                                          _machine = null;
+                                          _model = null;
+                                        });
+                                        dashboardController.loadMachines(val);
+                                      },
+                                decoration: InputDecoration(
+                                  labelText: 'Group',
+                                  filled: true,
+                                  fillColor: isDark
+                                      ? GlobalColors.inputDarkFill.withOpacity(0.16)
+                                      : GlobalColors.inputLightFill.withOpacity(0.18),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                                  ),
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: 12),
+                            Obx(() {
+                              final machines = dashboardController.machineNames;
+                              final loading = dashboardController.isFilterLoading.value;
+                              return DropdownButtonFormField<String>(
+                                value: machines.contains(_machine) ? _machine : null,
+                                items: machines
+                                    .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                                    .toList(),
+                                onChanged: loading
+                                    ? null
+                                    : (val) {
+                                        if (val == null) return;
+                                        setState(() {
+                                          _machine = val;
+                                          _model = null;
+                                        });
+                                        dashboardController.loadModels(_group ?? '', val);
+                                      },
+                                decoration: InputDecoration(
+                                  labelText: 'Machine',
+                                  filled: true,
+                                  fillColor: isDark
+                                      ? GlobalColors.inputDarkFill.withOpacity(0.16)
+                                      : GlobalColors.inputLightFill.withOpacity(0.18),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                                  ),
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: 12),
+                            Obx(() {
+                              final models = dashboardController.modelNames;
+                              final loading = dashboardController.isFilterLoading.value;
+                              return DropdownButtonFormField<String>(
+                                value: models.contains(_model) ? _model : null,
+                                items: models
+                                    .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                                    .toList(),
+                                onChanged: loading
+                                    ? null
+                                    : (val) {
+                                        setState(() {
+                                          _model = val;
+                                        });
+                                      },
+                                decoration: InputDecoration(
+                                  labelText: 'Model',
+                                  filled: true,
+                                  fillColor: isDark
+                                      ? GlobalColors.inputDarkFill.withOpacity(0.16)
+                                      : GlobalColors.inputLightFill.withOpacity(0.18),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                                  ),
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _rangeController,
+                              readOnly: true,
+                              onTap: () async {
+                                final now = DateTime.now();
+                                final picked = await showDateRangePicker(
+                                  context: context,
+                                  firstDate: DateTime(now.year - 1),
+                                  lastDate: DateTime(now.year + 1),
+                                  initialDateRange: _dateRange,
+                                );
+                                if (picked != null) {
+                                  final format = DateFormat('yyyy/MM/dd HH:mm');
+                                  setState(() {
+                                    _dateRange = picked;
+                                    _rangeController.text =
+                                        '${format.format(picked.start)} - ${format.format(picked.end)}';
+                                  });
+                                }
                               },
-                        decoration: InputDecoration(
-                          labelText: 'Group',
-                          filled: true,
-                          fillColor: isDark
-                              ? GlobalColors.inputDarkFill.withOpacity(0.16)
-                              : GlobalColors.inputLightFill.withOpacity(0.18),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Color(0xFF4CAF50)),
-                          ),
+                              decoration: InputDecoration(
+                                labelText: 'Date range',
+                                filled: true,
+                                fillColor: isDark
+                                    ? GlobalColors.inputDarkFill.withOpacity(0.16)
+                                    : GlobalColors.inputLightFill.withOpacity(0.18),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                                ),
+                                suffixIcon: const Icon(Icons.calendar_today),
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    }),
-                    const SizedBox(height: 12),
-                    Obx(() {
-                      final machines = dashboardController.machineNames;
-                      final loading = dashboardController.isFilterLoading.value;
-                      return DropdownButtonFormField<String>(
-                        value: _machine,
-                        items: machines
-                            .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                            .toList(),
-                        onChanged: loading
-                            ? null
-                            : (val) {
-                                if (val == null) return;
-                                setState(() {
-                                  _machine = val;
-                                  _model = null;
-                                });
-                                dashboardController
-                                    .loadModels(_group ?? '', val);
-                              },
-                        decoration: InputDecoration(
-                          labelText: 'Machine',
-                          filled: true,
-                          fillColor: isDark
-                              ? GlobalColors.inputDarkFill.withOpacity(0.16)
-                              : GlobalColors.inputLightFill.withOpacity(0.18),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Color(0xFF4CAF50)),
-                          ),
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 12),
-                    Obx(() {
-                      final models = dashboardController.modelNames;
-                      final loading = dashboardController.isFilterLoading.value;
-                      return DropdownButtonFormField<String>(
-                        value: _model,
-                        items: models
-                            .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                            .toList(),
-                        onChanged: loading
-                            ? null
-                            : (val) {
-                                setState(() {
-                                  _model = val;
-                                });
-                              },
-                        decoration: InputDecoration(
-                          labelText: 'Model',
-                          filled: true,
-                          fillColor: isDark
-                              ? GlobalColors.inputDarkFill.withOpacity(0.16)
-                              : GlobalColors.inputLightFill.withOpacity(0.18),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Color(0xFF4CAF50)),
-                          ),
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _rangeController,
-                      readOnly: true,
-                      onTap: () async {
-                        final now = DateTime.now();
-                        final picked = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime(now.year - 1),
-                          lastDate: DateTime(now.year + 1),
-                          initialDateRange: _dateRange,
-                        );
-                        if (picked != null) {
-                          final format = DateFormat('yyyy/MM/dd HH:mm');
-                          setState(() {
-                            _dateRange = picked;
-                            _rangeController.text =
-                                '${format.format(picked.start)} - ${format.format(picked.end)}';
-                          });
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Date range',
-                        filled: true,
-                        fillColor: isDark
-                            ? GlobalColors.inputDarkFill.withOpacity(0.16)
-                            : GlobalColors.inputLightFill.withOpacity(0.18),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF4CAF50)),
-                        ),
-                        suffixIcon: const Icon(Icons.calendar_today),
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -322,6 +330,6 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
           ),
         ),
       ]),
-      ));
+      );
   }
 }

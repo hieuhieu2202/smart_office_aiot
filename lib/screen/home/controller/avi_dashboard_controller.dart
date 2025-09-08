@@ -76,9 +76,10 @@ class AOIVIDashboardController extends GetxController {
     isFilterLoading.value = true;
     try {
       final names = await PTHDashboardApi.getGroupNames();
-      names.removeWhere((item) => item == "ALL");
-      names.insert(0, "ALL");
-      groupNames.value = names;
+      final unique = names.toSet().toList();
+      unique.removeWhere((item) => item == "ALL");
+      unique.insert(0, "ALL");
+      groupNames.value = unique;
       // Nếu chưa có selected, set về mặc định
       if (!groupNames.contains(selectedGroup.value)) {
         selectedGroup.value = defaultGroup;
