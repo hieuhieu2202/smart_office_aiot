@@ -9,18 +9,11 @@ class PTHDashboardApi {
 
   // Mock data fallback for offline development/testing
   static const List<String> _mockGroupNames = [
-    "24242",
+    // Default mock groups representing the four main dashboards
     "AOI",
     "ASSY_AVI",
     "AVI",
-    "CHECK_LABEL",
-    "CHECK_SPRINGS",
-    "CLEAN_AVI",
-    "DEBUG",
-    "PACKING_AVI",
-    "PALADIN_VI",
     "PTH_AVI",
-    "PTH_VI",
   ];
 
   static const List<String> _mockMachineNames = ["M1", "M2", "M3"];

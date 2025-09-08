@@ -3,6 +3,10 @@ import 'package:intl/intl.dart';
 import '../../../service/aoivi_dashboard_api.dart';
 
 class AOIVIDashboardController extends GetxController {
+  AOIVIDashboardController({this.defaultGroupName = 'AOI'});
+
+  final String defaultGroupName;
+
   var groupNames = <String>[].obs;
   var machineNames = <String>[].obs;
   var modelNames = <String>[].obs;
@@ -16,7 +20,6 @@ class AOIVIDashboardController extends GetxController {
   var monitoringData = Rxn<Map>(); // Dùng Rxn để tránh lỗi null
 
   // Thông tin mặc định
-  final String defaultGroupName = 'AOI';
   late final String defaultRange;
   final int defaultOpTime = 30;
 

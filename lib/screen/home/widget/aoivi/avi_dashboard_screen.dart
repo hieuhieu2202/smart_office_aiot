@@ -13,7 +13,9 @@ import 'avi_dashboard_summary.dart';
 
 
 class AOIVIDashboardScreen extends StatefulWidget {
-  const AOIVIDashboardScreen({super.key});
+  const AOIVIDashboardScreen({super.key, this.defaultGroupName = 'AOI'});
+
+  final String defaultGroupName;
 
   @override
   State<AOIVIDashboardScreen> createState() => _AOIVIDashboardScreenState();
@@ -21,7 +23,7 @@ class AOIVIDashboardScreen extends StatefulWidget {
 
 class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
     with TickerProviderStateMixin {
-  final AOIVIDashboardController controller = Get.put(AOIVIDashboardController());
+  late AOIVIDashboardController controller;
   bool filterPanelOpen = false;
   late AnimationController _refreshController;
   bool _backPressed = false;
@@ -31,6 +33,8 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
   @override
   void initState() {
     super.initState();
+    controller = Get.put(
+        AOIVIDashboardController(defaultGroupName: widget.defaultGroupName));
     _refreshController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
