@@ -80,23 +80,25 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Obx(() => Text(
-                      '${controller.selectedGroup.value} | ${controller.selectedMachine.value} | ${controller.selectedModel.value}',
+                      controller.selectedGroup.value,
                       style: const TextStyle(
                         fontFamily: 'Roboto',
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     )),
                 const SizedBox(height: 2),
                 Obx(() => Text(
-                      controller.selectedRangeDateTime.value,
+                      '${controller.selectedMachine.value} | ${controller.selectedModel.value} | ${controller.selectedRangeDateTime.value}',
                       style: const TextStyle(
                         fontFamily: 'Roboto',
                         fontWeight: FontWeight.w400,
                         fontSize: 16,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     )),
               ],
             ),

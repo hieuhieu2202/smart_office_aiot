@@ -24,7 +24,6 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
   late Animation<Offset> _offset;
   late AOIVIDashboardController dashboardController;
 
-  String? _group;
   String? _machine;
   String? _model;
   DateTimeRange? _dateRange;
@@ -41,7 +40,6 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
     if (widget.show) _controller.forward();
 
     dashboardController = Get.find<AOIVIDashboardController>();
-    _group = dashboardController.selectedGroup.value;
     _machine = dashboardController.selectedMachine.value;
     _model = dashboardController.selectedModel.value;
 
@@ -145,42 +143,13 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Obx(() {
-                              final groups = dashboardController.groupNames;
-                              final loading = dashboardController.isFilterLoading.value;
-                              return DropdownButtonFormField<String>(
-                                value: groups.contains(_group) ? _group : null,
-                                items: groups
-                                    .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                                    .toList(),
-                                onChanged: loading
-                                    ? null
-                                    : (val) {
-                                        if (val == null) return;
-                                        setState(() {
-                                          _group = val;
-                                          _machine = null;
-                                          _model = null;
-                                        });
-                                        dashboardController.loadMachines(val);
-                                      },
-                                decoration: InputDecoration(
-                                  labelText: 'Group',
-                                  filled: true,
-                                  fillColor: isDark
-                                      ? GlobalColors.inputDarkFill.withOpacity(0.16)
-                                      : GlobalColors.inputLightFill.withOpacity(0.18),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: Color(0xFF4CAF50)),
-                                  ),
-                                ),
-                              );
-                            }),
+                            Text(
+                              'Group: ${dashboardController.selectedGroup.value}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                             const SizedBox(height: 12),
                             Obx(() {
                               final machines = dashboardController.machineNames;
@@ -198,7 +167,8 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                                           _machine = val;
                                           _model = null;
                                         });
-                                        dashboardController.loadModels(_group ?? '', val);
+                                        dashboardController.loadModels(
+                                            dashboardController.selectedGroup.value, val);
                                       },
                                 decoration: InputDecoration(
                                   labelText: 'Machine',
@@ -312,7 +282,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                             ),
                             onPressed: () {
                               widget.onApply({
-                                'groupName': _group,
+                                'groupName': dashboardController.selectedGroup.value,
                                 'machineName': _machine,
                                 'modelName': _model,
                                 'rangeDateTime': _rangeController.text,
@@ -329,7 +299,8 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
             ),
           ),
         ),
-      ]),
-      );
+      ],
+    ),
+  );
   }
 }

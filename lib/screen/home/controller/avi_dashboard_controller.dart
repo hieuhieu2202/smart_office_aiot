@@ -12,7 +12,6 @@ class AOIVIDashboardController extends GetxController {
   late final String defaultRange;
   final int defaultOpTime = 30;
 
-  var groupNames = <String>[].obs;
   var machineNames = <String>[].obs;
   var modelNames = <String>[].obs;
 
@@ -37,7 +36,7 @@ class AOIVIDashboardController extends GetxController {
     selectedMachine.value = defaultMachine;
     selectedModel.value = defaultModel;
     selectedRangeDateTime.value = defaultRange;
-    loadGroups();
+    loadMachines(selectedGroup.value);
     fetchMonitoring(
       groupName: defaultGroup,
       machineName: defaultMachine,
@@ -57,37 +56,16 @@ class AOIVIDashboardController extends GetxController {
 
   /// Reset filter về giá trị mặc định
   void resetFilters() {
-    selectedGroup.value = defaultGroup;
     selectedMachine.value = defaultMachine;
     selectedModel.value = defaultModel;
     selectedRangeDateTime.value = getDefaultRange();
     fetchMonitoring(
-      groupName: defaultGroup,
       machineName: defaultMachine,
       modelName: defaultModel,
       rangeDateTime: getDefaultRange(),
       opTime: defaultOpTime,
       showLoading: true,
     );
-  }
-
-  /// Load danh sách group
-  Future<void> loadGroups() async {
-    isFilterLoading.value = true;
-    try {
-      final names = await PTHDashboardApi.getGroupNames();
-      final unique = names.toSet().toList();
-      unique.removeWhere((item) => item == "ALL");
-      unique.insert(0, "ALL");
-      groupNames.value = unique;
-      // Nếu chưa có selected, set về mặc định
-      if (!groupNames.contains(selectedGroup.value)) {
-        selectedGroup.value = defaultGroup;
-      }
-      await loadMachines(selectedGroup.value);
-    } finally {
-      isFilterLoading.value = false;
-    }
   }
 
   /// Load danh sách machine theo group
