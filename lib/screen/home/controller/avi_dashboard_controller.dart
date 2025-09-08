@@ -3,6 +3,15 @@ import 'package:intl/intl.dart';
 import '../../../service/aoivi_dashboard_api.dart';
 
 class AOIVIDashboardController extends GetxController {
+  AOIVIDashboardController({this.defaultGroup = "ALL"});
+
+  // Thông tin mặc định
+  final String defaultGroup;
+  final String defaultMachine = "ALL";
+  final String defaultModel = "ALL";
+  late final String defaultRange;
+  final int defaultOpTime = 30;
+
   var groupNames = <String>[].obs;
   var machineNames = <String>[].obs;
   var modelNames = <String>[].obs;
@@ -16,13 +25,6 @@ class AOIVIDashboardController extends GetxController {
   // Loading trạng thái cho việc tải filter (group/machine/model)
   var isFilterLoading = false.obs;
   var monitoringData = Rxn<Map>(); // Dùng Rxn để tránh lỗi null
-
-  // Thông tin mặc định
-  final String defaultGroup = "ALL";
-  final String defaultMachine = "ALL";
-  final String defaultModel = "ALL";
-  late final String defaultRange;
-  final int defaultOpTime = 30;
 
   // Thời gian cập nhật gần nhất
   var lastUpdateTime = ''.obs;
