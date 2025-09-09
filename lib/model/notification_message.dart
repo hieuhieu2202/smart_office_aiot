@@ -4,6 +4,7 @@ class NotificationMessage {
   final String body;
   final String? fileUrl;
   final DateTime? timestampUtc;
+  bool read;
 
   NotificationMessage({
     required this.id,
@@ -11,6 +12,7 @@ class NotificationMessage {
     required this.body,
     this.fileUrl,
     this.timestampUtc,
+    this.read = false,
   });
 
   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class NotificationMessage {
       body: json['body'] ?? json['Body'] ?? '',
       fileUrl: json['fileUrl'] ?? json['FileUrl'],
       timestampUtc: _parseTimestamp(json),
+      read: json['read'] == true,
     );
   }
 

@@ -10,6 +10,7 @@ import '../../model/notification_message.dart';
 import '../../model/notification_page.dart';
 import '../../service/notification_service.dart';
 import '../../widget/custom_app_bar.dart';
+import '../navbar/controller/navbar_controller.dart';
 
 class NotificationTab extends StatefulWidget {
   const NotificationTab({super.key});
@@ -20,6 +21,7 @@ class NotificationTab extends StatefulWidget {
 
 class _NotificationTabState extends State<NotificationTab> {
   late final SettingController settingController;
+  late final NavbarController navbarController;
   final List<NotificationMessage> _notifications = [];
   bool _loading = true;
   bool _loadingMore = false;
@@ -27,11 +29,18 @@ class _NotificationTabState extends State<NotificationTab> {
   int _page = 1;
   final int _pageSize = 50;
   StreamSubscription<NotificationMessage>? _subscription;
+  late final Worker _tabWorker;
 
   @override
   void initState() {
     super.initState();
     settingController = Get.find<SettingController>();
+    navbarController = Get.find<NavbarController>();
+    _tabWorker = ever(navbarController.currentIndex, (int idx) {
+      if (idx == 3) {
+        _markAllRead();
+      }
+    });
     _load();
     _subscription = NotificationService.notificationsStream.listen((n) {
       debugPrint('[NotificationTab] Stream received: ${n.id}');
@@ -49,9 +58,10 @@ class _NotificationTabState extends State<NotificationTab> {
         page: _page, pageSize: _pageSize);
     debugPrint('[NotificationTab] Loaded ${res.items.length} notifications');
     setState(() {
+      final bool markRead = navbarController.currentIndex.value == 3;
       _notifications
         ..clear()
-        ..addAll(res.items);
+        ..addAll(res.items.map((n) => n..read = markRead));
       _notifications.sort((a, b) {
         final DateTime ta =
             a.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -62,6 +72,9 @@ class _NotificationTabState extends State<NotificationTab> {
       _loading = false;
       _hasMore = _notifications.length < res.total;
       _page++;
+      if (!markRead) {
+        navbarController.unreadCount.value = _notifications.length;
+      }
     });
   }
 
@@ -89,6 +102,7 @@ class _NotificationTabState extends State<NotificationTab> {
           e.id == n.id &&
           e.timestampUtc == n.timestampUtc);
     }
+    n.read = navbarController.currentIndex.value == 3;
     _notifications.insert(0, n);
     _notifications.sort((a, b) {
       final DateTime ta = a.timestampUtc ??
@@ -107,9 +121,18 @@ class _NotificationTabState extends State<NotificationTab> {
     }
   }
 
+  void _markAllRead() {
+    setState(() {
+      for (final n in _notifications) {
+        n.read = true;
+      }
+    });
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();
+    _tabWorker.dispose();
     super.dispose();
   }
 
@@ -176,8 +199,28 @@ class _NotificationTabState extends State<NotificationTab> {
                             margin:
                                 const EdgeInsets.symmetric(horizontal: 16),
                             child: ListTile(
-                              leading: const Icon(Icons.notifications),
-                              title: Text(n.title),
+                              tileColor: n.read
+                                  ? null
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withOpacity(0.1),
+                              leading: Icon(
+                                Icons.notifications,
+                                color: n.read
+                                    ? null
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .primary,
+                              ),
+                              title: Text(
+                                n.title,
+                                style: TextStyle(
+                                  fontWeight: n.read
+                                      ? FontWeight.normal
+                                      : FontWeight.bold,
+                                ),
+                              ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [

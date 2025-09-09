@@ -8,6 +8,7 @@ import '../../../service/notification_service.dart';
 
 class NavbarController extends GetxController {
   var currentIndex = 0.obs;
+  var unreadCount = 0.obs;
 
   StreamSubscription<NotificationMessage>? _sub;
 
@@ -23,6 +24,7 @@ class NavbarController extends GetxController {
           duration: const Duration(seconds: 3),
           onTap: (_) => changTab(3),
         );
+        unreadCount.value++;
       }
     });
   }
@@ -35,6 +37,13 @@ class NavbarController extends GetxController {
 
   void changTab(int index) {
     currentIndex.value = index;
+    if (index == 3) {
+      clearUnread();
+    }
+  }
+
+  void clearUnread() {
+    unreadCount.value = 0;
   }
 }
 
