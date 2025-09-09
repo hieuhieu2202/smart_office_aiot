@@ -11,6 +11,7 @@ import '../../model/notification_page.dart';
 import '../../service/notification_service.dart';
 import '../../widget/custom_app_bar.dart';
 import '../navbar/controller/navbar_controller.dart';
+import 'notification_detail.dart';
 
 class NotificationTab extends StatefulWidget {
   const NotificationTab({super.key});
@@ -29,18 +30,13 @@ class _NotificationTabState extends State<NotificationTab> {
   int _page = 1;
   final int _pageSize = 50;
   StreamSubscription<NotificationMessage>? _subscription;
-  late final Worker _tabWorker;
+  
 
   @override
   void initState() {
     super.initState();
     settingController = Get.find<SettingController>();
     navbarController = Get.find<NavbarController>();
-    _tabWorker = ever(navbarController.currentIndex, (int idx) {
-      if (idx == 3) {
-        _markAllRead();
-      }
-    });
     _load();
     _subscription = NotificationService.notificationsStream.listen((n) {
       debugPrint('[NotificationTab] Stream received: ${n.id}');
@@ -58,10 +54,9 @@ class _NotificationTabState extends State<NotificationTab> {
         page: _page, pageSize: _pageSize);
     debugPrint('[NotificationTab] Loaded ${res.items.length} notifications');
     setState(() {
-      final bool markRead = navbarController.currentIndex.value == 3;
       _notifications
         ..clear()
-        ..addAll(res.items.map((n) => n..read = markRead));
+        ..addAll(res.items);
       _notifications.sort((a, b) {
         final DateTime ta =
             a.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -72,10 +67,8 @@ class _NotificationTabState extends State<NotificationTab> {
       _loading = false;
       _hasMore = _notifications.length < res.total;
       _page++;
-      if (!markRead) {
-        navbarController.unreadCount.value = _notifications.length;
-      }
     });
+    _updateUnread();
   }
 
   Future<void> _loadMore() async {
@@ -102,15 +95,15 @@ class _NotificationTabState extends State<NotificationTab> {
           e.id == n.id &&
           e.timestampUtc == n.timestampUtc);
     }
-    n.read = navbarController.currentIndex.value == 3;
     _notifications.insert(0, n);
     _notifications.sort((a, b) {
-      final DateTime ta = a.timestampUtc ??
-          DateTime.fromMillisecondsSinceEpoch(0);
-      final DateTime tb = b.timestampUtc ??
-          DateTime.fromMillisecondsSinceEpoch(0);
+      final DateTime ta =
+          a.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final DateTime tb =
+          b.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
       return tb.compareTo(ta);
     });
+    _updateUnread();
   }
 
   Future<void> _clear() async {
@@ -121,18 +114,25 @@ class _NotificationTabState extends State<NotificationTab> {
     }
   }
 
-  void _markAllRead() {
-    setState(() {
-      for (final n in _notifications) {
+
+  void _openNotification(NotificationMessage n) {
+    if (!n.read) {
+      setState(() {
         n.read = true;
-      }
-    });
+      });
+      _updateUnread();
+    }
+    Get.to(() => NotificationDetail(notification: n));
+  }
+
+  void _updateUnread() {
+    navbarController.unreadCount.value =
+        _notifications.where((e) => !e.read).length;
   }
 
   @override
   void dispose() {
     _subscription?.cancel();
-    _tabWorker.dispose();
     super.dispose();
   }
 
@@ -221,12 +221,8 @@ class _NotificationTabState extends State<NotificationTab> {
                                       : FontWeight.bold,
                                 ),
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(n.body),
-                                  if (time.isNotEmpty)
-                                    Padding(
+                              subtitle: time.isNotEmpty
+                                  ? Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Text(
                                         time,
@@ -234,12 +230,12 @@ class _NotificationTabState extends State<NotificationTab> {
                                             .textTheme
                                             .bodySmall,
                                       ),
-                                    ),
-                                ],
-                              ),
+                                    )
+                                  : null,
                               trailing: n.fileUrl != null
                                   ? const Icon(Icons.attach_file)
                                   : null,
+                              onTap: () => _openNotification(n),
                             ),
                           );
                         },
