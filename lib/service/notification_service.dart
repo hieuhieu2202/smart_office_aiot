@@ -4,16 +4,13 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/io_client.dart';
 
 import '../model/notification_message.dart';
 
 class NotificationService {
-  static const String _baseUrl = 'https://localhost:7283/api/control/';
+  static const String _baseUrl = 'http://10.220.130.117:2222/';
 
-  static final http.Client _client = IOClient(
-    HttpClient()..badCertificateCallback = (_, __, ___) => true,
-  );
+  static final http.Client _client = http.Client();
 
   static Future<List<NotificationMessage>> getNotifications({int page = 1, int pageSize = 50}) async {
     final Uri url = Uri.parse('${_baseUrl}get-notifications?page=$page&pageSize=$pageSize');
@@ -30,7 +27,7 @@ class NotificationService {
   }
 
   static Future<bool> sendNotification({required String title, required String body, String? id, File? file}) async {
-    final Uri url = Uri.parse('${_baseUrl}send-notification');
+    final Uri url = Uri.parse('${_baseUrl}SendNoti');
     debugPrint('[NotificationService] Sending notification: "$title"');
     if (file == null) {
       final String payload = json.encode({'title': title, 'body': body, if (id != null) 'id': id});
