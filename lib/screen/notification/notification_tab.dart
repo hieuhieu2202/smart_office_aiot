@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
@@ -19,12 +20,22 @@ class _NotificationTabState extends State<NotificationTab> {
   late final SettingController settingController;
   final List<NotificationMessage> _notifications = [];
   bool _loading = true;
+  StreamSubscription<NotificationMessage>? _subscription;
 
   @override
   void initState() {
     super.initState();
     settingController = Get.find<SettingController>();
     _load();
+    _subscription = NotificationService.streamNotifications().listen((n) {
+      if (mounted) {
+        setState(() {
+          if (_notifications.every((e) => e.id != n.id)) {
+            _notifications.insert(0, n);
+          }
+        });
+      }
+    });
   }
 
   Future<void> _load() async {
@@ -43,6 +54,12 @@ class _NotificationTabState extends State<NotificationTab> {
     if (ok) {
       await _load();
     }
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   @override
