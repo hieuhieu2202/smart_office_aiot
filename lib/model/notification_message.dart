@@ -3,14 +3,14 @@ class NotificationMessage {
   final String title;
   final String body;
   final String? fileUrl;
-  final DateTime? timestamp;
+  final DateTime? timestampUtc;
 
   NotificationMessage({
     required this.id,
     required this.title,
     required this.body,
     this.fileUrl,
-    this.timestamp,
+    this.timestampUtc,
   });
 
   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
@@ -19,7 +19,7 @@ class NotificationMessage {
       title: json['title'] ?? json['Title'] ?? '',
       body: json['body'] ?? json['Body'] ?? '',
       fileUrl: json['fileUrl'] ?? json['FileUrl'],
-      timestamp: _parseTimestamp(json),
+      timestampUtc: _parseTimestamp(json),
     );
   }
 
