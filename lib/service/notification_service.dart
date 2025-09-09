@@ -82,8 +82,26 @@ class NotificationService {
 
   /// Listen to server sent events for realtime notifications.
   ///
-  /// Emits a [NotificationMessage] whenever the backend pushes a new event.
-  static Stream<NotificationMessage> streamNotifications() async* {
+  /// Emits a [NotificationMessage] whenever the backend pushes a new event and
+  /// automatically reconnects if the stream is closed or errors.
+  static Stream<NotificationMessage> streamNotifications(
+      {Duration retryDelay = const Duration(seconds: 5)}) async* {
+    while (true) {
+      try {
+        await for (final NotificationMessage msg in _streamOnce()) {
+          yield msg;
+        }
+        debugPrint(
+            '[NotificationService] Stream closed. Reconnecting in ${retryDelay.inSeconds}s…');
+      } catch (e) {
+        debugPrint(
+            '[NotificationService] Stream error: $e. Reconnecting in ${retryDelay.inSeconds}s…');
+      }
+      await Future.delayed(retryDelay);
+    }
+  }
+
+  static Stream<NotificationMessage> _streamOnce() async* {
     final http.Request request = http.Request(
       'GET',
       Uri.parse('${_baseUrl}notifications-stream'),
@@ -93,8 +111,6 @@ class NotificationService {
     debugPrint('[NotificationService] Connecting to notification stream…');
     final http.StreamedResponse response = await _client.send(request);
 
-    // SSE events are separated by empty lines. We accumulate `data:` lines
-    // until an empty line is received, then decode the JSON payload.
     final Stream<String> lines = response.stream
         .transform(utf8.decoder)
         .transform(const LineSplitter());

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 
 import '../../config/global_color.dart';
@@ -34,15 +35,10 @@ class _NotificationTabState extends State<NotificationTab> {
     _load();
     _subscription = NotificationService.streamNotifications().listen((n) {
       debugPrint('[NotificationTab] Stream received: ${n.id}');
-      if (mounted) {
-        setState(() {
-          if (n.id.isNotEmpty) {
-            _notifications.removeWhere((e) => e.id == n.id);
-          }
-          _notifications.insert(0, n);
-          _sort();
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _insertNotification(n);
+      });
     });
   }
 
@@ -56,7 +52,13 @@ class _NotificationTabState extends State<NotificationTab> {
       _notifications
         ..clear()
         ..addAll(res.items);
-      _sort();
+      _notifications.sort((a, b) {
+        final DateTime ta =
+            a.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final DateTime tb =
+            b.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return tb.compareTo(ta);
+      });
       _loading = false;
       _hasMore = _notifications.length < res.total;
       _page++;
@@ -71,21 +73,28 @@ class _NotificationTabState extends State<NotificationTab> {
     debugPrint('[NotificationTab] Loaded more ${res.items.length} notifications');
     setState(() {
       for (final n in res.items) {
-        if (_notifications.every((e) => e.id != n.id)) {
-          _notifications.add(n);
-        }
+        _insertNotification(n, dedupe: true);
       }
-      _sort();
       _hasMore = _notifications.length < res.total;
       _page++;
       _loadingMore = false;
     });
   }
 
-  void _sort() {
+  void _insertNotification(NotificationMessage n, {bool dedupe = false}) {
+    if (dedupe) {
+      _notifications.removeWhere((e) =>
+          e.id.isNotEmpty &&
+          n.id.isNotEmpty &&
+          e.id == n.id &&
+          e.timestampUtc == n.timestampUtc);
+    }
+    _notifications.insert(0, n);
     _notifications.sort((a, b) {
-      final DateTime ta = a.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final DateTime tb = b.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final DateTime ta = a.timestampUtc ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      final DateTime tb = b.timestampUtc ??
+          DateTime.fromMillisecondsSinceEpoch(0);
       return tb.compareTo(ta);
     });
   }
@@ -137,9 +146,11 @@ class _NotificationTabState extends State<NotificationTab> {
                           )
                         ],
                       )
-                    : ListView.builder(
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount:
                             _notifications.length + (_hasMore ? 1 : 0),
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           if (index >= _notifications.length) {
                             if (_loadingMore) {
@@ -149,18 +160,44 @@ class _NotificationTabState extends State<NotificationTab> {
                                     Center(child: CircularProgressIndicator()),
                               );
                             }
-                            return TextButton(
-                              onPressed: _loadMore,
-                              child: const Text('Load more'),
+                            return Center(
+                              child: TextButton(
+                                onPressed: _loadMore,
+                                child: const Text('Load more'),
+                              ),
                             );
                           }
                           final NotificationMessage n = _notifications[index];
-                          return ListTile(
-                            title: Text(n.title),
-                            subtitle: Text(n.body),
-                            trailing: n.fileUrl != null
-                                ? const Icon(Icons.attach_file)
-                                : null,
+                          final String time = n.timestampUtc != null
+                              ? DateFormat('yyyy-MM-dd HH:mm')
+                                  .format(n.timestampUtc!.toLocal())
+                              : '';
+                          return Card(
+                            margin:
+                                const EdgeInsets.symmetric(horizontal: 16),
+                            child: ListTile(
+                              leading: const Icon(Icons.notifications),
+                              title: Text(n.title),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(n.body),
+                                  if (time.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        time,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              trailing: n.fileUrl != null
+                                  ? const Icon(Icons.attach_file)
+                                  : null,
+                            ),
                           );
                         },
                       ),
