@@ -1,85 +1,57 @@
-// import 'dart:convert';
-// import 'dart:io';
-// import 'package:http/http.dart' as http;
-// import 'package:http/io_client.dart';
-//
-// class NotificationService {
-//   static final String _baseUrl = "https://localhost:7283/api/Control/";
-//
-//   static IOClient _getInsecureClient() {
-//     final httpClient = HttpClient()
-//       ..badCertificateCallback = (cert, host, port) => true;
-//     return IOClient(httpClient);
-//   }
-//
-//   static Future<List<NotificationMessage>> getAllNotifications() async {
-//     final url = Uri.parse("${_baseUrl}get-notifications");
-//     final client = _getInsecureClient();
-//     final res = await client.get(url);
-//
-//     print('[DEBUG] GET $url');
-//     print('[DEBUG] Status: ${res.statusCode}');
-//     print('[DEBUG] Body: ${res.body}');
-//
-//     if (res.statusCode == 200 && res.body.isNotEmpty) {
-//       final List<dynamic> data = json.decode(res.body);
-//       return data
-//           .map((e) => NotificationMessage.fromJson(e))
-//           .toList();
-//     } else if (res.statusCode == 204) {
-//       return [];
-//     } else {
-//       throw Exception('Failed to fetch notifications (${res.statusCode})');
-//     }
-//   }
-//
-//   static Future<bool> sendNotification({
-//     required String title,
-//     required String body,
-//   }) async {
-//     final url = Uri.parse("${_baseUrl}send-notification");
-//     final client = _getInsecureClient();
-//     final payload = json.encode({
-//       "title": title,
-//       "body": body,
-//     });
-//
-//     print('[DEBUG] POST $url');
-//     print('[DEBUG] Body: $payload');
-//
-//     final res = await client.post(url,
-//         headers: {"Content-Type": "application/json"}, body: payload);
-//
-//     print('[DEBUG] Status: ${res.statusCode}');
-//     print('[DEBUG] Body: ${res.body}');
-//
-//     return res.statusCode == 200;
-//   }
-//
-//   static Future<bool> clearNotifications() async {
-//     final url = Uri.parse("${_baseUrl}clear-notifications");
-//     final client = _getInsecureClient();
-//     final res = await client.post(url);
-//     return res.statusCode == 200;
-//   }
-// }
-//
-// class NotificationMessage {
-//   final String title;
-//   final String body;
-//   final DateTime timestamp;
-//
-//   NotificationMessage({
-//     required this.title,
-//     required this.body,
-//     required this.timestamp,
-//   });
-//
-//   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
-//     return NotificationMessage(
-//       title: json['title'],
-//       body: json['body'],
-//       timestamp: DateTime.parse(json['timestamp']),
-//     );
-//   }
-// }
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
+
+import '../model/notification_message.dart';
+
+class NotificationService {
+  static const String _baseUrl = 'https://localhost:7283/api/control/';
+
+  static IOClient _client() {
+    final HttpClient httpClient = HttpClient()
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+    return IOClient(httpClient);
+  }
+
+  static Future<List<NotificationMessage>> getNotifications({int page = 1, int pageSize = 50}) async {
+    final Uri url = Uri.parse('${_baseUrl}get-notifications?page=$page&pageSize=$pageSize');
+    final IOClient client = _client();
+    final http.Response res = await client.get(url);
+    if (res.statusCode == 200 && res.body.isNotEmpty) {
+      final Map<String, dynamic> data = json.decode(res.body) as Map<String, dynamic>;
+      final List<dynamic> items = data['items'] ?? [];
+      return items.map((e) => NotificationMessage.fromJson(e)).toList();
+    }
+    return [];
+  }
+
+  static Future<bool> sendNotification({required String title, required String body, String? id, File? file}) async {
+    final Uri url = Uri.parse('${_baseUrl}send-notification');
+    final IOClient client = _client();
+    if (file == null) {
+      final String payload = json.encode({'title': title, 'body': body, if (id != null) 'id': id});
+      final http.Response res = await client.post(url, headers: {'Content-Type': 'application/json'}, body: payload);
+      return res.statusCode == 200;
+    } else {
+      final http.MultipartRequest req = http.MultipartRequest('POST', url);
+      req.fields['title'] = title;
+      req.fields['body'] = body;
+      if (id != null) {
+        req.fields['id'] = id;
+      }
+      final http.MultipartFile multipartFile = await http.MultipartFile.fromPath('file', file.path);
+      req.files.add(multipartFile);
+      final http.StreamedResponse streamed = await client.send(req);
+      return streamed.statusCode == 200;
+    }
+  }
+
+  static Future<bool> clearNotifications() async {
+    final Uri url = Uri.parse('${_baseUrl}clear-notifications');
+    final IOClient client = _client();
+    final http.Response res = await client.post(url);
+    return res.statusCode == 200;
+  }
+}
