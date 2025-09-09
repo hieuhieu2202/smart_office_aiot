@@ -125,6 +125,35 @@ class _NotificationTabState extends State<NotificationTab> {
     Get.to(() => NotificationDetail(notification: n));
   }
 
+  Future<void> _deleteNotification(NotificationMessage n) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete notification?'),
+        content: Text(n.title),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      final bool ok = await NotificationService.deleteNotification(n.id);
+      if (ok) {
+        setState(() {
+          _notifications.removeWhere((e) => e.id == n.id);
+        });
+        _updateUnread();
+      }
+    }
+  }
+
   void _updateUnread() {
     navbarController.unreadCount.value =
         _notifications.where((e) => !e.read).length;
@@ -236,6 +265,7 @@ class _NotificationTabState extends State<NotificationTab> {
                                   ? const Icon(Icons.attach_file)
                                   : null,
                               onTap: () => _openNotification(n),
+                              onLongPress: () => _deleteNotification(n),
                             ),
                           );
                         },

@@ -21,16 +21,30 @@ class NotificationDetail extends StatelessWidget {
         : '';
     return Scaffold(
       appBar: CustomAppBar(
-        title: Text(notification.title),
+        title: 'Chi tiết',
         isDark: isDark,
         accent: GlobalColors.accentByIsDark(isDark),
-        titleAlign: TextAlign.left,
+        titleAlign: TextAlign.center,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: GlobalColors.accentByIsDark(isDark),
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              notification.title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
             Text(notification.body),
             if (time.isNotEmpty)
               Padding(

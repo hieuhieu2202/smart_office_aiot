@@ -85,6 +85,14 @@ class NotificationService {
     return res.statusCode == 200;
   }
 
+  static Future<bool> deleteNotification(String id) async {
+    final Uri url = Uri.parse('${_baseUrl}clear-notifications?id=$id');
+    debugPrint('[NotificationService] Deleting notification $id…');
+    final http.Response res = await _client.post(url);
+    debugPrint('[NotificationService] Delete status: ${res.statusCode}');
+    return res.statusCode == 200;
+  }
+
   /// Listen to server sent events for realtime notifications.
   ///
   /// Emits a [NotificationMessage] whenever the backend pushes a new event and
