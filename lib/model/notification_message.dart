@@ -19,9 +19,18 @@ class NotificationMessage {
       title: json['title'] ?? json['Title'] ?? '',
       body: json['body'] ?? json['Body'] ?? '',
       fileUrl: json['fileUrl'] ?? json['FileUrl'],
-      timestamp: (json['timestamp'] ?? json['Timestamp']) != null
-          ? DateTime.parse(json['timestamp'] ?? json['Timestamp'])
-          : null,
+      timestamp: _parseTimestamp(json),
     );
+  }
+
+  static DateTime? _parseTimestamp(Map<String, dynamic> json) {
+    final dynamic ts =
+        json['timestampUtc'] ?? json['timestamp'] ?? json['TimestampUtc'] ?? json['Timestamp'];
+    if (ts == null) return null;
+    try {
+      return DateTime.parse(ts.toString());
+    } catch (_) {
+      return null;
+    }
   }
 }

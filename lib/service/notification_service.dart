@@ -4,13 +4,16 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 
 import '../model/notification_message.dart';
 
 class NotificationService {
-  static const String _baseUrl = 'http://10.220.130.117:2222/';
+  static const String _baseUrl = 'https://localhost:7283/api/control/';
 
-  static final http.Client _client = http.Client();
+  static final HttpClient _httpClient = HttpClient()
+    ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+  static final http.Client _client = IOClient(_httpClient);
 
   static Future<List<NotificationMessage>> getNotifications({int page = 1, int pageSize = 50}) async {
     final Uri url = Uri.parse('${_baseUrl}get-notifications?page=$page&pageSize=$pageSize');
@@ -26,12 +29,24 @@ class NotificationService {
     return [];
   }
 
-  static Future<bool> sendNotification({required String title, required String body, String? id, File? file}) async {
-    final Uri url = Uri.parse('${_baseUrl}SendNoti');
+  static Future<bool> sendNotification({
+    required String title,
+    required String body,
+    String? id,
+    File? file,
+  }) async {
+    final String endpoint =
+        file == null ? 'send-notification-json' : 'send-notification-form';
+    final Uri url = Uri.parse('$_baseUrl$endpoint');
     debugPrint('[NotificationService] Sending notification: "$title"');
     if (file == null) {
-      final String payload = json.encode({'title': title, 'body': body, if (id != null) 'id': id});
-      final http.Response res = await _client.post(url, headers: {'Content-Type': 'application/json'}, body: payload);
+      final String payload =
+          json.encode({'title': title, 'body': body, if (id != null) 'id': id});
+      final http.Response res = await _client.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: payload,
+      );
       debugPrint('[NotificationService] Send JSON status: ${res.statusCode}');
       return res.statusCode == 200;
     } else {
@@ -41,7 +56,8 @@ class NotificationService {
       if (id != null) {
         req.fields['id'] = id;
       }
-      final http.MultipartFile multipartFile = await http.MultipartFile.fromPath('file', file.path);
+      final http.MultipartFile multipartFile =
+          await http.MultipartFile.fromPath('file', file.path);
       req.files.add(multipartFile);
       final http.StreamedResponse streamed = await _client.send(req);
       debugPrint('[NotificationService] Send multipart status: ${streamed.statusCode}');
