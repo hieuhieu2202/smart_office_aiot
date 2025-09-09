@@ -6,24 +6,34 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../model/notification_message.dart';
+import '../model/notification_page.dart';
 
 class NotificationService {
   static const String _baseUrl = 'http://10.220.130.117:2222/SendNoti/api/Control/';
 
   static final http.Client _client = http.Client();
 
-  static Future<List<NotificationMessage>> getNotifications({int page = 1, int pageSize = 50}) async {
-    final Uri url = Uri.parse('${_baseUrl}get-notifications?page=$page&pageSize=$pageSize');
+  static Future<NotificationPage> getNotifications({
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    final Uri url =
+        Uri.parse('${_baseUrl}get-notifications?page=$page&pageSize=$pageSize');
     debugPrint('[NotificationService] Fetching notifications…');
     final http.Response res = await _client.get(url);
     if (res.statusCode == 200 && res.body.isNotEmpty) {
-      final Map<String, dynamic> data = json.decode(res.body) as Map<String, dynamic>;
+      final Map<String, dynamic> data =
+          json.decode(res.body) as Map<String, dynamic>;
       final List<dynamic> items = data['items'] ?? [];
+      final int total = data['total'] is int ? data['total'] as int : 0;
       debugPrint('[NotificationService] Received ${items.length} notifications');
-      return items.map((e) => NotificationMessage.fromJson(e)).toList();
+      return NotificationPage(
+        items: items.map((e) => NotificationMessage.fromJson(e)).toList(),
+        total: total,
+      );
     }
     debugPrint('[NotificationService] Fetch failed: ${res.statusCode}');
-    return [];
+    return NotificationPage(items: const [], total: 0);
   }
 
   static Future<bool> sendNotification({
