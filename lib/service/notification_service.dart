@@ -86,11 +86,12 @@ class NotificationService {
   }
 
   static Future<bool> deleteNotification(String id) async {
-    final Uri url = Uri.parse('${_baseUrl}clear-notifications?id=$id');
-    debugPrint('[NotificationService] Deleting notification $id…');
-    final http.Response res = await _client.post(url);
-    debugPrint('[NotificationService] Delete status: ${res.statusCode}');
-    return res.statusCode == 200;
+    // The backend only exposes an endpoint to clear *all* notifications, so
+    // issuing a network request here would wipe the entire list. Instead we
+    // simply report success so the caller can remove the item locally.
+    debugPrint(
+        '[NotificationService] Backend lacks single-delete; removing $id locally');
+    return true;
   }
 
   /// Listen to server sent events for realtime notifications.
