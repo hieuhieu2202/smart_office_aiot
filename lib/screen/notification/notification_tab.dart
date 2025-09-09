@@ -36,8 +36,10 @@ class _NotificationTabState extends State<NotificationTab> {
       debugPrint('[NotificationTab] Stream received: ${n.id}');
       if (mounted) {
         setState(() {
-          _notifications.removeWhere((e) => e.id == n.id);
-          _notifications.add(n);
+          if (n.id.isNotEmpty) {
+            _notifications.removeWhere((e) => e.id == n.id);
+          }
+          _notifications.insert(0, n);
           _sort();
         });
       }
