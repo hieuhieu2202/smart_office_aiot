@@ -51,7 +51,7 @@ List<AppProject> appProjects = [
         progress: 1.0,
         status: "Ready",
         icon: Icons.electrical_services,
-        screenType: "resistor",
+        screenType: "resistor_machine_dashboard",
       ),
       AppProject(
         name: "RFID SYSTEM",
@@ -146,7 +146,7 @@ List<AppProject> appProjects = [
         progress: 1.0,
         status: "Running",
         icon: Icons.dashboard,
-        screenType: "dashboard",
+        screenType: "curing_monitoring_dashboard",
       ),
       AppProject(
         name: "RACKS MONITOR",

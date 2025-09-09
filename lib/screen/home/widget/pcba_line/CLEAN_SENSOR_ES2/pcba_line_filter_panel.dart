@@ -109,7 +109,7 @@ class _PcbaFilterFormState extends State<_PcbaFilterForm> {
     final fFull = DateFormat('yyyy/MM/dd HH:mm');
 
     return Container(
-      width: 370,
+      width: 250,
       height: double.infinity,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF232F34) : Colors.white,

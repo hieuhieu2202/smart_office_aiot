@@ -9,6 +9,8 @@ class PcbaYieldRateLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final data = controller.yieldPoints;
     if (data.isEmpty) return const Center(child: Text('No data'));
 
@@ -26,9 +28,13 @@ class PcbaYieldRateLineChart extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Yield Rate',
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black, // ✅ theo theme
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         AspectRatio(
@@ -60,7 +66,10 @@ class PcbaYieldRateLineChart extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
                           labels[idx],
-                          style: const TextStyle(color: Colors.white, fontSize: 10),
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black, // ✅ theo theme
+                            fontSize: 10,
+                          ),
                         ),
                       );
                     },
@@ -70,10 +79,13 @@ class PcbaYieldRateLineChart extends StatelessWidget {
 
               borderData: FlBorderData(
                 show: true,
-                border: const Border(
-                  bottom: BorderSide(color: Color(0x33FFFFFF), width: 1),
-                  right: BorderSide(color: Colors.transparent),
-                  top: BorderSide(color: Colors.transparent),
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? const Color(0x33FFFFFF) : const Color(0x33000000), // ✅ theo theme
+                    width: 1,
+                  ),
+                  right: const BorderSide(color: Colors.transparent),
+                  top: const BorderSide(color: Colors.transparent),
                 ),
               ),
               lineBarsData: [
@@ -89,13 +101,16 @@ class PcbaYieldRateLineChart extends StatelessWidget {
               lineTouchData: LineTouchData(
                 enabled: true,
                 touchTooltipData: LineTouchTooltipData(
+                  // màu nền tooltip theo theme (API mới)
+                  getTooltipColor: (_) => isDark ? Colors.black87 : Colors.white,
+                  tooltipBorderRadius: BorderRadius.circular(8),
                   getTooltipItems: (touchedSpots) {
                     return touchedSpots.map((s) {
                       final i = s.x.toInt();
                       final date = (i >= 0 && i < labels.length) ? labels[i] : '';
                       return LineTooltipItem(
                         'Date: $date\nYieldRate: ${s.y.toStringAsFixed(2)}%',
-                        const TextStyle(color: Colors.white),
+                        TextStyle(color: isDark ? Colors.white : Colors.black87), // ✅
                       );
                     }).toList();
                   },
