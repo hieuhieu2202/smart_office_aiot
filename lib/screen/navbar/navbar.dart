@@ -10,7 +10,7 @@ import '../setting/controller/setting_controller.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
 
-final NavbarController navbarController = Get.put(NavbarController());
+final NavbarController navbarController = Get.find<NavbarController>();
 
 class NavbarScreen extends StatelessWidget {
   const NavbarScreen({super.key});

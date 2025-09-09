@@ -33,7 +33,7 @@ class _NotificationTabState extends State<NotificationTab> {
     super.initState();
     settingController = Get.find<SettingController>();
     _load();
-    _subscription = NotificationService.streamNotifications().listen((n) {
+    _subscription = NotificationService.notificationsStream.listen((n) {
       debugPrint('[NotificationTab] Stream received: ${n.id}');
       if (!mounted) return;
       setState(() {

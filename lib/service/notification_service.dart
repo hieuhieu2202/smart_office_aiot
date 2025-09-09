@@ -13,6 +13,11 @@ class NotificationService {
 
   static final http.Client _client = http.Client();
 
+  /// Broadcast stream so multiple parts of the app can listen for
+  /// realtime notifications without opening extra connections.
+  static final Stream<NotificationMessage> notificationsStream =
+      streamNotifications().asBroadcastStream();
+
   static Future<NotificationPage> getNotifications({
     int page = 1,
     int pageSize = 50,
