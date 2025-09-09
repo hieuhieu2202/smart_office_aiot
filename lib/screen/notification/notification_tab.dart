@@ -28,6 +28,7 @@ class _NotificationTabState extends State<NotificationTab> {
     settingController = Get.find<SettingController>();
     _load();
     _subscription = NotificationService.streamNotifications().listen((n) {
+      debugPrint('[NotificationTab] Stream received: ${n.id}');
       if (mounted) {
         setState(() {
           if (_notifications.every((e) => e.id != n.id)) {
@@ -41,6 +42,7 @@ class _NotificationTabState extends State<NotificationTab> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final List<NotificationMessage> data = await NotificationService.getNotifications();
+    debugPrint('[NotificationTab] Loaded ${data.length} notifications');
     setState(() {
       _notifications
         ..clear()
@@ -52,6 +54,7 @@ class _NotificationTabState extends State<NotificationTab> {
   Future<void> _clear() async {
     final bool ok = await NotificationService.clearNotifications();
     if (ok) {
+      debugPrint('[NotificationTab] Cleared notifications');
       await _load();
     }
   }

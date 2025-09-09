@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../model/notification_message.dart';
@@ -11,20 +12,25 @@ class NotificationService {
 
   static Future<List<NotificationMessage>> getNotifications({int page = 1, int pageSize = 50}) async {
     final Uri url = Uri.parse('${_baseUrl}get-notifications?page=$page&pageSize=$pageSize');
+    debugPrint('[NotificationService] Fetching notifications…');
     final http.Response res = await http.get(url);
     if (res.statusCode == 200 && res.body.isNotEmpty) {
       final Map<String, dynamic> data = json.decode(res.body) as Map<String, dynamic>;
       final List<dynamic> items = data['items'] ?? [];
+      debugPrint('[NotificationService] Received ${items.length} notifications');
       return items.map((e) => NotificationMessage.fromJson(e)).toList();
     }
+    debugPrint('[NotificationService] Fetch failed: ${res.statusCode}');
     return [];
   }
 
   static Future<bool> sendNotification({required String title, required String body, String? id, File? file}) async {
     final Uri url = Uri.parse('${_baseUrl}send-notification');
+    debugPrint('[NotificationService] Sending notification: "$title"');
     if (file == null) {
       final String payload = json.encode({'title': title, 'body': body, if (id != null) 'id': id});
       final http.Response res = await http.post(url, headers: {'Content-Type': 'application/json'}, body: payload);
+      debugPrint('[NotificationService] Send JSON status: ${res.statusCode}');
       return res.statusCode == 200;
     } else {
       final http.MultipartRequest req = http.MultipartRequest('POST', url);
@@ -36,13 +42,16 @@ class NotificationService {
       final http.MultipartFile multipartFile = await http.MultipartFile.fromPath('file', file.path);
       req.files.add(multipartFile);
       final http.StreamedResponse streamed = await req.send();
+      debugPrint('[NotificationService] Send multipart status: ${streamed.statusCode}');
       return streamed.statusCode == 200;
     }
   }
 
   static Future<bool> clearNotifications() async {
     final Uri url = Uri.parse('${_baseUrl}clear-notifications');
+    debugPrint('[NotificationService] Clearing notifications…');
     final http.Response res = await http.post(url);
+    debugPrint('[NotificationService] Clear status: ${res.statusCode}');
     return res.statusCode == 200;
   }
 
@@ -57,6 +66,7 @@ class NotificationService {
     );
     request.headers['Accept'] = 'text/event-stream';
 
+    debugPrint('[NotificationService] Connecting to notification stream…');
     final http.StreamedResponse response = await client.send(request);
 
     // SSE events are separated by empty lines. We accumulate `data:` lines
@@ -74,9 +84,10 @@ class NotificationService {
           try {
             final Map<String, dynamic> jsonData =
                 json.decode(dataBuffer) as Map<String, dynamic>;
+            debugPrint('[NotificationService] Stream event: $jsonData');
             yield NotificationMessage.fromJson(jsonData);
-          } catch (_) {
-            // ignore malformed json
+          } catch (e) {
+            debugPrint('[NotificationService] Stream parse error: $e');
           }
           dataBuffer = '';
         }
