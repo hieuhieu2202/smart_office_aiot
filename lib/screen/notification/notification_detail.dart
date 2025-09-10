@@ -5,12 +5,42 @@ import 'package:intl/intl.dart';
 import '../../config/global_color.dart';
 import '../../model/notification_message.dart';
 import '../../widget/custom_app_bar.dart';
+import '../../widget/full_screen_image.dart';
+import '../home/widget/qr/pdf_viewer_screen.dart';
 import '../setting/controller/setting_controller.dart';
 import '../../service/app_update_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class NotificationDetail extends StatelessWidget {
   final NotificationMessage notification;
   const NotificationDetail({super.key, required this.notification});
+
+  Future<void> _openAttachment(BuildContext context) async {
+    final String? url = notification.fileUrl;
+    if (url == null || url.isEmpty) return;
+    final Uri resolved = AppUpdateService.resolveFileUrl(url);
+    final String lower = resolved.path.toLowerCase();
+    if (AppUpdateService.isInstallable(url)) {
+      await AppUpdateService.handleNotification(notification);
+    } else if (lower.endsWith('.pdf')) {
+      // Preview PDF inside the app
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => PdfViewerScreen(
+                url: resolved.toString(),
+                title: notification.title,
+              )));
+    } else if (lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.gif')) {
+      // Preview images
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => FullScreenImage(imageUrl: resolved.toString())));
+    } else {
+      // Fallback: open externally
+      await launchUrl(resolved, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,8 +100,7 @@ class NotificationDetail extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     ElevatedButton(
-                      onPressed: () =>
-                          AppUpdateService.handleNotification(notification),
+                      onPressed: () => _openAttachment(context),
                       child: const Text('Open file'),
                     ),
                   ],

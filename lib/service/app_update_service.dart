@@ -34,12 +34,13 @@ class AppUpdateService {
     }
   }
 
-  static bool _isInstallable(String? url) {
+  static bool isInstallable(String? url) {
     if (url == null) return false;
-    return url.toLowerCase().endsWith('.apk') || url.toLowerCase().endsWith('.ipa');
+    return url.toLowerCase().endsWith('.apk') ||
+        url.toLowerCase().endsWith('.ipa');
   }
 
-  static Uri _resolve(String fileUrl) {
+  static Uri resolveFileUrl(String fileUrl) {
     if (fileUrl.startsWith('http')) {
       return Uri.parse(fileUrl);
     }
@@ -51,10 +52,10 @@ class AppUpdateService {
   /// If an installable file is found, launch it and return true.
   static Future<bool> handleNotification(NotificationMessage n) async {
     final String? url = n.fileUrl;
-    if (!_isInstallable(url)) return false;
+    if (!isInstallable(url)) return false;
     if (!Platform.isAndroid) return false;
 
-    final Uri fileUri = _resolve(url!);
+    final Uri fileUri = resolveFileUrl(url!);
     debugPrint('[AppUpdateService] Downloading update ${fileUri.toString()}');
     try {
       final http.Response res = await http.get(fileUri);
