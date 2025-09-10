@@ -21,6 +21,8 @@ class NavbarController extends GetxController {
           n.title,
           n.body,
           snackPosition: SnackPosition.TOP,
+          margin: EdgeInsets.zero,
+          borderRadius: 0,
           duration: const Duration(seconds: 3),
           onTap: (_) => changTab(3),
         );
