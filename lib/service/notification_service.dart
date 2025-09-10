@@ -48,7 +48,7 @@ class NotificationService {
     File? file,
   }) async {
     final String endpoint =
-        file == null ? 'send-notification-json' : 'send-notification-form';
+        file == null ? 'send-notification-json' : 'send-notification';
     final Uri url = Uri.parse('$_baseUrl$endpoint');
     debugPrint('[NotificationService] Sending notification: "$title"');
     if (file == null) {

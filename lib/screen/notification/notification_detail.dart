@@ -17,13 +17,25 @@ class NotificationDetail extends StatelessWidget {
 
   Future<void> _openAttachment(BuildContext context) async {
     final String? url = notification.fileUrl;
-    if (url == null || url.isEmpty) return;
+    if (url == null || url.isEmpty) {
+      if (notification.fileBase64 == null ||
+          notification.fileBase64!.isEmpty) return;
+      final file = await AppUpdateService.loadFile(notification);
+      if (file == null) return;
+      final Uri localUri = Uri.file(file.path);
+      if (AppUpdateService.isInstallable(notification.fileName)) {
+        await AppUpdateService.handleNotification(notification);
+      } else {
+        await launchUrl(localUri, mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
+
     final Uri resolved = AppUpdateService.resolveFileUrl(url);
     final String lower = resolved.path.toLowerCase();
     if (AppUpdateService.isInstallable(url)) {
       await AppUpdateService.handleNotification(notification);
     } else if (lower.endsWith('.pdf')) {
-      // Preview PDF inside the app
       Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => PdfViewerScreen(
                 url: resolved.toString(),
@@ -33,11 +45,9 @@ class NotificationDetail extends StatelessWidget {
         lower.endsWith('.jpg') ||
         lower.endsWith('.jpeg') ||
         lower.endsWith('.gif')) {
-      // Preview images
       Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => FullScreenImage(imageUrl: resolved.toString())));
     } else {
-      // Fallback: open externally
       await launchUrl(resolved, mode: LaunchMode.externalApplication);
     }
   }
@@ -85,7 +95,8 @@ class NotificationDetail extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
-            if (notification.fileUrl?.isNotEmpty == true)
+            if ((notification.fileUrl?.isNotEmpty ?? false) ||
+                (notification.fileName?.isNotEmpty ?? false))
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Column(
@@ -95,7 +106,9 @@ class NotificationDetail extends StatelessWidget {
                       children: [
                         const Icon(Icons.attach_file, size: 16),
                         const SizedBox(width: 4),
-                        Expanded(child: Text(notification.fileUrl!)),
+                        Expanded(
+                            child: Text(
+                                notification.fileName ?? notification.fileUrl!)),
                       ],
                     ),
                     const SizedBox(height: 8),

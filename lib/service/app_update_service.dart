@@ -34,10 +34,10 @@ class AppUpdateService {
     }
   }
 
-  static bool isInstallable(String? url) {
-    if (url == null) return false;
-    return url.toLowerCase().endsWith('.apk') ||
-        url.toLowerCase().endsWith('.ipa');
+  static bool isInstallable(String? pathOrUrl) {
+    if (pathOrUrl == null) return false;
+    final String lower = pathOrUrl.toLowerCase();
+    return lower.endsWith('.apk') || lower.endsWith('.ipa');
   }
 
   static Uri resolveFileUrl(String fileUrl) {
@@ -50,33 +50,48 @@ class AppUpdateService {
 
   /// Handle a notification that might contain an app update file.
   /// If an installable file is found, launch it and return true.
-  static Future<bool> handleNotification(NotificationMessage n) async {
-    final String? url = n.fileUrl;
-    if (!isInstallable(url)) return false;
-    if (!Platform.isAndroid) return false;
-
-    final Uri fileUri = resolveFileUrl(url!);
-    debugPrint('[AppUpdateService] Downloading update ${fileUri.toString()}');
+  static Future<File?> loadFile(NotificationMessage n) async {
     try {
-      final http.Response res = await http.get(fileUri);
-      if (res.statusCode != 200) {
-        debugPrint('[AppUpdateService] Download failed: ${res.statusCode}');
-        return false;
-      }
-      final dir = await getTemporaryDirectory();
-      final name = fileUri.pathSegments.isNotEmpty
-          ? fileUri.pathSegments.last
-          : 'update.apk';
-      final File file = File('${dir.path}/$name');
-      await file.writeAsBytes(res.bodyBytes);
-      final Uri launchUri = Uri.file(file.path);
-      debugPrint('[AppUpdateService] Launching installer ${launchUri.toString()}');
-      if (await canLaunchUrl(launchUri)) {
-        await launchUrl(launchUri, mode: LaunchMode.externalApplication);
-        return true;
+      if (n.fileUrl != null && n.fileUrl!.isNotEmpty) {
+        final Uri fileUri = resolveFileUrl(n.fileUrl!);
+        final http.Response res = await http.get(fileUri);
+        if (res.statusCode != 200) {
+          debugPrint('[AppUpdateService] Download failed: ${res.statusCode}');
+          return null;
+        }
+        final dir = await getTemporaryDirectory();
+        final String name = n.fileName ??
+            (fileUri.pathSegments.isNotEmpty
+                ? fileUri.pathSegments.last
+                : 'file');
+        final File file = File('${dir.path}/$name');
+        await file.writeAsBytes(res.bodyBytes);
+        return file;
+      } else if (n.fileBase64 != null && n.fileBase64!.isNotEmpty) {
+        final dir = await getTemporaryDirectory();
+        final String name = n.fileName ?? 'file';
+        final File file = File('${dir.path}/$name');
+        await file.writeAsBytes(base64.decode(n.fileBase64!));
+        return file;
       }
     } catch (e) {
-      debugPrint('[AppUpdateService] Error: $e');
+      debugPrint('[AppUpdateService] File fetch error: $e');
+    }
+    return null;
+  }
+
+  static Future<bool> handleNotification(NotificationMessage n) async {
+    final String? source = n.fileUrl ?? n.fileName;
+    if (!isInstallable(source)) return false;
+    if (!Platform.isAndroid) return false;
+
+    final File? file = await loadFile(n);
+    if (file == null) return false;
+    final Uri launchUri = Uri.file(file.path);
+    debugPrint('[AppUpdateService] Launching installer ${launchUri.toString()}');
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      return true;
     }
     return false;
   }
