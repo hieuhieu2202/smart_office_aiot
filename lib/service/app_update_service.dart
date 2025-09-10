@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 import '../model/app_version_info.dart';
 import '../model/notification_message.dart';
@@ -51,12 +52,30 @@ class AppUpdateService {
   static Future<bool> handleNotification(NotificationMessage n) async {
     final String? url = n.fileUrl;
     if (!_isInstallable(url)) return false;
-    if (!Platform.isAndroid && !Platform.isIOS) return false;
-    final Uri launchUri = _resolve(url!);
-    debugPrint('[AppUpdateService] Launching update ${launchUri.toString()}');
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri, mode: LaunchMode.externalApplication);
-      return true;
+    if (!Platform.isAndroid) return false;
+
+    final Uri fileUri = _resolve(url!);
+    debugPrint('[AppUpdateService] Downloading update ${fileUri.toString()}');
+    try {
+      final http.Response res = await http.get(fileUri);
+      if (res.statusCode != 200) {
+        debugPrint('[AppUpdateService] Download failed: ${res.statusCode}');
+        return false;
+      }
+      final dir = await getTemporaryDirectory();
+      final name = fileUri.pathSegments.isNotEmpty
+          ? fileUri.pathSegments.last
+          : 'update.apk';
+      final File file = File('${dir.path}/$name');
+      await file.writeAsBytes(res.bodyBytes);
+      final Uri launchUri = Uri.file(file.path);
+      debugPrint('[AppUpdateService] Launching installer ${launchUri.toString()}');
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] Error: $e');
     }
     return false;
   }
