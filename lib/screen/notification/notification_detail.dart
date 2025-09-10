@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import 'dart:convert';
+
 import '../../config/global_color.dart';
 import '../../model/notification_message.dart';
 import '../../widget/custom_app_bar.dart';
@@ -10,6 +12,7 @@ import '../home/widget/qr/pdf_viewer_screen.dart';
 import '../setting/controller/setting_controller.dart';
 import '../../service/app_update_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:open_filex/open_filex.dart';
 
 class NotificationDetail extends StatelessWidget {
   final NotificationMessage notification;
@@ -22,11 +25,10 @@ class NotificationDetail extends StatelessWidget {
           notification.fileBase64!.isEmpty) return;
       final file = await AppUpdateService.loadFile(notification);
       if (file == null) return;
-      final Uri localUri = Uri.file(file.path);
       if (AppUpdateService.isInstallable(notification.fileName)) {
         await AppUpdateService.handleNotification(notification);
       } else {
-        await launchUrl(localUri, mode: LaunchMode.externalApplication);
+        await OpenFilex.open(file.path);
       }
       return;
     }
@@ -102,6 +104,11 @@ class NotificationDetail extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (_isImage(notification))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _buildPreview(),
+                      ),
                     Row(
                       children: [
                         const Icon(Icons.attach_file, size: 16),
@@ -123,6 +130,27 @@ class NotificationDetail extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _isImage(NotificationMessage n) {
+    final String name = (n.fileName ?? n.fileUrl ?? '').toLowerCase();
+    return name.endsWith('.png') ||
+        name.endsWith('.jpg') ||
+        name.endsWith('.jpeg') ||
+        name.endsWith('.gif');
+  }
+
+  Widget _buildPreview() {
+    if (notification.fileBase64 != null && notification.fileBase64!.isNotEmpty) {
+      String data = notification.fileBase64!;
+      final int comma = data.indexOf(',');
+      if (data.startsWith('data:') && comma != -1) {
+        data = data.substring(comma + 1);
+      }
+      return Image.memory(base64.decode(data));
+    }
+    final Uri resolved = AppUpdateService.resolveFileUrl(notification.fileUrl!);
+    return Image.network(resolved.toString());
   }
 }
 

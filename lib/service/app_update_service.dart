@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 
 import '../model/app_version_info.dart';
 import '../model/notification_message.dart';
@@ -71,7 +72,12 @@ class AppUpdateService {
         final dir = await getTemporaryDirectory();
         final String name = n.fileName ?? 'file';
         final File file = File('${dir.path}/$name');
-        await file.writeAsBytes(base64.decode(n.fileBase64!));
+        String data = n.fileBase64!;
+        final int comma = data.indexOf(',');
+        if (data.startsWith('data:') && comma != -1) {
+          data = data.substring(comma + 1);
+        }
+        await file.writeAsBytes(base64.decode(data));
         return file;
       }
     } catch (e) {
@@ -87,12 +93,8 @@ class AppUpdateService {
 
     final File? file = await loadFile(n);
     if (file == null) return false;
-    final Uri launchUri = Uri.file(file.path);
-    debugPrint('[AppUpdateService] Launching installer ${launchUri.toString()}');
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri, mode: LaunchMode.externalApplication);
-      return true;
-    }
-    return false;
+    debugPrint('[AppUpdateService] Launching installer ${file.path}');
+    final result = await OpenFilex.open(file.path);
+    return result.type == ResultType.done;
   }
 }

@@ -48,6 +48,7 @@ dependencies:
   app_links: ^6.4.1
   url_launcher: ^6.3.0 # Thêm package url_launcher
   connectivity_plus: ^6.0.3  # Thêm package này
+  open_filex: ^4.3.2
   jwt_decoder: ^2.0.1
   table_calendar: ^3.0.9
   fl_chart: ^1.0.0
