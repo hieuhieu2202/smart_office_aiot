@@ -147,7 +147,9 @@ class _NotificationTabState extends State<NotificationTab> {
       final bool ok = await NotificationService.deleteNotification(n.id);
       if (ok) {
         setState(() {
-          _notifications.removeWhere((e) => e.id == n.id);
+          // Remove only the tapped notification instance in case
+          // multiple entries share the same ID.
+          _notifications.remove(n);
         });
         _updateUnread();
       }
