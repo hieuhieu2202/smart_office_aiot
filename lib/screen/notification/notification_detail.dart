@@ -54,10 +54,16 @@ class NotificationDetail extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
-            if (notification.fileUrl != null)
+            if (notification.fileUrl?.isNotEmpty == true)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text(notification.fileUrl!),
+                child: Row(
+                  children: [
+                    const Icon(Icons.attach_file, size: 16),
+                    const SizedBox(width: 4),
+                    Expanded(child: Text(notification.fileUrl!)),
+                  ],
+                ),
               ),
           ],
         ),

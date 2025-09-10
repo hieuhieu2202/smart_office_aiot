@@ -114,6 +114,65 @@ class _NotificationTabState extends State<NotificationTab> {
     }
   }
 
+  void _markAsRead(NotificationMessage n, bool read) {
+    setState(() {
+      n.read = read;
+    });
+    _updateUnread();
+  }
+
+  void _markAllRead() {
+    setState(() {
+      for (final NotificationMessage n in _notifications) {
+        n.read = true;
+      }
+    });
+    _updateUnread();
+  }
+
+  Future<void> _showOptions(NotificationMessage n) async {
+    final String? action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!n.read)
+              ListTile(
+                leading: const Icon(Icons.mark_email_read_outlined),
+                title: const Text('Mark as read'),
+                onTap: () => Navigator.of(ctx).pop('read'),
+              )
+            else
+              ListTile(
+                leading: const Icon(Icons.mark_email_unread_outlined),
+                title: const Text('Mark as unread'),
+                onTap: () => Navigator.of(ctx).pop('unread'),
+              ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Delete'),
+              onTap: () => Navigator.of(ctx).pop('delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    switch (action) {
+      case 'read':
+        _markAsRead(n, true);
+        break;
+      case 'unread':
+        _markAsRead(n, false);
+        break;
+      case 'delete':
+        _deleteNotification(n);
+        break;
+      default:
+    }
+  }
+
 
   void _openNotification(NotificationMessage n) {
     if (!n.read) {
@@ -179,6 +238,10 @@ class _NotificationTabState extends State<NotificationTab> {
           accent: GlobalColors.accentByIsDark(isDark),
           titleAlign: TextAlign.left,
           actions: [
+            IconButton(
+              icon: const Icon(Icons.done_all),
+              onPressed: _markAllRead,
+            ),
             IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: _clear,
@@ -263,11 +326,11 @@ class _NotificationTabState extends State<NotificationTab> {
                                       ),
                                     )
                                   : null,
-                              trailing: n.fileUrl != null
+                              trailing: (n.fileUrl?.isNotEmpty ?? false)
                                   ? const Icon(Icons.attach_file)
                                   : null,
                               onTap: () => _openNotification(n),
-                              onLongPress: () => _deleteNotification(n),
+                              onLongPress: () => _showOptions(n),
                             ),
                           );
                         },
