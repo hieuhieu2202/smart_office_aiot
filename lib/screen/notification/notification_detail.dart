@@ -6,6 +6,7 @@ import '../../config/global_color.dart';
 import '../../model/notification_message.dart';
 import '../../widget/custom_app_bar.dart';
 import '../setting/controller/setting_controller.dart';
+import '../../service/app_update_service.dart';
 
 class NotificationDetail extends StatelessWidget {
   final NotificationMessage notification;
@@ -57,11 +58,22 @@ class NotificationDetail extends StatelessWidget {
             if (notification.fileUrl?.isNotEmpty == true)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.attach_file, size: 16),
-                    const SizedBox(width: 4),
-                    Expanded(child: Text(notification.fileUrl!)),
+                    Row(
+                      children: [
+                        const Icon(Icons.attach_file, size: 16),
+                        const SizedBox(width: 4),
+                        Expanded(child: Text(notification.fileUrl!)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () =>
+                          AppUpdateService.handleNotification(notification),
+                      child: const Text('Open file'),
+                    ),
                   ],
                 ),
               ),

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
+import '../../../service/app_update_service.dart';
 
 class NavbarController extends GetxController {
   var currentIndex = 0.obs;
@@ -16,18 +17,20 @@ class NavbarController extends GetxController {
   void onInit() {
     super.onInit();
     _sub = NotificationService.notificationsStream.listen((n) {
-      if (currentIndex.value != 3) {
-        Get.snackbar(
-          n.title,
-          n.body,
-          snackPosition: SnackPosition.TOP,
-          margin: EdgeInsets.zero,
-          borderRadius: 0,
-          duration: const Duration(seconds: 3),
-          onTap: (_) => changTab(3),
-        );
-      }
-      unreadCount.value++;
+      AppUpdateService.handleNotification(n).then((handled) {
+        if (!handled && currentIndex.value != 3) {
+          Get.snackbar(
+            n.title,
+            n.body,
+            snackPosition: SnackPosition.TOP,
+            margin: EdgeInsets.zero,
+            borderRadius: 0,
+            duration: const Duration(seconds: 3),
+            onTap: (_) => changTab(3),
+          );
+        }
+        unreadCount.value++;
+      });
     });
   }
 
