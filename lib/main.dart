@@ -15,6 +15,7 @@ import 'package:smart_factory/lang/controller/language_controller.dart';
 import 'package:smart_factory/lang/language_selection_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/service/auth/token_manager.dart';
+import 'package:smart_factory/service/push_notification_service.dart';
 import 'package:syncfusion_flutter_core/core.dart';
 
 
@@ -34,6 +35,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
   await GetStorage.init();
+  await PushNotificationService.init();
   Get.put(NavbarController());
   Get.put(LoginController());
   Get.put(UserProfileManager());
