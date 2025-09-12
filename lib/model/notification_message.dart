@@ -41,8 +41,11 @@ class NotificationMessage {
   }
 
   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
+    // Convert keys to lowercase so we handle both "Title" and "title".
+    final map = json.map((k, v) => MapEntry(k.toString().toLowerCase(), v));
+
     DateTime? parsedTime;
-    final rawTime = json['timestampUtc'];
+    final rawTime = map['timestamputc'];
     if (rawTime is int) {
       // Assume milliseconds-since-epoch if an integer is provided.
       parsedTime = DateTime.fromMillisecondsSinceEpoch(rawTime, isUtc: true);
@@ -51,13 +54,13 @@ class NotificationMessage {
     }
 
     return NotificationMessage(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      body: json['body'] ?? '',
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      body: map['body'] ?? '',
       timestampUtc: parsedTime ?? DateTime.now().toUtc(),
-      fileUrl: json['fileUrl'] as String?,
-      fileName: json['fileName'] as String?,
-      fileBase64: json['fileBase64'] as String?,
+      fileUrl: map['fileurl'] as String?,
+      fileName: map['filename'] as String?,
+      fileBase64: map['filebase64'] as String?,
     );
   }
 
