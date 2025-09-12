@@ -43,13 +43,13 @@ class NotificationService {
         return result;
       }
       print('[NotificationService] getNotifications failed (${res.statusCode})');
-      throw Exception('Failed to fetch notifications (${res.statusCode})');
+      return [];
     } on TimeoutException catch (e) {
       print('[NotificationService] getNotifications timeout: $e');
-      rethrow;
+      return [];
     } catch (e) {
       print('[NotificationService] getNotifications error: $e');
-      rethrow;
+      return [];
     } finally {
       client.close();
     }
