@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:open_filex/open_filex.dart';
 import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
 import '../notification_detail_page.dart';
@@ -100,14 +101,15 @@ class NotificationController extends GetxController {
     final url = msg.fileUrl;
     if (msg.fileBase64 != null && msg.fileBase64!.isNotEmpty) {
       try {
-      final bytes = NotificationService.decryptBase64(msg.fileBase64!);
-      final dir = await getApplicationDocumentsDirectory();
-      final filename = msg.fileName ?? msg.id;
-      final file = File('${dir.path}/$filename');
-      await file.writeAsBytes(bytes);
-      downloadedFiles[msg.id] = file.path;
+        final bytes = NotificationService.decryptBase64(msg.fileBase64!);
+        final dir = await _resolveSaveDir();
+        final filename = msg.fileName ?? msg.id;
+        final file = File('${dir.path}/$filename');
+        await file.writeAsBytes(bytes);
+        downloadedFiles[msg.id] = file.path;
         print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
         _saveLocal();
+        await _maybeOpenApk(file);
       } catch (e) {
         Get.snackbar('Error', e.toString());
       }
@@ -122,7 +124,7 @@ class NotificationController extends GetxController {
         return;
       }
       final total = response.contentLength ?? 0;
-      final dir = await getApplicationDocumentsDirectory();
+      final dir = await _resolveSaveDir();
       final filename = msg.fileName ?? msg.id;
       final file = File('${dir.path}/$filename');
       final sink = file.openWrite();
@@ -140,9 +142,29 @@ class NotificationController extends GetxController {
       downloadProgress.remove(msg.id);
       print('[NotificationController] downloaded ${msg.id} to ${file.path}');
       _saveLocal();
+      await _maybeOpenApk(file);
     } catch (e) {
       downloadProgress.remove(msg.id);
       Get.snackbar('Error', e.toString());
+    }
+  }
+
+  Future<Directory> _resolveSaveDir() async {
+    if (Platform.isAndroid) {
+      final ext = await getExternalStorageDirectory();
+      if (ext != null) return ext;
+    }
+    return await getApplicationDocumentsDirectory();
+  }
+
+  Future<void> _maybeOpenApk(File file) async {
+    if (Platform.isAndroid && file.path.toLowerCase().endsWith('.apk')) {
+      print('[NotificationController] opening APK ${file.path}');
+      try {
+        await OpenFilex.open(file.path);
+      } catch (e) {
+        Get.snackbar('Error', e.toString());
+      }
     }
   }
 
