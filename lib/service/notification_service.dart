@@ -106,8 +106,15 @@ class NotificationService {
   }
 
   static List<int> decryptBase64(String data) {
-    final encrypter = enc.Encrypter(enc.AES(_aesKey, mode: enc.AESMode.cbc));
-    final encrypted = enc.Encrypted(base64Decode(data));
-    return encrypter.decryptBytes(encrypted, iv: _aesIv);
+    final raw = base64Decode(data);
+    try {
+      final encrypter = enc.Encrypter(
+        enc.AES(_aesKey, mode: enc.AESMode.cbc),
+      );
+      return encrypter.decryptBytes(enc.Encrypted(raw), iv: _aesIv);
+    } catch (e) {
+      print('[NotificationService] AES decrypt failed: $e');
+      return raw;
+    }
   }
 }
