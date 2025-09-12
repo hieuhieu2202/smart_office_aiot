@@ -15,17 +15,13 @@ class NotificationController extends GetxController {
   final downloadedFiles = <String, String>{}.obs; // id -> file path
   final downloadProgress = <String, double>{}.obs; // id -> 0..1
   StreamSubscription<NotificationMessage>? _sub;
+  Timer? _reconnectTimer;
 
   @override
   void onInit() {
     super.onInit();
     fetchNotifications();
-    _sub = NotificationService.streamNotifications().listen((msg) {
-      print('Received notification: ' + msg.title);
-      notifications.insert(0, msg);
-    }, onError: (err) {
-      print('Notification stream error: $err');
-    });
+    _connectStream();
   }
 
   Future<void> fetchNotifications() async {
@@ -41,6 +37,7 @@ class NotificationController extends GetxController {
   @override
   void onClose() {
     _sub?.cancel();
+    _reconnectTimer?.cancel();
     super.onClose();
   }
 
@@ -50,6 +47,35 @@ class NotificationController extends GetxController {
   }
 
   bool isRead(String id) => readIds.contains(id);
+
+  void _connectStream() {
+    _sub?.cancel();
+    _sub = NotificationService.streamNotifications().listen((msg) {
+      print('Received notification: ${msg.title}');
+      notifications.insert(0, msg);
+      Get.showSnackbar(
+        GetSnackBar(
+          title: msg.title,
+          message: msg.body,
+          duration: const Duration(seconds: 5),
+          snackPosition: SnackPosition.TOP,
+          onTap: (_) => openNotification(msg),
+        ),
+      );
+    }, onError: (err) {
+      print('Notification stream error: $err');
+      _scheduleReconnect();
+    }, onDone: _scheduleReconnect);
+  }
+
+  void _scheduleReconnect() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+      print('Reconnecting to notification stream...');
+      fetchNotifications();
+      _connectStream();
+    });
+  }
 
   Future<void> downloadAttachment(NotificationMessage msg) async {
     final url = msg.fileUrl;

@@ -16,6 +16,7 @@ import 'package:smart_factory/lang/language_selection_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/service/auth/token_manager.dart';
 import 'package:syncfusion_flutter_core/core.dart';
+import 'screen/notification/controller/notification_controller.dart';
 
 
 
@@ -39,6 +40,7 @@ void main() async {
   Get.put(UserProfileManager());
   Get.put(SettingController());
   Get.put(LanguageController());
+  Get.put(NotificationController(), permanent: true);
   // // key SyncfusionLicense để đọc file pdf
   // SyncfusionLicense.registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF1cWWhAYVppR2Nbek5xdF9HZlZRRmY/P1ZhSXxWdkxjW31ccXJVRGZcWUF9XEI=');
   runApp(const MyApp());

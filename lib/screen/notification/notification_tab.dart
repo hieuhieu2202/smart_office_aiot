@@ -22,7 +22,7 @@ class _NotificationTabState extends State<NotificationTab> {
   void initState() {
     super.initState();
     settingController = Get.find<SettingController>();
-    controller = Get.put(NotificationController());
+    controller = Get.find<NotificationController>();
   }
 
   @override
