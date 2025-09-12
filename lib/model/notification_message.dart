@@ -18,6 +18,24 @@ class NotificationMessage {
     this.fileName,
   });
 
+  NotificationMessage copyWith({
+    String? id,
+    String? title,
+    String? body,
+    DateTime? timestampUtc,
+    String? fileUrl,
+    String? fileName,
+  }) {
+    return NotificationMessage(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      timestampUtc: timestampUtc ?? this.timestampUtc,
+      fileUrl: fileUrl ?? this.fileUrl,
+      fileName: fileName ?? this.fileName,
+    );
+  }
+
   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
     return NotificationMessage(
       id: json['id'] ?? '',

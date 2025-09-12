@@ -9,6 +9,7 @@ import '../model/notification_message.dart';
 class NotificationService {
   static const String _baseUrl =
       'http://10.220.130.117:2222/SendNoti/api/Control/';
+  static const String _host = 'http://10.220.130.117:2222';
 
   static IOClient _getInsecureClient() {
     final httpClient = HttpClient()
@@ -27,7 +28,7 @@ class NotificationService {
       final Map<String, dynamic> data = json.decode(res.body);
       final List<dynamic> items = data['items'] ?? [];
       return items
-          .map((e) => NotificationMessage.fromJson(e as Map<String, dynamic>))
+          .map((e) => _parseMessage(e as Map<String, dynamic>))
           .toList();
     }
     throw Exception('Failed to fetch notifications (${res.statusCode})');
@@ -73,10 +74,18 @@ class NotificationService {
       if (line.startsWith('data:')) {
         final data = line.substring(5).trim();
         if (data.isNotEmpty) {
-          yield NotificationMessage.fromJson(
-              json.decode(data) as Map<String, dynamic>);
+          yield _parseMessage(json.decode(data) as Map<String, dynamic>);
         }
       }
     }
+  }
+
+  static NotificationMessage _parseMessage(Map<String, dynamic> json) {
+    final msg = NotificationMessage.fromJson(json);
+    final url = msg.fileUrl;
+    if (url != null && url.isNotEmpty && !url.startsWith('http')) {
+      return msg.copyWith(fileUrl: '$_host$url');
+    }
+    return msg;
   }
 }

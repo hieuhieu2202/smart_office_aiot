@@ -14,6 +14,7 @@ class NotificationController extends GetxController {
   final readIds = <String>{}.obs;
   final downloadedFiles = <String, String>{}.obs; // id -> file path
   final downloadProgress = <String, double>{}.obs; // id -> 0..1
+  final unreadCount = 0.obs;
   StreamSubscription<NotificationMessage>? _sub;
   Timer? _reconnectTimer;
 
@@ -22,6 +23,8 @@ class NotificationController extends GetxController {
     super.onInit();
     fetchNotifications();
     _connectStream();
+    ever<List<NotificationMessage>>(notifications, (_) => _updateUnread());
+    ever<Set<String>>(readIds, (_) => _updateUnread());
   }
 
   Future<void> fetchNotifications() async {
@@ -29,6 +32,7 @@ class NotificationController extends GetxController {
       isLoading.value = true;
       final data = await NotificationService.getNotifications();
       notifications.assignAll(data);
+      _updateUnread();
     } finally {
       isLoading.value = false;
     }
@@ -53,6 +57,7 @@ class NotificationController extends GetxController {
     _sub = NotificationService.streamNotifications().listen((msg) {
       print('Received notification: ${msg.title}');
       notifications.insert(0, msg);
+      _updateUnread();
       Get.showSnackbar(
         GetSnackBar(
           title: msg.title,
@@ -108,5 +113,10 @@ class NotificationController extends GetxController {
       downloadProgress.remove(msg.id);
       Get.snackbar('Error', e.toString());
     }
+  }
+
+  void _updateUnread() {
+    unreadCount.value =
+        notifications.where((n) => !readIds.contains(n.id)).length;
   }
 }
