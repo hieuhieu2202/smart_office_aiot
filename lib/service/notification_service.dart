@@ -1,85 +1,152 @@
-// import 'dart:convert';
-// import 'dart:io';
-// import 'package:http/http.dart' as http;
-// import 'package:http/io_client.dart';
-//
-// class NotificationService {
-//   static final String _baseUrl = "https://localhost:7283/api/Control/";
-//
-//   static IOClient _getInsecureClient() {
-//     final httpClient = HttpClient()
-//       ..badCertificateCallback = (cert, host, port) => true;
-//     return IOClient(httpClient);
-//   }
-//
-//   static Future<List<NotificationMessage>> getAllNotifications() async {
-//     final url = Uri.parse("${_baseUrl}get-notifications");
-//     final client = _getInsecureClient();
-//     final res = await client.get(url);
-//
-//     print('[DEBUG] GET $url');
-//     print('[DEBUG] Status: ${res.statusCode}');
-//     print('[DEBUG] Body: ${res.body}');
-//
-//     if (res.statusCode == 200 && res.body.isNotEmpty) {
-//       final List<dynamic> data = json.decode(res.body);
-//       return data
-//           .map((e) => NotificationMessage.fromJson(e))
-//           .toList();
-//     } else if (res.statusCode == 204) {
-//       return [];
-//     } else {
-//       throw Exception('Failed to fetch notifications (${res.statusCode})');
-//     }
-//   }
-//
-//   static Future<bool> sendNotification({
-//     required String title,
-//     required String body,
-//   }) async {
-//     final url = Uri.parse("${_baseUrl}send-notification");
-//     final client = _getInsecureClient();
-//     final payload = json.encode({
-//       "title": title,
-//       "body": body,
-//     });
-//
-//     print('[DEBUG] POST $url');
-//     print('[DEBUG] Body: $payload');
-//
-//     final res = await client.post(url,
-//         headers: {"Content-Type": "application/json"}, body: payload);
-//
-//     print('[DEBUG] Status: ${res.statusCode}');
-//     print('[DEBUG] Body: ${res.body}');
-//
-//     return res.statusCode == 200;
-//   }
-//
-//   static Future<bool> clearNotifications() async {
-//     final url = Uri.parse("${_baseUrl}clear-notifications");
-//     final client = _getInsecureClient();
-//     final res = await client.post(url);
-//     return res.statusCode == 200;
-//   }
-// }
-//
-// class NotificationMessage {
-//   final String title;
-//   final String body;
-//   final DateTime timestamp;
-//
-//   NotificationMessage({
-//     required this.title,
-//     required this.body,
-//     required this.timestamp,
-//   });
-//
-//   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
-//     return NotificationMessage(
-//       title: json['title'],
-//       body: json['body'],
-//       timestamp: DateTime.parse(json['timestamp']),
-//     );
-//   }
-// }
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+
+import '../model/notification_message.dart';
+import '../model/notification_page.dart';
+
+class NotificationService {
+  static const String _baseUrl =
+      'http://10.220.130.117:2222/SendNoti/api/Control/';
+
+  static final http.Client _client = http.Client();
+
+  /// Broadcast stream so multiple parts of the app can listen for
+  /// realtime notifications without opening extra connections.
+  static final Stream<NotificationMessage> notificationsStream =
+      streamNotifications().asBroadcastStream();
+
+  static Future<NotificationPage> getNotifications({
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    final Uri url =
+        Uri.parse('${_baseUrl}get-notifications?page=$page&pageSize=$pageSize');
+    debugPrint('[NotificationService] Fetching notifications…');
+    final http.Response res = await _client.get(url);
+    if (res.statusCode == 200 && res.body.isNotEmpty) {
+      final Map<String, dynamic> data =
+          json.decode(res.body) as Map<String, dynamic>;
+      final List<dynamic> items = data['items'] ?? [];
+      final int total = data['total'] is int ? data['total'] as int : 0;
+      debugPrint('[NotificationService] Received ${items.length} notifications');
+      return NotificationPage(
+        items: items.map((e) => NotificationMessage.fromJson(e)).toList(),
+        total: total,
+      );
+    }
+    debugPrint('[NotificationService] Fetch failed: ${res.statusCode}');
+    return NotificationPage(items: const [], total: 0);
+  }
+
+  static Future<bool> sendNotification({
+    required String title,
+    required String body,
+    String? id,
+    File? file,
+  }) async {
+    final String endpoint =
+        file == null ? 'send-notification-json' : 'send-notification';
+    final Uri url = Uri.parse('$_baseUrl$endpoint');
+    debugPrint('[NotificationService] Sending notification: "$title"');
+    if (file == null) {
+      final String payload =
+          json.encode({'title': title, 'body': body, if (id != null) 'id': id});
+      final http.Response res = await _client.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: payload,
+      );
+      debugPrint('[NotificationService] Send JSON status: ${res.statusCode}');
+      return res.statusCode == 200;
+    } else {
+      final http.MultipartRequest req = http.MultipartRequest('POST', url);
+      req.fields['title'] = title;
+      req.fields['body'] = body;
+      if (id != null) {
+        req.fields['id'] = id;
+      }
+      final http.MultipartFile multipartFile =
+          await http.MultipartFile.fromPath('file', file.path);
+      req.files.add(multipartFile);
+      final http.StreamedResponse streamed = await _client.send(req);
+      debugPrint('[NotificationService] Send multipart status: ${streamed.statusCode}');
+      return streamed.statusCode == 200;
+    }
+  }
+
+  static Future<bool> clearNotifications() async {
+    final Uri url = Uri.parse('${_baseUrl}clear-notifications');
+    debugPrint('[NotificationService] Clearing notifications…');
+    final http.Response res = await _client.post(url);
+    debugPrint('[NotificationService] Clear status: ${res.statusCode}');
+    return res.statusCode == 200;
+  }
+
+  static Future<bool> deleteNotification(String id) async {
+    // The backend only exposes an endpoint to clear *all* notifications, so
+    // issuing a network request here would wipe the entire list. Instead we
+    // simply report success so the caller can remove the item locally.
+    debugPrint(
+        '[NotificationService] Backend lacks single-delete; removing $id locally');
+    return true;
+  }
+
+  /// Listen to server sent events for realtime notifications.
+  ///
+  /// Emits a [NotificationMessage] whenever the backend pushes a new event and
+  /// automatically reconnects if the stream is closed or errors.
+  static Stream<NotificationMessage> streamNotifications(
+      {Duration retryDelay = const Duration(seconds: 5)}) async* {
+    while (true) {
+      try {
+        await for (final NotificationMessage msg in _streamOnce()) {
+          yield msg;
+        }
+        debugPrint(
+            '[NotificationService] Stream closed. Reconnecting in ${retryDelay.inSeconds}s…');
+      } catch (e) {
+        debugPrint(
+            '[NotificationService] Stream error: $e. Reconnecting in ${retryDelay.inSeconds}s…');
+      }
+      await Future.delayed(retryDelay);
+    }
+  }
+
+  static Stream<NotificationMessage> _streamOnce() async* {
+    final http.Request request = http.Request(
+      'GET',
+      Uri.parse('${_baseUrl}notifications-stream'),
+    );
+    request.headers['Accept'] = 'text/event-stream';
+
+    debugPrint('[NotificationService] Connecting to notification stream…');
+    final http.StreamedResponse response = await _client.send(request);
+
+    final Stream<String> lines = response.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter());
+
+    String dataBuffer = '';
+    await for (final String line in lines) {
+      if (line.startsWith('data:')) {
+        dataBuffer += line.substring(5).trim();
+      } else if (line.isEmpty) {
+        if (dataBuffer.isNotEmpty) {
+          try {
+            final Map<String, dynamic> jsonData =
+                json.decode(dataBuffer) as Map<String, dynamic>;
+            debugPrint('[NotificationService] Stream event: $jsonData');
+            yield NotificationMessage.fromJson(jsonData);
+          } catch (e) {
+            debugPrint('[NotificationService] Stream parse error: $e');
+          }
+          dataBuffer = '';
+        }
+      }
+    }
+  }
+}

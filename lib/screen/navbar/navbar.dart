@@ -10,7 +10,7 @@ import '../setting/controller/setting_controller.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
 
-final NavbarController navbarController = Get.put(NavbarController());
+final NavbarController navbarController = Get.find<NavbarController>();
 
 class NavbarScreen extends StatelessWidget {
   const NavbarScreen({super.key});
@@ -101,7 +101,43 @@ class NavbarScreen extends StatelessWidget {
                 label: tabLabels[2],
               ),
               BottomNavigationBarItem(
-                icon: const Icon(Icons.notifications_active_rounded),
+                icon: Obx(() {
+                  final int count = navbarController.unreadCount.value;
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        Icons.notifications_active_rounded,
+                        color: count > 0 ? Colors.red : null,
+                      ),
+                      if (count > 0)
+                        Positioned(
+                          right: -6,
+                          top: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Center(
+                              child: Text(
+                                count > 99 ? '99+' : '$count',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                }),
                 label: tabLabels[3],
               ),
               BottomNavigationBarItem(

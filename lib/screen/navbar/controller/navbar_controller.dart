@@ -1,9 +1,47 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class NavbarController extends GetxController{
-  var currentIndex = 0.obs;
+import '../../../model/notification_message.dart';
+import '../../../service/notification_service.dart';
+import '../../../service/app_update_service.dart';
 
-  void changTab(int index){
-    currentIndex.value=index;
+class NavbarController extends GetxController {
+  var currentIndex = 0.obs;
+  var unreadCount = 0.obs;
+
+  StreamSubscription<NotificationMessage>? _sub;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _sub = NotificationService.notificationsStream.listen((n) {
+      AppUpdateService.handleNotification(n).then((handled) {
+        if (!handled && currentIndex.value != 3) {
+          Get.snackbar(
+            n.title,
+            n.body,
+            snackPosition: SnackPosition.TOP,
+            margin: EdgeInsets.zero,
+            borderRadius: 0,
+            duration: const Duration(seconds: 3),
+            onTap: (_) => changTab(3),
+          );
+        }
+        unreadCount.value++;
+      });
+    });
+  }
+
+  @override
+  void onClose() {
+    _sub?.cancel();
+    super.onClose();
+  }
+
+  void changTab(int index) {
+    currentIndex.value = index;
   }
 }
+
