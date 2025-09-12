@@ -134,13 +134,16 @@ class NotificationController extends GetxController {
       _trimCache();
       _scheduleSave();
       _updateUnread();
+      final snackTitle =
+          (msg.title.isNotEmpty) ? msg.title : 'Thông báo mới';
+      final snackBody =
+          (msg.body.isNotEmpty) ? msg.body : 'Không có nội dung';
       Get.showSnackbar(
         GetSnackBar(
-          title: msg.title,
+          title: snackTitle,
           // `GetSnackBar` yêu cầu `message` hoặc `messageText` khác rỗng.
-          // Một số thông báo từ API không có phần nội dung, dẫn đến crash.
-          // Dùng `messageText` để đảm bảo widget luôn hợp lệ.
-          messageText: Text(msg.body ?? ''),
+          // Nếu API gửi rỗng, dùng chuỗi dự phòng để tránh thanh đen trống.
+          messageText: Text(snackBody),
           duration: const Duration(seconds: 5),
           snackPosition: SnackPosition.TOP,
           onTap: (_) => openNotification(msg),
