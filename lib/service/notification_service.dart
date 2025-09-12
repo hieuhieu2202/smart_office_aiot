@@ -11,8 +11,10 @@ class NotificationService {
   static const String _baseUrl =
       'http://10.220.130.117:2222/SendNoti/api/Control/';
   static const String _host = 'http://10.220.130.117:2222';
+  /// AES key used for decrypting base64 attachments.
+  /// Must be 16/24/32 bytes to satisfy AES requirements.
   static final enc.Key _aesKey =
-      enc.Key.fromUtf8('32lengthsupersecretkey!!!!!!!!!');
+      enc.Key.fromUtf8('32lengthsupersecretkey!!!!!!!!!!');
   static final enc.IV _aesIv = enc.IV.fromLength(16);
 
   static IOClient _getInsecureClient() {
