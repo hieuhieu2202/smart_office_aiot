@@ -58,9 +58,9 @@ class NotificationService {
           .add(await http.MultipartFile.fromPath('File', file.path));
     }
     final streamed = await client.send(request);
-    final body = await streamed.stream.bytesToString();
+    final responseBody = await streamed.stream.bytesToString();
     print(
-        '[NotificationService] sendNotification status ${streamed.statusCode} body: $body');
+        '[NotificationService] sendNotification status ${streamed.statusCode} body: $responseBody');
     return streamed.statusCode == 200;
   }
 
