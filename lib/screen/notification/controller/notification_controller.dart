@@ -21,7 +21,10 @@ class NotificationController extends GetxController {
   final downloadProgress = <String, double>{}.obs; // id -> 0..1
   final unreadCount = 0.obs;
   StreamSubscription<NotificationMessage>? _sub;
-  StreamSubscription<ConnectivityResult>? _connSub;
+  // Since connectivity_plus v6, onConnectivityChanged emits a list of
+  // ConnectivityResult values reflecting all active interfaces. Track the
+  // subscription with the matching generic type.
+  StreamSubscription<List<ConnectivityResult>>? _connSub;
   Timer? _reconnectTimer;
   Timer? _saveTimer;
   final _box = GetStorage();
@@ -110,9 +113,12 @@ class NotificationController extends GetxController {
   }
 
   void _listenConnectivity() {
-    _connSub = Connectivity().onConnectivityChanged.listen((result) {
-      final online = result != ConnectivityResult.none;
-      print('[NotificationController] connectivity: $result');
+    _connSub = Connectivity().onConnectivityChanged.listen((results) {
+      // When at least one interface is available and none of them is `none`,
+      // consider the device online.
+      final online =
+          results.isNotEmpty && !results.contains(ConnectivityResult.none);
+      print('[NotificationController] connectivity: $results');
       if (online) {
         fetchNotifications();
         _connectStream();
