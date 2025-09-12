@@ -52,7 +52,7 @@ class NotificationMessage {
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson({bool includeFileBase64 = true}) {
     return {
       'id': id,
       'title': title,
@@ -60,7 +60,7 @@ class NotificationMessage {
       'timestampUtc': timestampUtc.toIso8601String(),
       'fileUrl': fileUrl,
       'fileName': fileName,
-      'fileBase64': fileBase64,
+      if (includeFileBase64) 'fileBase64': fileBase64,
     };
   }
 }

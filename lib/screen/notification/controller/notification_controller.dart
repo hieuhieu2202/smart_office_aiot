@@ -29,6 +29,7 @@ class NotificationController extends GetxController {
   Timer? _saveTimer;
   final _box = GetStorage();
   DateTime? _lastTimestamp;
+  static const int _maxCache = 200;
 
   @override
   void onInit() {
@@ -63,6 +64,7 @@ class NotificationController extends GetxController {
           print('[NotificationController] added notification ${msg.id}');
         }
       }
+      _trimCache();
       _scheduleSave();
       _updateUnread();
     } finally {
@@ -129,6 +131,7 @@ class NotificationController extends GetxController {
       if (_lastTimestamp == null || msg.timestampUtc.isAfter(_lastTimestamp!)) {
         _lastTimestamp = msg.timestampUtc;
       }
+      _trimCache();
       _scheduleSave();
       _updateUnread();
       Get.showSnackbar(
@@ -173,18 +176,23 @@ class NotificationController extends GetxController {
     final url = msg.fileUrl;
     if (msg.fileBase64 != null && msg.fileBase64!.isNotEmpty) {
       try {
-        final bytes = await NotificationService.decryptBase64(msg.fileBase64!);
-        final dir = await _resolveSaveDir();
-        final filename = msg.fileName ?? msg.id;
-        final file = File('${dir.path}/$filename');
-        await file.writeAsBytes(bytes);
-        downloadedFiles[msg.id] = file.path;
-        print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
-        _scheduleSave();
-        await _maybeOpenApk(file);
-      } catch (e) {
-        Get.snackbar('Error', e.toString());
+      final bytes = await NotificationService.decryptBase64(msg.fileBase64!);
+      final dir = await _resolveSaveDir();
+      final filename = msg.fileName ?? msg.id;
+      final file = File('${dir.path}/$filename');
+      await file.writeAsBytes(bytes);
+      downloadedFiles[msg.id] = file.path;
+      print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
+      final idx = notifications.indexWhere((n) => n.id == msg.id);
+      if (idx != -1) {
+        notifications[idx] =
+            notifications[idx].copyWith(fileBase64: null);
       }
+      _scheduleSave();
+      await _maybeOpenApk(file);
+    } catch (e) {
+      Get.snackbar('Error', e.toString());
+    }
       return;
     }
     if (url == null) return;
@@ -269,10 +277,16 @@ class NotificationController extends GetxController {
 
   Future<void> _saveLocal() async {
     await _box.write('notifications',
-        notifications.map((e) => e.toJson()).toList());
+        notifications.map((e) => e.toJson(includeFileBase64: false)).toList());
     await _box.write('readIds', readIds.toList());
     await _box.write('files', downloadedFiles);
     await _box.write('lastTimestamp', _lastTimestamp?.toIso8601String());
+  }
+
+  void _trimCache() {
+    if (notifications.length > _maxCache) {
+      notifications.removeRange(_maxCache, notifications.length);
+    }
   }
 
   void showActions(NotificationMessage msg) {
