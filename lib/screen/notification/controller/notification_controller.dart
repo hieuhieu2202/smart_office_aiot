@@ -68,6 +68,9 @@ class NotificationController extends GetxController {
       _trimCache();
       _scheduleSave();
       _updateUnread();
+    } catch (e) {
+      print('[NotificationController] fetchNotifications error: $e');
+      Get.snackbar('Error', e.toString());
     } finally {
       isLoading.value = false;
     }

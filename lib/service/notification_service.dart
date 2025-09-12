@@ -32,7 +32,8 @@ class NotificationService {
     final url = _uri('get-notifications?page=$page&pageSize=$pageSize');
     final client = _getInsecureClient();
     try {
-      final res = await client.get(url);
+      final res =
+          await client.get(url).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200 && res.body.isNotEmpty) {
         final Map<String, dynamic> data = json.decode(res.body);
         final List<dynamic> items = data['items'] ?? [];
@@ -43,6 +44,12 @@ class NotificationService {
       }
       print('[NotificationService] getNotifications failed (${res.statusCode})');
       throw Exception('Failed to fetch notifications (${res.statusCode})');
+    } on TimeoutException catch (e) {
+      print('[NotificationService] getNotifications timeout: $e');
+      rethrow;
+    } catch (e) {
+      print('[NotificationService] getNotifications error: $e');
+      rethrow;
     } finally {
       client.close();
     }
