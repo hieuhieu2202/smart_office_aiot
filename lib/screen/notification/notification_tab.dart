@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 
 import '../../config/global_color.dart';
@@ -33,7 +32,12 @@ class _NotificationTabState extends State<NotificationTab> {
       final bool isDark = settingController.isDarkMode.value;
       return Scaffold(
         appBar: CustomAppBar(
-          title: Text(text.notification),
+          title: Obx(() {
+            final unread = controller.notifications
+                .where((n) => !controller.isRead(n.id))
+                .length;
+            return Text('${text.notification} (${unread})');
+          }),
           isDark: isDark,
           accent: GlobalColors.accentByIsDark(isDark),
           titleAlign: TextAlign.left,
@@ -56,22 +60,36 @@ class _NotificationTabState extends State<NotificationTab> {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final msg = controller.notifications[index];
-              return ListTile(
-                title: Text(msg.title),
-                subtitle: Text(msg.body),
-                trailing: msg.fileUrl != null
-                    ? IconButton(
-                        icon: const Icon(Icons.attach_file),
-                        onPressed: () async {
-                          final uri = Uri.parse(msg.fileUrl!);
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri,
-                                mode: LaunchMode.externalApplication);
-                          }
-                        },
-                      )
-                    : null,
-              );
+              return Obx(() {
+                final isRead = controller.isRead(msg.id);
+                return ListTile(
+                  onTap: () => controller.openNotification(msg),
+                  leading: Stack(
+                    children: [
+                      const Icon(Icons.notifications),
+                      if (!isRead)
+                        const Positioned(
+                          right: 0,
+                          top: 0,
+                          child: CircleAvatar(
+                            radius: 4,
+                            backgroundColor: Colors.red,
+                          ),
+                        ),
+                    ],
+                  ),
+                  title: Text(
+                    msg.title,
+                    style: isRead
+                        ? null
+                        : const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(msg.body),
+                  trailing: msg.fileUrl != null
+                      ? const Icon(Icons.attach_file)
+                      : null,
+                );
+              });
             },
           );
         }),
