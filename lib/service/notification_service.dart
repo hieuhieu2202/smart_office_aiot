@@ -31,10 +31,13 @@ class NotificationService {
     if (res.statusCode == 200 && res.body.isNotEmpty) {
       final Map<String, dynamic> data = json.decode(res.body);
       final List<dynamic> items = data['items'] ?? [];
-      return items
+      final result = items
           .map((e) => _parseMessage(e as Map<String, dynamic>))
           .toList();
+      print('[NotificationService] getNotifications => ${result.length} items');
+      return result;
     }
+    print('[NotificationService] getNotifications failed (${res.statusCode})');
     throw Exception('Failed to fetch notifications (${res.statusCode})');
   }
 
@@ -55,6 +58,9 @@ class NotificationService {
           .add(await http.MultipartFile.fromPath('File', file.path));
     }
     final streamed = await client.send(request);
+    final body = await streamed.stream.bytesToString();
+    print(
+        '[NotificationService] sendNotification status ${streamed.statusCode} body: $body');
     return streamed.statusCode == 200;
   }
 
@@ -62,6 +68,7 @@ class NotificationService {
     final url = Uri.parse('${_baseUrl}clear-notifications');
     final client = _getInsecureClient();
     final res = await client.post(url);
+    print('[NotificationService] clearNotifications status ${res.statusCode}');
     return res.statusCode == 200;
   }
 
@@ -78,7 +85,10 @@ class NotificationService {
       if (line.startsWith('data:')) {
         final data = line.substring(5).trim();
         if (data.isNotEmpty) {
-          yield _parseMessage(json.decode(data) as Map<String, dynamic>);
+          final msg = _parseMessage(json.decode(data) as Map<String, dynamic>);
+          print(
+              '[NotificationService] streamNotifications received ${msg.id}');
+          yield msg;
         }
       }
     }

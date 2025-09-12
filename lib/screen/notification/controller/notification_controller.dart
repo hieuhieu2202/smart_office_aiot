@@ -35,9 +35,11 @@ class NotificationController extends GetxController {
     try {
       isLoading.value = true;
       final data = await NotificationService.getNotifications();
+      print('[NotificationController] fetched ${data.length} notifications');
       for (final msg in data.reversed) {
         if (!notifications.any((n) => n.id == msg.id)) {
           notifications.insert(0, msg);
+          print('[NotificationController] added notification ${msg.id}');
         }
       }
       _saveLocal();
@@ -57,6 +59,7 @@ class NotificationController extends GetxController {
   void openNotification(NotificationMessage msg) {
     readIds.add(msg.id);
     _saveLocal();
+    print('[NotificationController] openNotification ${msg.id}');
     Get.to(() => NotificationDetailPage(message: msg));
   }
 
@@ -65,7 +68,7 @@ class NotificationController extends GetxController {
   void _connectStream() {
     _sub?.cancel();
     _sub = NotificationService.streamNotifications().listen((msg) {
-      print('Received notification: ${msg.title}');
+      print('[NotificationController] stream received ${msg.id}');
       notifications.insert(0, msg);
       _saveLocal();
       _updateUnread();
@@ -97,12 +100,13 @@ class NotificationController extends GetxController {
     final url = msg.fileUrl;
     if (msg.fileBase64 != null && msg.fileBase64!.isNotEmpty) {
       try {
-        final bytes = NotificationService.decryptBase64(msg.fileBase64!);
-        final dir = await getApplicationDocumentsDirectory();
-        final filename = msg.fileName ?? msg.id;
-        final file = File('${dir.path}/$filename');
-        await file.writeAsBytes(bytes);
-        downloadedFiles[msg.id] = file.path;
+      final bytes = NotificationService.decryptBase64(msg.fileBase64!);
+      final dir = await getApplicationDocumentsDirectory();
+      final filename = msg.fileName ?? msg.id;
+      final file = File('${dir.path}/$filename');
+      await file.writeAsBytes(bytes);
+      downloadedFiles[msg.id] = file.path;
+        print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
         _saveLocal();
       } catch (e) {
         Get.snackbar('Error', e.toString());
@@ -134,6 +138,7 @@ class NotificationController extends GetxController {
       await sink.close();
       downloadedFiles[msg.id] = file.path;
       downloadProgress.remove(msg.id);
+      print('[NotificationController] downloaded ${msg.id} to ${file.path}');
       _saveLocal();
     } catch (e) {
       downloadProgress.remove(msg.id);
