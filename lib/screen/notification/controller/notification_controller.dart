@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../navbar/controller/navbar_controller.dart';
 import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
 import '../notification_detail_page.dart';
@@ -141,18 +142,22 @@ class NotificationController extends GetxController {
       Get.showSnackbar(
         GetSnackBar(
           title: snackTitle,
-          // `GetSnackBar` yêu cầu `message` hoặc `messageText` khác rỗng.
-          // Nếu API gửi rỗng, dùng chuỗi dự phòng để tránh thanh đen trống.
           messageText: Text(snackBody),
           duration: const Duration(seconds: 5),
           snackPosition: SnackPosition.TOP,
-          onTap: (_) => openNotification(msg),
+          onTap: (_) => _openFromBanner(msg),
         ),
       );
     }, onError: (err) {
       print('Notification stream error: $err');
       _scheduleReconnect();
     }, onDone: _scheduleReconnect);
+  }
+
+  void _openFromBanner(NotificationMessage msg) {
+    final nav = Get.find<NavbarController>();
+    nav.changTab(3);
+    Future.delayed(const Duration(milliseconds: 300), () => openNotification(msg));
   }
 
   void _listenConnectivity() {
