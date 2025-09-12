@@ -102,6 +102,25 @@ class NotificationController extends GetxController {
     _scheduleSave();
   }
 
+  void toggleRead(NotificationMessage msg) {
+    if (isRead(msg.id)) {
+      readIds.remove(msg.id);
+      print('[NotificationController] mark ${msg.id} as unread');
+    } else {
+      readIds.add(msg.id);
+      print('[NotificationController] mark ${msg.id} as read');
+    }
+    _scheduleSave();
+  }
+
+  void deleteNotification(NotificationMessage msg) {
+    notifications.removeWhere((n) => n.id == msg.id);
+    readIds.remove(msg.id);
+    downloadedFiles.remove(msg.id);
+    print('[NotificationController] deleted notification ${msg.id}');
+    _scheduleSave();
+  }
+
   void _connectStream() {
     _sub?.cancel();
     _sub = NotificationService.streamNotifications().listen((msg) {
@@ -268,12 +287,7 @@ class NotificationController extends GetxController {
                 ? 'Mark as unread'
                 : 'Mark as read'),
             onTap: () {
-              if (isRead(msg.id)) {
-                readIds.remove(msg.id);
-              } else {
-                readIds.add(msg.id);
-              }
-              _scheduleSave();
+              toggleRead(msg);
               Get.back();
             },
           ),
@@ -281,10 +295,7 @@ class NotificationController extends GetxController {
             leading: const Icon(Icons.delete),
             title: const Text('Delete'),
             onTap: () {
-              notifications.removeWhere((n) => n.id == msg.id);
-              readIds.remove(msg.id);
-              downloadedFiles.remove(msg.id);
-              _scheduleSave();
+              deleteNotification(msg);
               Get.back();
             },
           ),

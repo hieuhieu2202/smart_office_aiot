@@ -68,6 +68,7 @@ dependencies:
   path_provider: ^2.1.2
   open_filex: ^4.3.4
   badges: ^3.1.2
+  flutter_slidable: ^3.1.0
   encrypt: ^5.0.1
 
 icons_launcher:

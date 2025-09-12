@@ -6,6 +6,7 @@ import '../../config/global_color.dart';
 import '../../generated/l10n.dart';
 import '../../widget/custom_app_bar.dart';
 import 'controller/notification_controller.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 class NotificationTab extends StatefulWidget {
   const NotificationTab({super.key});
@@ -66,33 +67,57 @@ class _NotificationTabState extends State<NotificationTab> {
               final msg = controller.notifications[index];
               return Obx(() {
                 final isRead = controller.isRead(msg.id);
-                return ListTile(
-                  onTap: () => controller.openNotification(msg),
-                  onLongPress: () => controller.showActions(msg),
-                  leading: Stack(
+                return Slidable(
+                  key: ValueKey(msg.id),
+                  endActionPane: ActionPane(
+                    motion: const ScrollMotion(),
                     children: [
-                      const Icon(Icons.notifications),
-                      if (!isRead)
-                        const Positioned(
-                          right: 0,
-                          top: 0,
-                          child: CircleAvatar(
-                            radius: 4,
-                            backgroundColor: Colors.red,
-                          ),
-                        ),
+                      SlidableAction(
+                        onPressed: (_) => controller.toggleRead(msg),
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        icon: isRead
+                            ? Icons.mark_email_unread
+                            : Icons.mark_email_read,
+                        label: isRead ? 'Unread' : 'Read',
+                      ),
+                      SlidableAction(
+                        onPressed: (_) => controller.deleteNotification(msg),
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        icon: Icons.delete,
+                        label: 'Delete',
+                      ),
                     ],
                   ),
-                  title: Text(
-                    msg.title,
-                    style: isRead
-                        ? null
-                        : const TextStyle(fontWeight: FontWeight.bold),
+                  child: ListTile(
+                    onTap: () => controller.openNotification(msg),
+                    onLongPress: () => controller.showActions(msg),
+                    leading: Stack(
+                      children: [
+                        const Icon(Icons.notifications),
+                        if (!isRead)
+                          const Positioned(
+                            right: 0,
+                            top: 0,
+                            child: CircleAvatar(
+                              radius: 4,
+                              backgroundColor: Colors.red,
+                            ),
+                          ),
+                      ],
+                    ),
+                    title: Text(
+                      msg.title,
+                      style: isRead
+                          ? null
+                          : const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(msg.body),
+                    trailing: msg.fileUrl != null
+                        ? const Icon(Icons.attach_file)
+                        : null,
                   ),
-                  subtitle: Text(msg.body),
-                  trailing: msg.fileUrl != null
-                      ? const Icon(Icons.attach_file)
-                      : null,
                 );
               });
             },
