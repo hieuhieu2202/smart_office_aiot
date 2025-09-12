@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -57,5 +58,25 @@ class NotificationService {
     final client = _getInsecureClient();
     final res = await client.post(url);
     return res.statusCode == 200;
+  }
+
+  static Stream<NotificationMessage> streamNotifications() async* {
+    final client = _getInsecureClient();
+    final request = http.Request(
+        'GET', Uri.parse('${_baseUrl}notifications-stream'))
+      ..headers['Accept'] = 'text/event-stream';
+    final response = await client.send(request);
+    final lines = response.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter());
+    await for (final line in lines) {
+      if (line.startsWith('data:')) {
+        final data = line.substring(5).trim();
+        if (data.isNotEmpty) {
+          yield NotificationMessage.fromJson(
+              json.decode(data) as Map<String, dynamic>);
+        }
+      }
+    }
   }
 }
