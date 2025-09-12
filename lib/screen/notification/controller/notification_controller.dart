@@ -7,9 +7,11 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
 import '../notification_detail_page.dart';
+import '../notification_files_page.dart';
 
 class NotificationController extends GetxController {
   var notifications = <NotificationMessage>[].obs;
@@ -19,6 +21,7 @@ class NotificationController extends GetxController {
   final downloadProgress = <String, double>{}.obs; // id -> 0..1
   final unreadCount = 0.obs;
   StreamSubscription<NotificationMessage>? _sub;
+  StreamSubscription<ConnectivityResult>? _connSub;
   Timer? _reconnectTimer;
   Timer? _saveTimer;
   final _box = GetStorage();
@@ -29,6 +32,7 @@ class NotificationController extends GetxController {
     _loadLocal();
     fetchNotifications();
     _connectStream();
+    _listenConnectivity();
     ever<List<NotificationMessage>>(notifications, (_) => _updateUnread());
     ever<Set<String>>(readIds, (_) => _updateUnread());
   }
@@ -54,6 +58,7 @@ class NotificationController extends GetxController {
   @override
   void onClose() {
     _sub?.cancel();
+    _connSub?.cancel();
     _reconnectTimer?.cancel();
     _saveTimer?.cancel();
     _saveLocal();
@@ -68,6 +73,19 @@ class NotificationController extends GetxController {
   }
 
   bool isRead(String id) => readIds.contains(id);
+
+  void openFiles() {
+    Get.to(() => const NotificationFilesPage());
+  }
+
+  void deleteFile(String id) {
+    final path = downloadedFiles[id];
+    if (path != null) {
+      File(path).delete().catchError((_) {});
+    }
+    downloadedFiles.remove(id);
+    _scheduleSave();
+  }
 
   void _connectStream() {
     _sub?.cancel();
@@ -89,6 +107,17 @@ class NotificationController extends GetxController {
       print('Notification stream error: $err');
       _scheduleReconnect();
     }, onDone: _scheduleReconnect);
+  }
+
+  void _listenConnectivity() {
+    _connSub = Connectivity().onConnectivityChanged.listen((result) {
+      final online = result != ConnectivityResult.none;
+      print('[NotificationController] connectivity: $result');
+      if (online) {
+        fetchNotifications();
+        _connectStream();
+      }
+    });
   }
 
   void _scheduleReconnect() {
