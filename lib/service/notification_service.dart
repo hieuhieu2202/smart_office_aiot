@@ -12,6 +12,7 @@ class NotificationService {
   static const String _baseUrl =
       'http://10.220.130.117:2222/SendNoti/api/Control/';
   static const String _host = 'http://10.220.130.117:2222';
+  static Uri _uri(String path) => Uri.parse('$_baseUrl$path');
   /// AES key used for decrypting base64 attachments.
   /// Must be 16/24/32 bytes to satisfy AES requirements.
   static final enc.Key _aesKey =
@@ -28,20 +29,23 @@ class NotificationService {
     int page = 1,
     int pageSize = 50,
   }) async {
-    final url = Uri.parse('${_baseUrl}get-notifications?page=$page&pageSize=$pageSize');
+    final url = _uri('get-notifications?page=$page&pageSize=$pageSize');
     final client = _getInsecureClient();
-    final res = await client.get(url);
-    if (res.statusCode == 200 && res.body.isNotEmpty) {
-      final Map<String, dynamic> data = json.decode(res.body);
-      final List<dynamic> items = data['items'] ?? [];
-      final result = items
-          .map((e) => _parseMessage(e as Map<String, dynamic>))
-          .toList();
-      print('[NotificationService] getNotifications => ${result.length} items');
-      return result;
+    try {
+      final res = await client.get(url);
+      if (res.statusCode == 200 && res.body.isNotEmpty) {
+        final Map<String, dynamic> data = json.decode(res.body);
+        final List<dynamic> items = data['items'] ?? [];
+        final result =
+            items.map((e) => _parseMessage(e as Map<String, dynamic>)).toList();
+        print('[NotificationService] getNotifications => ${result.length} items');
+        return result;
+      }
+      print('[NotificationService] getNotifications failed (${res.statusCode})');
+      throw Exception('Failed to fetch notifications (${res.statusCode})');
+    } finally {
+      client.close();
     }
-    print('[NotificationService] getNotifications failed (${res.statusCode})');
-    throw Exception('Failed to fetch notifications (${res.statusCode})');
   }
 
   static Future<bool> sendNotification({
@@ -50,50 +54,61 @@ class NotificationService {
     required String body,
     File? file,
   }) async {
-    final uri = Uri.parse('${_baseUrl}send-notification');
+    final uri = _uri('send-notification');
     final client = _getInsecureClient();
-    final request = http.MultipartRequest('POST', uri)
-      ..fields['Title'] = title
-      ..fields['Body'] = body;
-    if (id != null) request.fields['Id'] = id;
-    if (file != null) {
-      request.files
-          .add(await http.MultipartFile.fromPath('File', file.path));
+    try {
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['Title'] = title
+        ..fields['Body'] = body;
+      if (id != null) request.fields['Id'] = id;
+      if (file != null) {
+        request.files
+            .add(await http.MultipartFile.fromPath('File', file.path));
+      }
+      final streamed = await client.send(request);
+      final responseBody = await streamed.stream.bytesToString();
+      print(
+          '[NotificationService] sendNotification status ${streamed.statusCode} body: $responseBody');
+      return streamed.statusCode == 200;
+    } finally {
+      client.close();
     }
-    final streamed = await client.send(request);
-    final responseBody = await streamed.stream.bytesToString();
-    print(
-        '[NotificationService] sendNotification status ${streamed.statusCode} body: $responseBody');
-    return streamed.statusCode == 200;
   }
 
   static Future<bool> clearNotifications() async {
-    final url = Uri.parse('${_baseUrl}clear-notifications');
+    final url = _uri('clear-notifications');
     final client = _getInsecureClient();
-    final res = await client.post(url);
-    print('[NotificationService] clearNotifications status ${res.statusCode}');
-    return res.statusCode == 200;
+    try {
+      final res = await client.post(url);
+      print('[NotificationService] clearNotifications status ${res.statusCode}');
+      return res.statusCode == 200;
+    } finally {
+      client.close();
+    }
   }
 
   static Stream<NotificationMessage> streamNotifications() async* {
     final client = _getInsecureClient();
-    final request = http.Request(
-        'GET', Uri.parse('${_baseUrl}notifications-stream'))
-      ..headers['Accept'] = 'text/event-stream';
-    final response = await client.send(request);
-    final lines = response.stream
-        .transform(utf8.decoder)
-        .transform(const LineSplitter());
-    await for (final line in lines) {
-      if (line.startsWith('data:')) {
-        final data = line.substring(5).trim();
-        if (data.isNotEmpty) {
-          final msg = _parseMessage(json.decode(data) as Map<String, dynamic>);
-          print(
-              '[NotificationService] streamNotifications received ${msg.id}');
-          yield msg;
+    try {
+      final request = http.Request('GET', _uri('notifications-stream'))
+        ..headers['Accept'] = 'text/event-stream';
+      final response = await client.send(request);
+      final lines = response.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
+      await for (final line in lines) {
+        if (line.startsWith('data:')) {
+          final data = line.substring(5).trim();
+          if (data.isNotEmpty) {
+            final msg =
+                _parseMessage(json.decode(data) as Map<String, dynamic>);
+            print('[NotificationService] streamNotifications received ${msg.id}');
+            yield msg;
+          }
         }
       }
+    } finally {
+      client.close();
     }
   }
 
