@@ -98,12 +98,17 @@ class NotificationService {
   }
 
   static NotificationMessage _parseMessage(Map<String, dynamic> json) {
-    final msg = NotificationMessage.fromJson(json);
-    final url = msg.fileUrl;
-    if (url != null && url.isNotEmpty && !url.startsWith('http')) {
-      return msg.copyWith(fileUrl: '$_host$url');
+    try {
+      final msg = NotificationMessage.fromJson(json);
+      final url = msg.fileUrl;
+      if (url != null && url.isNotEmpty && !url.startsWith('http')) {
+        return msg.copyWith(fileUrl: '$_host$url');
+      }
+      return msg;
+    } catch (e) {
+      print('[NotificationService] failed to parse notification: $e');
+      rethrow;
     }
-    return msg;
   }
 
   static Future<List<int>> decryptBase64(String data) {

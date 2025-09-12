@@ -41,11 +41,20 @@ class NotificationMessage {
   }
 
   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
+    DateTime? parsedTime;
+    final rawTime = json['timestampUtc'];
+    if (rawTime is int) {
+      // Assume milliseconds-since-epoch if an integer is provided.
+      parsedTime = DateTime.fromMillisecondsSinceEpoch(rawTime, isUtc: true);
+    } else if (rawTime != null) {
+      parsedTime = DateTime.tryParse(rawTime.toString());
+    }
+
     return NotificationMessage(
       id: json['id'] ?? '',
       title: json['title'] ?? '',
       body: json['body'] ?? '',
-      timestampUtc: DateTime.parse(json['timestampUtc'].toString()),
+      timestampUtc: parsedTime ?? DateTime.now().toUtc(),
       fileUrl: json['fileUrl'] as String?,
       fileName: json['fileName'] as String?,
       fileBase64: json['fileBase64'] as String?,
