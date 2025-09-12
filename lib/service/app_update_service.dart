@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/io_client.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 
@@ -12,14 +11,11 @@ import '../model/app_version_info.dart';
 import '../model/notification_message.dart';
 
 class AppUpdateService {
-  static const String _baseUrl = 'https://localhost:7283/api/control/';
-  static const String _root = 'https://localhost:7283';
+  static const String _baseUrl =
+      'http://10.220.130.117:2222/SendNoti/api/Control/';
+  static const String _root = 'http://10.220.130.117:2222';
 
-  static final http.Client _client = IOClient(
-    HttpClient()
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true,
-  );
+  static final http.Client _client = http.Client();
 
   static Future<AppVersionInfo?> fetchManifest() async {
     final Uri url = Uri.parse('${_baseUrl}app-version');
