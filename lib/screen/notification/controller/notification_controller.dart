@@ -28,11 +28,15 @@ class NotificationController extends GetxController {
   Timer? _reconnectTimer;
   Timer? _saveTimer;
   final _box = GetStorage();
+  DateTime? _lastTimestamp;
 
   @override
   void onInit() {
     super.onInit();
     _loadLocal();
+    print(
+        '[NotificationController] loaded ${notifications.length} cached notifications');
+    _updateUnread();
     fetchNotifications();
     _connectStream();
     _listenConnectivity();
@@ -42,12 +46,20 @@ class NotificationController extends GetxController {
 
   Future<void> fetchNotifications() async {
     try {
-      isLoading.value = true;
+      if (notifications.isEmpty) {
+        isLoading.value = true;
+      }
       final data = await NotificationService.getNotifications();
       print('[NotificationController] fetched ${data.length} notifications');
       for (final msg in data.reversed) {
-        if (!notifications.any((n) => n.id == msg.id)) {
+        final newer =
+            _lastTimestamp == null || msg.timestampUtc.isAfter(_lastTimestamp!);
+        if (newer && !notifications.any((n) => n.id == msg.id)) {
           notifications.insert(0, msg);
+          if (_lastTimestamp == null ||
+              msg.timestampUtc.isAfter(_lastTimestamp!)) {
+            _lastTimestamp = msg.timestampUtc;
+          }
           print('[NotificationController] added notification ${msg.id}');
         }
       }
@@ -95,6 +107,9 @@ class NotificationController extends GetxController {
     _sub = NotificationService.streamNotifications().listen((msg) {
       print('[NotificationController] stream received ${msg.id}');
       notifications.insert(0, msg);
+      if (_lastTimestamp == null || msg.timestampUtc.isAfter(_lastTimestamp!)) {
+        _lastTimestamp = msg.timestampUtc;
+      }
       _scheduleSave();
       _updateUnread();
       Get.showSnackbar(
@@ -220,6 +235,12 @@ class NotificationController extends GetxController {
     readIds.addAll(storedRead.cast<String>());
     final storedFiles = Map<String, String>.from(_box.read('files') ?? {});
     downloadedFiles.assignAll(storedFiles);
+    final ts = _box.read<String>('lastTimestamp');
+    if (ts != null) {
+      _lastTimestamp = DateTime.tryParse(ts);
+    } else if (notifications.isNotEmpty) {
+      _lastTimestamp = notifications.first.timestampUtc;
+    }
   }
 
   void _scheduleSave() {
@@ -232,6 +253,7 @@ class NotificationController extends GetxController {
         notifications.map((e) => e.toJson()).toList());
     await _box.write('readIds', readIds.toList());
     await _box.write('files', downloadedFiles);
+    await _box.write('lastTimestamp', _lastTimestamp?.toIso8601String());
   }
 
   void showActions(NotificationMessage msg) {
