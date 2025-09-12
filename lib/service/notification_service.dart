@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 import 'package:encrypt/encrypt.dart' as enc;
+import 'package:flutter/foundation.dart';
 import '../model/notification_message.dart';
 
 class NotificationService {
@@ -105,7 +106,11 @@ class NotificationService {
     return msg;
   }
 
-  static List<int> decryptBase64(String data) {
+  static Future<List<int>> decryptBase64(String data) {
+    return compute(_decryptBase64, data);
+  }
+
+  static List<int> _decryptBase64(String data) {
     final raw = base64Decode(data);
     try {
       final encrypter = enc.Encrypter(

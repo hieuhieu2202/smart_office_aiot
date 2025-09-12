@@ -20,6 +20,7 @@ class NotificationController extends GetxController {
   final unreadCount = 0.obs;
   StreamSubscription<NotificationMessage>? _sub;
   Timer? _reconnectTimer;
+  Timer? _saveTimer;
   final _box = GetStorage();
 
   @override
@@ -43,7 +44,7 @@ class NotificationController extends GetxController {
           print('[NotificationController] added notification ${msg.id}');
         }
       }
-      _saveLocal();
+      _scheduleSave();
       _updateUnread();
     } finally {
       isLoading.value = false;
@@ -54,12 +55,14 @@ class NotificationController extends GetxController {
   void onClose() {
     _sub?.cancel();
     _reconnectTimer?.cancel();
+    _saveTimer?.cancel();
+    _saveLocal();
     super.onClose();
   }
 
   void openNotification(NotificationMessage msg) {
     readIds.add(msg.id);
-    _saveLocal();
+    _scheduleSave();
     print('[NotificationController] openNotification ${msg.id}');
     Get.to(() => NotificationDetailPage(message: msg));
   }
@@ -71,7 +74,7 @@ class NotificationController extends GetxController {
     _sub = NotificationService.streamNotifications().listen((msg) {
       print('[NotificationController] stream received ${msg.id}');
       notifications.insert(0, msg);
-      _saveLocal();
+      _scheduleSave();
       _updateUnread();
       Get.showSnackbar(
         GetSnackBar(
@@ -101,14 +104,14 @@ class NotificationController extends GetxController {
     final url = msg.fileUrl;
     if (msg.fileBase64 != null && msg.fileBase64!.isNotEmpty) {
       try {
-        final bytes = NotificationService.decryptBase64(msg.fileBase64!);
+        final bytes = await NotificationService.decryptBase64(msg.fileBase64!);
         final dir = await _resolveSaveDir();
         final filename = msg.fileName ?? msg.id;
         final file = File('${dir.path}/$filename');
         await file.writeAsBytes(bytes);
         downloadedFiles[msg.id] = file.path;
         print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
-        _saveLocal();
+        _scheduleSave();
         await _maybeOpenApk(file);
       } catch (e) {
         Get.snackbar('Error', e.toString());
@@ -141,7 +144,7 @@ class NotificationController extends GetxController {
       downloadedFiles[msg.id] = file.path;
       downloadProgress.remove(msg.id);
       print('[NotificationController] downloaded ${msg.id} to ${file.path}');
-      _saveLocal();
+      _scheduleSave();
       await _maybeOpenApk(file);
     } catch (e) {
       downloadProgress.remove(msg.id);
@@ -171,7 +174,7 @@ class NotificationController extends GetxController {
   void _updateUnread() {
     unreadCount.value =
         notifications.where((n) => !readIds.contains(n.id)).length;
-    _saveLocal();
+    _scheduleSave();
   }
 
   void _loadLocal() {
@@ -184,11 +187,16 @@ class NotificationController extends GetxController {
     downloadedFiles.assignAll(storedFiles);
   }
 
-  void _saveLocal() {
-    _box.write('notifications',
+  void _scheduleSave() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 500), _saveLocal);
+  }
+
+  Future<void> _saveLocal() async {
+    await _box.write('notifications',
         notifications.map((e) => e.toJson()).toList());
-    _box.write('readIds', readIds.toList());
-    _box.write('files', downloadedFiles);
+    await _box.write('readIds', readIds.toList());
+    await _box.write('files', downloadedFiles);
   }
 
   void showActions(NotificationMessage msg) {
@@ -208,7 +216,7 @@ class NotificationController extends GetxController {
               } else {
                 readIds.add(msg.id);
               }
-              _saveLocal();
+              _scheduleSave();
               Get.back();
             },
           ),
@@ -219,7 +227,7 @@ class NotificationController extends GetxController {
               notifications.removeWhere((n) => n.id == msg.id);
               readIds.remove(msg.id);
               downloadedFiles.remove(msg.id);
-              _saveLocal();
+              _scheduleSave();
               Get.back();
             },
           ),
