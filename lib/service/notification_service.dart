@@ -4,14 +4,19 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 
 import '../model/notification_message.dart';
 import '../model/notification_page.dart';
 
 class NotificationService {
-  static const String _baseUrl = 'http://10.220.130.117:2222/SendNoti/api/Control/';
+  static const String _baseUrl = 'https://localhost:7283/api/control/';
 
-  static final http.Client _client = http.Client();
+  static final http.Client _client = IOClient(
+    HttpClient()
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true,
+  );
 
   /// Broadcast stream so multiple parts of the app can listen for
   /// realtime notifications without opening extra connections.
