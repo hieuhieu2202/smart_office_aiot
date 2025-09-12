@@ -8,6 +8,7 @@ class NotificationMessage {
   final DateTime timestampUtc;
   final String? fileUrl;
   final String? fileName;
+  final String? fileBase64;
 
   const NotificationMessage({
     required this.id,
@@ -16,6 +17,7 @@ class NotificationMessage {
     required this.timestampUtc,
     this.fileUrl,
     this.fileName,
+    this.fileBase64,
   });
 
   NotificationMessage copyWith({
@@ -25,6 +27,7 @@ class NotificationMessage {
     DateTime? timestampUtc,
     String? fileUrl,
     String? fileName,
+    String? fileBase64,
   }) {
     return NotificationMessage(
       id: id ?? this.id,
@@ -33,6 +36,7 @@ class NotificationMessage {
       timestampUtc: timestampUtc ?? this.timestampUtc,
       fileUrl: fileUrl ?? this.fileUrl,
       fileName: fileName ?? this.fileName,
+      fileBase64: fileBase64 ?? this.fileBase64,
     );
   }
 
@@ -44,6 +48,7 @@ class NotificationMessage {
       timestampUtc: DateTime.parse(json['timestampUtc'].toString()),
       fileUrl: json['fileUrl'] as String?,
       fileName: json['fileName'] as String?,
+      fileBase64: json['fileBase64'] as String?,
     );
   }
 
@@ -55,6 +60,7 @@ class NotificationMessage {
       'timestampUtc': timestampUtc.toIso8601String(),
       'fileUrl': fileUrl,
       'fileName': fileName,
+      'fileBase64': fileBase64,
     };
   }
 }

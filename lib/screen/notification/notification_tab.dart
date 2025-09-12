@@ -64,6 +64,7 @@ class _NotificationTabState extends State<NotificationTab> {
                 final isRead = controller.isRead(msg.id);
                 return ListTile(
                   onTap: () => controller.openNotification(msg),
+                  onLongPress: () => controller.showActions(msg),
                   leading: Stack(
                     children: [
                       const Icon(Icons.notifications),

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:get_storage/get_storage.dart';
 import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
 import '../notification_detail_page.dart';
@@ -17,10 +18,12 @@ class NotificationController extends GetxController {
   final unreadCount = 0.obs;
   StreamSubscription<NotificationMessage>? _sub;
   Timer? _reconnectTimer;
+  final _box = GetStorage();
 
   @override
   void onInit() {
     super.onInit();
+    _loadLocal();
     fetchNotifications();
     _connectStream();
     ever<List<NotificationMessage>>(notifications, (_) => _updateUnread());
@@ -31,7 +34,12 @@ class NotificationController extends GetxController {
     try {
       isLoading.value = true;
       final data = await NotificationService.getNotifications();
-      notifications.assignAll(data);
+      for (final msg in data.reversed) {
+        if (!notifications.any((n) => n.id == msg.id)) {
+          notifications.insert(0, msg);
+        }
+      }
+      _saveLocal();
       _updateUnread();
     } finally {
       isLoading.value = false;
@@ -47,6 +55,7 @@ class NotificationController extends GetxController {
 
   void openNotification(NotificationMessage msg) {
     readIds.add(msg.id);
+    _saveLocal();
     Get.to(() => NotificationDetailPage(message: msg));
   }
 
@@ -57,6 +66,7 @@ class NotificationController extends GetxController {
     _sub = NotificationService.streamNotifications().listen((msg) {
       print('Received notification: ${msg.title}');
       notifications.insert(0, msg);
+      _saveLocal();
       _updateUnread();
       Get.showSnackbar(
         GetSnackBar(
@@ -84,6 +94,20 @@ class NotificationController extends GetxController {
 
   Future<void> downloadAttachment(NotificationMessage msg) async {
     final url = msg.fileUrl;
+    if (msg.fileBase64 != null && msg.fileBase64!.isNotEmpty) {
+      try {
+        final bytes = NotificationService.decryptBase64(msg.fileBase64!);
+        final dir = await getApplicationDocumentsDirectory();
+        final filename = msg.fileName ?? msg.id;
+        final file = File('${dir.path}/$filename');
+        await file.writeAsBytes(bytes);
+        downloadedFiles[msg.id] = file.path;
+        _saveLocal();
+      } catch (e) {
+        Get.snackbar('Error', e.toString());
+      }
+      return;
+    }
     if (url == null) return;
     try {
       final request = http.Request('GET', Uri.parse(url));
@@ -109,6 +133,7 @@ class NotificationController extends GetxController {
       await sink.close();
       downloadedFiles[msg.id] = file.path;
       downloadProgress.remove(msg.id);
+      _saveLocal();
     } catch (e) {
       downloadProgress.remove(msg.id);
       Get.snackbar('Error', e.toString());
@@ -118,5 +143,60 @@ class NotificationController extends GetxController {
   void _updateUnread() {
     unreadCount.value =
         notifications.where((n) => !readIds.contains(n.id)).length;
+    _saveLocal();
+  }
+
+  void _loadLocal() {
+    final storedList = _box.read<List>('notifications') ?? [];
+    notifications.assignAll(storedList
+        .map((e) => NotificationMessage.fromJson(Map<String, dynamic>.from(e))));
+    final storedRead = _box.read<List>('readIds') ?? [];
+    readIds.addAll(storedRead.cast<String>());
+    final storedFiles = Map<String, String>.from(_box.read('files') ?? {});
+    downloadedFiles.assignAll(storedFiles);
+  }
+
+  void _saveLocal() {
+    _box.write('notifications',
+        notifications.map((e) => e.toJson()).toList());
+    _box.write('readIds', readIds.toList());
+    _box.write('files', downloadedFiles);
+  }
+
+  void showActions(NotificationMessage msg) {
+    Get.bottomSheet(SafeArea(
+      child: Wrap(
+        children: [
+          ListTile(
+            leading: Icon(isRead(msg.id)
+                ? Icons.mark_email_unread
+                : Icons.mark_email_read),
+            title: Text(isRead(msg.id)
+                ? 'Mark as unread'
+                : 'Mark as read'),
+            onTap: () {
+              if (isRead(msg.id)) {
+                readIds.remove(msg.id);
+              } else {
+                readIds.add(msg.id);
+              }
+              _saveLocal();
+              Get.back();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete),
+            title: const Text('Delete'),
+            onTap: () {
+              notifications.removeWhere((n) => n.id == msg.id);
+              readIds.remove(msg.id);
+              downloadedFiles.remove(msg.id);
+              _saveLocal();
+              Get.back();
+            },
+          ),
+        ],
+      ),
+    ));
   }
 }

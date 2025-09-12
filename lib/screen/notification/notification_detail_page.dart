@@ -32,7 +32,7 @@ class NotificationDetailPage extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 24),
-            if (message.fileUrl != null) ...[
+            if (message.fileUrl != null || message.fileBase64 != null) ...[
               Text(message.fileName ?? 'attachment'),
               const SizedBox(height: 8),
               Obx(() {
@@ -41,7 +41,13 @@ class NotificationDetailPage extends StatelessWidget {
                 final path = controller.downloadedFiles[message.id];
                 if (path != null) {
                   return ElevatedButton.icon(
-                    onPressed: () => OpenFilex.open(path),
+                    onPressed: () async {
+                      try {
+                        await OpenFilex.open(path);
+                      } catch (e) {
+                        Get.snackbar('Error', e.toString());
+                      }
+                    },
                     icon: const Icon(Icons.open_in_new),
                     label: const Text('Open'),
                   );
@@ -51,15 +57,19 @@ class NotificationDetailPage extends StatelessWidget {
                 }
                 return ElevatedButton.icon(
                   onPressed: () async {
-                    final url = message.fileUrl!;
-                    if (url.startsWith('http')) {
-                      await controller.downloadAttachment(message);
-                    } else {
-                      final uri = Uri.parse(url);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri,
-                            mode: LaunchMode.externalApplication);
+                    if (message.fileUrl != null) {
+                      final url = message.fileUrl!;
+                      if (url.startsWith('http')) {
+                        await controller.downloadAttachment(message);
+                      } else {
+                        final uri = Uri.parse(url);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri,
+                              mode: LaunchMode.externalApplication);
+                        }
                       }
+                    } else {
+                      await controller.downloadAttachment(message);
                     }
                   },
                   icon: const Icon(Icons.download),

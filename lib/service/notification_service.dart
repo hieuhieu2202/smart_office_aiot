@@ -4,12 +4,16 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
+import 'package:encrypt/encrypt.dart' as enc;
 import '../model/notification_message.dart';
 
 class NotificationService {
   static const String _baseUrl =
       'http://10.220.130.117:2222/SendNoti/api/Control/';
   static const String _host = 'http://10.220.130.117:2222';
+  static final enc.Key _aesKey =
+      enc.Key.fromUtf8('32lengthsupersecretkey!!!!!!!!!');
+  static final enc.IV _aesIv = enc.IV.fromLength(16);
 
   static IOClient _getInsecureClient() {
     final httpClient = HttpClient()
@@ -87,5 +91,11 @@ class NotificationService {
       return msg.copyWith(fileUrl: '$_host$url');
     }
     return msg;
+  }
+
+  static List<int> decryptBase64(String data) {
+    final encrypter = enc.Encrypter(enc.AES(_aesKey, mode: enc.AESMode.cbc));
+    final encrypted = enc.Encrypted(base64Decode(data));
+    return encrypter.decryptBytes(encrypted, iv: _aesIv);
   }
 }
