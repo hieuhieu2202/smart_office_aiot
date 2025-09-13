@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../navbar/controller/navbar_controller.dart';
 import '../../../model/notification_message.dart';
@@ -173,10 +173,17 @@ class NotificationController extends GetxController {
     try {
       if (msg.fileUrl != null && msg.fileUrl!.isNotEmpty) {
         final uri = Uri.parse(msg.fileUrl!);
-        print('[NotificationController] opening remote file ${msg.fileUrl}');
-        if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-          Get.snackbar('Error', 'Không mở được file');
+        print('[NotificationController] downloading ${msg.fileUrl}');
+        final res = await http.get(uri);
+        if (res.statusCode != 200) {
+          Get.snackbar('Error', 'Tải file thất bại');
+          return;
         }
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/${msg.fileName ?? msg.id}');
+        await file.writeAsBytes(res.bodyBytes);
+        print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
+        await OpenFilex.open(file.path);
         return;
       }
       final data = msg.fileBase64;
@@ -197,6 +204,7 @@ class NotificationController extends GetxController {
         final dir = await getTemporaryDirectory();
         final file = File('${dir.path}/${msg.fileName ?? msg.id}');
         await file.writeAsBytes(bytes);
+        print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
         await OpenFilex.open(file.path);
       }
     } catch (e) {
