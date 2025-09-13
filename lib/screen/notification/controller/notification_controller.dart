@@ -187,30 +187,29 @@ class NotificationController extends GetxController {
   }
 
   Future<void> downloadAttachment(NotificationMessage msg) async {
-    final url = msg.fileUrl;
-    if (msg.fileBase64 != null && msg.fileBase64!.isNotEmpty) {
-      try {
-      final bytes = await NotificationService.decryptBase64(msg.fileBase64!);
+    try {
       final dir = await _resolveSaveDir();
       final filename = msg.fileName ?? msg.id;
       final file = File('${dir.path}/$filename');
-      await file.writeAsBytes(bytes);
-      downloadedFiles[msg.id] = file.path;
-      print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
-      final idx = notifications.indexWhere((n) => n.id == msg.id);
-      if (idx != -1) {
-        notifications[idx] =
-            notifications[idx].copyWith(fileBase64: null);
+
+      if (msg.fileBase64 != null && msg.fileBase64!.isNotEmpty) {
+        print('[NotificationController] decoding base64 for ${msg.id}');
+        final bytes = await NotificationService.decryptBase64(msg.fileBase64!);
+        await file.writeAsBytes(bytes);
+        downloadedFiles[msg.id] = file.path;
+        print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
+        final idx = notifications.indexWhere((n) => n.id == msg.id);
+        if (idx != -1) {
+          notifications[idx] = notifications[idx].copyWith(fileBase64: null);
+        }
+        _scheduleSave();
+        await _openFile(file);
+        return;
       }
-      _scheduleSave();
-      await _maybeOpenApk(file);
-    } catch (e) {
-      Get.snackbar('Error', e.toString());
-    }
-      return;
-    }
-    if (url == null) return;
-    try {
+
+      final url = msg.fileUrl;
+      if (url == null) return;
+
       final request = http.Request('GET', Uri.parse(url));
       final response = await http.Client().send(request);
       if (response.statusCode != 200) {
@@ -218,9 +217,6 @@ class NotificationController extends GetxController {
         return;
       }
       final total = response.contentLength ?? 0;
-      final dir = await _resolveSaveDir();
-      final filename = msg.fileName ?? msg.id;
-      final file = File('${dir.path}/$filename');
       final sink = file.openWrite();
       int received = 0;
       downloadProgress[msg.id] = 0;
@@ -236,7 +232,7 @@ class NotificationController extends GetxController {
       downloadProgress.remove(msg.id);
       print('[NotificationController] downloaded ${msg.id} to ${file.path}');
       _scheduleSave();
-      await _maybeOpenApk(file);
+      await _openFile(file);
     } catch (e) {
       downloadProgress.remove(msg.id);
       Get.snackbar('Error', e.toString());
@@ -251,14 +247,12 @@ class NotificationController extends GetxController {
     return await getApplicationDocumentsDirectory();
   }
 
-  Future<void> _maybeOpenApk(File file) async {
-    if (Platform.isAndroid && file.path.toLowerCase().endsWith('.apk')) {
-      print('[NotificationController] opening APK ${file.path}');
-      try {
-        await OpenFilex.open(file.path);
-      } catch (e) {
-        Get.snackbar('Error', e.toString());
-      }
+  Future<void> _openFile(File file) async {
+    print('[NotificationController] opening file ${file.path}');
+    try {
+      await OpenFilex.open(file.path);
+    } catch (e) {
+      Get.snackbar('Error', e.toString());
     }
   }
 

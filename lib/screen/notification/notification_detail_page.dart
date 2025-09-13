@@ -26,6 +26,21 @@ class NotificationDetailPage extends StatelessWidget {
               message.body,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+            if (message.link != null && message.link!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final uri = Uri.parse(message.link!);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Text(
+                  message.link!,
+                  style: const TextStyle(color: Colors.blue),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Text(
               message.timestampUtc.toLocal().toString(),

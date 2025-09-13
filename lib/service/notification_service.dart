@@ -9,9 +9,8 @@ import 'package:flutter/foundation.dart';
 import '../model/notification_message.dart';
 
 class NotificationService {
-  static const String _baseUrl =
-      'http://10.220.130.117:2222/SendNoti/api/Control/';
-  static const String _host = 'http://10.220.130.117:2222';
+  static const String _host = 'http://10.220.130.117:2222/SendNoti';
+  static const String _baseUrl = '$_host/api/Notifications/';
   static Uri _uri(String path) => Uri.parse('$_baseUrl$path');
   /// AES key used for decrypting base64 attachments.
   /// Must be 16/24/32 bytes to satisfy AES requirements.
@@ -29,7 +28,7 @@ class NotificationService {
     int page = 1,
     int pageSize = 50,
   }) async {
-    final url = _uri('get-notifications?page=$page&pageSize=$pageSize');
+    final url = _uri('?page=$page&pageSize=$pageSize');
     final client = _getInsecureClient();
     try {
       final res =
@@ -59,15 +58,17 @@ class NotificationService {
     String? id,
     required String title,
     required String body,
+    String? link,
     File? file,
   }) async {
-    final uri = _uri('send-notification');
+    final uri = _uri('form');
     final client = _getInsecureClient();
     try {
       final request = http.MultipartRequest('POST', uri)
         ..fields['Title'] = title
         ..fields['Body'] = body;
       if (id != null) request.fields['Id'] = id;
+      if (link != null) request.fields['Link'] = link;
       if (file != null) {
         request.files
             .add(await http.MultipartFile.fromPath('File', file.path));
@@ -83,7 +84,7 @@ class NotificationService {
   }
 
   static Future<bool> clearNotifications() async {
-    final url = _uri('clear-notifications');
+    final url = _uri('clear');
     final client = _getInsecureClient();
     try {
       final res = await client.post(url);
@@ -97,7 +98,7 @@ class NotificationService {
   static Stream<NotificationMessage> streamNotifications() async* {
     final client = _getInsecureClient();
     try {
-      final request = http.Request('GET', _uri('notifications-stream'))
+      final request = http.Request('GET', _uri('stream'))
         ..headers['Accept'] = 'text/event-stream';
       final response = await client.send(request);
       final lines = response.stream
@@ -122,11 +123,16 @@ class NotificationService {
   static NotificationMessage _parseMessage(Map<String, dynamic> json) {
     try {
       final msg = NotificationMessage.fromJson(json);
+      var updated = msg;
       final url = msg.fileUrl;
       if (url != null && url.isNotEmpty && !url.startsWith('http')) {
-        return msg.copyWith(fileUrl: '$_host$url');
+        updated = updated.copyWith(fileUrl: '$_host$url');
       }
-      return msg;
+      final link = msg.link;
+      if (link != null && link.isNotEmpty && !link.startsWith('http')) {
+        updated = updated.copyWith(link: '$_host$link');
+      }
+      return updated;
     } catch (e) {
       print('[NotificationService] failed to parse notification: $e');
       rethrow;
