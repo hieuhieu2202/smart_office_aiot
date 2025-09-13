@@ -43,10 +43,6 @@ class _NotificationTabState extends State<NotificationTab> {
               icon: const Icon(Icons.refresh),
               onPressed: controller.fetchNotifications,
             ),
-            IconButton(
-              icon: const Icon(Icons.folder),
-              onPressed: controller.openFiles,
-            ),
           ],
         ),
         body: Obx(() {

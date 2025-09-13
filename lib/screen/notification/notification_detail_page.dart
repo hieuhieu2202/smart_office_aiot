@@ -86,22 +86,10 @@ class _AttachmentView extends StatelessWidget {
       );
     }
     return Obx(() {
-      final progress = controller.downloadProgress[message.id] ?? 0.0;
-      final path = controller.downloadedFiles[message.id];
-      if (path != null) {
-        return ElevatedButton.icon(
-          onPressed: () => controller.openAttachment(message),
-          icon: const Icon(Icons.open_in_new),
-          label: const Text('Open'),
-        );
-      }
-      if (progress > 0 && progress < 1) {
-        return LinearProgressIndicator(value: progress);
-      }
       return ElevatedButton.icon(
         onPressed: () => controller.openAttachment(message),
-        icon: const Icon(Icons.download),
-        label: const Text('Download'),
+        icon: const Icon(Icons.open_in_new),
+        label: const Text('Open'),
       );
     });
   }
