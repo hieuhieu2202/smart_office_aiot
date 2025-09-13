@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
@@ -139,17 +140,19 @@ class NotificationService {
     }
   }
 
-  static Future<List<int>> decryptBase64(String data) {
+  static Future<Uint8List> decryptBase64(String data) {
     return compute(_decryptBase64, data);
   }
 
-  static List<int> _decryptBase64(String data) {
+  static Uint8List _decryptBase64(String data) {
     final raw = base64Decode(data);
     try {
       final encrypter = enc.Encrypter(
         enc.AES(_aesKey, mode: enc.AESMode.cbc),
       );
-      return encrypter.decryptBytes(enc.Encrypted(raw), iv: _aesIv);
+      final decrypted =
+          encrypter.decryptBytes(enc.Encrypted(raw), iv: _aesIv);
+      return Uint8List.fromList(decrypted);
     } catch (e) {
       print('[NotificationService] AES decrypt failed: $e');
       return raw;
