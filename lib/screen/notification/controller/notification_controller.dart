@@ -183,7 +183,12 @@ class NotificationController extends GetxController {
         final file = File('${dir.path}/${msg.fileName ?? msg.id}');
         await file.writeAsBytes(res.bodyBytes);
         print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
-        await OpenFilex.open(file.path);
+        final result = await OpenFilex.open(file.path);
+        print('[NotificationController] open result: '
+            '${result.type} ${result.message}');
+        if (result.type != ResultType.done) {
+          Get.snackbar('Error', result.message ?? 'Không thể mở file');
+        }
         return;
       }
       final data = msg.fileBase64;
@@ -205,7 +210,12 @@ class NotificationController extends GetxController {
         final file = File('${dir.path}/${msg.fileName ?? msg.id}');
         await file.writeAsBytes(bytes);
         print('[NotificationController] saved attachment ${msg.id} to ${file.path}');
-        await OpenFilex.open(file.path);
+        final result = await OpenFilex.open(file.path);
+        print('[NotificationController] open result: '
+            '${result.type} ${result.message}');
+        if (result.type != ResultType.done) {
+          Get.snackbar('Error', result.message ?? 'Không thể mở file');
+        }
       }
     } catch (e) {
       Get.snackbar('Error', e.toString());
