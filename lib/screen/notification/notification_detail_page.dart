@@ -85,12 +85,11 @@ class _AttachmentView extends StatelessWidget {
         child: img,
       );
     }
-    return Obx(() {
-      return ElevatedButton.icon(
-        onPressed: () => controller.openAttachment(message),
-        icon: const Icon(Icons.open_in_new),
-        label: const Text('Open'),
-      );
-    });
+    // Không cần dùng Obx ở đây vì không có biến Rx nào liên quan.
+    return ElevatedButton.icon(
+      onPressed: () => controller.openAttachment(message),
+      icon: const Icon(Icons.open_in_new),
+      label: const Text('Open'),
+    );
   }
 }
