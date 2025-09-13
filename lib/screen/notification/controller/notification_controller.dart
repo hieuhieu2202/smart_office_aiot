@@ -186,7 +186,7 @@ class NotificationController extends GetxController {
     });
   }
 
-  Future<void> downloadAttachment(NotificationMessage msg) async {
+  Future<void> openAttachment(NotificationMessage msg) async {
     try {
       final dir = await _resolveSaveDir();
       final filename = msg.fileName ?? msg.id;

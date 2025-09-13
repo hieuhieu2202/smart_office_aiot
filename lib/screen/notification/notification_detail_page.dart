@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:open_filex/open_filex.dart';
+import 'dart:convert';
+
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../model/notification_message.dart';
@@ -47,54 +48,61 @@ class NotificationDetailPage extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 24),
-            if (message.fileUrl != null || message.fileBase64 != null) ...[
-              Text(message.fileName ?? 'attachment'),
-              const SizedBox(height: 8),
-              Obx(() {
-                final progress =
-                    controller.downloadProgress[message.id] ?? 0.0;
-                final path = controller.downloadedFiles[message.id];
-                if (path != null) {
-                  return ElevatedButton.icon(
-                    onPressed: () async {
-                      try {
-                        await OpenFilex.open(path);
-                      } catch (e) {
-                        Get.snackbar('Error', e.toString());
-                      }
-                    },
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('Open'),
-                  );
-                }
-                if (progress > 0 && progress < 1) {
-                  return LinearProgressIndicator(value: progress);
-                }
-                return ElevatedButton.icon(
-                  onPressed: () async {
-                    if (message.fileUrl != null) {
-                      final url = message.fileUrl!;
-                      if (url.startsWith('http')) {
-                        await controller.downloadAttachment(message);
-                      } else {
-                        final uri = Uri.parse(url);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri,
-                              mode: LaunchMode.externalApplication);
-                        }
-                      }
-                    } else {
-                      await controller.downloadAttachment(message);
-                    }
-                  },
-                  icon: const Icon(Icons.download),
-                  label: const Text('Download'),
-                );
-              }),
-            ],
+            if (message.fileUrl != null || message.fileBase64 != null)
+              _AttachmentView(message: message),
           ],
         ),
       ),
     );
+  }
+}
+
+class _AttachmentView extends StatelessWidget {
+  final NotificationMessage message;
+  const _AttachmentView({required this.message});
+
+  bool get _isImage {
+    final name = message.fileName?.toLowerCase() ?? '';
+    return name.endsWith('.png') ||
+        name.endsWith('.jpg') ||
+        name.endsWith('.jpeg') ||
+        name.endsWith('.gif');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.find<NotificationController>();
+    if (_isImage) {
+      Widget img;
+      if (message.fileBase64 != null && message.fileBase64!.isNotEmpty) {
+        final bytes = base64Decode(message.fileBase64!);
+        img = Image.memory(bytes);
+      } else {
+        img = Image.network(message.fileUrl!, fit: BoxFit.contain);
+      }
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: img,
+      );
+    }
+    return Obx(() {
+      final progress = controller.downloadProgress[message.id] ?? 0.0;
+      final path = controller.downloadedFiles[message.id];
+      if (path != null) {
+        return ElevatedButton.icon(
+          onPressed: () => controller.openAttachment(message),
+          icon: const Icon(Icons.open_in_new),
+          label: const Text('Open'),
+        );
+      }
+      if (progress > 0 && progress < 1) {
+        return LinearProgressIndicator(value: progress);
+      }
+      return ElevatedButton.icon(
+        onPressed: () => controller.openAttachment(message),
+        icon: const Icon(Icons.download),
+        label: const Text('Download'),
+      );
+    });
   }
 }
