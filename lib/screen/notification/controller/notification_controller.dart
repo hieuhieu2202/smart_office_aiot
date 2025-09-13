@@ -13,7 +13,8 @@ import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
 import '../notification_detail_page.dart';
 
-class NotificationController extends GetxController {
+class NotificationController extends GetxController
+    with WidgetsBindingObserver {
   var notifications = <NotificationMessage>[].obs;
   var isLoading = false.obs;
   final readIds = <String>{}.obs;
@@ -32,6 +33,7 @@ class NotificationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     _loadLocal();
     print(
         '[NotificationController] loaded ${notifications.length} cached notifications');
@@ -80,6 +82,7 @@ class NotificationController extends GetxController {
     _reconnectTimer?.cancel();
     _saveTimer?.cancel();
     _saveLocal();
+    WidgetsBinding.instance.removeObserver(this);
     super.onClose();
   }
 
@@ -167,6 +170,15 @@ class NotificationController extends GetxController {
       fetchNotifications();
       _connectStream();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      print('[NotificationController] app resumed -> refreshing');
+      fetchNotifications();
+      _connectStream();
+    }
   }
 
   Future<void> openAttachment(NotificationMessage msg) async {
