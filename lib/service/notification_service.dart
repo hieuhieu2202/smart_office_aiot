@@ -86,6 +86,29 @@ class NotificationService {
     }
   }
 
+  /// Sends a notification as JSON payload. Useful when the attachment is
+  /// already encoded to base64. Returns `true` when the server accepts the
+  /// request with status `200`.
+  static Future<bool> sendNotificationJson(NotificationMessage msg) async {
+    final uri = _uri('send-notification-json');
+    final client = _getInsecureClient();
+    try {
+      final res = await client
+          .post(uri,
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode(msg.toJson()))
+          .timeout(const Duration(seconds: 10));
+      print('[NotificationService] sendNotificationJson status '
+          '${res.statusCode} body: ${res.body}');
+      return res.statusCode == 200;
+    } catch (e) {
+      print('[NotificationService] sendNotificationJson error: $e');
+      return false;
+    } finally {
+      client.close();
+    }
+  }
+
   static Future<bool> clearNotifications() async {
     // Endpoint for clearing notifications.
     final url = _uri('clear-notifications');
