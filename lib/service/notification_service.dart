@@ -11,9 +11,11 @@ import '../model/notification_message.dart';
 
 class NotificationService {
   static const String _host = 'http://10.220.130.117:2222/SendNoti';
-  // Updated base URL to match the Control controller provided by the backend.
-  static const String _baseUrl = '$_host/api/Control/';
-  static Uri _uri(String path) => Uri.parse('$_baseUrl$path');
+  // Base paths for notification and device endpoints provided by the backend.
+  static Uri _notifications(String path) =>
+      Uri.parse('$_host/api/notifications$path');
+  static Uri _device(String id, String path) =>
+      Uri.parse('$_host/api/devices/$id$path');
   /// AES key used for decrypting base64 attachments.
   /// Must be 16/24/32 bytes to satisfy AES requirements.
   static final enc.Key _aesKey =
@@ -30,7 +32,8 @@ class NotificationService {
     int page = 1,
     int pageSize = 50,
   }) async {
-    final url = _uri('get-notifications?page=$page&pageSize=$pageSize');
+    final url =
+        _notifications('?page=$page&pageSize=$pageSize');
     final client = _getInsecureClient();
     try {
       final res =
@@ -63,8 +66,8 @@ class NotificationService {
     String? link,
     File? file,
   }) async {
-    // Backend expects multipart form at `/send-notification`.
-    final uri = _uri('send-notification');
+    // Backend expects multipart form at `/api/notifications/form`.
+    final uri = _notifications('/form');
     final client = _getInsecureClient();
     try {
       final request = http.MultipartRequest('POST', uri)
@@ -90,7 +93,7 @@ class NotificationService {
   /// already encoded to base64. Returns `true` when the server accepts the
   /// request with status `200`.
   static Future<bool> sendNotificationJson(NotificationMessage msg) async {
-    final uri = _uri('send-notification-json');
+    final uri = _notifications('');
     final client = _getInsecureClient();
     try {
       final res = await client
@@ -111,7 +114,7 @@ class NotificationService {
 
   static Future<bool> clearNotifications() async {
     // Endpoint for clearing notifications.
-    final url = _uri('clear-notifications');
+    final url = _notifications('/clear');
     final client = _getInsecureClient();
     try {
       final res = await client.post(url);
@@ -122,11 +125,58 @@ class NotificationService {
     }
   }
 
+  /// Report the current app [version] of a device to the server.
+  static Future<void> reportDeviceVersion(
+      {required String deviceId, required String version}) async {
+    final url = _device(deviceId, '/version');
+    final client = _getInsecureClient();
+    try {
+      final res = await client.post(url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'version': version}));
+      print('[NotificationService] reportDeviceVersion ${res.statusCode}');
+    } catch (e) {
+      print('[NotificationService] reportDeviceVersion error: $e');
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Fetch notifications not yet received by this device. Optional
+  /// [sinceVersion] can be supplied to only receive newer ones.
+  static Future<List<NotificationMessage>> getDeviceNotifications(
+      {required String deviceId, String? sinceVersion}) async {
+    final qs = sinceVersion != null ? '?sinceVersion=$sinceVersion' : '';
+    final url = _device(deviceId, '/notifications$qs');
+    final client = _getInsecureClient();
+    try {
+      final res =
+          await client.get(url).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200 && res.body.isNotEmpty) {
+        final List<dynamic> data = json.decode(res.body) as List<dynamic>;
+        final result =
+            data.map((e) => _parseMessage(e as Map<String, dynamic>)).toList();
+        print('[NotificationService] getDeviceNotifications => ${result.length}');
+        return result;
+      }
+      print('[NotificationService] getDeviceNotifications failed (${res.statusCode})');
+      return [];
+    } on TimeoutException catch (e) {
+      print('[NotificationService] getDeviceNotifications timeout: $e');
+      return [];
+    } catch (e) {
+      print('[NotificationService] getDeviceNotifications error: $e');
+      return [];
+    } finally {
+      client.close();
+    }
+  }
+
   static Stream<NotificationMessage> streamNotifications() async* {
     final client = _getInsecureClient();
     try {
       // Subscribe to the server-sent events stream.
-      final request = http.Request('GET', _uri('notifications-stream'))
+      final request = http.Request('GET', _notifications('/stream'))
         ..headers['Accept'] = 'text/event-stream';
       final response = await client.send(request);
       final lines = response.stream
