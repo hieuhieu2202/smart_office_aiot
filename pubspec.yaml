@@ -71,7 +71,7 @@ dependencies:
   flutter_slidable: ^3.1.0
   encrypt: ^5.0.1
   package_info_plus: ^9.0.0
-  device_info_plus: ^12.1.0
+  device_info_plus: ^11.5.0
 
 icons_launcher:
   image_path: 'assets/images/icon_app.png'
