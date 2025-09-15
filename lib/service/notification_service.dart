@@ -11,7 +11,8 @@ import '../model/notification_message.dart';
 
 class NotificationService {
   static const String _host = 'http://10.220.130.117:2222/SendNoti';
-  static const String _baseUrl = '$_host/api/Notifications/';
+  // Updated base URL to match the Control controller provided by the backend.
+  static const String _baseUrl = '$_host/api/Control/';
   static Uri _uri(String path) => Uri.parse('$_baseUrl$path');
   /// AES key used for decrypting base64 attachments.
   /// Must be 16/24/32 bytes to satisfy AES requirements.
@@ -29,7 +30,7 @@ class NotificationService {
     int page = 1,
     int pageSize = 50,
   }) async {
-    final url = _uri('?page=$page&pageSize=$pageSize');
+    final url = _uri('get-notifications?page=$page&pageSize=$pageSize');
     final client = _getInsecureClient();
     try {
       final res =
@@ -62,7 +63,8 @@ class NotificationService {
     String? link,
     File? file,
   }) async {
-    final uri = _uri('form');
+    // Backend expects multipart form at `/send-notification`.
+    final uri = _uri('send-notification');
     final client = _getInsecureClient();
     try {
       final request = http.MultipartRequest('POST', uri)
@@ -85,7 +87,8 @@ class NotificationService {
   }
 
   static Future<bool> clearNotifications() async {
-    final url = _uri('clear');
+    // Endpoint for clearing notifications.
+    final url = _uri('clear-notifications');
     final client = _getInsecureClient();
     try {
       final res = await client.post(url);
@@ -99,7 +102,8 @@ class NotificationService {
   static Stream<NotificationMessage> streamNotifications() async* {
     final client = _getInsecureClient();
     try {
-      final request = http.Request('GET', _uri('stream'))
+      // Subscribe to the server-sent events stream.
+      final request = http.Request('GET', _uri('notifications-stream'))
         ..headers['Accept'] = 'text/event-stream';
       final response = await client.send(request);
       final lines = response.stream
