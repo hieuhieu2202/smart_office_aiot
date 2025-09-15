@@ -7,6 +7,7 @@ class NotificationMessage {
   final String body;
   final DateTime timestampUtc;
   final String? link;
+  final String? targetVersion;
   final String? fileUrl;
   final String? fileName;
   final String? fileBase64;
@@ -17,6 +18,7 @@ class NotificationMessage {
     required this.body,
     required this.timestampUtc,
     this.link,
+    this.targetVersion,
     this.fileUrl,
     this.fileName,
     this.fileBase64,
@@ -28,6 +30,7 @@ class NotificationMessage {
     String? body,
     DateTime? timestampUtc,
     String? link,
+    String? targetVersion,
     String? fileUrl,
     String? fileName,
     String? fileBase64,
@@ -38,6 +41,7 @@ class NotificationMessage {
       body: body ?? this.body,
       timestampUtc: timestampUtc ?? this.timestampUtc,
       link: link ?? this.link,
+      targetVersion: targetVersion ?? this.targetVersion,
       fileUrl: fileUrl ?? this.fileUrl,
       fileName: fileName ?? this.fileName,
       fileBase64: fileBase64 ?? this.fileBase64,
@@ -63,6 +67,7 @@ class NotificationMessage {
       body: map['body'] ?? '',
       timestampUtc: parsedTime ?? DateTime.now().toUtc(),
       link: map['link'] as String?,
+      targetVersion: map['targetversion'] as String?,
       fileUrl: map['fileurl'] as String?,
       fileName: map['filename'] as String?,
       fileBase64: map['filebase64'] as String?,
@@ -76,6 +81,7 @@ class NotificationMessage {
       'body': body,
       'timestampUtc': timestampUtc.toIso8601String(),
       'link': link,
+      'targetVersion': targetVersion,
       'fileUrl': fileUrl,
       'fileName': fileName,
       if (includeFileBase64) 'fileBase64': fileBase64,

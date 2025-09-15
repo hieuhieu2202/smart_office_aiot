@@ -8,8 +8,6 @@ import 'package:get_storage/get_storage.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:http/http.dart' as http;
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import '../../navbar/controller/navbar_controller.dart';
 import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
@@ -30,8 +28,6 @@ class NotificationController extends GetxController
   Timer? _saveTimer;
   final _box = GetStorage();
   DateTime? _lastTimestamp;
-  String? _deviceId;
-  String _appVersion = '';
   static const int _maxCache = 200;
 
   @override
@@ -42,33 +38,11 @@ class NotificationController extends GetxController
     print(
         '[NotificationController] loaded ${notifications.length} cached notifications');
     _updateUnread();
-    _initDevice();
+    fetchNotifications();
+    _connectStream();
     _listenConnectivity();
     ever<List<NotificationMessage>>(notifications, (_) => _updateUnread());
     ever<Set<String>>(readIds, (_) => _updateUnread());
-  }
-
-  Future<void> _initDevice() async {
-    try {
-      final info = DeviceInfoPlugin();
-      if (GetPlatform.isAndroid) {
-        final android = await info.androidInfo;
-        _deviceId = android.id ?? android.serialNumber ?? android.model;
-      } else if (GetPlatform.isIOS) {
-        final ios = await info.iosInfo;
-        _deviceId = ios.identifierForVendor ?? ios.name;
-      } else {
-        _deviceId = Platform.operatingSystem;
-      }
-      final pkg = await PackageInfo.fromPlatform();
-      _appVersion = pkg.version;
-      await NotificationService.reportDeviceVersion(
-          deviceId: _deviceId!, version: _appVersion);
-    } catch (e) {
-      print('[NotificationController] _initDevice error: $e');
-    }
-    await fetchNotifications();
-    _connectStream();
   }
 
   Future<void> fetchNotifications() async {
@@ -76,15 +50,8 @@ class NotificationController extends GetxController
       if (notifications.isEmpty) {
         isLoading.value = true;
       }
-      List<NotificationMessage> data;
-      if (_deviceId != null) {
-        data = await NotificationService.getDeviceNotifications(
-            deviceId: _deviceId!);
-        print('[NotificationController] fetched ${data.length} device notifications');
-      } else {
-        data = await NotificationService.getNotifications();
-        print('[NotificationController] fetched ${data.length} notifications');
-      }
+      final data = await NotificationService.getNotifications();
+      print('[NotificationController] fetched ${data.length} notifications');
       for (final msg in data.reversed) {
         final newer =
             _lastTimestamp == null || msg.timestampUtc.isAfter(_lastTimestamp!);
