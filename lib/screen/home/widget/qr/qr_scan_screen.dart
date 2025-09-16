@@ -6,6 +6,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:smart_factory/config/ApiConfig.dart';
 import 'package:smart_factory/screen/home/widget/qr/FixtureDetailScreen.dart';
+import 'package:smart_factory/screen/home/widget/qr/ShieldingBoxDetailScreen.dart';
+
 import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
 
 class QRScanScreen extends StatefulWidget {
@@ -34,9 +36,10 @@ class _QRScanScreenState extends State<QRScanScreen>
   @override
   void initState() {
     super.initState();
-    _scanAnim =
-    AnimationController(vsync: this, duration: const Duration(seconds: 2))
-      ..repeat(reverse: true);
+    _scanAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
     _scanTween = CurvedAnimation(parent: _scanAnim, curve: Curves.linear);
   }
 
@@ -49,57 +52,82 @@ class _QRScanScreenState extends State<QRScanScreen>
 
   void _showSnack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  // Parse linh hoạt: hỗ trợ model=&station= (đã URL-encode) và các phân tách # / _ |
-  ({String model, String station})? _parseQr(String code) {
+  ({String model, String station, String? mac})? _parseQr(String code) {
     if (code.isEmpty) return null;
     final raw = code
         .trim()
         .replaceFirst(RegExp(r'^\s*QR:\s*', caseSensitive: false), '');
+
+    //  Query string: an toàn cho mọi ký tự đặc biệt ---
     final lower = raw.toLowerCase();
+    final hasModelKey = lower.contains('model=');
+    final hasStationKey = lower.contains('station=');
+    if (hasModelKey && hasStationKey) {
+      final q = () {
+        final qmark = raw.indexOf('?');
+        if (qmark >= 0 && qmark < raw.length - 1) return raw.substring(qmark + 1);
+        return raw;
+      }();
 
-    // Dạng query string
-    if (lower.contains('model=') && lower.contains('station=')) {
-      final parts = raw.split(RegExp(r'[&;]'));
-      String? model, station;
-      for (final p in parts) {
-        final kv = p.split('=');
-        if (kv.length == 2) {
-          final k = kv[0].trim().toLowerCase();
-          final v = kv[1].trim();
-          if (k == 'model' || k == 'modelname') {
-            model = Uri.decodeComponent(v); // decode để không bị double-encode
-          }
-          if (k == 'station' || k == 'stationname') {
-            station = Uri.decodeComponent(v);
-          }
+      final Map<String, String> kv = {};
+      for (final seg in q.split(RegExp(r'[&;]'))) {
+        final idx = seg.indexOf('=');
+        if (idx <= 0) continue;
+        final key = seg.substring(0, idx).trim().toLowerCase();
+        final val = seg.substring(idx + 1);
+        String decoded;
+        try {
+          decoded = Uri.decodeComponent(val);
+        } catch (_) {
+          decoded = val;
         }
+        kv[key] = decoded;
       }
+
+      String? model = kv['model'] ?? kv['modelname'];
+      String? station = kv['station'] ?? kv['stationname'];
+      String? mac = kv['mac'] ?? kv['sheildingmac'] ?? kv['shieldingmac'];
+
       if ((model ?? '').isNotEmpty && (station ?? '').isNotEmpty) {
-        return (model: model!, station: station!);
+        return (
+        model: model!.trim(),
+        station: station!.trim(),
+        mac: (mac ?? '').trim().isEmpty ? null : mac!.trim(),
+        );
       }
     }
 
-    // Dạng tách theo ký tự
-    const ds = ['#', '/', '_', '|'];
-    for (final d in ds) {
+    // Fallback: tách theo ký tự (giữ chuẩn cũ của Fixture) ---
+    const seps = ['#', '/', '_', '|'];
+    for (final d in seps) {
       if (raw.contains(d)) {
-        final parts = raw.split(d);
+        final parts = raw
+            .split(d)
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
         if (parts.length >= 2) {
-          final model = parts[0].trim();
-          final station = parts[1].trim();
+          final model = parts[0];
+          final station = parts[1];
+          final mac = parts.length >= 3 ? parts[2] : null;
           if (model.isNotEmpty && station.isNotEmpty) {
-            return (model: model, station: station);
+            return (
+            model: model,
+            station: station,
+            mac: mac?.isNotEmpty == true ? mac : null,
+            );
           }
         }
       }
     }
+
     return null;
   }
 
+  // ====== ROUTER: có mac -> SheildingBox; không có mac -> Fixture ======
   Future<void> _handleCode(String code) async {
     if (_isProcessing) return;
     _isProcessing = true;
@@ -107,61 +135,84 @@ class _QRScanScreenState extends State<QRScanScreen>
     try {
       final parsed = _parseQr(code);
       if (parsed == null) {
-        debugPrint("QR không hợp lệ, raw=$code");
+        _showSnack("QR không hợp lệ.");
         return;
       }
 
       final model = parsed.model;
       final station = parsed.station;
+      final mac = parsed.mac;
 
-      final url = Uri.parse(
-        '${ApiConfig.fixtureEndpoint}'
-            '?model=${Uri.encodeComponent(model)}'
-            '&station=${Uri.encodeComponent(station)}',
-      );
-      debugPrint('[QR] GET $url');
+      late final Uri url;
+      late final String target; // 'fixture' | 'shielding'
 
-      final response = await http.get(url);
+      if (mac != null && mac.isNotEmpty) {
+        // SheildingBox (3 tham số)
+        url = Uri.parse(
+          '${ApiConfig.shieldingEndpoint}'
+              '?model=${Uri.encodeQueryComponent(model)}'
+              '&station=${Uri.encodeQueryComponent(station)}'
+              '&mac=${Uri.encodeQueryComponent(mac)}',
+        );
+        target = 'shielding';
+      } else {
+        // Fixture (2 tham số)
+        url = Uri.parse(
+          '${ApiConfig.fixtureEndpoint}'
+              '?model=${Uri.encodeQueryComponent(model)}'
+              '&station=${Uri.encodeQueryComponent(station)}',
+        );
+        target = 'fixture';
+      }
+
+      final res = await http.get(url, headers: {'Accept': 'application/json'});
       if (!mounted) return;
 
-      if (response.statusCode == 200 && response.body.isNotEmpty) {
-        final decoded = jsonDecode(response.body);
-        final bool ok = decoded is Map &&
-            (decoded['success'] == true || decoded['Success'] == true) &&
-            (decoded['data'] != null || decoded['Data'] != null);
-
-        final data = decoded is Map
-            ? (decoded['data'] ?? decoded['Data'])
-            : null;
-
-        if (ok && data != null && data is Map<String, dynamic>) {
-          setState(() => _showScanner = false);
-          await controller.stop();
-
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => FixtureDetailScreen(
-                model: model,
-                station: station,
-                data: data,
-              ),
-            ),
-          );
-
-          if (!mounted) return;
-          setState(() => _showScanner = true);
-          await controller.start();
-        } else {
-          debugPrint(
-              "Không tìm thấy thông tin cho QR này. body=${response.body}");
-        }
-      } else if (response.statusCode == 204) {
-        debugPrint("Không có dữ liệu (204).");
-      } else {
-        _showSnack("Lỗi server: HTTP ${response.statusCode}");
-        debugPrint('Body: ${response.body}');
+      if (res.statusCode != 200 || res.body.isEmpty) {
+        _showSnack('Lỗi server: HTTP ${res.statusCode}');
+        return;
       }
+
+      final body = jsonDecode(res.body);
+      final success = (body is Map) &&
+          (body['success'] == true || body['Success'] == true);
+      final data = (body is Map) ? (body['data'] ?? body['Data']) : null;
+
+      if (!success || data == null) {
+        _showSnack(body is Map && body['message'] != null
+            ? body['message'].toString()
+            : 'Không tìm thấy dữ liệu.');
+        return;
+      }
+
+      setState(() => _showScanner = false);
+      await controller.stop();
+
+      if (target == 'fixture') {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FixtureDetailScreen(
+              model: model,
+              station: station,
+              data: Map<String, dynamic>.from(data),
+            ),
+          ),
+        );
+      } else {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ShieldingBoxDetailScreen(
+              data: Map<String, dynamic>.from(data),
+            ),
+          ),
+        );
+      }
+
+      if (!mounted) return;
+      setState(() => _showScanner = true);
+      await controller.start();
     } catch (e) {
       _showSnack("Lỗi kết nối: $e");
     } finally {
@@ -185,13 +236,15 @@ class _QRScanScreenState extends State<QRScanScreen>
           ),
           actions: [
             IconButton(
-                icon: const Icon(Icons.flash_on),
-                onPressed: () => controller.toggleTorch(),
-                tooltip: 'Bật/tắt đèn'),
+              icon: const Icon(Icons.flash_on),
+              onPressed: () => controller.toggleTorch(),
+              tooltip: 'Bật/tắt đèn',
+            ),
             IconButton(
-                icon: const Icon(Icons.cameraswitch),
-                onPressed: () => controller.switchCamera(),
-                tooltip: 'Đổi camera'),
+              icon: const Icon(Icons.cameraswitch),
+              onPressed: () => controller.switchCamera(),
+              tooltip: 'Đổi camera',
+            ),
           ],
         ),
         body: _showScanner
@@ -250,7 +303,7 @@ class _QRScanScreenState extends State<QRScanScreen>
   }
 }
 
-
+// ====== Overlay quét (giữ nguyên style cũ) ======
 class _ScanOverlayPainter extends CustomPainter {
   final Rect rect;
   final double t;
@@ -264,11 +317,10 @@ class _ScanOverlayPainter extends CustomPainter {
     Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     final pathHole =
     Path()..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)));
-    final diff =
-    Path.combine(PathOperation.difference, pathScreen, pathHole);
+    final diff = Path.combine(PathOperation.difference, pathScreen, pathHole);
     canvas.drawPath(diff, overlay);
 
-    // viền khung trắng
+    // viền
     final border = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke

@@ -2,7 +2,7 @@
 import 'package:smart_factory/service/auth/token_manager.dart';
 
 class AuthConfig {
-  static const String baseUrl = 'https://10.220.130.117:8008';
+  static const String baseUrl = 'https://10.220.130.117/auth';
   static const String tokenEndpoint = '/connect/token';
   static const String clientId = 'smartfactoryapp';
   static const String clientSecret = 'smartfactoryapp';

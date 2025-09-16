@@ -1,221 +1,392 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../service/lc_switch_rack_api.dart';
 
-class RacksMonitorController extends GetxController
-    with GetTickerProviderStateMixin {
-  var racks = <Map<String, dynamic>>[].obs;
-  var isLoading = false.obs;
-  var error = ''.obs;
-  var summary = {}.obs;
-  var modelSummary = <Map<String, dynamic>>[].obs;
-  var slotStat = <Map<String, dynamic>>[].obs;
+// ======================= Helpers (TOP-LEVEL) =======================
+final RegExp _saRe = RegExp(r'(SA0+\d+|SA\d{6,})', caseSensitive: false);
 
-  late AnimationController yrAnimationController;
-  late Animation<double> yrAnimation;
+String _extractSA(String? s) {
+  if (s == null) return '';
+  final m = _saRe.firstMatch(s);
+  return (m?.group(0) ?? '').toUpperCase();
+}
 
-  Timer? _refreshTimer;
+bool _diffAtMostOneChar(String a, String b) {
+  if (a.length != b.length) return false;
+  var diff = 0;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) {
+      diff++;
+      if (diff > 1) return false;
+    }
+  }
+  return diff == 1;
+}
+
+/// Bộ đếm cộng dồn
+class _Agg { int pass = 0; int totalPass = 0; }
+
+/// Kết quả cho chart
+class ModelPass {
+  final String model; final int pass; final int totalPass;
+  ModelPass(this.model, this.pass, this.totalPass);
+}
+
+Map<String, _Agg> _mergeNearCodes(Map<String, _Agg> src, Set<String> rackSAs, {bool log = false}) {
+  final m = Map<String, _Agg>.from(src);
+  final keys = m.keys.toList()..sort();
+  final visited = <String>{};
+
+  for (var i = 0; i < keys.length; i++) {
+    final a = keys[i];
+    if (!m.containsKey(a) || visited.contains(a)) continue;
+
+    for (var j = i + 1; j < keys.length; j++) {
+      final b = keys[j];
+      if (!m.containsKey(b) || visited.contains(b)) continue;
+      if (!_diffAtMostOneChar(a, b)) continue;
+
+      String canon;
+      final aRack = rackSAs.contains(a), bRack = rackSAs.contains(b);
+      if (aRack && !bRack) canon = a;
+      else if (bRack && !aRack) canon = b;
+      else canon = (m[a]!.pass >= m[b]!.pass) ? a : b;
+
+      final other = (canon == a) ? b : a;
+      if (log) debugPrint('↪ MERGE NEAR: $other -> $canon (other=${m[other]!.pass}, canon=${m[canon]!.pass})');
+      m[canon]!.pass += m[other]!.pass;
+      m[canon]!.totalPass += m[other]!.totalPass;
+      m.remove(other);
+      visited..add(canon)..add(other);
+    }
+  }
+  return m;
+}
+
+// ======================= Controller =======================
+class GroupMonitorController extends GetxController {
+  final bool enableLogs = true;
+
+  // Location gốc để lọc phụ thuộc
+  List<LocationEntry> _allLocs = const <LocationEntry>[];
+
+  // OPTIONS đã lọc (giữ tên cũ để UI không phải đổi)
+  final factories = <String>['F16', 'F17'].obs;
+  final floors   = <String>['ALL'].obs;
+  final rooms    = <String>['ALL'].obs;
+  final groups   = <String>['ALL'].obs;
+  final models   = <String>['ALL'].obs;
+
+  // Selections
+  final selFactory = 'F16'.obs;
+  final selFloor   = '3F'.obs;
+  final selRoom    = 'ALL'.obs;
+  final selGroup   = 'J_TAG'.obs;
+  final selModel   = 'ALL'.obs;
+
+  // Toggles
+  final showOfflineRack = true.obs;
+  final showAnimation   = false.obs;
+
+  // Data / State
+  final data      = Rxn<GroupDataMonitoring>();
+  final isLoading = false.obs;
+  final error     = RxnString();
+
+  // Auto refresh
+  final autoRefresh = true.obs;
+  final intervalSec = 10.obs;
+  Timer? _timer;
 
   @override
-  void onInit() {
+  Future<void> onInit() async {
     super.onInit();
-    _initAnimation();
-    loadRacks();
-    _startAutoRefresh();
-  }
+    await _loadFilterSources();      // nạp _allLocs & dựng options
+    await refresh();                 // gọi dữ liệu đầu tiên
 
-  void _initAnimation() {
-    yrAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
+    debounce(intervalSec, (_) => _restartTimer());
+    ever(autoRefresh, (_) => _restartTimer());
+    _restartTimer();
+
+    // Đổi factory -> reset các cấp còn lại giống web
+    ever(selFactory, (_) {
+      selFloor.value = 'ALL';
+      selRoom.value  = 'ALL';
+      selGroup.value = 'ALL';
+      selModel.value = 'ALL';
+      _rebuildDependentOptions();
+      refresh();
+    });
+
+    ever(selFloor,  (_) { _rebuildDependentOptions(); refresh(); });
+    ever(selRoom,   (_) { _rebuildDependentOptions(); refresh(); });
+    ever(selGroup,  (_) { _rebuildDependentOptions(); refresh(); });
+    ever(selModel,  (_) => refresh());
   }
 
   @override
-  void onClose() {
-    _refreshTimer?.cancel();
-    yrAnimationController.dispose();
-    super.onClose();
+  void onClose() { _timer?.cancel(); super.onClose(); }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    if (autoRefresh.value) {
+      _timer = Timer.periodic(Duration(seconds: intervalSec.value), (_) => refresh());
+    }
   }
 
-  void _startAutoRefresh() {
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      loadRacks();
-    });
+  // ====== Load filters & build dependent options ======
+  Future<void> _loadFilterSources() async {
+    try {
+      _allLocs = await RackMonitorApi.getLocations();
+
+      final fset = {
+        for (final e in _allLocs) e.factory.trim(),
+      }..removeWhere((e) => e.isEmpty);
+
+      if (fset.isNotEmpty) {
+        factories..clear()..addAll(fset.toList()..sort((a,b)=>a.compareTo(b)));
+        if (!factories.contains(selFactory.value)) selFactory.value = factories.first;
+      }
+
+      _rebuildDependentOptions();
+    } catch (e) {
+      error.value = 'Load filters failed: $e';
+      // Fallback tối thiểu
+      _allLocs = const <LocationEntry>[];
+      factories..clear()..addAll(['F16', 'F17']);
+      floors..clear()..addAll(['ALL', '3F']);
+      rooms ..clear()..addAll(['ALL', 'ROOM', 'ROOM 1', 'ROOM 2', 'ROOM 3']);
+      groups..clear()..addAll(['ALL', 'CTO', 'FT', 'J_TAG']);
+      models..clear()..addAll(['ALL', 'GB200', 'GB300']);
+    }
   }
 
-  Future<void> loadRacks() async {
+  List<String> _mkOpts(Iterable<String> vals) {
+    final s = <String>{};
+    for (final v in vals) {
+      final t = v.trim();
+      if (t.isNotEmpty) s.add(t);
+    }
+    final list = s.toList()..sort((a,b)=>a.toLowerCase().compareTo(b.toLowerCase()));
+    return ['ALL', ...list];
+  }
+
+  void _rebuildDependentOptions() {
+    final fact = selFactory.value.trim();
+    final floor = selFloor.value.trim();
+    final room  = selRoom.value.trim();
+    final group = selGroup.value.trim();
+
+    // FLOORS theo Factory
+    final newFloors = _mkOpts(_allLocs.where((e)=>e.factory==fact).map((e)=>e.floor));
+    floors..clear()..addAll(newFloors);
+    if (!floors.contains(selFloor.value)) selFloor.value = 'ALL';
+
+    // ROOMS theo Factory + Floor
+    Iterable<LocationEntry> qRoom = _allLocs.where((e)=>e.factory==fact);
+    if (selFloor.value!='ALL') qRoom = qRoom.where((e)=>e.floor==floor);
+    final newRooms = _mkOpts(qRoom.map((e)=>e.room));
+    rooms..clear()..addAll(newRooms);
+    if (!rooms.contains(selRoom.value)) selRoom.value = 'ALL';
+
+    // GROUPS theo Factory + Floor + Room
+    Iterable<LocationEntry> qGroup = qRoom;
+    if (selRoom.value!='ALL') qGroup = qGroup.where((e)=>e.room==room);
+    final newGroups = _mkOpts(qGroup.map((e)=>e.group));
+    groups..clear()..addAll(newGroups);
+    if (!groups.contains(selGroup.value)) selGroup.value = 'ALL';
+
+    // MODELS theo Factory + Floor + Room + Group
+    Iterable<LocationEntry> qModel = qGroup;
+    if (selGroup.value!='ALL') qModel = qModel.where((e)=>e.group==group);
+    final newModels = _mkOpts(qModel.map((e)=>e.model));
+    models..clear()..addAll(newModels);
+    if (!models.contains(selModel.value)) selModel.value = 'ALL';
+
+    if (enableLogs) {
+      debugPrint('FILTER OPTIONS REBUILD: '
+          'Factory=$fact, Floor=$floor, Room=$room, Group=$group\n'
+          'Floors=${floors.join(", ")}\n'
+          'Rooms=${rooms.join(", ")}\n'
+          'Groups=${groups.join(", ")}\n'
+          'Models=${models.join(", ")}');
+    }
+  }
+
+  // ======================= BODY builder =======================
+  Map<String, dynamic> _buildBody({required bool isF17}) {
+    String? _nv(String s) => s == 'ALL' ? null : s;
+
+    if (isF17) {
+      // F17: schema web (PascalCase + Location)
+      final Map<String, dynamic> b = {
+        'Factory': selFactory.value,
+        if (_nv(selFloor.value)  != null) 'Floor'      : _nv(selFloor.value),
+        if (_nv(selRoom.value)   != null) 'Location'   : _nv(selRoom.value),
+        if (_nv(selGroup.value)  != null) 'GroupName'  : _nv(selGroup.value),
+        if (_nv(selModel.value)  != null) 'ModelSerial': _nv(selModel.value),
+      };
+      if (enableLogs) debugPrint(' GỬI BODY F17(web): $b');
+      return b;
+    } else {
+      // F16: body hiện tại
+      final Map<String, dynamic> b = {
+        'factory'   : selFactory.value,
+        if (_nv(selFloor.value)  != null) 'floor'     : _nv(selFloor.value),
+        if (_nv(selRoom.value)   != null) 'room'      : _nv(selRoom.value),
+        if (_nv(selGroup.value)  != null) 'groupName' : _nv(selGroup.value),
+        if (_nv(selModel.value)  != null) 'modelSerial': _nv(selModel.value),
+        'nickName'  : '',
+        'rangeDateTime': '',
+        'rackNames' : <Map<String, dynamic>>[],
+      };
+      if (enableLogs) debugPrint(' GỬI BODY F16(app): $b');
+      return b;
+    }
+  }
+
+  // ======================= Refresh =======================
+  Future<void> refresh() async {
     try {
       isLoading.value = true;
-      error.value = '';
-      final data = await LCSwitchRackApi.getRackMonitoring();
-      final rackList = data['Data']?['RackDetails'];
-      final sumData = data['Data']?['QuantitySummary'];
-      final modelList = data['Data']?['ModelDetails'];
-      final statList = data['Data']?['SlotStatic'];
+      error.value = null;
 
-      if (rackList is List) {
-        racks.value = List<Map<String, dynamic>>.from(rackList);
-      } else {
-        racks.value = [];
-      }
+      await RackMonitorApi.quickPing();
 
-      if (sumData is Map) {
-        summary.value = Map<String, dynamic>.from(sumData);
-      } else {
-        summary.value = {};
-      }
+      final isF17 = selFactory.value.trim().toUpperCase() == 'F17';
+      final tower = isF17 ? Tower.f17 : Tower.f16;
 
-      if (modelList is List) {
-        modelSummary.value = List<Map<String, dynamic>>.from(modelList);
-      } else {
-        modelSummary.value = [];
-      }
+      final res = await RackMonitorApi.getByTower(
+        tower: tower,
+        body: _buildBody(isF17: isF17),
+      );
+      data.value = res;
 
-      if (statList is List) {
-        slotStat.value = List<Map<String, dynamic>>.from(statList);
-      } else {
-        slotStat.value = [];
-      }
+      if (enableLogs) _logSnapshot();
     } catch (e) {
-      error.value = e.toString();
+      error.value = 'Refresh failed: $e';
     } finally {
       isLoading.value = false;
     }
-    // printAllDebugInfo();
   }
 
-  // === Getter cho các trường của QuantitySummary ===
-  double get totalUT =>
-      double.tryParse(summary['UT']?.toString() ?? '0') ?? 0.0;
-
-  double get totalYR =>
-      double.tryParse(summary['YR']?.toString() ?? '0') ?? 0.0;
-
-  int get totalWIP =>
-      summary['WIP'] is int
-          ? summary['WIP']
-          : int.tryParse(summary['WIP'].toString()) ?? 0;
-
-  int get totalInput =>
-      summary['Input'] is int
-          ? summary['Input']
-          : int.tryParse(summary['Input'].toString()) ?? 0;
-
-  int get totalFirstPass =>
-      summary['First_Pass'] is int
-          ? summary['First_Pass']
-          : int.tryParse(summary['First_Pass'].toString()) ?? 0;
-
-  int get totalSecondPass =>
-      summary['Second_Pass'] is int
-          ? summary['Second_Pass']
-          : int.tryParse(summary['Second_Pass'].toString()) ?? 0;
-
-  int get totalPass =>
-      summary['Pass'] is int
-          ? summary['Pass']
-          : int.tryParse(summary['Pass'].toString()) ?? 0;
-
-  int get totalRePass =>
-      summary['Re_Pass'] is int
-          ? summary['Re_Pass']
-          : int.tryParse(summary['Re_Pass'].toString()) ?? 0;
-
-  int get totalFail =>
-      summary['Fail'] is int
-          ? summary['Fail']
-          : int.tryParse(summary['Fail'].toString()) ?? 0;
-
-  int get totalFirstFail =>
-      summary['First_Fail'] is int
-          ? summary['First_Fail']
-          : int.tryParse(summary['First_Fail'].toString()) ?? 0;
-
-  int get totalTotalPass =>
-      summary['Total_Pass'] is int
-          ? summary['Total_Pass']
-          : int.tryParse(summary['Total_Pass'].toString()) ?? 0;
-
-  double get totalFPR =>
-      double.tryParse(summary['FPR']?.toString() ?? '0') ?? 0.0;
-
-  // === Getter cho SlotStatic (thống kê trạng thái slot) ===
-  int get waitingSlot =>
-      slotStat.firstWhereOrNull((e) => e['Status'] == 'Waiting')?['Value'] ?? 0;
-
-  int get testingSlot =>
-      slotStat.firstWhereOrNull((e) => e['Status'] == 'Testing')?['Value'] ?? 0;
-
-  int get notUsedSlot =>
-      slotStat.firstWhereOrNull((e) => e['Status'] == 'NotUsed')?['Value'] ?? 0;
-
-  int get failSlot =>
-      slotStat.firstWhereOrNull((e) => e['Status'] == 'Fail')?['Value'] ?? 0;
-
-  int get passSlot =>
-      slotStat.firstWhereOrNull((e) => e['Status'] == 'Pass')?['Value'] ?? 0;
-
-  // Tổng số slot
-  int get totalSlotCount => slotStat.fold(0, (int sum, item) {
-    final value = item['Value'];
-    if (value is int) return sum + value;
-    if (value is String) return sum + (int.tryParse(value) ?? 0);
-    return sum;
-  });
-
-  // === Getter cho ModelDetails ===
-  // Lấy ra tổng pass theo model
-  int getModelTotalPass(String modelName) {
-    final model = modelSummary.firstWhereOrNull(
-      (e) => e['ModelName'] == modelName,
-    );
-    if (model == null) return 0;
-    return model['TotalPass'] is int
-        ? model['TotalPass']
-        : int.tryParse(model['TotalPass'].toString()) ?? 0;
+  void clearFiltersKeepFactory() {
+    selFloor.value = 'ALL';
+    selRoom.value  = 'ALL';
+    selGroup.value = 'ALL';
+    selModel.value = 'ALL';
+    _rebuildDependentOptions();
   }
-  void printAllDebugInfo() {
-    print('======= DEBUG INFO RacksMonitorController =======');
-    print('racks: $racks');
-    print('isLoading: $isLoading');
-    print('error: $error');
-    print('summary: $summary');
-    print('modelSummary: $modelSummary');
-    print('slotStat: $slotStat');
 
-    print('--- Summary (QuantitySummary) ---');
-    print('totalUT: $totalUT');
-    print('totalYR: $totalYR');
-    print('totalWIP: $totalWIP');
-    print('totalInput: $totalInput');
-    print('totalFirstPass: $totalFirstPass');
-    print('totalSecondPass: $totalSecondPass');
-    print('totalPass: $totalPass');
-    print('totalRePass: $totalRePass');
-    print('totalFail: $totalFail');
-    print('totalFirstFail: $totalFirstFail');
-    print('totalTotalPass: $totalTotalPass');
-    print('totalFPR: $totalFPR');
+  // ======================= KPI Getters =======================
+  double get kpiUT     => data.value?.quantitySummary.ut ?? 0.0;
+  int    get kpiInput  => data.value?.quantitySummary.input ?? 0;
+  int    get kpiPass   => data.value?.quantitySummary.pass ?? 0;
+  int    get kpiRePass => data.value?.quantitySummary.rePass ?? 0;
+  int    get kpiFail   => data.value?.quantitySummary.fail ?? 0;
+  double get kpiFpr    => data.value?.quantitySummary.fpr ?? 0.0;
+  double get kpiYr     => data.value?.quantitySummary.yr  ?? 0.0;
+  int    get kpiWip    => data.value?.quantitySummary.wip ?? 0;
 
-    print('--- Slot Static ---');
-    print('waitingSlot: $waitingSlot');
-    print('testingSlot: $testingSlot');
-    print('notUsedSlot: $notUsedSlot');
-    print('failSlot: $failSlot');
-    print('passSlot: $passSlot');
-    print('totalSlotCount: $totalSlotCount');
+  // ======================= PASS BY MODEL =======================
+  List<ModelPass> get passByModelAgg {
+    final agg = <String, _Agg>{};
+    final racks = data.value?.rackDetails ?? const <RackDetail>[];
+    final rackSAs = <String>{};
 
-    print('--- Model Details ---');
-    print('modelSummary:');
-    for (var model in modelSummary) {
-      print('  ModelName: ${model['ModelName']}, TotalPass: ${model['TotalPass']}');
+    for (final r in racks) {
+      final rackSA = _extractSA(r.modelName);
+      if (rackSA.isNotEmpty) rackSAs.add(rackSA);
+
+      if (r.slotDetails.isEmpty) {
+        if (rackSA.isEmpty) continue;
+        final a = agg.putIfAbsent(rackSA, () => _Agg());
+        a.pass += r.totalPass;
+        a.totalPass += r.totalPass;
+        continue;
+      }
+
+      for (final s in r.slotDetails) {
+        String slotSA = _extractSA(s.modelName);
+
+        if (slotSA.isEmpty && rackSA.isNotEmpty) {
+          if (enableLogs) {
+            debugPrint('↪ NORMALIZE: ${r.rackName}/${s.slotNumber} '
+                'slotSA="" -> rackSA=$rackSA (total=${s.totalPass})');
+          }
+          slotSA = rackSA;
+        }
+
+        if (slotSA.isNotEmpty &&
+            rackSA.isNotEmpty &&
+            slotSA != rackSA &&
+            _diffAtMostOneChar(slotSA, rackSA)) {
+          if (enableLogs) {
+            debugPrint('↪ NORMALIZE: ${r.rackName}/${s.slotNumber} '
+                'slotSA=$slotSA ~ rackSA=$rackSA -> use rackSA (total=${s.totalPass})');
+          }
+          slotSA = rackSA;
+        }
+
+        if (slotSA.isEmpty) continue;
+
+        final a = agg.putIfAbsent(slotSA, () => _Agg());
+        a.pass += s.totalPass;
+        a.totalPass += s.totalPass;
+      }
     }
 
-    print('===============================================');
+    final merged = _mergeNearCodes(agg, rackSAs, log: enableLogs);
+
+    final list = merged.entries
+        .map((e) => ModelPass(e.key, e.value.pass, e.value.totalPass))
+        .toList()
+      ..sort((a, b) => b.pass.compareTo(a.pass));
+    return list;
+  }
+
+  // ======================= LOGGING =======================
+  void _logSnapshot() {
+    final qs = data.value?.quantitySummary;
+    if (qs == null) return;
+
+    debugPrint('===== SNAPSHOT =====');
+    debugPrint('Factory=${selFactory.value}  Floor=${selFloor.value}  Room=${selRoom.value}  '
+        'Group=${selGroup.value}  Model=${selModel.value}');
+    debugPrint('UT=${qs.ut.toStringAsFixed(2)}%  INPUT=${qs.input}  FAIL=${qs.fail}  '
+        'PASS=${qs.pass}  RE-PASS=${qs.rePass}  TOTAL_PASS=${qs.totalPass}');
+
+    for (final r in data.value?.rackDetails ?? const <RackDetail>[]) {
+      for (final s in r.slotDetails) {
+        final sa = _extractSA(s.modelName.isNotEmpty ? s.modelName : r.modelName);
+        debugPrint('· SLOT ${r.rackName}/${s.slotNumber}  '
+            'SA=$sa  pass=${s.pass}  total=${s.totalPass}');
+      }
+    }
+
+    final agg = passByModelAgg;
+    debugPrint('--- PASS BY MODEL (Output = totalPass, merged) ---');
+    for (final it in agg) {
+      debugPrint('SA=${it.model}  Output=${it.pass}');
+    }
+    debugPrint('====================\n');
+  }
+
+  // ======================= Utils =======================
+  Map<String, int> get slotStatusCount {
+    final m = <String, int>{};
+    for (final s in data.value?.slotStatic ?? const <SlotStaticItem>[]) {
+      m[s.status] = (m[s.status] ?? 0) + s.value;
+    }
+    return m;
+  }
+
+  List<RackDetail> get racks => data.value?.rackDetails ?? const <RackDetail>[];
+
+  List<SlotDetail> slotsOfRack(int i) {
+    final rs = racks;
+    if (i < 0 || i >= rs.length) return const <SlotDetail>[];
+    return rs[i].slotDetails;
   }
 }
-
-
-
