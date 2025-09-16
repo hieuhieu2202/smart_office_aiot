@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:badges/badges.dart' as badges;
 import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
 import 'package:smart_factory/screen/home/home_tab.dart';
 import 'package:smart_factory/screen/notification/notification_tab.dart';
@@ -9,6 +10,7 @@ import '../home/controller/home_controller.dart';
 import '../setting/controller/setting_controller.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
+import 'package:smart_factory/screen/notification/controller/notification_controller.dart';
 
 final NavbarController navbarController = Get.put(NavbarController());
 
@@ -20,6 +22,8 @@ class NavbarScreen extends StatelessWidget {
     print('🟢 QRScanScreen được dựng lại!');
     Get.put(HomeController());
     final SettingController settingController = Get.find<SettingController>();
+    final NotificationController notificationController =
+        Get.find<NotificationController>();
     final S text = S.of(context);
 
     // Danh sách nhãn (hỗ trợ đa ngôn ngữ)
@@ -101,7 +105,18 @@ class NavbarScreen extends StatelessWidget {
                 label: tabLabels[2],
               ),
               BottomNavigationBarItem(
-                icon: const Icon(Icons.notifications_active_rounded),
+                icon: Obx(() {
+                  final count = notificationController.unreadCount.value;
+                  final icon = const Icon(Icons.notifications_active_rounded);
+                  if (count == 0) return icon;
+                  return badges.Badge(
+                    position: badges.BadgePosition.topEnd(top: -6, end: -6),
+                    badgeContent: Text('$count',
+                        style:
+                            const TextStyle(fontSize: 10, color: Colors.white)),
+                    child: icon,
+                  );
+                }),
                 label: tabLabels[3],
               ),
               BottomNavigationBarItem(
