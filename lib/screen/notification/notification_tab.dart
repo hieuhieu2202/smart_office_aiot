@@ -11,6 +11,8 @@ import '../setting/controller/setting_controller.dart';
 import 'controller/notification_controller.dart';
 import 'notification_detail_screen.dart';
 
+enum _NotificationSwipeAction { toggleReadState, delete }
+
 class NotificationTab extends StatefulWidget {
   const NotificationTab({super.key});
 
@@ -215,28 +217,18 @@ class _NotificationTabState extends State<NotificationTab> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Dismissible(
               key: ValueKey(entry.key),
-              direction: DismissDirection.horizontal,
-              background: _buildSwipeBackground(
-                alignLeft: true,
-                color: accent,
-                icon: Icons.markunread,
-                label: 'Đánh dấu chưa đọc',
-              ),
-              secondaryBackground: _buildSwipeBackground(
-                alignLeft: false,
-                color: Colors.redAccent,
-                icon: Icons.delete_outline,
-                label: 'Xoá',
+              direction: DismissDirection.startToEnd,
+              movementDuration: const Duration(milliseconds: 220),
+              background: _buildSwipeOptionsBackground(
+                isRead: entry.isRead,
+                accent: accent,
+                isDark: isDark,
               ),
               confirmDismiss: (direction) async {
                 if (direction == DismissDirection.startToEnd) {
-                  notificationController.markAsUnread(entry);
-                  return false;
+                  await _handleSwipeAction(entry, accent);
                 }
-                return true;
-              },
-              onDismissed: (_) {
-                notificationController.remove(entry);
+                return false;
               },
               child: NotificationCard(
                 message: entry.message,
@@ -252,38 +244,197 @@ class _NotificationTabState extends State<NotificationTab> {
     );
   }
 
-  Widget _buildSwipeBackground({
-    required bool alignLeft,
+  Widget _buildSwipeOptionsBackground({
+    required bool isRead,
+    required Color accent,
+    required bool isDark,
+  }) {
+    final markLabel = isRead ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc';
+    final markIcon = isRead ? Icons.markunread : Icons.mark_email_read_outlined;
+    final backgroundOpacity = isDark ? 0.22 : 0.12;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        color: accent.withOpacity(backgroundOpacity),
+        child: Row(
+          children: [
+            _buildSwipeChip(
+              color: accent,
+              icon: markIcon,
+              label: markLabel,
+            ),
+            const SizedBox(width: 12),
+            _buildSwipeChip(
+              color: Colors.redAccent,
+              icon: Icons.delete_outline,
+              label: 'Xoá',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwipeChip({
     required Color color,
     required IconData icon,
     required String label,
   }) {
-    final content = <Widget>[
-      Icon(icon, color: Colors.white),
-      const SizedBox(width: 8),
-      Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    ];
-
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      padding: alignLeft
-          ? const EdgeInsets.only(left: 24)
-          : const EdgeInsets.only(right: 24),
-      alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: alignLeft ? content : content.reversed.toList(),
+        children: [
+          Icon(icon, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _handleSwipeAction(
+    NotificationEntry entry,
+    Color accent,
+  ) async {
+    if (!mounted) return;
+    final selected = await _showActionPicker(entry, accent);
+    if (selected == null) return;
+    if (!mounted) return;
+
+    switch (selected) {
+      case _NotificationSwipeAction.toggleReadState:
+        final bool markUnread = entry.isRead;
+        final confirm = await _showConfirmDialog(
+          title: markUnread ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc',
+          message: markUnread
+              ? 'Bạn có chắc chắn muốn đánh dấu thông báo "${entry.message.title}" là chưa đọc?'
+              : 'Bạn có chắc chắn muốn đánh dấu thông báo "${entry.message.title}" là đã đọc?',
+          confirmLabel: 'Xác nhận',
+          confirmColor: accent,
+        );
+        if (confirm) {
+          if (markUnread) {
+            notificationController.markAsUnread(entry);
+          } else {
+            notificationController.markAsRead(entry);
+          }
+        }
+        break;
+      case _NotificationSwipeAction.delete:
+        final confirm = await _showConfirmDialog(
+          title: 'Xoá thông báo',
+          message:
+              'Bạn có chắc chắn muốn xoá thông báo "${entry.message.title}"? Hành động này không thể hoàn tác.',
+          confirmLabel: 'Xoá',
+          confirmColor: Colors.redAccent,
+        );
+        if (confirm) {
+          notificationController.remove(entry);
+        }
+        break;
+    }
+  }
+
+  Future<_NotificationSwipeAction?> _showActionPicker(
+    NotificationEntry entry,
+    Color accent,
+  ) {
+    final bool isCurrentlyRead = entry.isRead;
+    final String toggleLabel =
+        isCurrentlyRead ? 'Đánh dấu là chưa đọc' : 'Đánh dấu là đã đọc';
+    final IconData toggleIcon =
+        isCurrentlyRead ? Icons.markunread : Icons.mark_email_read_outlined;
+
+    return showDialog<_NotificationSwipeAction>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Chọn thao tác'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(toggleIcon, color: accent),
+                title: Text(toggleLabel),
+                onTap: () => Navigator.of(dialogContext)
+                    .pop(_NotificationSwipeAction.toggleReadState),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.delete_outline,
+                    color: Colors.redAccent),
+                title: const Text('Xoá thông báo'),
+                onTap: () => Navigator.of(dialogContext)
+                    .pop(_NotificationSwipeAction.delete),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Huỷ'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool> _showConfirmDialog({
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required Color confirmColor,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(
+            message,
+            style: const TextStyle(height: 1.3),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Huỷ'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: confirmColor,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(confirmLabel),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
   }
 
   Widget _buildIncomingBanner(
