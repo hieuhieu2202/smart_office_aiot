@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
@@ -87,10 +87,17 @@ class NotificationService {
     }
   }
 
-  static Stream<NotificationMessage> realtimeNotifications() {
+  static Stream<NotificationMessage> realtimeNotifications({
+    Duration initialRetryDelay = const Duration(seconds: 2),
+    Duration maxRetryDelay = const Duration(seconds: 30),
+    Duration requestTimeout = const Duration(seconds: 20),
+  }) {
     IOClient? client;
     StreamSubscription<String>? subscription;
-    StreamController<NotificationMessage>? controller;
+    Timer? retryTimer;
+    var retryDelay = initialRetryDelay;
+    var connecting = false;
+    var disposed = false;
 
     Future<void> closeResources() async {
       await subscription?.cancel();
@@ -99,19 +106,58 @@ class NotificationService {
       client = null;
     }
 
+    Duration _nextDelay(Duration current) {
+      final currentMs = current.inMilliseconds;
+      final maxMs = maxRetryDelay.inMilliseconds;
+      if (currentMs >= maxMs) {
+        return maxRetryDelay;
+      }
+      final doubled = currentMs * 2;
+      return Duration(milliseconds: doubled >= maxMs ? maxMs : doubled);
+    }
+
+    late final StreamController<NotificationMessage> controller;
+
+    void scheduleReconnect([Duration? override]) {
+      if (disposed || controller.isClosed) {
+        return;
+      }
+      retryTimer?.cancel();
+      final delay = override ?? retryDelay;
+      retryTimer = Timer(delay, () {
+        retryTimer = null;
+        if (disposed || controller.isClosed) {
+          return;
+        }
+        connect();
+      });
+      if (override == null) {
+        retryDelay = _nextDelay(retryDelay);
+      }
+    }
+
     Future<void> connect() async {
-      await closeResources();
-      client = _createIoClient();
-      final request = http.Request(
-        'GET',
-        _uri('/api/control/notifications-stream'),
-      );
-      request.headers[HttpHeaders.acceptHeader] = 'text/event-stream';
+      if (connecting || disposed || controller.isClosed) {
+        return;
+      }
+      connecting = true;
+      await subscription?.cancel();
+      subscription = null;
+      client?.close();
+      client = null;
 
       try {
+        client = _createIoClient();
+        final request = http.Request(
+          'GET',
+          _uri('/api/control/notifications-stream'),
+        );
+        request.headers[HttpHeaders.acceptHeader] = 'text/event-stream';
+        request.headers[HttpHeaders.cacheControlHeader] = 'no-cache';
+
         final response = await client!
             .send(request)
-            .timeout(const Duration(seconds: 20));
+            .timeout(requestTimeout);
 
         if (response.statusCode != HttpStatus.ok) {
           throw HttpException(
@@ -119,50 +165,65 @@ class NotificationService {
           );
         }
 
+        retryDelay = initialRetryDelay;
         var buffer = '';
         subscription = response.stream
             .transform(utf8.decoder)
             .listen((chunk) {
           buffer += chunk;
           final parts = buffer.split(RegExp(r'\r?\n\r?\n'));
-          for (var i = 0; i < parts.length - 1; i++) {
-            final parsed = _parseSseEvent(parts[i]);
-            if (parsed != null) {
-              controller?.add(parsed);
+          if (parts.isEmpty) {
+            return;
+          }
+          buffer = parts.removeLast();
+          for (final part in parts) {
+            final parsed = _parseSseEvent(part);
+            if (parsed != null && !disposed && !controller.isClosed) {
+              controller.add(parsed);
             }
           }
-          buffer = parts.isNotEmpty ? parts.last : '';
         }, onError: (error, stackTrace) {
-          if (!(controller?.isClosed ?? true)) {
-            controller?.addError(error, stackTrace);
+          if (!disposed && !controller.isClosed) {
+            controller.addError(error, stackTrace);
           }
-        }, onDone: () async {
-          await closeResources();
-          if (!(controller?.isClosed ?? true)) {
-            await controller?.close();
-          }
+          unawaited(closeResources());
+          scheduleReconnect();
+        }, onDone: () {
+          unawaited(closeResources());
+          scheduleReconnect();
         });
       } catch (error, stackTrace) {
-        if (!(controller?.isClosed ?? true)) {
-          controller?.addError(error, stackTrace);
+        if (!disposed && !controller.isClosed) {
+          controller.addError(error, stackTrace);
         }
-        await closeResources();
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-        if (!(controller?.isClosed ?? true)) {
-          await controller?.close();
-        }
+        scheduleReconnect();
+      } finally {
+        connecting = false;
       }
     }
 
     controller = StreamController<NotificationMessage>(
-      onListen: connect,
+      onListen: () {
+        disposed = false;
+        retryDelay = initialRetryDelay;
+        scheduleReconnect(Duration.zero);
+      },
+      onResume: () {
+        if (subscription != null) {
+          subscription!.resume();
+        } else {
+          scheduleReconnect(Duration.zero);
+        }
+      },
+      onPause: () {
+        subscription?.pause();
+      },
       onCancel: () async {
+        disposed = true;
+        retryTimer?.cancel();
+        retryTimer = null;
         await closeResources();
       },
-      onPause: () async {
-        await closeResources();
-      },
-      onResume: connect,
     );
 
     return controller.stream;

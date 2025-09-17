@@ -204,7 +204,7 @@ class NotificationController extends GetxController {
   void _scheduleReconnect() {
     if (isClosed) return;
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+    _reconnectTimer = Timer(const Duration(seconds: 1), () {
       if (!isClosed) {
         _connectStream();
       }
