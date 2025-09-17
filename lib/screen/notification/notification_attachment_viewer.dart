@@ -11,7 +11,7 @@ import '../../widget/custom_app_bar.dart';
 import '../setting/controller/setting_controller.dart';
 
 class NotificationAttachmentViewer extends StatelessWidget {
-  const NotificationAttachmentViewer({super.key, required this.payload})
+  NotificationAttachmentViewer({super.key, required this.payload})
       : assert(payload.isInline, 'Viewer chỉ dùng cho tệp nội tuyến.');
 
   final NotificationAttachmentPayload payload;
