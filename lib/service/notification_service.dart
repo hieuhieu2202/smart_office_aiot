@@ -88,7 +88,7 @@ class NotificationService {
   }
 
   static Stream<NotificationMessage> realtimeNotifications({
-    Duration initialRetryDelay = const Duration(seconds: 2),
+    Duration initialRetryDelay = const Duration(seconds: 10),
     Duration maxRetryDelay = const Duration(seconds: 30),
     Duration requestTimeout = const Duration(seconds: 20),
   }) {
@@ -118,6 +118,8 @@ class NotificationService {
 
     late final StreamController<NotificationMessage> controller;
 
+    late Future<void> Function() connect;
+
     void scheduleReconnect([Duration? override]) {
       if (disposed || controller.isClosed) {
         return;
@@ -136,7 +138,7 @@ class NotificationService {
       }
     }
 
-    Future<void> connect() async {
+    connect = () async {
       if (connecting || disposed || controller.isClosed) {
         return;
       }
@@ -200,7 +202,7 @@ class NotificationService {
       } finally {
         connecting = false;
       }
-    }
+    };
 
     controller = StreamController<NotificationMessage>(
       onListen: () {
