@@ -36,6 +36,11 @@ class NotificationController extends GetxController {
   Timer? _reconnectTimer;
   Timer? _bannerTimer;
   Timer? _autoRefreshTimer;
+  Timer? _pollingTimer;
+
+  bool _syncingLatest = false;
+
+  static const Duration _pollingInterval = Duration(seconds: 5);
 
   bool get hasMore => _hasMore;
   bool get isFetching => _fetching;
@@ -46,6 +51,7 @@ class NotificationController extends GetxController {
     _loadDismissedKeys();
     refreshNotifications(showLoader: true);
     _connectStream();
+    _startAutoPolling();
   }
 
   @override
@@ -54,6 +60,7 @@ class NotificationController extends GetxController {
     _reconnectTimer?.cancel();
     _bannerTimer?.cancel();
     _autoRefreshTimer?.cancel();
+    _pollingTimer?.cancel();
     super.onClose();
   }
 
@@ -214,15 +221,23 @@ class NotificationController extends GetxController {
     });
   }
 
-  void _handleIncoming(NotificationMessage message) {
+  void _handleIncoming(
+    NotificationMessage message, {
+    bool markUnread = true,
+    bool triggerRefresh = true,
+  }) {
     if (_isDismissed(message)) {
       return;
     }
-    final entry = _upsert(message, markUnread: true);
+    final entry = _upsert(message, markUnread: markUnread);
     if (entry != null) {
-      _showBanner(entry);
-      _showGlobalSnackbar(entry);
-      _triggerSoftRefresh();
+      if (markUnread) {
+        _showBanner(entry);
+        _showGlobalSnackbar(entry);
+      }
+      if (triggerRefresh) {
+        _triggerSoftRefresh();
+      }
     }
   }
 
@@ -357,6 +372,69 @@ class NotificationController extends GetxController {
       }
       await refreshNotifications(showLoader: false);
     });
+  }
+
+  void _startAutoPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(_pollingInterval, (_) {
+      if (isClosed || !_initialized || _fetching || _syncingLatest) {
+        return;
+      }
+      unawaited(_syncLatest());
+    });
+  }
+
+  Future<void> _syncLatest() async {
+    if (_syncingLatest) {
+      return;
+    }
+    _syncingLatest = true;
+    try {
+      final rawResult = await NotificationService.fetchNotifications(
+        page: 1,
+        pageSize: pageSize,
+      );
+
+      if (rawResult.isEmpty) {
+        return;
+      }
+
+      final filtered =
+          rawResult.where((message) => !_isDismissed(message)).toList();
+      if (filtered.isEmpty) {
+        return;
+      }
+
+      final List<NotificationEntry> newlyAdded = <NotificationEntry>[];
+
+      for (final message in filtered) {
+        final key = _keyFor(message);
+        final exists =
+            notifications.indexWhere((item) => item.key == key) != -1;
+        if (exists) {
+          _upsert(message, markUnread: false);
+        } else {
+          final entry = _upsert(message, markUnread: true);
+          if (entry != null) {
+            newlyAdded.add(entry);
+          }
+        }
+      }
+
+      if (newlyAdded.isNotEmpty) {
+        newlyAdded.sort(_sortByTimestampDesc);
+        for (final entry in newlyAdded) {
+          if (!isClosed) {
+            _showBanner(entry);
+            _showGlobalSnackbar(entry);
+          }
+        }
+      }
+    } catch (_) {
+      // Bỏ qua lỗi khi đồng bộ ngầm, lần sau sẽ thử lại.
+    } finally {
+      _syncingLatest = false;
+    }
   }
 
   String _keyFor(NotificationMessage message) {
