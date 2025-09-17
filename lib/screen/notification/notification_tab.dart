@@ -284,12 +284,6 @@ class _NotificationTabState extends State<NotificationTab> {
                 accent: accent,
                 isUnread: !entry.isRead,
                 onTap: () => _openDetails(entry),
-                onOpenLink: entry.message.hasLink
-                    ? () => _openLink(entry.message.link)
-                    : null,
-                onOpenAttachment: entry.message.hasAttachment
-                    ? () => _openAttachment(entry.message)
-                    : null,
               ),
             ),
           );
