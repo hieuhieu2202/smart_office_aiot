@@ -10,6 +10,7 @@ class NotificationMessage {
     this.timestampUtc,
     this.fileUrl,
     this.fileName,
+    this.appVersion,
   });
 
   final String? id;
@@ -20,25 +21,45 @@ class NotificationMessage {
   final DateTime? timestampUtc;
   final String? fileUrl;
   final String? fileName;
+  final NotificationAppVersion? appVersion;
 
   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
     DateTime? parsedTimestamp;
-    final dynamic ts = json['timestampUtc'] ?? json['timestamp'];
-    if (ts is String && ts.isNotEmpty) {
-      parsedTimestamp = DateTime.tryParse(ts)?.toUtc();
-    } else if (ts is int) {
-      parsedTimestamp = DateTime.fromMillisecondsSinceEpoch(ts).toUtc();
+    for (final key in [
+      'timestampUtc',
+      'timestamp',
+      'createdAt',
+      'created_at',
+      'sentAt',
+    ]) {
+      final dynamic value = json[key];
+      parsedTimestamp = _parseTimestamp(value);
+      if (parsedTimestamp != null) {
+        break;
+      }
     }
 
+    final appVersion = NotificationAppVersion.maybeFrom(json['appVersion']);
+
+    final targetVersion = _firstNonEmpty(
+      json,
+      ['targetVersion', 'version', 'target_version'],
+    );
+    final fileUrl = _firstNonEmpty(json, ['fileUrl', 'fileURL', 'attachment']);
+    final fileName = _firstNonEmpty(json, ['fileName', 'attachmentName']);
+
     return NotificationMessage(
-      id: json['id']?.toString(),
-      title: (json['title'] ?? '').toString(),
-      body: (json['body'] ?? '').toString(),
-      link: _normalizeOptional(json['link']),
-      targetVersion: _normalizeOptional(json['targetVersion']),
+      id: _firstNonEmpty(json, ['id', 'notificationId', 'notificationID']),
+      title: _firstNonEmpty(json, ['title', 'subject', 'name']) ?? '',
+      body: _firstNonEmpty(json, ['body', 'message', 'content']) ?? '',
+      link: _firstNonEmpty(json, ['link', 'url', 'linkUrl', 'actionUrl']),
+      targetVersion: targetVersion ?? appVersion?.versionName,
       timestampUtc: parsedTimestamp,
-      fileUrl: _normalizeOptional(json['fileUrl']),
-      fileName: _normalizeOptional(json['fileName']),
+      fileUrl: fileUrl ?? appVersion?.fileUrl,
+      fileName: fileName ??
+          appVersion?.fileName ??
+          _fileNameFromUrl(fileUrl ?? appVersion?.fileUrl),
+      appVersion: appVersion,
     );
   }
 
@@ -81,6 +102,35 @@ class NotificationMessage {
     return hasUrl || hasName;
   }
 
+  static DateTime? _parseTimestamp(dynamic value) {
+    if (value == null) return null;
+    if (value is String && value.isNotEmpty) {
+      final parsed = DateTime.tryParse(value);
+      return parsed?.toUtc();
+    }
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value).toUtc();
+    }
+    if (value is double) {
+      return DateTime.fromMillisecondsSinceEpoch(value.toInt()).toUtc();
+    }
+    return null;
+  }
+
+  static String? _firstNonEmpty(
+    Map<String, dynamic> json,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      if (!json.containsKey(key)) continue;
+      final normalized = _normalizeOptional(json[key]);
+      if (normalized != null && normalized.isNotEmpty) {
+        return normalized;
+      }
+    }
+    return null;
+  }
+
   static String? _normalizeOptional(dynamic value) {
     if (value == null) return null;
     if (value is String) {
@@ -88,5 +138,70 @@ class NotificationMessage {
       return trimmed.isEmpty ? null : trimmed;
     }
     return value.toString();
+  }
+
+  static String? _fileNameFromUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+    final uri = Uri.tryParse(url);
+    final segments = uri?.pathSegments;
+    if (segments != null && segments.isNotEmpty) {
+      return segments.last;
+    }
+    final index = url.lastIndexOf('/');
+    if (index != -1 && index < url.length - 1) {
+      return url.substring(index + 1);
+    }
+    return null;
+  }
+}
+
+class NotificationAppVersion {
+  const NotificationAppVersion({
+    this.appVersionId,
+    this.versionName,
+    this.releaseNotes,
+    this.fileUrl,
+    this.fileChecksum,
+    this.releaseDate,
+  });
+
+  final int? appVersionId;
+  final String? versionName;
+  final String? releaseNotes;
+  final String? fileUrl;
+  final String? fileChecksum;
+  final DateTime? releaseDate;
+
+  String? get fileName => NotificationMessage._fileNameFromUrl(fileUrl);
+
+  factory NotificationAppVersion.fromJson(Map<String, dynamic> json) {
+    DateTime? parsedReleaseDate;
+    final dynamic release = json['releaseDate'] ?? json['releasedAt'];
+    if (release is String && release.isNotEmpty) {
+      parsedReleaseDate = DateTime.tryParse(release)?.toUtc();
+    } else if (release is int) {
+      parsedReleaseDate = DateTime.fromMillisecondsSinceEpoch(release).toUtc();
+    }
+
+    return NotificationAppVersion(
+      appVersionId: json['appVersionId'] is int
+          ? json['appVersionId'] as int
+          : int.tryParse(json['appVersionId']?.toString() ?? ''),
+      versionName: NotificationMessage._normalizeOptional(json['versionName']),
+      releaseNotes:
+          NotificationMessage._normalizeOptional(json['releaseNotes']),
+      fileUrl: NotificationMessage._normalizeOptional(json['fileUrl']),
+      fileChecksum:
+          NotificationMessage._normalizeOptional(json['fileChecksum']),
+      releaseDate: parsedReleaseDate,
+    );
+  }
+
+  static NotificationAppVersion? maybeFrom(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      if (data.isEmpty) return null;
+      return NotificationAppVersion.fromJson(data);
+    }
+    return null;
   }
 }

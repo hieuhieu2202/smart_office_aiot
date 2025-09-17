@@ -3,7 +3,11 @@ class ApiConfig {
 
   static String get baseUrl => isProduction
       ? 'https://10.220.130.117:5555' // Server thật
-      : 'http://192.168.0.197:5511';  // Server local/dev
+      : 'http://192.168.0.197:5511'; // Server local/dev
+
+  static String get notificationBaseUrl => isProduction
+      ? 'http://10.220.130.117:2222/SendNoti'
+      : 'http://192.168.0.197:5511/SendNoti';
 
   // ===== FIXTURE =====
   static String get fixtureEndpoint => '$baseUrl/Fixture/GetFixtureByQr';
@@ -16,4 +20,17 @@ class ApiConfig {
   /// Chuẩn hoá lại URL nếu server trả FileName tương đối
   static String normalizeUrl(String url) =>
       url.startsWith('http') ? url : '$baseUrl/$url';
+
+  static String normalizeNotificationUrl(String url) {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    final base = notificationBaseUrl.endsWith('/')
+        ? notificationBaseUrl.substring(0, notificationBaseUrl.length - 1)
+        : notificationBaseUrl;
+    if (url.startsWith('/')) {
+      return '$base$url';
+    }
+    return '$base/$url';
+  }
 }

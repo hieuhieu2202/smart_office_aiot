@@ -11,12 +11,13 @@ import '../model/notification_message.dart';
 class NotificationService {
   NotificationService._();
 
-  static final Uri _baseUri = Uri.parse(ApiConfig.baseUrl);
+  static final Uri _baseUri = Uri.parse(ApiConfig.notificationBaseUrl);
 
   static Uri _uri(String path, [Map<String, dynamic>? query]) {
-    final base = ApiConfig.baseUrl.endsWith('/')
-        ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
-        : ApiConfig.baseUrl;
+    final base = ApiConfig.notificationBaseUrl.endsWith('/')
+        ? ApiConfig.notificationBaseUrl
+            .substring(0, ApiConfig.notificationBaseUrl.length - 1)
+        : ApiConfig.notificationBaseUrl;
     final normalizedPath = path.startsWith('/') ? path : '/$path';
     final uri = Uri.parse('$base$normalizedPath');
     if (query == null || query.isEmpty) {
@@ -46,7 +47,7 @@ class NotificationService {
     int page = 1,
     int pageSize = 20,
   }) async {
-    final uri = _uri('/api/Control/get-notifications', {
+    final uri = _uri('/api/control/get-notifications', {
       'page': page,
       'pageSize': pageSize,
     });
@@ -101,7 +102,7 @@ class NotificationService {
   }
 
   static Future<void> clearNotifications() async {
-    final uri = _uri('/api/Control/clear-notifications');
+    final uri = _uri('/api/control/clear-notifications');
     final client = _createIoClient();
     try {
       final response = await client
@@ -119,7 +120,7 @@ class NotificationService {
   }
 
   static Future<void> _sendJson(NotificationDraft draft) async {
-    final uri = _uri('/api/Control/send-notification-json');
+    final uri = _uri('/api/control/send-notification-json');
     final client = _createIoClient();
     try {
       final payload = draft.toJsonPayload();
@@ -145,33 +146,47 @@ class NotificationService {
   }
 
   static Future<void> _sendMultipart(NotificationDraft draft) async {
-    final uri = _uri('/api/Control/send-notification');
+    final uri = _uri('/api/control/send-notification');
     final request = http.MultipartRequest('POST', uri);
 
-    request.fields['Title'] = draft.title;
-    request.fields['Body'] = draft.body;
-    request.fields['TimestampUtc'] = draft.timestampUtc.toIso8601String();
+    final timestamp = draft.timestampUtc.toIso8601String();
+    final fields = <String, String>{
+      'title': draft.title,
+      'Title': draft.title,
+      'body': draft.body,
+      'Body': draft.body,
+      'message': draft.body,
+      'timestampUtc': timestamp,
+      'TimestampUtc': timestamp,
+      'createdAt': timestamp,
+    };
+
     if (draft.id != null && draft.id!.isNotEmpty) {
-      request.fields['Id'] = draft.id!;
+      fields['id'] = draft.id!;
+      fields['Id'] = draft.id!;
     }
     if (draft.link != null && draft.link!.isNotEmpty) {
-      request.fields['Link'] = draft.link!;
+      fields['link'] = draft.link!;
+      fields['Link'] = draft.link!;
     }
     if (draft.targetVersion != null && draft.targetVersion!.isNotEmpty) {
-      request.fields['TargetVersion'] = draft.targetVersion!;
+      fields['targetVersion'] = draft.targetVersion!;
+      fields['TargetVersion'] = draft.targetVersion!;
     }
+
+    request.fields.addAll(fields);
 
     final attachment = draft.attachment;
     if (attachment != null) {
       if (attachment.hasBytes) {
         request.files.add(http.MultipartFile.fromBytes(
-          'File',
+          'file',
           attachment.bytes!,
           filename: attachment.fileName,
         ));
       } else if (attachment.filePath != null && attachment.filePath!.isNotEmpty) {
         request.files.add(await http.MultipartFile.fromPath(
-          'File',
+          'file',
           attachment.filePath!,
           filename: attachment.fileName,
         ));

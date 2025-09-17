@@ -212,16 +212,7 @@ class _NotificationTabState extends State<NotificationTab> {
   }
 
   String _resolveResourceUrl(String url) {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    final base = ApiConfig.baseUrl.endsWith('/')
-        ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
-        : ApiConfig.baseUrl;
-    if (url.startsWith('/')) {
-      return '$base$url';
-    }
-    return '$base/$url';
+    return ApiConfig.normalizeNotificationUrl(url);
   }
 
   Widget _buildErrorBanner(bool isDark, String message, Color accent) {

@@ -22,22 +22,30 @@ class NotificationDraft {
   bool get hasAttachment => attachment != null;
 
   Map<String, dynamic> toJsonPayload() {
+    final normalizedLink = link?.trim().isNotEmpty == true ? link!.trim() : null;
+    final normalizedTargetVersion =
+        targetVersion?.trim().isNotEmpty == true ? targetVersion!.trim() : null;
+
     final payload = <String, dynamic>{
       'id': id ?? DateTime.now().microsecondsSinceEpoch.toString(),
       'title': title,
       'body': body,
-      'link': link ?? '',
-      'targetVersion': targetVersion ?? '',
+      'message': body,
+      'link': normalizedLink,
+      'targetVersion': normalizedTargetVersion,
       'timestampUtc': timestampUtc.toIso8601String(),
-      'fileUrl': '',
-      'fileBase64': '',
-      'fileName': '',
+      'createdAt': timestampUtc.toIso8601String(),
+      'fileUrl': null,
+      'fileBase64': null,
+      'fileName': null,
     };
 
     if (hasAttachment && attachment!.bytes != null) {
       payload['fileBase64'] = base64Encode(attachment!.bytes!);
       payload['fileName'] = attachment!.fileName;
     }
+
+    payload.removeWhere((key, value) => value == null);
 
     return payload;
   }
