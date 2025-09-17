@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
+import '../../../model/notification_draft.dart';
 import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
 
@@ -13,6 +14,8 @@ class NotificationController extends GetxController {
   final RxList<NotificationMessage> notifications = <NotificationMessage>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool isLoadingMore = false.obs;
+  final RxBool isSending = false.obs;
+  final RxBool isClearing = false.obs;
   final RxnString error = RxnString();
 
   int _currentPage = 1;
@@ -50,6 +53,38 @@ class NotificationController extends GetxController {
       await _load(page: _currentPage + 1, append: true);
     } finally {
       isLoadingMore.value = false;
+    }
+  }
+
+  Future<void> sendNotification(NotificationDraft draft) async {
+    if (isSending.value) return;
+    isSending.value = true;
+    try {
+      await NotificationService.sendNotification(draft);
+      await refreshNotifications(showLoader: notifications.isEmpty);
+      error.value = null;
+    } catch (e) {
+      error.value = e.toString();
+      rethrow;
+    } finally {
+      isSending.value = false;
+    }
+  }
+
+  Future<void> clearAll() async {
+    if (isClearing.value) return;
+    isClearing.value = true;
+    try {
+      await NotificationService.clearNotifications();
+      notifications.clear();
+      _currentPage = 1;
+      _hasMore = true;
+      error.value = null;
+    } catch (e) {
+      error.value = e.toString();
+      rethrow;
+    } finally {
+      isClearing.value = false;
     }
   }
 

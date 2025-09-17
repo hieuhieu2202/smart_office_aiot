@@ -27,10 +27,13 @@ class NotificationMessage {
     DateTime? parsedTimestamp;
     for (final key in [
       'timestampUtc',
+      'TimestampUtc',
       'timestamp',
       'createdAt',
+      'CreatedAt',
       'created_at',
       'sentAt',
+      'SentAt',
     ]) {
       final dynamic value = json[key];
       parsedTimestamp = _parseTimestamp(value);
@@ -43,16 +46,30 @@ class NotificationMessage {
 
     final targetVersion = _firstNonEmpty(
       json,
-      ['targetVersion', 'version', 'target_version'],
+      ['targetVersion', 'TargetVersion', 'version', 'Version', 'target_version'],
     );
-    final fileUrl = _firstNonEmpty(json, ['fileUrl', 'fileURL', 'attachment']);
-    final fileName = _firstNonEmpty(json, ['fileName', 'attachmentName']);
+    final fileUrl =
+        _firstNonEmpty(json, ['fileUrl', 'FileUrl', 'fileURL', 'FileURL', 'attachment', 'Attachment']);
+    final fileName = _firstNonEmpty(
+      json,
+      ['fileName', 'FileName', 'attachmentName', 'AttachmentName'],
+    );
 
     return NotificationMessage(
-      id: _firstNonEmpty(json, ['id', 'notificationId', 'notificationID']),
-      title: _firstNonEmpty(json, ['title', 'subject', 'name']) ?? '',
-      body: _firstNonEmpty(json, ['body', 'message', 'content']) ?? '',
-      link: _firstNonEmpty(json, ['link', 'url', 'linkUrl', 'actionUrl']),
+      id: _firstNonEmpty(json,
+          ['id', 'Id', 'notificationId', 'NotificationId', 'notificationID', 'NotificationID']),
+      title: _firstNonEmpty(
+            json,
+            ['title', 'Title', 'subject', 'Subject', 'name', 'Name'],
+          ) ??
+          '',
+      body: _firstNonEmpty(
+            json,
+            ['body', 'Body', 'message', 'Message', 'content', 'Content'],
+          ) ??
+          '',
+      link: _firstNonEmpty(json,
+          ['link', 'Link', 'url', 'URL', 'linkUrl', 'linkURL', 'LinkUrl', 'LinkURL', 'actionUrl', 'ActionUrl']),
       targetVersion: targetVersion ?? appVersion?.versionName,
       timestampUtc: parsedTimestamp,
       fileUrl: fileUrl ?? appVersion?.fileUrl,
@@ -176,7 +193,8 @@ class NotificationAppVersion {
 
   factory NotificationAppVersion.fromJson(Map<String, dynamic> json) {
     DateTime? parsedReleaseDate;
-    final dynamic release = json['releaseDate'] ?? json['releasedAt'];
+    final dynamic release =
+        json['releaseDate'] ?? json['ReleaseDate'] ?? json['releasedAt'] ?? json['ReleasedAt'];
     if (release is String && release.isNotEmpty) {
       parsedReleaseDate = DateTime.tryParse(release)?.toUtc();
     } else if (release is int) {
@@ -186,13 +204,23 @@ class NotificationAppVersion {
     return NotificationAppVersion(
       appVersionId: json['appVersionId'] is int
           ? json['appVersionId'] as int
-          : int.tryParse(json['appVersionId']?.toString() ?? ''),
-      versionName: NotificationMessage._normalizeOptional(json['versionName']),
-      releaseNotes:
-          NotificationMessage._normalizeOptional(json['releaseNotes']),
-      fileUrl: NotificationMessage._normalizeOptional(json['fileUrl']),
-      fileChecksum:
-          NotificationMessage._normalizeOptional(json['fileChecksum']),
+          : json['AppVersionId'] is int
+              ? json['AppVersionId'] as int
+              : int.tryParse(
+                  json['appVersionId']?.toString() ?? json['AppVersionId']?.toString() ?? '',
+                ),
+      versionName: NotificationMessage._normalizeOptional(
+        json['versionName'] ?? json['VersionName'],
+      ),
+      releaseNotes: NotificationMessage._normalizeOptional(
+        json['releaseNotes'] ?? json['ReleaseNotes'],
+      ),
+      fileUrl: NotificationMessage._normalizeOptional(
+        json['fileUrl'] ?? json['FileUrl'],
+      ),
+      fileChecksum: NotificationMessage._normalizeOptional(
+        json['fileChecksum'] ?? json['FileChecksum'],
+      ),
       releaseDate: parsedReleaseDate,
     );
   }
