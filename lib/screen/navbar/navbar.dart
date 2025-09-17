@@ -12,8 +12,6 @@ import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
 import '../notification/controller/notification_controller.dart';
 
 final NavbarController navbarController = Get.put(NavbarController());
-final NotificationController notificationController =
-    Get.put(NotificationController(), permanent: true);
 
 class NavbarScreen extends StatelessWidget {
   const NavbarScreen({super.key});
@@ -23,6 +21,8 @@ class NavbarScreen extends StatelessWidget {
     print('🟢 QRScanScreen được dựng lại!');
     Get.put(HomeController());
     final SettingController settingController = Get.find<SettingController>();
+    final NotificationController notificationController =
+        Get.find<NotificationController>();
     final S text = S.of(context);
 
     // Danh sách nhãn (hỗ trợ đa ngôn ngữ)

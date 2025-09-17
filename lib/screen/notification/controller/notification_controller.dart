@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -218,6 +219,7 @@ class NotificationController extends GetxController {
     final entry = _upsert(message, markUnread: true);
     if (entry != null) {
       _showBanner(entry);
+      _showGlobalSnackbar(entry);
     }
   }
 
@@ -294,6 +296,50 @@ class NotificationController extends GetxController {
         }
       });
     });
+  }
+
+  void _showGlobalSnackbar(NotificationEntry entry) {
+    final BuildContext? context = Get.overlayContext ?? Get.context;
+    if (context == null) {
+      return;
+    }
+
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color accent = theme.colorScheme.secondary;
+    final Color background = isDark
+        ? Colors.black.withOpacity(0.85)
+        : Colors.white.withOpacity(0.94);
+    final Color textColor = isDark ? Colors.white : Colors.black87;
+
+    if (Get.isSnackbarOpen) {
+      Get.closeCurrentSnackbar();
+    }
+
+    Get.showSnackbar(
+      GetSnackBar(
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 2),
+        animationDuration: const Duration(milliseconds: 250),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        borderRadius: 16,
+        backgroundColor: background,
+        icon: Icon(Icons.notifications_active_rounded, color: accent),
+        titleText: Text(
+          'Thông báo mới',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: textColor,
+          ),
+        ),
+        messageText: Text(
+          entry.message.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+        ),
+      ),
+    );
   }
 
   String _keyFor(NotificationMessage message) {

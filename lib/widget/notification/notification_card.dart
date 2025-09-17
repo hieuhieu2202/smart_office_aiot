@@ -11,6 +11,8 @@ class NotificationCard extends StatelessWidget {
     required this.accent,
     this.isUnread = false,
     this.onTap,
+    this.onToggleReadState,
+    this.onDelete,
   });
 
   final NotificationMessage message;
@@ -18,6 +20,8 @@ class NotificationCard extends StatelessWidget {
   final Color accent;
   final bool isUnread;
   final VoidCallback? onTap;
+  final VoidCallback? onToggleReadState;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +34,32 @@ class NotificationCard extends StatelessWidget {
         ? Color.lerp(baseCardColor, highlighted, 0.55) ?? highlighted
         : baseCardColor;
     final borderColor = isUnread ? accent.withOpacity(0.6) : Colors.transparent;
+
+    final List<Widget> actionButtons = [];
+    if (onToggleReadState != null) {
+      final bool currentlyUnread = isUnread;
+      final bool willMarkUnread = !currentlyUnread;
+      actionButtons.add(
+        _NotificationActionButton(
+          label: willMarkUnread ? 'Chưa đọc' : 'Đã đọc',
+          icon: willMarkUnread ? Icons.markunread : Icons.mark_email_read_outlined,
+          color: accent,
+          isDark: isDark,
+          onPressed: onToggleReadState,
+        ),
+      );
+    }
+    if (onDelete != null) {
+      actionButtons.add(
+        _NotificationActionButton(
+          label: 'Xoá',
+          icon: Icons.delete_outline,
+          color: Colors.redAccent,
+          isDark: isDark,
+          onPressed: onDelete,
+        ),
+      );
+    }
 
     final card = Container(
       decoration: BoxDecoration(
@@ -73,6 +103,14 @@ class NotificationCard extends StatelessWidget {
               ),
             ),
           ),
+          if (actionButtons.isNotEmpty) ...[
+            const SizedBox(width: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: actionButtons,
+            ),
+          ],
         ],
       ),
     );
@@ -107,6 +145,60 @@ class NotificationCard extends StatelessWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationActionButton extends StatelessWidget {
+  const _NotificationActionButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.isDark,
+    this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool isDark;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color background = isDark
+        ? color.withOpacity(0.18)
+        : color.withOpacity(0.14);
+    final Color foreground = isDark ? color.withOpacity(0.9) : color;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: foreground),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

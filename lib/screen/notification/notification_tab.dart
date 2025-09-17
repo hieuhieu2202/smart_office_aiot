@@ -284,6 +284,14 @@ class _NotificationTabState extends State<NotificationTab> {
                 accent: accent,
                 isUnread: !entry.isRead,
                 onTap: () => _openDetails(entry),
+                onToggleReadState: () {
+                  if (entry.isRead) {
+                    notificationController.markAsUnread(entry);
+                  } else {
+                    notificationController.markAsRead(entry);
+                  }
+                },
+                onDelete: () => notificationController.remove(entry),
               ),
             ),
           );
