@@ -5,11 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/Apiconfig.dart';
 import '../../config/global_color.dart';
 import '../../generated/l10n.dart';
-import '../../model/notification_draft.dart';
 import '../../model/notification_message.dart';
 import '../../widget/custom_app_bar.dart';
 import '../../widget/notification/notification_card.dart';
-import '../../widget/notification/notification_compose_dialog.dart';
 import '../setting/controller/setting_controller.dart';
 import 'controller/notification_controller.dart';
 
@@ -51,92 +49,6 @@ class _NotificationTabState extends State<NotificationTab> {
 
   Future<void> _onRefresh() {
     return notificationController.refreshNotifications(showLoader: false);
-  }
-
-  Future<void> _openComposer() async {
-    final isDark = settingController.isDarkMode.value;
-    final draft = await showDialog<NotificationDraft>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => NotificationComposeDialog(isDark: isDark),
-    );
-
-    if (draft == null) return;
-
-    try {
-      await notificationController.sendNotification(draft);
-      if (!mounted) return;
-      Get.snackbar(
-        'Thành công',
-        'Thông báo đã được gửi tới các thiết bị.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green.withOpacity(0.85),
-        colorText: Colors.white,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Get.snackbar(
-        'Gửi thông báo thất bại',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent.withOpacity(0.85),
-        colorText: Colors.white,
-      );
-    }
-  }
-
-  Future<void> _confirmClear() async {
-    final isDark = settingController.isDarkMode.value;
-    final accent = GlobalColors.accentByIsDark(isDark);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor:
-            isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Xoá toàn bộ thông báo?'),
-        content: const Text(
-          'Thao tác này sẽ xoá toàn bộ thông báo đã gửi đi. Bạn có chắc chắn?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Huỷ'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: accent,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Xoá hết'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      await notificationController.clearAll();
-      if (!mounted) return;
-      Get.snackbar(
-        'Đã xoá',
-        'Danh sách thông báo đã được dọn sạch.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green.withOpacity(0.85),
-        colorText: Colors.white,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Get.snackbar(
-        'Không thể xoá thông báo',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent.withOpacity(0.85),
-        colorText: Colors.white,
-      );
-    }
   }
 
   Future<void> _openLink(String? rawUrl) async {
@@ -290,7 +202,7 @@ class _NotificationTabState extends State<NotificationTab> {
             child: Text(
               errorMessage?.isNotEmpty == true
                   ? errorMessage!
-                  : 'Nhấn nút “Gửi thông báo” để đẩy thông báo tới thiết bị.',
+                  : 'Khi có thông báo mới từ hệ thống, nội dung sẽ hiển thị tại đây.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -352,7 +264,6 @@ class _NotificationTabState extends State<NotificationTab> {
       final Color accent = GlobalColors.accentByIsDark(isDark);
       final notifications = notificationController.notifications;
       final isLoading = notificationController.isLoading.value;
-      final isSending = notificationController.isSending.value;
       final isLoadingMore = notificationController.isLoadingMore.value;
       final errorMessage = notificationController.error.value;
 
@@ -384,34 +295,7 @@ class _NotificationTabState extends State<NotificationTab> {
               icon: const Icon(Icons.refresh),
               color: accent,
             ),
-            IconButton(
-              tooltip: 'Xoá toàn bộ',
-              onPressed:
-                  notifications.isEmpty ? null : () => _confirmClear(),
-              icon: const Icon(Icons.delete_sweep_outlined),
-              color: notifications.isEmpty
-                  ? accent.withOpacity(0.3)
-                  : accent,
-            ),
           ],
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: isSending ? null : _openComposer,
-          icon: isSending
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              : const Icon(Icons.add),
-          label:
-              Text(isSending ? 'Đang gửi...' : 'Gửi thông báo'),
-          backgroundColor:
-              isSending ? accent.withOpacity(0.6) : accent,
-          foregroundColor: Colors.white,
         ),
         body: Column(
           children: [
