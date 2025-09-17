@@ -11,8 +11,6 @@ class NotificationCard extends StatelessWidget {
     required this.accent,
     this.isUnread = false,
     this.onTap,
-    this.onToggleReadState,
-    this.onDelete,
   });
 
   final NotificationMessage message;
@@ -20,8 +18,6 @@ class NotificationCard extends StatelessWidget {
   final Color accent;
   final bool isUnread;
   final VoidCallback? onTap;
-  final VoidCallback? onToggleReadState;
-  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -29,88 +25,71 @@ class NotificationCard extends StatelessWidget {
         isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText;
     final baseCardColor =
         isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg;
-    final highlighted = accent.withOpacity(isDark ? 0.28 : 0.16);
+    final accentOverlay = accent.withOpacity(isDark ? 0.22 : 0.12);
     final cardColor = isUnread
-        ? Color.lerp(baseCardColor, highlighted, 0.55) ?? highlighted
+        ? Color.lerp(baseCardColor, accentOverlay, 0.5) ?? accentOverlay
         : baseCardColor;
-    final borderColor = isUnread ? accent.withOpacity(0.6) : Colors.transparent;
-
-    final List<Widget> actionButtons = [];
-    if (onToggleReadState != null) {
-      final bool currentlyUnread = isUnread;
-      final bool willMarkUnread = !currentlyUnread;
-      actionButtons.add(
-        _NotificationActionButton(
-          label: willMarkUnread ? 'Chưa đọc' : 'Đã đọc',
-          icon: willMarkUnread ? Icons.markunread : Icons.mark_email_read_outlined,
-          color: accent,
-          isDark: isDark,
-          onPressed: onToggleReadState,
-        ),
-      );
-    }
-    if (onDelete != null) {
-      actionButtons.add(
-        _NotificationActionButton(
-          label: 'Xoá',
-          icon: Icons.delete_outline,
-          color: Colors.redAccent,
-          isDark: isDark,
-          onPressed: onDelete,
-        ),
-      );
-    }
+    final borderColor = isUnread
+        ? accent.withOpacity(isDark ? 0.65 : 0.55)
+        : Colors.transparent;
 
     final card = Container(
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor, width: isUnread ? 1.2 : 1),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.32)
-                : Colors.blueGrey.withOpacity(0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: accent.withOpacity(isDark ? 0.22 : 0.15),
-              shape: BoxShape.circle,
-            ),
-            padding: const EdgeInsets.all(12),
-            child: Icon(
-              Icons.notifications_active_outlined,
-              color: accent,
-              size: 24,
-            ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(isDark ? 0.22 : 0.15),
+                  shape: BoxShape.circle,
+                ),
+                width: 44,
+                height: 44,
+              ),
+              Icon(
+                Icons.notifications_rounded,
+                color: accent,
+                size: 24,
+              ),
+            ],
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message.title,
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
                 color: primaryTextColor,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (actionButtons.isNotEmpty) ...[
-            const SizedBox(width: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: actionButtons,
-            ),
-          ],
+          const SizedBox(width: 12),
+          Icon(
+            Icons.chevron_right_rounded,
+            size: 22,
+            color: isDark ? Colors.white60 : Colors.black38,
+          ),
         ],
       ),
     );
@@ -127,17 +106,17 @@ class NotificationCard extends StatelessWidget {
             if (isUnread)
               Positioned(
                 right: 18,
-                top: 18,
+                top: 16,
                 child: Container(
-                  width: 10,
-                  height: 10,
+                  width: 8,
+                  height: 8,
                   decoration: BoxDecoration(
                     color: accent,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: accent.withOpacity(0.4),
-                        blurRadius: 6,
+                        color: accent.withOpacity(0.35),
+                        blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
                     ],
@@ -145,60 +124,6 @@ class NotificationCard extends StatelessWidget {
                 ),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NotificationActionButton extends StatelessWidget {
-  const _NotificationActionButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.isDark,
-    this.onPressed,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color color;
-  final bool isDark;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color background = isDark
-        ? color.withOpacity(0.18)
-        : color.withOpacity(0.14);
-    final Color foreground = isDark ? color.withOpacity(0.9) : color;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18, color: foreground),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: foreground,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

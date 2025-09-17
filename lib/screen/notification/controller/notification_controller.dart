@@ -35,6 +35,7 @@ class NotificationController extends GetxController {
   StreamSubscription<NotificationMessage>? _streamSubscription;
   Timer? _reconnectTimer;
   Timer? _bannerTimer;
+  Timer? _autoRefreshTimer;
 
   bool get hasMore => _hasMore;
   bool get isFetching => _fetching;
@@ -52,6 +53,7 @@ class NotificationController extends GetxController {
     _streamSubscription?.cancel();
     _reconnectTimer?.cancel();
     _bannerTimer?.cancel();
+    _autoRefreshTimer?.cancel();
     super.onClose();
   }
 
@@ -220,6 +222,7 @@ class NotificationController extends GetxController {
     if (entry != null) {
       _showBanner(entry);
       _showGlobalSnackbar(entry);
+      _triggerSoftRefresh();
     }
   }
 
@@ -340,6 +343,20 @@ class NotificationController extends GetxController {
         ),
       ),
     );
+  }
+
+  void _triggerSoftRefresh() {
+    if (isClosed) return;
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer(const Duration(milliseconds: 600), () async {
+      _autoRefreshTimer = null;
+      if (isClosed) return;
+      if (_fetching) {
+        _triggerSoftRefresh();
+        return;
+      }
+      await refreshNotifications(showLoader: false);
+    });
   }
 
   String _keyFor(NotificationMessage message) {

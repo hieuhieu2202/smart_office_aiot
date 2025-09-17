@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../config/Apiconfig.dart';
 import '../../config/global_color.dart';
 import '../../generated/l10n.dart';
 import '../../model/notification_entry.dart';
-import '../../model/notification_message.dart';
 import '../../widget/custom_app_bar.dart';
 import '../../widget/notification/notification_card.dart';
 import '../setting/controller/setting_controller.dart';
@@ -84,40 +82,6 @@ class _NotificationTabState extends State<NotificationTab> {
     }
   }
 
-  Future<void> _openAttachment(NotificationMessage message) async {
-    final raw = message.fileUrl;
-    if (raw == null || raw.isEmpty) {
-      Get.snackbar(
-        'Không có tệp đính kèm',
-        message.fileName ?? '',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-    final resolved = _resolveResourceUrl(raw);
-    final uri = Uri.tryParse(resolved);
-    if (uri == null) {
-      Get.snackbar(
-        'Đường dẫn tệp không hợp lệ',
-        resolved,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.orangeAccent.withOpacity(0.9),
-        colorText: Colors.white,
-      );
-      return;
-    }
-    final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!success) {
-      Get.snackbar(
-        'Không thể mở tệp đính kèm',
-        message.fileName ?? uri.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent.withOpacity(0.85),
-        colorText: Colors.white,
-      );
-    }
-  }
-
   Uri? _parseUri(String url) {
     final trimmed = url.trim();
     if (trimmed.isEmpty) return null;
@@ -128,10 +92,6 @@ class _NotificationTabState extends State<NotificationTab> {
     }
     if (uri == null || !uri.hasScheme) return null;
     return uri;
-  }
-
-  String _resolveResourceUrl(String url) {
-    return ApiConfig.normalizeNotificationUrl(url);
   }
 
   Widget _buildErrorBanner(bool isDark, String message, Color accent) {
@@ -284,14 +244,6 @@ class _NotificationTabState extends State<NotificationTab> {
                 accent: accent,
                 isUnread: !entry.isRead,
                 onTap: () => _openDetails(entry),
-                onToggleReadState: () {
-                  if (entry.isRead) {
-                    notificationController.markAsUnread(entry);
-                  } else {
-                    notificationController.markAsRead(entry);
-                  }
-                },
-                onDelete: () => notificationController.remove(entry),
               ),
             ),
           );

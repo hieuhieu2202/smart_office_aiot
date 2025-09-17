@@ -10,6 +10,9 @@ class NotificationMessage {
     this.timestampUtc,
     this.fileUrl,
     this.fileName,
+    this.fileBase64,
+    this.fileContentType,
+    this.fileSize,
     this.appVersion,
   });
 
@@ -21,6 +24,9 @@ class NotificationMessage {
   final DateTime? timestampUtc;
   final String? fileUrl;
   final String? fileName;
+  final String? fileBase64;
+  final String? fileContentType;
+  final int? fileSize;
   final NotificationAppVersion? appVersion;
 
   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
@@ -44,16 +50,75 @@ class NotificationMessage {
 
     final appVersion = NotificationAppVersion.maybeFrom(json['appVersion']);
 
+    final Map<String, dynamic>? fileJson = json['file'] is Map<String, dynamic>
+        ? (json['file'] as Map<String, dynamic>)
+        : null;
+    final Map<String, dynamic>? attachmentJson =
+        json['attachment'] is Map<String, dynamic>
+            ? (json['attachment'] as Map<String, dynamic>)
+            : null;
+
     final targetVersion = _firstNonEmpty(
       json,
       ['targetVersion', 'TargetVersion', 'version', 'Version', 'target_version'],
     );
-    final fileUrl =
-        _firstNonEmpty(json, ['fileUrl', 'FileUrl', 'fileURL', 'FileURL', 'attachment', 'Attachment']);
-    final fileName = _firstNonEmpty(
+    String? fileUrl = _firstNonEmpty(json,
+        ['fileUrl', 'FileUrl', 'fileURL', 'FileURL', 'attachment', 'Attachment']);
+    String? fileName = _firstNonEmpty(
       json,
       ['fileName', 'FileName', 'attachmentName', 'AttachmentName'],
     );
+    String? fileBase64 = _firstNonEmpty(json, [
+      'fileBase64',
+      'FileBase64',
+      'file_base64',
+      'attachmentBase64',
+      'AttachmentBase64',
+      'fileData',
+      'FileData',
+      'fileContent',
+      'FileContent',
+    ]);
+    String? fileContentType = _firstNonEmpty(json, [
+      'fileContentType',
+      'FileContentType',
+      'contentType',
+      'ContentType',
+      'mimeType',
+      'MimeType',
+    ]);
+    int? fileSize = _parseInt(json['fileSize'] ?? json['FileSize'] ?? json['size'] ?? json['Size']);
+
+    for (final source in [fileJson, attachmentJson]) {
+      if (source == null) continue;
+      fileUrl ??= _firstNonEmpty(source, [
+        'url',
+        'fileUrl',
+        'FileUrl',
+        'path',
+      ]);
+      fileName ??= _firstNonEmpty(source, [
+        'name',
+        'fileName',
+        'FileName',
+      ]);
+      fileBase64 ??= _firstNonEmpty(source, [
+        'base64',
+        'content',
+        'data',
+        'fileBase64',
+        'FileBase64',
+      ]);
+      fileContentType ??= _firstNonEmpty(source, [
+        'contentType',
+        'ContentType',
+        'mimeType',
+        'MimeType',
+      ]);
+      fileSize ??= _parseInt(
+        source['size'] ?? source['Size'] ?? source['length'] ?? source['Length'],
+      );
+    }
 
     return NotificationMessage(
       id: _firstNonEmpty(json,
@@ -76,6 +141,9 @@ class NotificationMessage {
       fileName: fileName ??
           appVersion?.fileName ??
           _fileNameFromUrl(fileUrl ?? appVersion?.fileUrl),
+      fileBase64: fileBase64,
+      fileContentType: fileContentType,
+      fileSize: fileSize,
       appVersion: appVersion,
     );
   }
@@ -114,9 +182,11 @@ class NotificationMessage {
 
   bool get hasLink => link != null && link!.trim().isNotEmpty;
   bool get hasAttachment {
+    final hasInline = fileBase64 != null && fileBase64!.trim().isNotEmpty;
     final hasUrl = fileUrl != null && fileUrl!.trim().isNotEmpty;
     final hasName = fileName != null && fileName!.trim().isNotEmpty;
-    return hasUrl || hasName;
+    final versionHas = appVersion?.fileUrl?.trim().isNotEmpty ?? false;
+    return hasInline || hasUrl || hasName || versionHas;
   }
 
   static DateTime? _parseTimestamp(dynamic value) {
@@ -155,6 +225,16 @@ class NotificationMessage {
       return trimmed.isEmpty ? null : trimmed;
     }
     return value.toString();
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value.trim());
+    }
+    return null;
   }
 
   static String? _fileNameFromUrl(String? url) {

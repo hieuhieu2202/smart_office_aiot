@@ -3,10 +3,10 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../config/Apiconfig.dart';
 import '../../config/global_color.dart';
 import '../../model/notification_entry.dart';
 import '../../model/notification_message.dart';
+import '../../service/notification_attachment_service.dart';
 import '../../widget/custom_app_bar.dart';
 import '../setting/controller/setting_controller.dart';
 
@@ -162,7 +162,7 @@ class NotificationDetailScreen extends StatelessWidget {
                 ),
               if (message.hasAttachment)
                 OutlinedButton.icon(
-                  onPressed: () => _openAttachment(message),
+                  onPressed: () => NotificationAttachmentService.openAttachment(message),
                   icon: const Icon(Icons.attach_file),
                   label: Text(
                     message.fileName ?? 'Tệp đính kèm',
@@ -250,7 +250,7 @@ class NotificationDetailScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: TextButton.icon(
-                onPressed: () => _openAttachment(
+                onPressed: () => NotificationAttachmentService.openAttachment(
                   NotificationMessage(
                     id: appVersion.appVersionId?.toString(),
                     title: appVersion.versionName ?? '',
@@ -293,40 +293,6 @@ class NotificationDetailScreen extends StatelessWidget {
       Get.snackbar(
         'Không thể mở liên kết',
         uri.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent.withOpacity(0.85),
-        colorText: Colors.white,
-      );
-    }
-  }
-
-  Future<void> _openAttachment(NotificationMessage message) async {
-    final raw = message.fileUrl;
-    if (raw == null || raw.isEmpty) {
-      Get.snackbar(
-        'Không có tệp đính kèm',
-        message.fileName ?? '',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-    final resolved = ApiConfig.normalizeNotificationUrl(raw);
-    final uri = Uri.tryParse(resolved);
-    if (uri == null) {
-      Get.snackbar(
-        'Đường dẫn tệp không hợp lệ',
-        resolved,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.orangeAccent.withOpacity(0.9),
-        colorText: Colors.white,
-      );
-      return;
-    }
-    final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!success) {
-      Get.snackbar(
-        'Không thể mở tệp đính kèm',
-        message.fileName ?? uri.toString(),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.redAccent.withOpacity(0.85),
         colorText: Colors.white,
