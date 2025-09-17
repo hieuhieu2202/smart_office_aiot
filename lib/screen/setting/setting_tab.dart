@@ -9,7 +9,7 @@ import 'package:smart_factory/screen/setting/widget/profile.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 import 'package:smart_factory/lang/language_selection_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:smart_factory/model/version_check_summary.dart';
 
 import '../../widget/custom_app_bar.dart';
 
@@ -208,20 +208,7 @@ class SettingTab extends StatelessWidget {
               ),
             ),
 
-            // Phiên bản
-            FutureBuilder<PackageInfo>(
-              future: PackageInfo.fromPlatform(),
-              builder: (context, snap) {
-                final version = snap.data?.version ?? '...';
-                return _settingTile(
-                  icon: Icons.info_outline,
-                  color: accent,
-                  title: text.version,
-                  isDark: isDark,
-                  subtitle: version,
-                );
-              },
-            ),
+            _buildVersionCard(settingController, isDark, accent, text),
 
             // Đăng xuất
             _settingTile(
@@ -290,5 +277,171 @@ class SettingTab extends StatelessWidget {
         minLeadingWidth: 30,
       ),
     );
+  }
+
+  Widget _buildVersionCard(
+    SettingController settingController,
+    bool isDark,
+    Color accent,
+    S text,
+  ) {
+    final titleStyle = GlobalTextStyles.bodyMedium(isDark: isDark).copyWith(
+      color: isDark
+          ? GlobalColors.darkPrimaryText
+          : GlobalColors.lightPrimaryText,
+      fontWeight: FontWeight.w600,
+      fontSize: 16.5,
+    );
+
+    final secondaryStyle = GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
+      color: isDark ? GlobalColors.labelDark : GlobalColors.labelLight,
+    );
+
+    return Obx(() {
+      final String localVersion =
+          settingController.appVersion.value ?? '...';
+      final String? buildNumber = settingController.buildNumber.value;
+      final VersionCheckSummary? summary =
+          settingController.versionSummary.value;
+      final bool isChecking = settingController.isVersionChecking.value;
+      final String? error = settingController.versionError.value;
+
+      final bool updateAvailable = summary?.updateAvailable ?? false;
+      final String? serverVersion = summary?.effectiveLatestVersion;
+      final String? minSupported = summary?.minSupported;
+      final String? releaseNotes = summary?.releaseNotes;
+
+      final Color statusColor = updateAvailable
+          ? Colors.orangeAccent
+          : (isDark ? GlobalColors.labelDark : GlobalColors.labelLight);
+
+      return Card(
+        elevation: 1.7,
+        color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+        margin: const EdgeInsets.symmetric(vertical: 7),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.info_outline, color: accent, size: 26),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(text.version, style: titleStyle),
+                  ),
+                  if (updateAvailable)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      margin: const EdgeInsets.only(right: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orangeAccent.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Có bản mới',
+                        style: TextStyle(
+                          color: Colors.orangeAccent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ),
+                  if (isChecking)
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(accent),
+                      ),
+                    )
+                  else
+                    IconButton(
+                      onPressed: () =>
+                          settingController.refreshVersionInfo(force: true),
+                      icon: const Icon(Icons.refresh, size: 20),
+                      tooltip: 'Kiểm tra cập nhật',
+                      color: accent,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Phiên bản hiện tại: $localVersion${buildNumber != null && buildNumber.isNotEmpty ? ' (build $buildNumber)' : ''}',
+                style: secondaryStyle.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? GlobalColors.darkPrimaryText
+                      : GlobalColors.lightPrimaryText,
+                ),
+              ),
+              if (serverVersion != null && serverVersion.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    updateAvailable
+                        ? 'Bản mới sẵn sàng: $serverVersion'
+                        : 'Phiên bản máy chủ: $serverVersion',
+                    style: secondaryStyle.copyWith(
+                      color: statusColor,
+                      fontWeight:
+                          updateAvailable ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              if (minSupported != null && minSupported.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Yêu cầu tối thiểu: $minSupported',
+                    style: secondaryStyle,
+                  ),
+                ),
+              if (releaseNotes != null && releaseNotes.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    releaseNotes,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: secondaryStyle.copyWith(height: 1.35),
+                  ),
+                ),
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: Colors.redAccent, size: 18),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          error,
+                          style: secondaryStyle.copyWith(
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => settingController
+                            .refreshVersionInfo(force: true),
+                        child: const Text('Thử lại'),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 }

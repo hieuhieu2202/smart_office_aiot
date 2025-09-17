@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 import '../../../model/notification_entry.dart';
 import '../../../model/notification_message.dart';
@@ -10,6 +11,8 @@ class NotificationController extends GetxController {
   NotificationController({this.pageSize = 20});
 
   final int pageSize;
+  static const int _maxAutoAdvancePages = 10;
+  static const String _dismissedStorageKey = 'notification_dismissed_keys';
 
   final RxList<NotificationEntry> notifications = <NotificationEntry>[].obs;
   final RxBool isLoading = false.obs;
@@ -23,6 +26,8 @@ class NotificationController extends GetxController {
   bool _hasMore = true;
   bool _fetching = false;
   bool _initialized = false;
+  final GetStorage _storage = GetStorage();
+  final Set<String> _dismissedKeys = <String>{};
 
   StreamSubscription<NotificationMessage>? _streamSubscription;
   Timer? _reconnectTimer;
@@ -34,6 +39,7 @@ class NotificationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _loadDismissedKeys();
     refreshNotifications(showLoader: true);
     _connectStream();
   }
@@ -51,6 +57,11 @@ class NotificationController extends GetxController {
     _currentPage = 1;
     _hasMore = true;
     await _load(page: 1, append: false, showLoader: showLoader);
+    var attempts = 0;
+    while (notifications.isEmpty && _hasMore && attempts < _maxAutoAdvancePages) {
+      attempts++;
+      await _load(page: _currentPage + 1, append: true);
+    }
   }
 
   Future<void> loadMore() async {
@@ -75,6 +86,8 @@ class NotificationController extends GetxController {
     final index = notifications.indexWhere((item) => item.key == entry.key);
     if (index == -1) return false;
     notifications.removeAt(index);
+    _dismissedKeys.add(entry.key);
+    _persistDismissedKeys();
     _recalculateUnread();
     return true;
   }
@@ -91,10 +104,13 @@ class NotificationController extends GetxController {
     }
 
     try {
-      final result = await NotificationService.fetchNotifications(
+      final rawResult = await NotificationService.fetchNotifications(
         page: page,
         pageSize: pageSize,
       );
+
+      final result =
+          rawResult.where((message) => !_isDismissed(message)).toList();
 
       if (!append) {
         final previousMap = {
@@ -150,7 +166,7 @@ class NotificationController extends GetxController {
       }
 
       _currentPage = page;
-      _hasMore = result.length >= pageSize;
+      _hasMore = rawResult.length >= pageSize;
       error.value = null;
       _initialized = true;
     } catch (e) {
@@ -194,6 +210,9 @@ class NotificationController extends GetxController {
   }
 
   void _handleIncoming(NotificationMessage message) {
+    if (_isDismissed(message)) {
+      return;
+    }
     final entry = _upsert(message, markUnread: true);
     if (entry != null) {
       _showBanner(entry);
@@ -201,6 +220,9 @@ class NotificationController extends GetxController {
   }
 
   NotificationEntry? _upsert(NotificationMessage message, {bool markUnread = false}) {
+    if (_isDismissed(message)) {
+      return null;
+    }
     final key = _keyFor(message);
     final index = notifications.indexWhere((item) => item.key == key);
 
@@ -298,5 +320,23 @@ class NotificationController extends GetxController {
         ..write(message.fileUrl);
     }
     return buffer.toString();
+  }
+
+  bool _isDismissed(NotificationMessage message) {
+    final key = _keyFor(message);
+    return _dismissedKeys.contains(key);
+  }
+
+  void _loadDismissedKeys() {
+    final dynamic stored = _storage.read(_dismissedStorageKey);
+    if (stored is List) {
+      _dismissedKeys
+        ..clear()
+        ..addAll(stored.whereType<String>());
+    }
+  }
+
+  void _persistDismissedKeys() {
+    _storage.write(_dismissedStorageKey, _dismissedKeys.toList());
   }
 }

@@ -10,136 +10,218 @@ import 'package:path_provider/path_provider.dart';
 
 import '../config/Apiconfig.dart';
 import '../model/notification_message.dart';
+import '../model/version_check_summary.dart';
 
 class UpdateService {
   const UpdateService();
 
   /// Gọi ở Splash kiểm tra và hỏi người dùng có muốn cập nhật không
-  Future<void> checkAndPrompt(BuildContext context) async {
+  Future<VersionCheckSummary?> checkAndPrompt(BuildContext context) async {
     if (!Platform.isAndroid) {
       // Luồng cài đặt hiện tại chỉ hỗ trợ Android (APK)
-      return;
+      return null;
     }
 
     try {
-      final info = await PackageInfo.fromPlatform();
-      final currentVersion = info.version.isNotEmpty ? info.version : info.buildNumber;
-      final client = http.Client();
-
-      try {
-        final response = await client
-            .get(
-              _uri('/api/control/check-app-version', {
-                'currentVersion': currentVersion,
-                'platform': 'android',
-              }),
-              headers: {HttpHeaders.acceptHeader: 'application/json'},
-            )
-            .timeout(const Duration(seconds: 20));
-
-        if (response.statusCode != HttpStatus.ok) {
-          return;
-        }
-
-        final dynamic decoded = jsonDecode(response.body);
-        if (decoded is! Map<String, dynamic>) {
-          return;
-        }
-
-        final updateAvailable = _readBool(decoded, const ['updateAvailable', 'UpdateAvailable']);
-        if (!updateAvailable) {
-          return;
-        }
-
-        final NotificationAppVersion? latestRelease = NotificationAppVersion.maybeFrom(
-          decoded['latestRelease'] ?? decoded['LatestRelease'],
-        );
-
-        final String? serverVersion = _readString(
-          decoded,
-          const ['serverVersion', 'ServerVersion', 'latestVersion', 'LatestVersion'],
-        );
-        final String? notes = _readString(
-          decoded,
-          const ['comparisonNote', 'ComparisonNote', 'notesVi', 'NotesVi', 'releaseNotes'],
-        );
-
-        String? downloadUrl = latestRelease?.fileUrl ??
-            _readString(
-              decoded,
-              const ['downloadUrl', 'DownloadUrl', 'fileUrl', 'FileUrl'],
-            );
-        if (downloadUrl != null && downloadUrl.isNotEmpty) {
-          downloadUrl = ApiConfig.normalizeNotificationUrl(downloadUrl);
-        } else {
-          downloadUrl = _uri('/api/control/app-version/download', {'platform': 'android'}).toString();
-        }
-
-        if (!_isContextMounted(context)) return;
-
-        final String changelog = latestRelease?.releaseNotes?.trim().isNotEmpty == true
-            ? latestRelease!.releaseNotes!.trim()
-            : (notes ?? '');
-        final String checksum = latestRelease?.fileChecksum ?? '';
-
-        final bool? confirm = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) {
-            return AlertDialog(
-              title: const Text('Có bản cập nhật mới'),
-              content: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Phiên bản hiện tại: $currentVersion'),
-                    if (serverVersion != null && serverVersion.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Phiên bản mới: $serverVersion',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    if (changelog.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(changelog),
-                      ),
-                    if (checksum.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text('Checksum: $checksum'),
-                      ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(false),
-                  child: const Text('Để sau'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(ctx).pop(true),
-                  child: const Text('Cập nhật'),
-                ),
-              ],
-            );
-          },
-        );
-
-        if (confirm == true &&
-            downloadUrl != null &&
-            downloadUrl.isNotEmpty &&
-            _isContextMounted(context)) {
-          await _downloadAndInstall(context, downloadUrl);
-        }
-      } finally {
-        client.close();
+      final summary = await fetchVersionSummary();
+      if (summary == null) {
+        return null;
       }
+
+      if (!summary.updateAvailable) {
+        return summary;
+      }
+
+      final downloadUrl = summary.downloadUrl;
+      if (downloadUrl == null || downloadUrl.isEmpty) {
+        return summary;
+      }
+
+      if (!_isContextMounted(context)) return summary;
+
+      final String? serverVersion = summary.effectiveLatestVersion;
+      final String changelog = summary.releaseNotes ?? '';
+      final String checksum = summary.checksum ?? '';
+
+      final bool? confirm = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) {
+          return AlertDialog(
+            title: const Text('Có bản cập nhật mới'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Phiên bản hiện tại: ${summary.currentVersion}'),
+                  if (serverVersion != null && serverVersion.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Phiên bản mới: $serverVersion',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  if (summary.minSupported != null &&
+                      summary.minSupported!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('Yêu cầu tối thiểu: ${summary.minSupported}'),
+                    ),
+                  if (changelog.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(changelog),
+                    ),
+                  if (checksum.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text('Checksum: $checksum'),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Để sau'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Cập nhật'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirm == true && _isContextMounted(context)) {
+        await _downloadAndInstall(context, downloadUrl);
+      }
+
+      return summary;
     } on Exception {
       // Bỏ qua lỗi kiểm tra phiên bản để không chặn luồng khởi động ứng dụng
+      return null;
+    }
+  }
+
+  Future<VersionCheckSummary?> fetchVersionSummary({
+    String? overrideCurrentVersion,
+    String platform = 'android',
+  }) async {
+    final info = await PackageInfo.fromPlatform();
+    final String resolvedPlatform = platform.isNotEmpty
+        ? platform
+        : (Platform.isAndroid ? 'android' : Platform.operatingSystem);
+    final String currentVersion = overrideCurrentVersion ??
+        (info.version.isNotEmpty ? info.version : info.buildNumber);
+
+    if (!Platform.isAndroid && resolvedPlatform.toLowerCase() == 'android') {
+      return VersionCheckSummary(
+        currentVersion: currentVersion,
+        platform: resolvedPlatform,
+        updateAvailable: false,
+        serverVersion: currentVersion,
+        minSupported: null,
+        notes: null,
+        downloadUrl: null,
+        latestRelease: null,
+      );
+    }
+
+    final client = http.Client();
+    try {
+      final response = await client
+          .get(
+            _uri('/api/control/check-app-version', {
+              'currentVersion': currentVersion,
+              'platform': resolvedPlatform,
+            }),
+            headers: {HttpHeaders.acceptHeader: 'application/json'},
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode != HttpStatus.ok) {
+        throw Exception(
+          'Không thể kiểm tra cập nhật (mã ${response.statusCode}).',
+        );
+      }
+
+      final dynamic decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Dữ liệu phản hồi không hợp lệ');
+      }
+
+      final updateAvailable =
+          _readBool(decoded, const ['updateAvailable', 'UpdateAvailable']);
+
+      final NotificationAppVersion? latestRelease =
+          NotificationAppVersion.maybeFrom(
+        decoded['latestRelease'] ?? decoded['LatestRelease'],
+      );
+
+      final String? serverVersion = _readString(
+        decoded,
+        const ['serverVersion', 'ServerVersion', 'latestVersion', 'LatestVersion'],
+      );
+
+      final String? minSupported = _readString(
+        decoded,
+        const [
+          'minSupported',
+          'MinSupported',
+          'minimumSupported',
+          'MinimumSupported',
+          'minVersion',
+          'MinVersion',
+          'min_version',
+        ],
+      );
+
+      final String? notes = _readString(
+        decoded,
+        const [
+          'comparisonNote',
+          'ComparisonNote',
+          'notesVi',
+          'NotesVi',
+          'notes',
+          'releaseNotes',
+        ],
+      );
+
+      String? downloadUrl = _readString(
+        decoded,
+        const ['downloadUrl', 'DownloadUrl', 'fileUrl', 'FileUrl'],
+      );
+
+      downloadUrl ??= latestRelease?.fileUrl;
+
+      if (downloadUrl != null && downloadUrl.isNotEmpty) {
+        downloadUrl = ApiConfig.normalizeNotificationUrl(downloadUrl);
+      } else {
+        downloadUrl = _uri(
+          '/api/control/app-version/download',
+          {'platform': resolvedPlatform},
+        ).toString();
+      }
+
+      return VersionCheckSummary(
+        currentVersion: currentVersion,
+        platform: resolvedPlatform,
+        updateAvailable: updateAvailable,
+        serverVersion: serverVersion ?? latestRelease?.versionName,
+        minSupported: minSupported,
+        notes: notes,
+        downloadUrl: downloadUrl,
+        latestRelease: latestRelease,
+      );
+    } on FormatException catch (e) {
+      throw Exception('Dữ liệu phản hồi không hợp lệ: ${e.message}');
+    } finally {
+      client.close();
     }
   }
 
