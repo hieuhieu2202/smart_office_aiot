@@ -13,6 +13,7 @@ class NotificationController extends GetxController {
   final int pageSize;
   static const int _maxAutoAdvancePages = 10;
   static const String _dismissedStorageKey = 'notification_dismissed_keys';
+  static const int _maxStoredDismissedKeys = 200;
 
   final RxList<NotificationEntry> notifications = <NotificationEntry>[].obs;
   final RxBool isLoading = false.obs;
@@ -28,6 +29,7 @@ class NotificationController extends GetxController {
   bool _initialized = false;
   final GetStorage _storage = GetStorage();
   final Set<String> _dismissedKeys = <String>{};
+  final List<String> _dismissedOrder = <String>[];
 
   StreamSubscription<NotificationMessage>? _streamSubscription;
   Timer? _reconnectTimer;
@@ -86,7 +88,7 @@ class NotificationController extends GetxController {
     final index = notifications.indexWhere((item) => item.key == entry.key);
     if (index == -1) return false;
     notifications.removeAt(index);
-    _dismissedKeys.add(entry.key);
+    _touchDismissedKey(entry.key);
     _persistDismissedKeys();
     _recalculateUnread();
     return true;
@@ -330,13 +332,34 @@ class NotificationController extends GetxController {
   void _loadDismissedKeys() {
     final dynamic stored = _storage.read(_dismissedStorageKey);
     if (stored is List) {
+      final keys = stored.whereType<String>().toList();
       _dismissedKeys
         ..clear()
-        ..addAll(stored.whereType<String>());
+        ..addAll(keys);
+      _dismissedOrder
+        ..clear()
+        ..addAll(keys);
+      _pruneDismissedKeys();
+      _persistDismissedKeys();
     }
   }
 
   void _persistDismissedKeys() {
-    _storage.write(_dismissedStorageKey, _dismissedKeys.toList());
+    _pruneDismissedKeys();
+    _storage.write(_dismissedStorageKey, _dismissedOrder);
+  }
+
+  void _touchDismissedKey(String key) {
+    _dismissedKeys.add(key);
+    _dismissedOrder.remove(key);
+    _dismissedOrder.add(key);
+    _pruneDismissedKeys();
+  }
+
+  void _pruneDismissedKeys() {
+    while (_dismissedOrder.length > _maxStoredDismissedKeys) {
+      final removed = _dismissedOrder.removeAt(0);
+      _dismissedKeys.remove(removed);
+    }
   }
 }
