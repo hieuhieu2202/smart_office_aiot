@@ -217,15 +217,19 @@ class _NotificationTabState extends State<NotificationTab> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Dismissible(
               key: ValueKey(entry.key),
-              direction: DismissDirection.startToEnd,
+              direction: DismissDirection.endToStart,
               movementDuration: const Duration(milliseconds: 220),
-              background: _buildSwipeOptionsBackground(
+              dismissThresholds: const {
+                DismissDirection.endToStart: 0.4,
+              },
+              background: const SizedBox.shrink(),
+              secondaryBackground: _buildSwipeOptionsBackground(
                 isRead: entry.isRead,
                 accent: accent,
                 isDark: isDark,
               ),
               confirmDismiss: (direction) async {
-                if (direction == DismissDirection.startToEnd) {
+                if (direction == DismissDirection.endToStart) {
                   await _handleSwipeAction(entry, accent);
                 }
                 return false;
@@ -256,21 +260,22 @@ class _NotificationTabState extends State<NotificationTab> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        alignment: Alignment.centerLeft,
+        alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         color: accent.withOpacity(backgroundOpacity),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            _buildSwipeChip(
-              color: accent,
-              icon: markIcon,
-              label: markLabel,
-            ),
-            const SizedBox(width: 12),
             _buildSwipeChip(
               color: Colors.redAccent,
               icon: Icons.delete_outline,
               label: 'Xoá',
+            ),
+            const SizedBox(width: 12),
+            _buildSwipeChip(
+              color: accent,
+              icon: markIcon,
+              label: markLabel,
             ),
           ],
         ),
