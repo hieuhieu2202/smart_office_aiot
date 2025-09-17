@@ -9,6 +9,8 @@ class NotificationCard extends StatelessWidget {
     required this.message,
     required this.isDark,
     required this.accent,
+    this.isUnread = false,
+    this.onTap,
     this.onOpenLink,
     this.onOpenAttachment,
   });
@@ -16,6 +18,8 @@ class NotificationCard extends StatelessWidget {
   final NotificationMessage message;
   final bool isDark;
   final Color accent;
+  final bool isUnread;
+  final VoidCallback? onTap;
   final VoidCallback? onOpenLink;
   final VoidCallback? onOpenAttachment;
 
@@ -26,8 +30,13 @@ class NotificationCard extends StatelessWidget {
     final secondaryTextColor = isDark
         ? GlobalColors.darkSecondaryText
         : GlobalColors.lightSecondaryText;
-    final cardColor =
+    final baseCardColor =
         isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg;
+    final highlighted = accent.withOpacity(isDark ? 0.28 : 0.16);
+    final cardColor = isUnread
+        ? Color.lerp(baseCardColor, highlighted, 0.55) ?? highlighted
+        : baseCardColor;
+    final borderColor = isUnread ? accent.withOpacity(0.6) : Colors.transparent;
 
     final actions = <Widget>[];
 
@@ -82,14 +91,15 @@ class NotificationCard extends StatelessWidget {
       );
     }
 
-    return Container(
+    final card = Container(
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: isUnread ? 1.2 : 1),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withOpacity(0.35)
+                ? Colors.black.withOpacity(0.32)
                 : Colors.blueGrey.withOpacity(0.12),
             blurRadius: 18,
             offset: const Offset(0, 12),
@@ -162,6 +172,40 @@ class NotificationCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            card,
+            if (isUnread)
+              Positioned(
+                right: 18,
+                top: 18,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: accent.withOpacity(0.4),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

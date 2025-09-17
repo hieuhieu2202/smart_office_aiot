@@ -1,11 +1,11 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 
 import '../config/Apiconfig.dart';
-import '../model/notification_draft.dart';
 import '../model/notification_message.dart';
 
 class NotificationService {
@@ -87,110 +87,116 @@ class NotificationService {
     }
   }
 
-  static Future<void> sendNotification(NotificationDraft draft) async {
-    if (draft.hasAttachment &&
-        draft.attachment?.bytes == null &&
-        (draft.attachment?.filePath?.isEmpty ?? true)) {
-      throw ArgumentError('Tệp đính kèm không hợp lệ');
+  static Stream<NotificationMessage> realtimeNotifications() {
+    IOClient? client;
+    StreamSubscription<String>? subscription;
+    StreamController<NotificationMessage>? controller;
+
+    Future<void> closeResources() async {
+      await subscription?.cancel();
+      subscription = null;
+      client?.close();
+      client = null;
     }
 
-    if (draft.hasAttachment) {
-      await _sendMultipart(draft);
-    } else {
-      await _sendJson(draft);
+    Future<void> connect() async {
+      await closeResources();
+      client = _createIoClient();
+      final request = http.Request(
+        'GET',
+        _uri('/api/control/notifications-stream'),
+      );
+      request.headers[HttpHeaders.acceptHeader] = 'text/event-stream';
+
+      try {
+        final response = await client!
+            .send(request)
+            .timeout(const Duration(seconds: 20));
+
+        if (response.statusCode != HttpStatus.ok) {
+          throw HttpException(
+            'Không thể kết nối realtime (mã ${response.statusCode}).',
+          );
+        }
+
+        var buffer = '';
+        subscription = response.stream
+            .transform(utf8.decoder)
+            .listen((chunk) {
+          buffer += chunk;
+          final parts = buffer.split(RegExp(r'\r?\n\r?\n'));
+          for (var i = 0; i < parts.length - 1; i++) {
+            final parsed = _parseSseEvent(parts[i]);
+            if (parsed != null) {
+              controller?.add(parsed);
+            }
+          }
+          buffer = parts.isNotEmpty ? parts.last : '';
+        }, onError: (error, stackTrace) {
+          if (!(controller?.isClosed ?? true)) {
+            controller?.addError(error, stackTrace);
+          }
+        }, onDone: () async {
+          await closeResources();
+          if (!(controller?.isClosed ?? true)) {
+            await controller?.close();
+          }
+        });
+      } catch (error, stackTrace) {
+        if (!(controller?.isClosed ?? true)) {
+          controller?.addError(error, stackTrace);
+        }
+        await closeResources();
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        if (!(controller?.isClosed ?? true)) {
+          await controller?.close();
+        }
+      }
     }
+
+    controller = StreamController<NotificationMessage>(
+      onListen: connect,
+      onCancel: () async {
+        await closeResources();
+      },
+      onPause: () async {
+        await closeResources();
+      },
+      onResume: connect,
+    );
+
+    return controller.stream;
   }
 
-  static Future<void> clearNotifications() async {
-    final uri = _uri('/api/control/clear-notifications');
-    final client = _createIoClient();
+  static NotificationMessage? _parseSseEvent(String rawEvent) {
+    final lines = rawEvent.split(RegExp(r'\r?\n'));
+    final buffer = StringBuffer();
+
+    for (final line in lines) {
+      if (line.isEmpty) continue;
+      if (line.startsWith('data:')) {
+        final data = line.substring(5).trimLeft();
+        if (buffer.isNotEmpty) {
+          buffer.write('\n');
+        }
+        buffer.write(data);
+      }
+    }
+
+    final payload = buffer.toString().trim();
+    if (payload.isEmpty) {
+      return null;
+    }
+
     try {
-      final response = await client
-          .post(uri, headers: {HttpHeaders.acceptHeader: 'application/json'})
-          .timeout(const Duration(seconds: 20));
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception(
-          'Không thể xoá thông báo (mã ${response.statusCode}). ${_extractError(response.body) ?? ''}',
-        );
+      final dynamic decoded = jsonDecode(payload);
+      if (decoded is Map<String, dynamic>) {
+        return NotificationMessage.fromJson(decoded);
       }
-    } finally {
-      client.close();
+    } catch (_) {
+      return null;
     }
-  }
-
-  static Future<void> _sendJson(NotificationDraft draft) async {
-    final uri = _uri('/api/control/send-notification-json');
-    final client = _createIoClient();
-    try {
-      final payload = draft.toJsonPayload();
-      final response = await client
-          .post(
-            uri,
-            headers: {
-              HttpHeaders.contentTypeHeader: 'application/json',
-              HttpHeaders.acceptHeader: 'application/json',
-            },
-            body: jsonEncode(payload),
-          )
-          .timeout(const Duration(seconds: 20));
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception(
-          'Gửi thông báo thất bại (mã ${response.statusCode}). ${_extractError(response.body) ?? ''}',
-        );
-      }
-    } finally {
-      client.close();
-    }
-  }
-
-  static Future<void> _sendMultipart(NotificationDraft draft) async {
-    final uri = _uri('/api/control/send-notification');
-    final request = http.MultipartRequest('POST', uri);
-
-    request.fields['title'] = draft.title;
-    request.fields['body'] = draft.body;
-    if (draft.id != null && draft.id!.isNotEmpty) {
-      request.fields['id'] = draft.id!;
-    }
-    if (draft.link != null && draft.link!.isNotEmpty) {
-      request.fields['link'] = draft.link!;
-    }
-    if (draft.targetVersion != null && draft.targetVersion!.isNotEmpty) {
-      request.fields['targetVersion'] = draft.targetVersion!;
-    }
-
-    final attachment = draft.attachment;
-    if (attachment != null) {
-      if (attachment.hasBytes) {
-        request.files.add(http.MultipartFile.fromBytes(
-          'file',
-          attachment.bytes!,
-          filename: attachment.fileName,
-        ));
-      } else if (attachment.filePath != null && attachment.filePath!.isNotEmpty) {
-        request.files.add(await http.MultipartFile.fromPath(
-          'file',
-          attachment.filePath!,
-          filename: attachment.fileName,
-        ));
-      }
-    }
-
-    final client = _createIoClient();
-    try {
-      final streamed = await client.send(request);
-      final response = await http.Response.fromStream(streamed);
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception(
-          'Gửi thông báo thất bại (mã ${response.statusCode}). ${_extractError(response.body) ?? ''}',
-        );
-      }
-    } finally {
-      client.close();
-    }
+    return null;
   }
 
   static String? _extractError(String? body) {

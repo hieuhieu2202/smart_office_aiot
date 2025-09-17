@@ -5,13 +5,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/Apiconfig.dart';
 import '../../config/global_color.dart';
 import '../../generated/l10n.dart';
-import '../../model/notification_draft.dart';
+import '../../model/notification_entry.dart';
 import '../../model/notification_message.dart';
 import '../../widget/custom_app_bar.dart';
 import '../../widget/notification/notification_card.dart';
-import '../../widget/notification/notification_compose_dialog.dart';
 import '../setting/controller/setting_controller.dart';
 import 'controller/notification_controller.dart';
+import 'notification_detail_screen.dart';
 
 class NotificationTab extends StatefulWidget {
   const NotificationTab({super.key});
@@ -53,89 +53,9 @@ class _NotificationTabState extends State<NotificationTab> {
     return notificationController.refreshNotifications(showLoader: false);
   }
 
-  Future<void> _openComposer() async {
-    final isDark = settingController.isDarkMode.value;
-    final draft = await showDialog<NotificationDraft>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => NotificationComposeDialog(isDark: isDark),
-    );
-
-    if (draft == null) return;
-
-    try {
-      await notificationController.sendNotification(draft);
-      if (!mounted) return;
-      Get.snackbar(
-        'Thành công',
-        'Thông báo đã được gửi tới các thiết bị.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green.withOpacity(0.85),
-        colorText: Colors.white,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Get.snackbar(
-        'Gửi thông báo thất bại',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent.withOpacity(0.85),
-        colorText: Colors.white,
-      );
-    }
-  }
-
-  Future<void> _confirmClear() async {
-    final isDark = settingController.isDarkMode.value;
-    final accent = GlobalColors.accentByIsDark(isDark);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Xoá toàn bộ thông báo?'),
-        content: const Text(
-          'Thao tác này sẽ xoá toàn bộ thông báo đã gửi đi. Bạn có chắc chắn?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Huỷ'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: accent,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Xoá hết'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      await notificationController.clearAll();
-      if (!mounted) return;
-      Get.snackbar(
-        'Đã xoá',
-        'Danh sách thông báo đã được dọn sạch.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green.withOpacity(0.85),
-        colorText: Colors.white,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Get.snackbar(
-        'Không thể xoá thông báo',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent.withOpacity(0.85),
-        colorText: Colors.white,
-      );
-    }
+  Future<void> _openDetails(NotificationEntry entry) async {
+    final updated = notificationController.markAsRead(entry) ?? entry;
+    await Get.to(() => NotificationDetailScreen(entry: updated));
   }
 
   Future<void> _openLink(String? rawUrl) async {
@@ -265,7 +185,7 @@ class _NotificationTabState extends State<NotificationTab> {
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          SizedBox(height: screenHeight * 0.15),
+          SizedBox(height: screenHeight * 0.18),
           Icon(
             Icons.notifications_off_outlined,
             size: 72,
@@ -289,7 +209,7 @@ class _NotificationTabState extends State<NotificationTab> {
             child: Text(
               errorMessage?.isNotEmpty == true
                   ? errorMessage!
-                  : 'Nhấn nút “Gửi thông báo” để đẩy thông báo tới thiết bị.',
+                  : 'Kéo xuống để làm mới và tải thông báo mới nhất.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -309,7 +229,7 @@ class _NotificationTabState extends State<NotificationTab> {
   Widget _buildList(
     bool isDark,
     Color accent,
-    List<NotificationMessage> notifications,
+    List<NotificationEntry> items,
     bool isLoadingMore,
   ) {
     return RefreshIndicator(
@@ -317,29 +237,173 @@ class _NotificationTabState extends State<NotificationTab> {
       onRefresh: _onRefresh,
       child: ListView.separated(
         controller: _scrollController,
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-        itemCount: notifications.length + (isLoadingMore ? 1 : 0),
+        padding: const EdgeInsets.only(top: 16, bottom: 120),
+        itemCount: items.length + (isLoadingMore ? 1 : 0),
         separatorBuilder: (_, __) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
-          if (index >= notifications.length) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
+          if (index >= items.length) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
                 child: CircularProgressIndicator(color: accent),
               ),
             );
           }
-          final message = notifications[index];
-          return NotificationCard(
-            message: message,
-            isDark: isDark,
-            accent: accent,
-            onOpenLink: message.hasLink ? () => _openLink(message.link) : null,
-            onOpenAttachment:
-                message.hasAttachment ? () => _openAttachment(message) : null,
+
+          final entry = items[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Dismissible(
+              key: ValueKey(entry.key),
+              direction: DismissDirection.horizontal,
+              background: _buildSwipeBackground(
+                alignLeft: true,
+                color: accent,
+                icon: Icons.markunread,
+                label: 'Đánh dấu chưa đọc',
+              ),
+              secondaryBackground: _buildSwipeBackground(
+                alignLeft: false,
+                color: Colors.redAccent,
+                icon: Icons.delete_outline,
+                label: 'Xoá',
+              ),
+              confirmDismiss: (direction) async {
+                if (direction == DismissDirection.startToEnd) {
+                  notificationController.markAsUnread(entry);
+                  return false;
+                }
+                return true;
+              },
+              onDismissed: (_) {
+                notificationController.remove(entry);
+              },
+              child: NotificationCard(
+                message: entry.message,
+                isDark: isDark,
+                accent: accent,
+                isUnread: !entry.isRead,
+                onTap: () => _openDetails(entry),
+                onOpenLink: entry.message.hasLink
+                    ? () => _openLink(entry.message.link)
+                    : null,
+                onOpenAttachment: entry.message.hasAttachment
+                    ? () => _openAttachment(entry.message)
+                    : null,
+              ),
+            ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildSwipeBackground({
+    required bool alignLeft,
+    required Color color,
+    required IconData icon,
+    required String label,
+  }) {
+    final content = <Widget>[
+      Icon(icon, color: Colors.white),
+      const SizedBox(width: 8),
+      Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      padding: alignLeft
+          ? const EdgeInsets.only(left: 24)
+          : const EdgeInsets.only(right: 24),
+      alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: alignLeft ? content : content.reversed.toList(),
+      ),
+    );
+  }
+
+  Widget _buildIncomingBanner(
+    bool isDark,
+    Color accent,
+    bool isVisible,
+    NotificationEntry? entry,
+  ) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final offsetAnimation = Tween<Offset>(
+          begin: const Offset(0, -1),
+          end: Offset.zero,
+        ).animate(animation);
+        return SlideTransition(
+          position: offsetAnimation,
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      child: isVisible && entry != null
+          ? Padding(
+              key: ValueKey(entry.key),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(isDark ? 0.22 : 0.15),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.notifications_active, color: accent),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Thông báo mới',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? GlobalColors.darkPrimaryText
+                                  : GlobalColors.lightPrimaryText,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            entry.message.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isDark
+                                  ? GlobalColors.darkSecondaryText
+                                  : GlobalColors.lightSecondaryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _openDetails(entry),
+                      child: const Text('Xem'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 
@@ -350,17 +414,19 @@ class _NotificationTabState extends State<NotificationTab> {
       final bool isDark = settingController.isDarkMode.value;
       final Color accent = GlobalColors.accentByIsDark(isDark);
       final notifications = notificationController.notifications;
-      final isLoading = notificationController.isLoading.value;
-      final isSending = notificationController.isSending.value;
-      final isClearing = notificationController.isClearing.value;
-      final isLoadingMore = notificationController.isLoadingMore.value;
-      final errorMessage = notificationController.error.value;
+      final bool isLoading = notificationController.isLoading.value;
+      final bool isLoadingMore = notificationController.isLoadingMore.value;
+      final String? errorMessage = notificationController.error.value;
+      final bool bannerVisible = notificationController.bannerVisible.value;
+      final NotificationEntry? bannerEntry =
+          notificationController.bannerEntry.value;
 
       Widget bodyContent;
       if (isLoading && notifications.isEmpty) {
         bodyContent = const Center(child: CircularProgressIndicator());
       } else if (notifications.isEmpty) {
-        bodyContent = _buildEmptyState(context, isDark, errorMessage, accent);
+        bodyContent =
+            _buildEmptyState(context, isDark, errorMessage, accent);
       } else {
         bodyContent = _buildList(
           isDark,
@@ -384,47 +450,13 @@ class _NotificationTabState extends State<NotificationTab> {
               icon: const Icon(Icons.refresh),
               color: accent,
             ),
-            if (notifications.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: IconButton(
-                  tooltip: isClearing ? 'Đang xoá...' : 'Xoá toàn bộ',
-                  onPressed: isClearing ? null : _confirmClear,
-                  icon: isClearing
-                      ? SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: accent,
-                          ),
-                        )
-                      : const Icon(Icons.delete_sweep_outlined),
-                  color: isClearing ? accent.withOpacity(0.5) : accent,
-                ),
-              ),
           ],
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: isSending ? null : _openComposer,
-          icon: isSending
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              : const Icon(Icons.add),
-          label: Text(isSending ? 'Đang gửi...' : 'Gửi thông báo'),
-          backgroundColor: isSending ? accent.withOpacity(0.6) : accent,
-          foregroundColor: Colors.white,
         ),
         body: Column(
           children: [
             if (errorMessage != null && errorMessage.trim().isNotEmpty)
               _buildErrorBanner(isDark, errorMessage, accent),
+            _buildIncomingBanner(isDark, accent, bannerVisible, bannerEntry),
             Expanded(child: bodyContent),
           ],
         ),

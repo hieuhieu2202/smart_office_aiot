@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
-import '../../../model/notification_draft.dart';
+import '../../../model/notification_entry.dart';
 import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
 
@@ -11,17 +11,22 @@ class NotificationController extends GetxController {
 
   final int pageSize;
 
-  final RxList<NotificationMessage> notifications = <NotificationMessage>[].obs;
+  final RxList<NotificationEntry> notifications = <NotificationEntry>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool isLoadingMore = false.obs;
-  final RxBool isSending = false.obs;
-  final RxBool isClearing = false.obs;
   final RxnString error = RxnString();
+  final RxInt unreadCount = 0.obs;
+  final Rxn<NotificationEntry> bannerEntry = Rxn<NotificationEntry>();
+  final RxBool bannerVisible = false.obs;
 
   int _currentPage = 1;
   bool _hasMore = true;
   bool _fetching = false;
-  Timer? _pollTimer;
+  bool _initialized = false;
+
+  StreamSubscription<NotificationMessage>? _streamSubscription;
+  Timer? _reconnectTimer;
+  Timer? _bannerTimer;
 
   bool get hasMore => _hasMore;
   bool get isFetching => _fetching;
@@ -30,12 +35,14 @@ class NotificationController extends GetxController {
   void onInit() {
     super.onInit();
     refreshNotifications(showLoader: true);
-    _startPolling();
+    _connectStream();
   }
 
   @override
   void onClose() {
-    _pollTimer?.cancel();
+    _streamSubscription?.cancel();
+    _reconnectTimer?.cancel();
+    _bannerTimer?.cancel();
     super.onClose();
   }
 
@@ -56,36 +63,20 @@ class NotificationController extends GetxController {
     }
   }
 
-  Future<void> sendNotification(NotificationDraft draft) async {
-    if (isSending.value) return;
-    isSending.value = true;
-    try {
-      await NotificationService.sendNotification(draft);
-      await refreshNotifications(showLoader: notifications.isEmpty);
-      error.value = null;
-    } catch (e) {
-      error.value = e.toString();
-      rethrow;
-    } finally {
-      isSending.value = false;
-    }
+  NotificationEntry? markAsRead(NotificationEntry entry) {
+    return _updateEntry(entry, isRead: true);
   }
 
-  Future<void> clearAll() async {
-    if (isClearing.value) return;
-    isClearing.value = true;
-    try {
-      await NotificationService.clearNotifications();
-      notifications.clear();
-      _currentPage = 1;
-      _hasMore = true;
-      error.value = null;
-    } catch (e) {
-      error.value = e.toString();
-      rethrow;
-    } finally {
-      isClearing.value = false;
-    }
+  NotificationEntry? markAsUnread(NotificationEntry entry) {
+    return _updateEntry(entry, isRead: false);
+  }
+
+  bool remove(NotificationEntry entry) {
+    final index = notifications.indexWhere((item) => item.key == entry.key);
+    if (index == -1) return false;
+    notifications.removeAt(index);
+    _recalculateUnread();
+    return true;
   }
 
   Future<void> _load({
@@ -106,24 +97,62 @@ class NotificationController extends GetxController {
       );
 
       if (!append) {
-        notifications.assignAll(result);
-      } else if (result.isNotEmpty) {
-        final existingIds = notifications
-            .map((item) => item.id)
-            .whereType<String>()
-            .toSet();
-        for (final item in result) {
-          final id = item.id;
-          if (id != null && existingIds.contains(id)) {
-            continue;
+        final previousMap = {
+          for (final entry in notifications) entry.key: entry,
+        };
+        final isInitialLoad = !_initialized;
+        final rebuilt = <NotificationEntry>[];
+
+        for (final message in result) {
+          final key = _keyFor(message);
+          final existing = previousMap[key];
+          final bool isRead;
+          if (existing != null) {
+            isRead = existing.isRead;
+          } else if (isInitialLoad) {
+            isRead = true;
+          } else {
+            isRead = false;
           }
-          notifications.add(item);
+          rebuilt.add(
+            NotificationEntry(key: key, message: message, isRead: isRead),
+          );
+        }
+
+        rebuilt.sort(_sortByTimestampDesc);
+        notifications.assignAll(rebuilt);
+      } else if (result.isNotEmpty) {
+        var mutated = false;
+        final additions = <NotificationEntry>[];
+
+        for (final message in result) {
+          final key = _keyFor(message);
+          final index = notifications.indexWhere((item) => item.key == key);
+          if (index != -1) {
+            notifications[index] = notifications[index].copyWith(message: message);
+            mutated = true;
+          } else {
+            additions.add(
+              NotificationEntry(key: key, message: message, isRead: true),
+            );
+          }
+        }
+
+        if (additions.isNotEmpty) {
+          notifications.addAll(additions);
+          mutated = true;
+        }
+
+        if (mutated) {
+          notifications.sort(_sortByTimestampDesc);
+          notifications.refresh();
         }
       }
 
       _currentPage = page;
       _hasMore = result.length >= pageSize;
       error.value = null;
+      _initialized = true;
     } catch (e) {
       error.value = e.toString();
       if (!append && notifications.isEmpty) {
@@ -134,14 +163,140 @@ class NotificationController extends GetxController {
         isLoading.value = false;
       }
       _fetching = false;
+      _recalculateUnread();
     }
   }
 
-  void _startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
-      if (_fetching) return;
-      await refreshNotifications(showLoader: false);
+  void _connectStream() {
+    _streamSubscription?.cancel();
+    _streamSubscription = NotificationService.realtimeNotifications().listen(
+      (message) {
+        _handleIncoming(message);
+      },
+      onError: (error, stackTrace) {
+        _scheduleReconnect();
+      },
+      onDone: () {
+        _scheduleReconnect();
+      },
+      cancelOnError: false,
+    );
+  }
+
+  void _scheduleReconnect() {
+    if (isClosed) return;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+      if (!isClosed) {
+        _connectStream();
+      }
     });
+  }
+
+  void _handleIncoming(NotificationMessage message) {
+    final entry = _upsert(message, markUnread: true);
+    if (entry != null) {
+      _showBanner(entry);
+    }
+  }
+
+  NotificationEntry? _upsert(NotificationMessage message, {bool markUnread = false}) {
+    final key = _keyFor(message);
+    final index = notifications.indexWhere((item) => item.key == key);
+
+    if (index != -1) {
+      final existing = notifications[index];
+      final updated = existing.copyWith(
+        message: message,
+        isRead: markUnread ? false : existing.isRead,
+      );
+      notifications[index] = updated;
+      notifications.sort(_sortByTimestampDesc);
+      notifications.refresh();
+      _recalculateUnread();
+      return updated;
+    }
+
+    final entry = NotificationEntry(
+      key: key,
+      message: message,
+      isRead: !markUnread ? true : false,
+    );
+    notifications.insert(0, entry);
+    notifications.sort(_sortByTimestampDesc);
+    notifications.refresh();
+    _recalculateUnread();
+    return entry;
+  }
+
+  NotificationEntry? _updateEntry(
+    NotificationEntry entry, {
+    NotificationMessage? message,
+    bool? isRead,
+  }) {
+    final index = notifications.indexWhere((item) => item.key == entry.key);
+    if (index == -1) return null;
+    final current = notifications[index];
+    final updated = current.copyWith(
+      message: message ?? current.message,
+      isRead: isRead ?? current.isRead,
+    );
+    notifications[index] = updated;
+    notifications.refresh();
+    _recalculateUnread();
+    return updated;
+  }
+
+  int _sortByTimestampDesc(NotificationEntry a, NotificationEntry b) {
+    final DateTime at = a.message.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final DateTime bt = b.message.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
+    return bt.compareTo(at);
+  }
+
+  void _recalculateUnread() {
+    unreadCount.value =
+        notifications.where((entry) => !entry.isRead).length;
+  }
+
+  void _showBanner(NotificationEntry entry) {
+    bannerEntry.value = entry;
+    bannerVisible.value = true;
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(const Duration(seconds: 2), () {
+      bannerVisible.value = false;
+      Future<void>.delayed(const Duration(milliseconds: 250), () {
+        if (!bannerVisible.value) {
+          bannerEntry.value = null;
+        }
+      });
+    });
+  }
+
+  String _keyFor(NotificationMessage message) {
+    final id = message.id;
+    if (id != null && id.isNotEmpty) {
+      return id;
+    }
+    final timestamp = message.timestampUtc?.millisecondsSinceEpoch;
+    final buffer = StringBuffer()
+      ..write(message.title)
+      ..write('::')
+      ..write(message.body.hashCode);
+    if (timestamp != null) {
+      buffer
+        ..write('::')
+        ..write(timestamp);
+    }
+    if (message.link != null) {
+      buffer
+        ..write('::')
+        ..write(message.link);
+    }
+    if (message.fileUrl != null) {
+      buffer
+        ..write('::')
+        ..write(message.fileUrl);
+    }
+    return buffer.toString();
   }
 }
