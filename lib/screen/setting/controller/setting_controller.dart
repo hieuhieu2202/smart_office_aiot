@@ -33,7 +33,7 @@ class SettingController extends GetxController {
   }
 
   Future<void> refreshVersionInfo({bool force = false}) async {
-    await _loadLocalVersion();
+    final rawVersion = await _loadLocalVersion();
 
     if (isVersionChecking.value && !force) {
       return;
@@ -43,10 +43,12 @@ class SettingController extends GetxController {
     versionError.value = null;
 
     try {
-      final summary = await _updateService.fetchVersionSummary();
+      final summary = await _updateService.fetchVersionSummary(
+        overrideCurrentVersion: rawVersion,
+      );
       if (summary != null) {
         versionSummary.value = summary;
-        appVersion.value = summary.currentVersion;
+        _applyDisplayVersion(summary);
       }
     } catch (e) {
       versionError.value = 'Không thể kiểm tra cập nhật: ${e.toString()}';
@@ -57,17 +59,32 @@ class SettingController extends GetxController {
 
   void applyVersionSummary(VersionCheckSummary summary) {
     versionSummary.value = summary;
-    appVersion.value = summary.currentVersion;
+    _applyDisplayVersion(summary);
     versionError.value = null;
   }
 
-  Future<void> _loadLocalVersion() async {
+  Future<String?> _loadLocalVersion() async {
     try {
       final info = await PackageInfo.fromPlatform();
       appVersion.value = UpdateService.sanitizeVersionForDisplay(info.version);
       buildNumber.value = info.buildNumber;
+      final rawVersion = info.version.trim();
+      return rawVersion.isEmpty ? null : rawVersion;
     } catch (_) {
       // Bỏ qua lỗi đọc phiên bản cục bộ
+      return null;
     }
+  }
+
+  void _applyDisplayVersion(VersionCheckSummary summary) {
+    if (!summary.updateAvailable) {
+      final String? serverVersion = summary.effectiveLatestVersion;
+      if (serverVersion != null && serverVersion.trim().isNotEmpty) {
+        appVersion.value =
+            UpdateService.sanitizeVersionForDisplay(serverVersion);
+        return;
+      }
+    }
+    appVersion.value = summary.currentVersion;
   }
 }

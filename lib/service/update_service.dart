@@ -164,21 +164,25 @@ class UpdateService {
         break;
       }
     }
-    final String currentVersion = _coerceVersion(rawCurrentVersion);
+
+    final String sanitizedCurrentVersion = _coerceVersion(rawCurrentVersion);
+    final String displayCurrentVersion =
+        sanitizeVersionForDisplay(rawCurrentVersion);
 
     _log(
       'Chuẩn bị gọi API kiểm tra phiên bản: '
-      'currentVersion=$currentVersion (raw=${rawCurrentVersion ?? 'n/a'}), '
+      'currentVersion=$sanitizedCurrentVersion (raw=${rawCurrentVersion ?? 'n/a'}), '
+      'display=$displayCurrentVersion, '
       'platform=$resolvedPlatform',
     );
 
     if (!Platform.isAndroid && resolvedPlatform.toLowerCase() == 'android') {
       _log('Thiết bị không phải Android nhưng platform=android, trả về bản tóm tắt mặc định.');
       return VersionCheckSummary(
-        currentVersion: currentVersion,
+        currentVersion: displayCurrentVersion,
         platform: resolvedPlatform,
         updateAvailable: false,
-        serverVersion: currentVersion,
+        serverVersion: displayCurrentVersion,
         minSupported: null,
         notes: null,
         downloadUrl: null,
@@ -190,7 +194,7 @@ class UpdateService {
     try {
       final uri = _uri('/api/Control/check-app-version', {
         'appKey': ApiConfig.notificationAppKey,
-        'currentVersion': currentVersion,
+        'currentVersion': sanitizedCurrentVersion,
         'platform': resolvedPlatform,
       });
       final stopwatch = Stopwatch()..start();
@@ -290,10 +294,12 @@ class UpdateService {
           _normalizeVersion(serverVersionCandidate);
 
       if (!updateAvailable && normalizedServerVersion != null) {
-        final comparison =
-            _compareVersions(currentVersion, normalizedServerVersion);
+        final comparison = _compareVersions(
+          sanitizedCurrentVersion,
+          normalizedServerVersion,
+        );
         _log(
-          'Kết quả so sánh phiên bản: local=$currentVersion, '
+          'Kết quả so sánh phiên bản: local=$sanitizedCurrentVersion, '
           'server=$normalizedServerVersion, compare=$comparison',
         );
         if (comparison < 0) {
@@ -302,7 +308,7 @@ class UpdateService {
       }
 
       return VersionCheckSummary(
-        currentVersion: currentVersion,
+        currentVersion: displayCurrentVersion,
         platform: resolvedPlatform,
         updateAvailable: updateAvailable,
         serverVersion:
@@ -406,7 +412,17 @@ class UpdateService {
     return normalized ?? _defaultInitialVersion;
   }
 
-  static String sanitizeVersionForDisplay(String? value) => _coerceVersion(value);
+  static String sanitizeVersionForDisplay(String? value) {
+    final normalized = _normalizeVersion(value);
+    if (normalized != null && normalized.isNotEmpty) {
+      return normalized;
+    }
+    final trimmed = value?.trim();
+    if (trimmed != null && trimmed.isNotEmpty) {
+      return trimmed;
+    }
+    return _defaultInitialVersion;
+  }
 
   static String? _normalizeVersion(String? value) {
     if (value == null) return null;
