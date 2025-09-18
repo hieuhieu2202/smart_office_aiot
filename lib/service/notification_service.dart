@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer' as developer;
 
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
@@ -52,17 +53,29 @@ class NotificationService {
       'page': page,
       'pageSize': pageSize,
     });
+    final stopwatch = Stopwatch()..start();
+    _log('GET $uri (page=$page, pageSize=$pageSize)');
     final client = _createIoClient();
     try {
       final response = await client
           .get(uri, headers: {HttpHeaders.acceptHeader: 'application/json'})
           .timeout(const Duration(seconds: 20));
+      stopwatch.stop();
+      _log(
+        'GET $uri responded with ${response.statusCode} in '
+        '${stopwatch.elapsedMilliseconds}ms',
+      );
 
       if (response.statusCode == HttpStatus.noContent) {
+        _log('Không có dữ liệu thông báo (204).');
         return NotificationFetchResult.empty(page: page, pageSize: pageSize);
       }
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        final preview = _previewBody(response.body);
+        _log(
+          'Lỗi tải thông báo (mã ${response.statusCode}). Body: $preview',
+        );
         throw Exception(
           'Không thể tải danh sách thông báo (mã ${response.statusCode}). ${_extractError(response.body) ?? ''}',
         );
@@ -70,8 +83,11 @@ class NotificationService {
 
       final body = response.body.trim();
       if (body.isEmpty) {
+        _log('Phản hồi rỗng khi tải thông báo.');
         return NotificationFetchResult.empty(page: page, pageSize: pageSize);
       }
+
+      _log('Phản hồi: ${_previewBody(body)}');
 
       final dynamic decoded = jsonDecode(body);
       final items = NotificationMessage.listFrom(decoded);
@@ -90,14 +106,26 @@ class NotificationService {
         itemCount: items.length,
       );
 
+      _log(
+        'Đã phân tích ${items.length} thông báo. '
+        'page=${pagination.page}, pageSize=${pagination.pageSize}, '
+        'total=${pagination.total}',
+      );
+
       return NotificationFetchResult(
         items: items,
         page: pagination.page,
         pageSize: pagination.pageSize,
         total: pagination.total,
       );
-    } on FormatException catch (e) {
+    } on FormatException catch (e, stackTrace) {
+      _log('Dữ liệu thông báo không hợp lệ: ${e.message}',
+          error: e, stackTrace: stackTrace);
       throw Exception('Dữ liệu thông báo không hợp lệ: ${e.message}');
+    } catch (error, stackTrace) {
+      _log('Lỗi không xác định khi tải thông báo: $error',
+          error: error, stackTrace: stackTrace);
+      rethrow;
     } finally {
       client.close();
     }
@@ -142,6 +170,7 @@ class NotificationService {
       }
       retryTimer?.cancel();
       final delay = override ?? retryDelay;
+      _log('Lên lịch kết nối lại realtime sau ${delay.inSeconds}s.');
       retryTimer = Timer(delay, () {
         retryTimer = null;
         if (disposed || controller.isClosed) {
@@ -172,6 +201,8 @@ class NotificationService {
             'appKey': ApiConfig.notificationAppKey,
           }),
         );
+        final uri = request.url;
+        _log('Mở kết nối realtime tới $uri');
         request.headers[HttpHeaders.acceptHeader] = 'text/event-stream';
         request.headers[HttpHeaders.cacheControlHeader] = 'no-cache';
 
@@ -180,11 +211,13 @@ class NotificationService {
             .timeout(requestTimeout);
 
         if (response.statusCode != HttpStatus.ok) {
+          _log('Kết nối realtime thất bại (mã ${response.statusCode}).');
           throw HttpException(
             'Không thể kết nối realtime (mã ${response.statusCode}).',
           );
         }
 
+        _log('Kết nối realtime thành công.');
         retryDelay = initialRetryDelay;
         var buffer = '';
         subscription = response.stream
@@ -199,20 +232,29 @@ class NotificationService {
           for (final part in parts) {
             final parsed = _parseSseEvent(part);
             if (parsed != null && !disposed && !controller.isClosed) {
+              _log(
+                'Nhận thông báo realtime: '
+                'id=${parsed.id ?? '-'}, title=${parsed.title}',
+              );
               controller.add(parsed);
             }
           }
         }, onError: (error, stackTrace) {
+          _log('Lỗi luồng realtime: $error',
+              error: error, stackTrace: stackTrace);
           if (!disposed && !controller.isClosed) {
             controller.addError(error, stackTrace);
           }
           unawaited(closeResources());
           scheduleReconnect();
         }, onDone: () {
+          _log('Kết nối realtime đóng.');
           unawaited(closeResources());
           scheduleReconnect();
         });
       } catch (error, stackTrace) {
+        _log('Không thể duy trì kết nối realtime: $error',
+            error: error, stackTrace: stackTrace);
         if (!disposed && !controller.isClosed) {
           controller.addError(error, stackTrace);
         }
@@ -274,7 +316,9 @@ class NotificationService {
       if (decoded is Map<String, dynamic>) {
         return NotificationMessage.fromJson(decoded);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _log('Không thể parse sự kiện realtime: $error',
+          error: error, stackTrace: stackTrace);
       return null;
     }
     return null;
@@ -298,6 +342,26 @@ class NotificationService {
       return raw;
     }
     return raw;
+  }
+
+  static void _log(String message, {Object? error, StackTrace? stackTrace}) {
+    developer.log(
+      message,
+      name: 'NotificationService',
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+
+  static String _previewBody(String? body) {
+    if (body == null) {
+      return '';
+    }
+    final normalized = body.trim();
+    if (normalized.length <= 512) {
+      return normalized;
+    }
+    return '${normalized.substring(0, 512)}…';
   }
 }
 

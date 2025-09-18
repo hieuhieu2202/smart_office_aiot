@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -17,23 +18,28 @@ class UpdateService {
 
   /// Gọi ở Splash kiểm tra và hỏi người dùng có muốn cập nhật không
   Future<VersionCheckSummary?> checkAndPrompt(BuildContext context) async {
+    _log('Bắt đầu kiểm tra cập nhật và hiển thị thông báo nếu cần.');
     if (!Platform.isAndroid) {
       // Luồng cài đặt hiện tại chỉ hỗ trợ Android (APK)
+      _log('Thiết bị không phải Android (${Platform.operatingSystem}), bỏ qua kiểm tra.');
       return null;
     }
 
     try {
       final summary = await fetchVersionSummary();
       if (summary == null) {
+        _log('Không nhận được thông tin phiên bản từ server.');
         return null;
       }
 
       if (!summary.updateAvailable) {
+        _log('Không có bản cập nhật mới. Phiên bản hiện tại: ${summary.currentVersion}.');
         return summary;
       }
 
       final downloadUrl = summary.downloadUrl;
       if (downloadUrl == null || downloadUrl.isEmpty) {
+        _log('Server báo có cập nhật nhưng không có đường dẫn tải.');
         return summary;
       }
 
@@ -97,11 +103,17 @@ class UpdateService {
       );
 
       if (confirm == true && _isContextMounted(context)) {
+        _log('Người dùng đồng ý cập nhật, bắt đầu tải file.');
         await _downloadAndInstall(context, downloadUrl);
+      } else {
+        _log('Người dùng từ chối cập nhật hoặc dialog bị đóng.');
       }
 
+      _log('Hoàn tất quy trình kiểm tra cập nhật.');
       return summary;
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      _log('Lỗi khi kiểm tra cập nhật: $error',
+          error: error, stackTrace: stackTrace);
       // Bỏ qua lỗi kiểm tra phiên bản để không chặn luồng khởi động ứng dụng
       return null;
     }
@@ -118,7 +130,13 @@ class UpdateService {
     final String currentVersion = overrideCurrentVersion ??
         (info.version.isNotEmpty ? info.version : info.buildNumber);
 
+    _log(
+      'Chuẩn bị gọi API kiểm tra phiên bản: '
+      'currentVersion=$currentVersion, platform=$resolvedPlatform',
+    );
+
     if (!Platform.isAndroid && resolvedPlatform.toLowerCase() == 'android') {
+      _log('Thiết bị không phải Android nhưng platform=android, trả về bản tóm tắt mặc định.');
       return VersionCheckSummary(
         currentVersion: currentVersion,
         platform: resolvedPlatform,
@@ -133,24 +151,39 @@ class UpdateService {
 
     final client = http.Client();
     try {
+      final uri = _uri('/api/Control/check-app-version', {
+        'appKey': ApiConfig.notificationAppKey,
+        'currentVersion': currentVersion,
+        'platform': resolvedPlatform,
+      });
+      final stopwatch = Stopwatch()..start();
+      _log('GET $uri');
       final response = await client
           .get(
-            _uri('/api/Control/check-app-version', {
-              'appKey': ApiConfig.notificationAppKey,
-              'currentVersion': currentVersion,
-              'platform': resolvedPlatform,
-            }),
+            uri,
             headers: {HttpHeaders.acceptHeader: 'application/json'},
           )
           .timeout(const Duration(seconds: 20));
+      stopwatch.stop();
+      _log(
+        'GET $uri trả về ${response.statusCode} sau '
+        '${stopwatch.elapsedMilliseconds}ms',
+      );
 
       if (response.statusCode != HttpStatus.ok) {
+        _log(
+          'Lỗi kiểm tra phiên bản (mã ${response.statusCode}). '
+          'Body: ${_previewBody(response.body)}',
+        );
         throw Exception(
           'Không thể kiểm tra cập nhật (mã ${response.statusCode}).',
         );
       }
 
-      final dynamic decoded = jsonDecode(response.body);
+      final body = response.body.trim();
+      _log('Phản hồi kiểm tra phiên bản: ${_previewBody(body)}');
+
+      final dynamic decoded = jsonDecode(body);
       if (decoded is! Map<String, dynamic>) {
         throw const FormatException('Dữ liệu phản hồi không hợp lệ');
       }
@@ -222,8 +255,14 @@ class UpdateService {
         downloadUrl: downloadUrl,
         latestRelease: latestRelease,
       );
-    } on FormatException catch (e) {
+    } on FormatException catch (e, stackTrace) {
+      _log('Dữ liệu kiểm tra phiên bản không hợp lệ: ${e.message}',
+          error: e, stackTrace: stackTrace);
       throw Exception('Dữ liệu phản hồi không hợp lệ: ${e.message}');
+    } catch (error, stackTrace) {
+      _log('Lỗi không xác định khi kiểm tra phiên bản: $error',
+          error: error, stackTrace: stackTrace);
+      rethrow;
     } finally {
       client.close();
     }
@@ -267,6 +306,7 @@ class UpdateService {
     );
 
     try {
+      _log('Bắt đầu tải gói cập nhật từ $url tới $filePath');
       await dio.download(
         url,
         filePath,
@@ -284,13 +324,35 @@ class UpdateService {
           sendTimeout: const Duration(minutes: 2),
         ),
       );
+      _log('Đã tải xong gói cập nhật: $filePath');
     } finally {
       if (_isContextMounted(context)) {
         Navigator.of(context, rootNavigator: true).pop();
       }
     }
 
+    _log('Mở file cài đặt: $filePath');
     await OpenFilex.open(filePath);
+  }
+
+  static void _log(String message, {Object? error, StackTrace? stackTrace}) {
+    developer.log(
+      message,
+      name: 'UpdateService',
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+
+  static String _previewBody(String? body) {
+    if (body == null) {
+      return '';
+    }
+    final normalized = body.trim();
+    if (normalized.length <= 512) {
+      return normalized;
+    }
+    return '${normalized.substring(0, 512)}…';
   }
 
   static Uri _uri(String path, [Map<String, dynamic>? query]) {
