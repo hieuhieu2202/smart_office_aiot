@@ -26,8 +26,11 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        val envVersionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull()
+        val envVersionName = System.getenv("ANDROID_VERSION_NAME")?.takeIf { it.isNotBlank() }
+
+        versionCode = envVersionCode ?: flutter.versionCode
+        versionName = envVersionName ?: flutter.versionName
     }
 
     buildTypes {

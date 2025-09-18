@@ -15,6 +15,30 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
+## Android build & version automation
+
+The project bundles a helper script that bumps the `pubspec.yaml` build number
+before compiling an APK so the release always carries a unique version code.
+
+```
+./tool/build_android_release.sh -- --flavor production
+```
+
+The script calls `dart run tool/bump_version.dart` which increments the digits
+after the `+` in the `version:` line. You can customise the behaviour:
+
+* `./tool/build_android_release.sh --bump=patch --` &mdash; bump the patch
+  portion (resetting the build counter) before building.
+* `./tool/build_android_release.sh --set-name=1.3.0 --set-build=0 --` &mdash;
+  manually set the semantic version and build number.
+* `dart run tool/bump_version.dart --dry-run` &mdash; preview the next version
+  without touching the file.
+
+Advanced CI pipelines can also override Android metadata by exporting the
+`ANDROID_VERSION_CODE` or `ANDROID_VERSION_NAME` environment variables before
+invoking `flutter build`. When those variables are absent, Gradle falls back to
+the values provided by Flutter (the ones maintained by the bump script).
+
 
 Smart Factory App
 0: :flutter pub run icons_launcher:create đọc tạo Icon
