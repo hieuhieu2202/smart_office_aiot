@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 import '../../../config/Apiconfig.dart';
 import '../../../model/notification_entry.dart';
@@ -10,7 +11,9 @@ import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
 
 class NotificationController extends GetxController {
-  NotificationController({this.pageSize = 20});
+  NotificationController({this.pageSize = 20, GetStorage? storage})
+      : _storage = storage ?? GetStorage(),
+        _dismissedStorageKey = _buildDismissedStorageKey();
 
   final int pageSize;
   static const int _maxAutoAdvancePages = 10;
@@ -36,12 +39,17 @@ class NotificationController extends GetxController {
 
   static const Duration _pollingInterval = Duration(seconds: 5);
 
+  final GetStorage _storage;
+  final String _dismissedStorageKey;
+  final Set<String> _dismissedKeys = <String>{};
+
   bool get hasMore => _hasMore;
   bool get isFetching => _fetching;
 
   @override
   void onInit() {
     super.onInit();
+    _loadDismissedKeys();
     _log('Khởi tạo NotificationController (pageSize=$pageSize)');
     refreshNotifications(showLoader: true);
     _connectStream();
@@ -93,6 +101,7 @@ class NotificationController extends GetxController {
     final index = notifications.indexWhere((item) => item.key == entry.key);
     if (index == -1) return false;
     notifications.removeAt(index);
+    _rememberDismissedKey(entry.key);
     _recalculateUnread();
     return true;
   }
@@ -120,7 +129,15 @@ class NotificationController extends GetxController {
         'pageSize=${fetchResult.pageSize}, total=${fetchResult.total}).',
       );
 
-      final incoming = fetchResult.items;
+      final filtered = <NotificationMessage>[];
+      for (final message in fetchResult.items) {
+        final key = _keyFor(message);
+        if (_isDismissedKey(key)) {
+          _log('Bỏ qua thông báo $key vì người dùng đã xoá trước đó.');
+          continue;
+        }
+        filtered.add(message);
+      }
 
       if (!append) {
         final previousMap = {
@@ -129,7 +146,7 @@ class NotificationController extends GetxController {
         final isInitialLoad = !_initialized;
         final rebuilt = <NotificationEntry>[];
 
-        for (final message in incoming) {
+        for (final message in filtered) {
           final key = _keyFor(message);
           final existing = previousMap[key];
           final bool isRead;
@@ -147,11 +164,11 @@ class NotificationController extends GetxController {
 
         rebuilt.sort(_sortByTimestampDesc);
         notifications.assignAll(rebuilt);
-      } else if (incoming.isNotEmpty) {
+      } else if (filtered.isNotEmpty) {
         var mutated = false;
         final additions = <NotificationEntry>[];
 
-        for (final message in incoming) {
+        for (final message in filtered) {
           final key = _keyFor(message);
           final index = notifications.indexWhere((item) => item.key == key);
           if (index != -1) {
@@ -250,6 +267,10 @@ class NotificationController extends GetxController {
 
   NotificationEntry? _upsert(NotificationMessage message, {bool markUnread = false}) {
     final key = _keyFor(message);
+    if (_isDismissedKey(key)) {
+      _log('Thông báo $key đã bị người dùng xoá, bỏ qua.');
+      return null;
+    }
     final index = notifications.indexWhere((item) => item.key == key);
 
     if (index != -1) {
@@ -419,6 +440,10 @@ class NotificationController extends GetxController {
 
       for (final message in fetchResult.items) {
         final key = _keyFor(message);
+        if (_isDismissedKey(key)) {
+          _log('Thông báo $key đã bị loại bỏ trước đó, bỏ qua.');
+          continue;
+        }
         final exists =
             notifications.indexWhere((item) => item.key == key) != -1;
         if (exists) {
@@ -497,6 +522,58 @@ class NotificationController extends GetxController {
     }
 
     return '$prefix${parts.join('::')}';
+  }
+
+  void _loadDismissedKeys() {
+    final dynamic stored = _storage.read(_dismissedStorageKey);
+    _dismissedKeys.clear();
+    if (stored is Iterable) {
+      for (final item in stored) {
+        final key = _normalizeStoredKey(item);
+        if (key != null) {
+          _dismissedKeys.add(key);
+        }
+      }
+    } else {
+      final key = _normalizeStoredKey(stored);
+      if (key != null) {
+        _dismissedKeys.add(key);
+      }
+    }
+    if (_dismissedKeys.isNotEmpty) {
+      _log('Khôi phục ${_dismissedKeys.length} thông báo đã xoá trước đó.');
+    }
+  }
+
+  void _rememberDismissedKey(String key) {
+    if (_dismissedKeys.add(key)) {
+      _log('Ghi nhớ thông báo đã xoá: $key');
+      _persistDismissedKeys();
+    }
+  }
+
+  bool _isDismissedKey(String key) => _dismissedKeys.contains(key);
+
+  void _persistDismissedKeys() {
+    final data = _dismissedKeys.toList()..sort();
+    unawaited(_storage.write(_dismissedStorageKey, data));
+  }
+
+  String? _normalizeStoredKey(Object? value) {
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.isNotEmpty) {
+        return trimmed;
+      }
+    }
+    return null;
+  }
+
+  static String _buildDismissedStorageKey() {
+    final raw = ApiConfig.notificationAppKey;
+    final trimmed = raw.trim();
+    final safe = trimmed.isEmpty ? 'default' : trimmed;
+    return 'notifications.dismissed.$safe';
   }
 
   void _log(String message, {Object? error, StackTrace? stackTrace}) {
