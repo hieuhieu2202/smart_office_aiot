@@ -16,6 +16,8 @@ import '../model/version_check_summary.dart';
 class UpdateService {
   const UpdateService();
 
+  static const String _defaultInitialVersion = '1.1.0';
+
   /// Gọi ở Splash kiểm tra và hỏi người dùng có muốn cập nhật không
   Future<VersionCheckSummary?> checkAndPrompt(BuildContext context) async {
     _log('Bắt đầu kiểm tra cập nhật và hiển thị thông báo nếu cần.');
@@ -127,12 +129,25 @@ class UpdateService {
     final String resolvedPlatform = platform.isNotEmpty
         ? platform
         : (Platform.isAndroid ? 'android' : Platform.operatingSystem);
-    final String currentVersion = overrideCurrentVersion ??
-        (info.version.isNotEmpty ? info.version : info.buildNumber);
+
+    final List<String?> candidates = <String?>[
+      overrideCurrentVersion,
+      info.version,
+      info.buildNumber,
+    ];
+    String? rawCurrentVersion;
+    for (final candidate in candidates) {
+      if (candidate != null && candidate.trim().isNotEmpty) {
+        rawCurrentVersion = candidate.trim();
+        break;
+      }
+    }
+    final String currentVersion = _coerceVersion(rawCurrentVersion);
 
     _log(
       'Chuẩn bị gọi API kiểm tra phiên bản: '
-      'currentVersion=$currentVersion, platform=$resolvedPlatform',
+      'currentVersion=$currentVersion (raw=${rawCurrentVersion ?? 'n/a'}), '
+      'platform=$resolvedPlatform',
     );
 
     if (!Platform.isAndroid && resolvedPlatform.toLowerCase() == 'android') {
@@ -188,7 +203,7 @@ class UpdateService {
         throw const FormatException('Dữ liệu phản hồi không hợp lệ');
       }
 
-      final updateAvailable =
+      var updateAvailable =
           _readBool(decoded, const ['updateAvailable', 'UpdateAvailable']);
 
       final NotificationAppVersion? latestRelease =
@@ -196,7 +211,7 @@ class UpdateService {
         decoded['latestRelease'] ?? decoded['LatestRelease'],
       );
 
-      final String? serverVersion = _readString(
+      final String? serverVersionRaw = _readString(
         decoded,
         const ['serverVersion', 'ServerVersion', 'latestVersion', 'LatestVersion'],
       );
@@ -245,11 +260,31 @@ class UpdateService {
         ).toString();
       }
 
+      final String? serverVersionCandidate =
+          (serverVersionRaw != null && serverVersionRaw.trim().isNotEmpty)
+              ? serverVersionRaw.trim()
+              : latestRelease?.versionName;
+      final String? normalizedServerVersion =
+          _normalizeVersion(serverVersionCandidate);
+
+      if (!updateAvailable && normalizedServerVersion != null) {
+        final comparison =
+            _compareVersions(currentVersion, normalizedServerVersion);
+        _log(
+          'Kết quả so sánh phiên bản: local=$currentVersion, '
+          'server=$normalizedServerVersion, compare=$comparison',
+        );
+        if (comparison < 0) {
+          updateAvailable = true;
+        }
+      }
+
       return VersionCheckSummary(
         currentVersion: currentVersion,
         platform: resolvedPlatform,
         updateAvailable: updateAvailable,
-        serverVersion: serverVersion ?? latestRelease?.versionName,
+        serverVersion:
+            normalizedServerVersion ?? serverVersionCandidate ?? serverVersionRaw,
         minSupported: minSupported,
         notes: notes,
         downloadUrl: downloadUrl,
@@ -342,6 +377,69 @@ class UpdateService {
       error: error,
       stackTrace: stackTrace,
     );
+  }
+
+  static String _coerceVersion(String? value) {
+    final normalized = _normalizeVersion(value);
+    return normalized ?? _defaultInitialVersion;
+  }
+
+  static String sanitizeVersionForDisplay(String? value) => _coerceVersion(value);
+
+  static String? _normalizeVersion(String? value) {
+    if (value == null) return null;
+    var trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.startsWith('v') || trimmed.startsWith('V')) {
+      trimmed = trimmed.substring(1).trim();
+    }
+    final plusIndex = trimmed.indexOf('+');
+    if (plusIndex != -1) {
+      trimmed = trimmed.substring(0, plusIndex).trim();
+    }
+    final dashIndex = trimmed.indexOf('-');
+    if (dashIndex != -1) {
+      trimmed = trimmed.substring(0, dashIndex).trim();
+    }
+    final match = RegExp(r'\d+(?:\.\d+)*').firstMatch(trimmed);
+    if (match != null) {
+      return match.group(0);
+    }
+    return trimmed.isNotEmpty ? trimmed : null;
+  }
+
+  static int _compareVersions(String a, String b) {
+    final partsA = _versionParts(a);
+    final partsB = _versionParts(b);
+    final maxLength = partsA.length > partsB.length ? partsA.length : partsB.length;
+    for (var i = 0; i < maxLength; i++) {
+      final int partA = i < partsA.length ? partsA[i] : 0;
+      final int partB = i < partsB.length ? partsB[i] : 0;
+      if (partA != partB) {
+        return partA.compareTo(partB);
+      }
+    }
+    return 0;
+  }
+
+  static List<int> _versionParts(String version) {
+    final matches = RegExp(r'\d+').allMatches(version);
+    final parts = <int>[];
+    for (final match in matches) {
+      final value = match.group(0);
+      if (value == null) continue;
+      final parsed = int.tryParse(value);
+      if (parsed != null) {
+        parts.add(parsed);
+      }
+    }
+    if (parts.isEmpty) {
+      final fallback = int.tryParse(version);
+      if (fallback != null) {
+        parts.add(fallback);
+      }
+    }
+    return parts;
   }
 
   static String _previewBody(String? body) {

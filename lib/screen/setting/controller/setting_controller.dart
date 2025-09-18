@@ -64,7 +64,7 @@ class SettingController extends GetxController {
   Future<void> _loadLocalVersion() async {
     try {
       final info = await PackageInfo.fromPlatform();
-      appVersion.value = info.version;
+      appVersion.value = UpdateService.sanitizeVersionForDisplay(info.version);
       buildNumber.value = info.buildNumber;
     } catch (_) {
       // Bỏ qua lỗi đọc phiên bản cục bộ
