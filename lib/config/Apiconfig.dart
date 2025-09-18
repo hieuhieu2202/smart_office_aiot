@@ -5,9 +5,27 @@ class ApiConfig {
       ? 'https://10.220.130.117:5555' // Server thật
       : 'http://192.168.0.197:5511'; // Server local/dev
 
-  static String get notificationBaseUrl => isProduction
-      ? 'http://10.220.130.117:2222'
-      : 'http://192.168.0.197:5511';
+  /// Context path (prefix) for the RemoteControl notification API.
+  ///
+  /// Đổi giá trị này nếu server dev/prod đặt ở đường dẫn khác.
+  static const String _notificationContextPath = '/SendNoti';
+
+  static String get notificationBaseUrl {
+    final baseHost = isProduction
+        ? 'http://10.220.130.117:2222'
+        : 'http://192.168.0.197:5511';
+
+    final context = _notificationContextPath.trim();
+    if (context.isEmpty) {
+      return baseHost;
+    }
+
+    if (context.startsWith('/')) {
+      return '$baseHost$context';
+    }
+
+    return '$baseHost/$context';
+  }
 
   static const String notificationAppKey = 'smartfactoryapp';
 
