@@ -3,7 +3,6 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 
 import '../../../config/Apiconfig.dart';
 import '../../../model/notification_entry.dart';
@@ -15,11 +14,6 @@ class NotificationController extends GetxController {
 
   final int pageSize;
   static const int _maxAutoAdvancePages = 10;
-  static const String _dismissedStorageKey = 'notification_dismissed_keys';
-  static const String _dismissedAppKeyStorageKey =
-      'notification_dismissed_app_key';
-  static const int _maxStoredDismissedKeys = 200;
-
   final RxList<NotificationEntry> notifications = <NotificationEntry>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool isLoadingMore = false.obs;
@@ -32,9 +26,7 @@ class NotificationController extends GetxController {
   bool _hasMore = true;
   bool _fetching = false;
   bool _initialized = false;
-  final GetStorage _storage = GetStorage();
-  final Set<String> _dismissedKeys = <String>{};
-  final List<String> _dismissedOrder = <String>[];
+  final Set<String> _removedKeys = <String>{};
 
   StreamSubscription<NotificationMessage>? _streamSubscription;
   Timer? _reconnectTimer;
@@ -53,7 +45,6 @@ class NotificationController extends GetxController {
   void onInit() {
     super.onInit();
     _log('Khởi tạo NotificationController (pageSize=$pageSize)');
-    _loadDismissedKeys();
     refreshNotifications(showLoader: true);
     _connectStream();
     _startAutoPolling();
@@ -104,8 +95,7 @@ class NotificationController extends GetxController {
     final index = notifications.indexWhere((item) => item.key == entry.key);
     if (index == -1) return false;
     notifications.removeAt(index);
-    _touchDismissedKey(entry.key);
-    _persistDismissedKeys();
+    _removedKeys.add(entry.key);
     _recalculateUnread();
     return true;
   }
@@ -134,7 +124,7 @@ class NotificationController extends GetxController {
       );
 
       final incoming =
-          fetchResult.items.where((message) => !_isDismissed(message)).toList();
+          fetchResult.items.where((message) => !_isRemoved(message)).toList();
 
       if (!append) {
         final previousMap = {
@@ -250,8 +240,8 @@ class NotificationController extends GetxController {
       'title=${message.title} markUnread=$markUnread '
       'triggerRefresh=$triggerRefresh',
     );
-    if (_isDismissed(message)) {
-      _log('Thông báo đã bị loại bỏ trước đó, bỏ qua.');
+    if (_isRemoved(message)) {
+      _log('Thông báo đã bị ẩn trong phiên hiện tại, bỏ qua.');
       return;
     }
     final entry = _upsert(message, markUnread: markUnread);
@@ -267,7 +257,7 @@ class NotificationController extends GetxController {
   }
 
   NotificationEntry? _upsert(NotificationMessage message, {bool markUnread = false}) {
-    if (_isDismissed(message)) {
+    if (_isRemoved(message)) {
       return null;
     }
     final key = _keyFor(message);
@@ -437,10 +427,10 @@ class NotificationController extends GetxController {
       }
 
       final filtered = fetchResult.items
-          .where((message) => !_isDismissed(message))
+          .where((message) => !_isRemoved(message))
           .toList();
       if (filtered.isEmpty) {
-        _log('Tất cả thông báo mới đều đã bị loại bỏ trước đó.');
+        _log('Không có thông báo mới sau khi loại bỏ các mục đã xoá trong phiên.');
         return;
       }
 
@@ -528,71 +518,9 @@ class NotificationController extends GetxController {
     return '$prefix${parts.join('::')}';
   }
 
-  bool _isDismissed(NotificationMessage message) {
+  bool _isRemoved(NotificationMessage message) {
     final key = _keyFor(message);
-    return _dismissedKeys.contains(key);
-  }
-
-  void _loadDismissedKeys() {
-    final String currentAppKey = ApiConfig.notificationAppKey;
-    final dynamic storedAppKeyRaw =
-        _storage.read(_dismissedAppKeyStorageKey);
-    final String? storedAppKey = storedAppKeyRaw is String &&
-            storedAppKeyRaw.trim().isNotEmpty
-        ? storedAppKeyRaw
-        : null;
-
-    if (storedAppKey == null || storedAppKey != currentAppKey) {
-      _dismissedKeys.clear();
-      _dismissedOrder.clear();
-      if (currentAppKey.isNotEmpty) {
-        _storage.write(_dismissedAppKeyStorageKey, currentAppKey);
-      } else {
-        _storage.remove(_dismissedAppKeyStorageKey);
-      }
-      _storage.remove(_dismissedStorageKey);
-      return;
-    }
-
-    final dynamic stored = _storage.read(_dismissedStorageKey);
-    if (stored is List) {
-      final keys = stored.whereType<String>().toList();
-      _dismissedKeys
-        ..clear()
-        ..addAll(keys);
-      _dismissedOrder
-        ..clear()
-        ..addAll(keys);
-      _pruneDismissedKeys();
-      _persistDismissedKeys();
-    } else if (stored != null) {
-      _storage.remove(_dismissedStorageKey);
-    }
-  }
-
-  void _persistDismissedKeys() {
-    _pruneDismissedKeys();
-    _storage.write(_dismissedStorageKey, _dismissedOrder);
-    if (ApiConfig.notificationAppKey.isNotEmpty) {
-      _storage.write(
-        _dismissedAppKeyStorageKey,
-        ApiConfig.notificationAppKey,
-      );
-    }
-  }
-
-  void _touchDismissedKey(String key) {
-    _dismissedKeys.add(key);
-    _dismissedOrder.remove(key);
-    _dismissedOrder.add(key);
-    _pruneDismissedKeys();
-  }
-
-  void _pruneDismissedKeys() {
-    while (_dismissedOrder.length > _maxStoredDismissedKeys) {
-      final removed = _dismissedOrder.removeAt(0);
-      _dismissedKeys.remove(removed);
-    }
+    return _removedKeys.contains(key);
   }
 
   void _log(String message, {Object? error, StackTrace? stackTrace}) {
