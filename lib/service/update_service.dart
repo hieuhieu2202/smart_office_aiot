@@ -339,56 +339,99 @@ class UpdateService {
         ).toString();
       }
 
-      final String? serverVersionCandidate =
-          (serverVersionRaw != null && serverVersionRaw.trim().isNotEmpty)
-              ? serverVersionRaw.trim()
-              : latestRelease?.versionName;
+      final String? serverVersionCandidate = _firstNonEmpty([
+        serverVersionRaw,
+        latestRelease?.versionName,
+      ]);
       final String? normalizedServerVersion =
           _normalizeVersion(serverVersionCandidate);
+      final String? normalizedReleaseVersion = latestRelease?.versionName != null
+          ? _normalizeVersion(latestRelease!.versionName)
+          : null;
 
       final String? normalizedServerCurrentVersion =
           _normalizeVersion(serverCurrentVersionRaw);
+      final String? comparisonTarget = _firstNonEmpty([
+        normalizedServerVersion,
+        normalizedReleaseVersion,
+        normalizedServerCurrentVersion,
+      ]);
 
-      if (!updateAvailable && normalizedServerVersion != null) {
-        final comparison = _compareVersions(
-          sanitizedCurrentVersion,
-          normalizedServerVersion,
-        );
+      int? versionComparison;
+      if (comparisonTarget != null && comparisonTarget.isNotEmpty) {
+        versionComparison =
+            _compareVersions(sanitizedCurrentVersion, comparisonTarget);
         _log(
           'Kết quả so sánh phiên bản: local=$sanitizedCurrentVersion, '
-          'server=$normalizedServerVersion, compare=$comparison',
+          'target=$comparisonTarget, compare=$versionComparison',
         );
-        if (comparison < 0) {
-          updateAvailable = true;
+      }
+
+      var effectiveUpdateAvailable = updateAvailable;
+      if (versionComparison != null) {
+        if (versionComparison < 0) {
+          if (!updateAvailable) {
+            _log(
+              'Phiên bản hiện tại ($sanitizedCurrentVersion) nhỏ hơn '
+              '$comparisonTarget, bật cờ cập nhật.',
+            );
+          }
+          effectiveUpdateAvailable = true;
+        } else {
+          if (updateAvailable) {
+            _log(
+              'Server báo có cập nhật nhưng phiên bản hiện tại '
+              '($sanitizedCurrentVersion) không nhỏ hơn $comparisonTarget. '
+              'Bỏ qua cờ cập nhật.',
+            );
+          }
+          effectiveUpdateAvailable = false;
+        }
+      }
+
+      final String? normalizedMinSupported = _normalizeVersion(minSupported);
+      if (normalizedMinSupported != null) {
+        final minComparison =
+            _compareVersions(sanitizedCurrentVersion, normalizedMinSupported);
+        if (minComparison < 0 && !effectiveUpdateAvailable) {
+          _log(
+            'Phiên bản hiện tại ($sanitizedCurrentVersion) thấp hơn mức tối thiểu '
+            '$normalizedMinSupported, bật cờ cập nhật.',
+          );
+          effectiveUpdateAvailable = true;
         }
       }
 
       var resolvedInstalledVersion = sanitizedCurrentVersion;
-      var effectiveUpdateAvailable = updateAvailable;
-      var resolvedDisplayVersion = sanitizeVersionForDisplay(
-        serverCurrentVersionRaw ??
-            normalizedServerVersion ??
-            serverVersionCandidate ??
-            rawCurrentVersion ??
-            resolvedInstalledVersion,
-      );
+      var resolvedDisplayVersion =
+          sanitizeVersionForDisplay(resolvedInstalledVersion);
 
       if (!effectiveUpdateAvailable) {
-        if (normalizedServerVersion != null &&
-            normalizedServerVersion.isNotEmpty) {
-          resolvedInstalledVersion = normalizedServerVersion;
-        } else if (normalizedServerCurrentVersion != null &&
-            normalizedServerCurrentVersion.isNotEmpty) {
-          resolvedInstalledVersion = normalizedServerCurrentVersion;
+        final bool preferServerDisplay =
+            versionComparison == null || versionComparison <= 0;
+        if (preferServerDisplay) {
+          final String? displayCandidate = _firstNonEmpty([
+            serverCurrentVersionRaw,
+            serverVersionCandidate,
+            latestRelease?.versionName,
+          ]);
+          if (displayCandidate != null) {
+            resolvedDisplayVersion =
+                sanitizeVersionForDisplay(displayCandidate);
+          }
         }
-        resolvedDisplayVersion = sanitizeVersionForDisplay(
-          normalizedServerCurrentVersion ??
-              normalizedServerVersion ??
-              serverCurrentVersionRaw ??
-              serverVersionCandidate ??
-              resolvedInstalledVersion,
-        );
       }
+
+      final String? serverVersionDisplay = _sanitizeVersionOrNull(
+            serverVersionCandidate,
+          ) ??
+          _sanitizeVersionOrNull(latestRelease?.versionName) ??
+          _sanitizeVersionOrNull(normalizedServerVersion) ??
+          _sanitizeVersionOrNull(comparisonTarget);
+
+      final String? serverCurrentDisplay =
+          _sanitizeVersionOrNull(serverCurrentVersionRaw) ??
+              _sanitizeVersionOrNull(normalizedServerCurrentVersion);
 
       final bool buildAdvanced = cachedBuildNumber != null &&
           currentBuildNumber != null &&
@@ -400,9 +443,6 @@ class UpdateService {
           'coi như bản cập nhật đã được cài đặt.',
         );
         effectiveUpdateAvailable = false;
-        final String? normalizedReleaseVersion = latestRelease?.versionName != null
-            ? _normalizeVersion(latestRelease!.versionName)
-            : null;
         final String? promotedVersion = normalizedServerVersion ??
             normalizedReleaseVersion ??
             normalizedServerCurrentVersion ??
@@ -422,9 +462,9 @@ class UpdateService {
 
       _log(
         'Tổng hợp phiên bản: installed=$resolvedInstalledVersion, '
-        'display=$resolvedDisplayVersion, server=${normalizedServerVersion ?? 'n/a'}, '
-        'update=$effectiveUpdateAvailable, build=${currentBuildNumber ?? 'n/a'} '
-        '(cache=${cachedBuildNumber ?? 'n/a'})',
+        'display=$resolvedDisplayVersion, server=${serverVersionDisplay ?? 'n/a'}, '
+        'update=$effectiveUpdateAvailable, compare=${versionComparison ?? 'n/a'}, '
+        'build=${currentBuildNumber ?? 'n/a'} (cache=${cachedBuildNumber ?? 'n/a'})',
       );
 
       final summary = VersionCheckSummary(
@@ -432,9 +472,8 @@ class UpdateService {
         installedVersion: resolvedInstalledVersion,
         platform: resolvedPlatform,
         updateAvailable: effectiveUpdateAvailable,
-        serverVersion:
-            normalizedServerVersion ?? serverVersionCandidate ?? serverVersionRaw,
-        serverCurrentVersion: serverCurrentVersionRaw,
+        serverVersion: serverVersionDisplay,
+        serverCurrentVersion: serverCurrentDisplay,
         minSupported: minSupported,
         notes: notes,
         downloadUrl: downloadUrl,
@@ -645,6 +684,32 @@ class UpdateService {
       return normalized;
     }
     return '${normalized.substring(0, 512)}…';
+  }
+
+  static String? _firstNonEmpty(Iterable<String?> values) {
+    for (final value in values) {
+      if (value == null) continue;
+      final trimmed = value.trim();
+      if (trimmed.isNotEmpty) {
+        return trimmed;
+      }
+    }
+    return null;
+  }
+
+  static String? _sanitizeVersionOrNull(String? value) {
+    if (value == null) {
+      return null;
+    }
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final normalized = _normalizeVersion(trimmed);
+    if (normalized != null && normalized.isNotEmpty) {
+      return normalized;
+    }
+    return trimmed;
   }
 
   static Uri _uri(String path, [Map<String, dynamic>? query]) {
