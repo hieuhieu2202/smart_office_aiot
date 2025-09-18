@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
+import '../../../config/Apiconfig.dart';
 import '../../../model/notification_entry.dart';
 import '../../../model/notification_message.dart';
 import '../../../service/notification_service.dart';
@@ -15,6 +16,8 @@ class NotificationController extends GetxController {
   final int pageSize;
   static const int _maxAutoAdvancePages = 10;
   static const String _dismissedStorageKey = 'notification_dismissed_keys';
+  static const String _dismissedAppKeyStorageKey =
+      'notification_dismissed_app_key';
   static const int _maxStoredDismissedKeys = 200;
 
   final RxList<NotificationEntry> notifications = <NotificationEntry>[].obs;
@@ -481,31 +484,48 @@ class NotificationController extends GetxController {
   }
 
   String _keyFor(NotificationMessage message) {
-    final id = message.id;
+    final String? trimmedAppKey =
+        message.appKey != null && message.appKey!.trim().isNotEmpty
+            ? message.appKey!.trim()
+            : null;
+    final String prefix = trimmedAppKey != null ? '$trimmedAppKey::' : '';
+
+    final String? id = message.id?.trim();
     if (id != null && id.isNotEmpty) {
-      return id;
+      return '$prefix$id';
     }
-    final timestamp = message.timestampUtc?.millisecondsSinceEpoch;
-    final buffer = StringBuffer()
-      ..write(message.title)
-      ..write('::')
-      ..write(message.body.hashCode);
+
+    final List<String> parts = <String>[
+      message.title,
+      message.body.hashCode.toString(),
+    ];
+
+    final int? timestamp = message.timestampUtc?.millisecondsSinceEpoch;
     if (timestamp != null) {
-      buffer
-        ..write('::')
-        ..write(timestamp);
+      parts.add(timestamp.toString());
     }
-    if (message.link != null) {
-      buffer
-        ..write('::')
-        ..write(message.link);
+
+    final int? appVersionId = message.appVersion?.appVersionId;
+    if (appVersionId != null) {
+      parts.add('v$appVersionId');
     }
-    if (message.fileUrl != null) {
-      buffer
-        ..write('::')
-        ..write(message.fileUrl);
+
+    final String? versionName = message.appVersion?.versionName;
+    if (versionName != null && versionName.isNotEmpty) {
+      parts.add(versionName);
     }
-    return buffer.toString();
+
+    final String? link = message.link?.trim();
+    if (link != null && link.isNotEmpty) {
+      parts.add(link);
+    }
+
+    final String? fileUrl = message.fileUrl?.trim();
+    if (fileUrl != null && fileUrl.isNotEmpty) {
+      parts.add(fileUrl);
+    }
+
+    return '$prefix${parts.join('::')}';
   }
 
   bool _isDismissed(NotificationMessage message) {
@@ -514,6 +534,26 @@ class NotificationController extends GetxController {
   }
 
   void _loadDismissedKeys() {
+    final String currentAppKey = ApiConfig.notificationAppKey;
+    final dynamic storedAppKeyRaw =
+        _storage.read(_dismissedAppKeyStorageKey);
+    final String? storedAppKey = storedAppKeyRaw is String &&
+            storedAppKeyRaw.trim().isNotEmpty
+        ? storedAppKeyRaw
+        : null;
+
+    if (storedAppKey == null || storedAppKey != currentAppKey) {
+      _dismissedKeys.clear();
+      _dismissedOrder.clear();
+      if (currentAppKey.isNotEmpty) {
+        _storage.write(_dismissedAppKeyStorageKey, currentAppKey);
+      } else {
+        _storage.remove(_dismissedAppKeyStorageKey);
+      }
+      _storage.remove(_dismissedStorageKey);
+      return;
+    }
+
     final dynamic stored = _storage.read(_dismissedStorageKey);
     if (stored is List) {
       final keys = stored.whereType<String>().toList();
@@ -525,12 +565,20 @@ class NotificationController extends GetxController {
         ..addAll(keys);
       _pruneDismissedKeys();
       _persistDismissedKeys();
+    } else if (stored != null) {
+      _storage.remove(_dismissedStorageKey);
     }
   }
 
   void _persistDismissedKeys() {
     _pruneDismissedKeys();
     _storage.write(_dismissedStorageKey, _dismissedOrder);
+    if (ApiConfig.notificationAppKey.isNotEmpty) {
+      _storage.write(
+        _dismissedAppKeyStorageKey,
+        ApiConfig.notificationAppKey,
+      );
+    }
   }
 
   void _touchDismissedKey(String key) {
