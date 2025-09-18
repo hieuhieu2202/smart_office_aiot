@@ -79,9 +79,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     // gọi kiểm tra cập nhật sau khi frame đầu đã render (không chặn animation)
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final summary = await UpdateService().checkAndPrompt(context);
-      if (summary != null && Get.isRegistered<SettingController>()) {
-        Get.find<SettingController>().applyVersionSummary(summary);
+      try {
+        final summary = await UpdateService().fetchVersionSummary();
+        if (summary != null && Get.isRegistered<SettingController>()) {
+          Get.find<SettingController>().applyVersionSummary(summary);
+        }
+      } catch (error) {
+        // Bỏ qua lỗi kiểm tra phiên bản ở Splash để không chặn luồng khởi động.
       }
     });
   }

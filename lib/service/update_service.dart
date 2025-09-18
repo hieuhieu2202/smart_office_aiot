@@ -18,38 +18,60 @@ class UpdateService {
 
   static const String _defaultInitialVersion = '1.1.0';
 
-  /// Gọi ở Splash kiểm tra và hỏi người dùng có muốn cập nhật không
-  Future<VersionCheckSummary?> checkAndPrompt(BuildContext context) async {
+  /// Gọi để kiểm tra và hỏi người dùng có muốn cập nhật không.
+  ///
+  /// [initialSummary] cho phép truyền kết quả đã có sẵn (ví dụ được lấy ở
+  /// màn splash) để tránh việc gọi lại API nếu không cần thiết.
+  Future<VersionCheckSummary?> checkAndPrompt(
+    BuildContext context, {
+    VersionCheckSummary? initialSummary,
+  }) async {
     _log('Bắt đầu kiểm tra cập nhật và hiển thị thông báo nếu cần.');
     if (!Platform.isAndroid) {
       // Luồng cài đặt hiện tại chỉ hỗ trợ Android (APK)
       _log('Thiết bị không phải Android (${Platform.operatingSystem}), bỏ qua kiểm tra.');
-      return null;
+      return initialSummary;
     }
 
     try {
-      final summary = await fetchVersionSummary();
+      VersionCheckSummary? summary = initialSummary;
+      if (summary != null) {
+        _log(
+          'Sử dụng dữ liệu kiểm tra phiên bản đã có: '
+          'current=${summary.currentVersion}, '
+          'server=${summary.serverVersion ?? 'n/a'}, '
+          'update=${summary.updateAvailable}.',
+        );
+      } else {
+        summary = await fetchVersionSummary();
+      }
+
       if (summary == null) {
         _log('Không nhận được thông tin phiên bản từ server.');
         return null;
       }
 
-      if (!summary.updateAvailable) {
-        _log('Không có bản cập nhật mới. Phiên bản hiện tại: ${summary.currentVersion}.');
-        return summary;
+      final VersionCheckSummary resolvedSummary = summary;
+
+      if (!resolvedSummary.updateAvailable) {
+        _log(
+          'Không có bản cập nhật mới. Phiên bản hiện tại: '
+          '${resolvedSummary.currentVersion}.',
+        );
+        return resolvedSummary;
       }
 
-      final downloadUrl = summary.downloadUrl;
+      final downloadUrl = resolvedSummary.downloadUrl;
       if (downloadUrl == null || downloadUrl.isEmpty) {
         _log('Server báo có cập nhật nhưng không có đường dẫn tải.');
-        return summary;
+        return resolvedSummary;
       }
 
-      if (!_isContextMounted(context)) return summary;
+      if (!_isContextMounted(context)) return resolvedSummary;
 
-      final String? serverVersion = summary.effectiveLatestVersion;
-      final String changelog = summary.releaseNotes ?? '';
-      final String checksum = summary.checksum ?? '';
+      final String? serverVersion = resolvedSummary.effectiveLatestVersion;
+      final String changelog = resolvedSummary.releaseNotes ?? '';
+      final String checksum = resolvedSummary.checksum ?? '';
 
       final bool? confirm = await showDialog<bool>(
         context: context,
@@ -62,7 +84,7 @@ class UpdateService {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Phiên bản hiện tại: ${summary.currentVersion}'),
+                  Text('Phiên bản hiện tại: ${resolvedSummary.currentVersion}'),
                   if (serverVersion != null && serverVersion.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -70,12 +92,12 @@ class UpdateService {
                         'Phiên bản mới: $serverVersion',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                    ),
-                  if (summary.minSupported != null &&
-                      summary.minSupported!.isNotEmpty)
+                  ),
+                  if (resolvedSummary.minSupported != null &&
+                      resolvedSummary.minSupported!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text('Yêu cầu tối thiểu: ${summary.minSupported}'),
+                      child: Text('Yêu cầu tối thiểu: ${resolvedSummary.minSupported}'),
                     ),
                   if (changelog.isNotEmpty)
                     Padding(
@@ -112,12 +134,12 @@ class UpdateService {
       }
 
       _log('Hoàn tất quy trình kiểm tra cập nhật.');
-      return summary;
+      return resolvedSummary;
     } on Exception catch (error, stackTrace) {
       _log('Lỗi khi kiểm tra cập nhật: $error',
           error: error, stackTrace: stackTrace);
       // Bỏ qua lỗi kiểm tra phiên bản để không chặn luồng khởi động ứng dụng
-      return null;
+      return initialSummary;
     }
   }
 

@@ -7,6 +7,7 @@ import 'package:smart_factory/config/global_text_style.dart';
 import 'package:smart_factory/screen/home/controller/home_controller.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/screen/login/controller/login_controller.dart';
+import 'package:smart_factory/service/update_service.dart';
 import '../../routes/screen_factory.dart';
 import '../../util/dashboard_labels.dart';
 import '../../widget/custom_app_bar.dart';
@@ -23,10 +24,14 @@ class _HomeTabState extends State<HomeTab> {
   final HomeController homeController = Get.find<HomeController>();
   final LoginController loginController = Get.find<LoginController>();
   final SettingController settingController = Get.find<SettingController>();
+  final UpdateService _updateService = const UpdateService();
 
   // Map để lưu PageController cho từng module
   final Map<int, PageController> _pageControllers = {};
   final Map<int, int> _currentPageIndexes = {};
+
+  bool _isCheckingUpdate = false;
+  bool _hasPromptedUpdate = false;
 
   // Helper: chia subProjects thành các "trang", mỗi trang tối đa 4 cái
   List<List<T>> chunk<T>(List<T> list, int size) {
@@ -37,6 +42,45 @@ class _HomeTabState extends State<HomeTab> {
       );
     }
     return chunks;
+  }
+
+  Future<void> _maybeCheckForUpdates() async {
+    if (!mounted || _hasPromptedUpdate || _isCheckingUpdate) {
+      return;
+    }
+
+    _isCheckingUpdate = true;
+    try {
+      var summary = settingController.versionSummary.value;
+      summary ??= await _updateService.fetchVersionSummary();
+      if (!mounted) return;
+
+      final result = await _updateService.checkAndPrompt(
+        context,
+        initialSummary: summary,
+      );
+
+      if (!mounted) return;
+
+      final effectiveSummary = result ?? summary;
+      if (effectiveSummary != null) {
+        settingController.applyVersionSummary(effectiveSummary);
+      }
+
+      _hasPromptedUpdate = true;
+    } catch (error) {
+      debugPrint('Không thể kiểm tra cập nhật ở màn hình Home: $error');
+    } finally {
+      _isCheckingUpdate = false;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeCheckForUpdates();
+    });
   }
 
   @override
