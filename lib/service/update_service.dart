@@ -142,6 +142,19 @@ class UpdateService {
       );
 
       if (confirm == true && _isContextMounted(context)) {
+        final _UpdateCache promptCache =
+            _UpdateCache(ApiConfig.notificationAppKey, resolvedSummary.platform);
+        final String? expectedVersion = resolvedSummary.effectiveLatestVersion ??
+            resolvedSummary.serverVersion ??
+            resolvedSummary.serverCurrentVersion;
+        if (expectedVersion != null && expectedVersion.trim().isNotEmpty) {
+          try {
+            await promptCache.writePendingVersion(expectedVersion);
+          } catch (error, stackTrace) {
+            _log('Không thể lưu phiên bản dự kiến: $error',
+                error: error, stackTrace: stackTrace);
+          }
+        }
         _log('Người dùng đồng ý cập nhật, bắt đầu tải file.');
         await _downloadAndInstall(context, downloadUrl);
       } else {
@@ -175,6 +188,8 @@ class UpdateService {
     final _UpdateCache cache =
         _UpdateCache(ApiConfig.notificationAppKey, resolvedPlatform);
     final String? cachedInstalled = cache.readInstalledVersion();
+    final String? cachedPending =
+        cache.readPendingVersion(); // phiên bản đã tải nhưng chưa xác nhận
     final int? cachedBuildNumber = cache.readBuildNumber();
     final int? currentBuildNumber = _tryParseInt(info.buildNumber);
 
@@ -197,12 +212,21 @@ class UpdateService {
 
     final String? normalizedCachedInstalled =
         _normalizeVersion(cachedInstalled);
+    final String? normalizedPendingVersion = _normalizeVersion(cachedPending);
     if (normalizedCachedInstalled != null &&
         normalizedCachedInstalled.isNotEmpty &&
         _compareVersions(normalizedCachedInstalled, sanitizedCurrentVersion) >
             0) {
       sanitizedCurrentVersion = normalizedCachedInstalled;
       initialDisplayVersion = sanitizeVersionForDisplay(normalizedCachedInstalled);
+    }
+
+    if (normalizedPendingVersion != null &&
+        normalizedPendingVersion.isNotEmpty &&
+        _compareVersions(normalizedPendingVersion, sanitizedCurrentVersion) >
+            0) {
+      sanitizedCurrentVersion = normalizedPendingVersion;
+      initialDisplayVersion = sanitizeVersionForDisplay(normalizedPendingVersion);
     }
 
     _log(
@@ -212,6 +236,7 @@ class UpdateService {
       'platform=$resolvedPlatform, '
       'build=${currentBuildNumber ?? 'n/a'}, '
       'cachedInstalled=${normalizedCachedInstalled ?? cachedInstalled ?? 'n/a'}, '
+      'pending=${normalizedPendingVersion ?? cachedPending ?? 'n/a'}, '
       'cachedBuild=${cachedBuildNumber ?? 'n/a'}',
     );
 
@@ -481,7 +506,24 @@ class UpdateService {
       );
 
       try {
-        await cache.writeInstalledVersion(resolvedInstalledVersion);
+        final String? resolvedNormalized =
+            _normalizeVersion(resolvedInstalledVersion) ??
+                (resolvedInstalledVersion.isNotEmpty
+                    ? resolvedInstalledVersion
+                    : null);
+        String? installedCandidate = resolvedNormalized;
+        if (normalizedPendingVersion != null &&
+            normalizedPendingVersion.isNotEmpty &&
+            installedCandidate != null &&
+            _compareVersions(normalizedPendingVersion, installedCandidate) >
+                0) {
+          installedCandidate = normalizedPendingVersion;
+        }
+
+        await cache.writeInstalledVersion(installedCandidate);
+        if (!effectiveUpdateAvailable) {
+          await cache.clearPendingVersion();
+        }
         if (currentBuildNumber != null) {
           await cache.writeBuildNumber(currentBuildNumber);
         }
@@ -812,10 +854,60 @@ class _UpdateCache {
   }
 
   Future<void> writeInstalledVersion(String? version) async {
-    if (version == null) return;
-    final trimmed = version.trim();
-    if (trimmed.isEmpty) return;
-    await _box.write(_key('installed'), trimmed);
+    final String? normalized = UpdateService._normalizeVersion(version);
+    if (normalized == null || normalized.isEmpty) {
+      await _box.remove(_key('installed'));
+      return;
+    }
+
+    final String? current = readInstalledVersion();
+    if (current != null) {
+      final String? currentNormalized =
+          UpdateService._normalizeVersion(current);
+      if (currentNormalized != null &&
+          UpdateService._compareVersions(currentNormalized, normalized) >= 0) {
+        return;
+      }
+    }
+
+    await _box.write(_key('installed'), normalized);
+  }
+
+  /// Phiên bản mới nhất mà người dùng đã đồng ý cài đặt trong phiên hiện tại.
+  ///
+  /// Được dùng để hiển thị chính xác số phiên bản ngay cả khi app chưa cập nhật
+  /// được `PackageInfo` (ví dụ build mới có cùng versionName).
+  String? readPendingVersion() {
+    final dynamic value = _box.read(_key('pending'));
+    if (value is String) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    return null;
+  }
+
+  Future<void> writePendingVersion(String? version) async {
+    final String? normalized = UpdateService._normalizeVersion(version);
+    if (normalized == null || normalized.isEmpty) {
+      await clearPendingVersion();
+      return;
+    }
+
+    final String? current = readPendingVersion();
+    if (current != null) {
+      final String? currentNormalized =
+          UpdateService._normalizeVersion(current);
+      if (currentNormalized != null &&
+          UpdateService._compareVersions(currentNormalized, normalized) >= 0) {
+        return;
+      }
+    }
+
+    await _box.write(_key('pending'), normalized);
+  }
+
+  Future<void> clearPendingVersion() async {
+    await _box.remove(_key('pending'));
   }
 
   Future<void> writeBuildNumber(int? buildNumber) async {

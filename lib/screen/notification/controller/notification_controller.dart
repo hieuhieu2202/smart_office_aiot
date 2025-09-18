@@ -26,8 +26,6 @@ class NotificationController extends GetxController {
   bool _hasMore = true;
   bool _fetching = false;
   bool _initialized = false;
-  final Set<String> _removedKeys = <String>{};
-
   StreamSubscription<NotificationMessage>? _streamSubscription;
   Timer? _reconnectTimer;
   Timer? _bannerTimer;
@@ -95,7 +93,6 @@ class NotificationController extends GetxController {
     final index = notifications.indexWhere((item) => item.key == entry.key);
     if (index == -1) return false;
     notifications.removeAt(index);
-    _removedKeys.add(entry.key);
     _recalculateUnread();
     return true;
   }
@@ -123,8 +120,7 @@ class NotificationController extends GetxController {
         'pageSize=${fetchResult.pageSize}, total=${fetchResult.total}).',
       );
 
-      final incoming =
-          fetchResult.items.where((message) => !_isRemoved(message)).toList();
+      final incoming = fetchResult.items;
 
       if (!append) {
         final previousMap = {
@@ -240,10 +236,6 @@ class NotificationController extends GetxController {
       'title=${message.title} markUnread=$markUnread '
       'triggerRefresh=$triggerRefresh',
     );
-    if (_isRemoved(message)) {
-      _log('Thông báo đã bị ẩn trong phiên hiện tại, bỏ qua.');
-      return;
-    }
     final entry = _upsert(message, markUnread: markUnread);
     if (entry != null) {
       if (markUnread) {
@@ -257,9 +249,6 @@ class NotificationController extends GetxController {
   }
 
   NotificationEntry? _upsert(NotificationMessage message, {bool markUnread = false}) {
-    if (_isRemoved(message)) {
-      return null;
-    }
     final key = _keyFor(message);
     final index = notifications.indexWhere((item) => item.key == key);
 
@@ -426,17 +415,9 @@ class NotificationController extends GetxController {
         return;
       }
 
-      final filtered = fetchResult.items
-          .where((message) => !_isRemoved(message))
-          .toList();
-      if (filtered.isEmpty) {
-        _log('Không có thông báo mới sau khi loại bỏ các mục đã xoá trong phiên.');
-        return;
-      }
-
       final List<NotificationEntry> newlyAdded = <NotificationEntry>[];
 
-      for (final message in filtered) {
+      for (final message in fetchResult.items) {
         final key = _keyFor(message);
         final exists =
             notifications.indexWhere((item) => item.key == key) != -1;
@@ -516,11 +497,6 @@ class NotificationController extends GetxController {
     }
 
     return '$prefix${parts.join('::')}';
-  }
-
-  bool _isRemoved(NotificationMessage message) {
-    final key = _keyFor(message);
-    return _removedKeys.contains(key);
   }
 
   void _log(String message, {Object? error, StackTrace? stackTrace}) {
