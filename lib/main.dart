@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -15,6 +16,7 @@ import 'package:smart_factory/lang/controller/language_controller.dart';
 import 'package:smart_factory/lang/language_selection_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/service/auth/token_manager.dart';
+import 'package:smart_factory/service/update_service.dart';
 import 'package:syncfusion_flutter_core/core.dart';
 
 import 'screen/notification/controller/notification_controller.dart';
@@ -54,8 +56,53 @@ void main() async {
   // );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  final UpdateService _updateService = const UpdateService();
+  bool _checkingUpdate = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _triggerSilentUpdateCheck();
+    }
+  }
+
+  void _triggerSilentUpdateCheck() {
+    if (_checkingUpdate) {
+      return;
+    }
+    _checkingUpdate = true;
+
+    unawaited(
+      _updateService.checkSilently().then((summary) {
+        if (summary != null && Get.isRegistered<SettingController>()) {
+          Get.find<SettingController>().applyVersionSummary(summary);
+        }
+      }).whenComplete(() {
+        _checkingUpdate = false;
+      }),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

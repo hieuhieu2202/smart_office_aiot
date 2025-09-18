@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -27,6 +29,8 @@ class UpdateService {
       if (summary == null) {
         return null;
       }
+
+      _handleVersionSideEffects(summary);
 
       if (!summary.updateAvailable) {
         return summary;
@@ -103,6 +107,25 @@ class UpdateService {
       return summary;
     } on Exception {
       // Bỏ qua lỗi kiểm tra phiên bản để không chặn luồng khởi động ứng dụng
+      return null;
+    }
+  }
+
+  /// Kiểm tra cập nhật trong nền (ví dụ khi app quay lại foreground)
+  Future<VersionCheckSummary?> checkSilently() async {
+    if (!Platform.isAndroid) {
+      return null;
+    }
+
+    try {
+      final summary = await fetchVersionSummary();
+      if (summary == null) {
+        return null;
+      }
+
+      _handleVersionSideEffects(summary);
+      return summary;
+    } on Exception {
       return null;
     }
   }
@@ -289,6 +312,76 @@ class UpdateService {
     await OpenFilex.open(filePath);
   }
 
+  void _handleVersionSideEffects(VersionCheckSummary summary) {
+    final bool upgraded =
+        _VersionStateStore.updateInstalledVersion(summary.currentVersion);
+    if (upgraded) {
+      _showInfoSnackbar(
+        title: 'Ứng dụng đã được cập nhật',
+        message: 'Bạn đang sử dụng phiên bản ${summary.currentVersion}.',
+        icon: Icons.check_circle_outline,
+      );
+    }
+
+    final String? serverVersion = summary.effectiveLatestVersion;
+    _VersionStateStore.saveServerVersion(serverVersion);
+
+    if (summary.updateAvailable && serverVersion != null && serverVersion.isNotEmpty) {
+      _showInfoSnackbar(
+        title: 'Có bản cập nhật mới',
+        message: 'Vui lòng cập nhật lên $serverVersion để đảm bảo trải nghiệm tốt nhất.',
+        icon: Icons.system_update_alt_rounded,
+      );
+    }
+  }
+
+  void _showInfoSnackbar({
+    required String title,
+    required String message,
+    required IconData icon,
+  }) {
+    final BuildContext? overlayContext = Get.overlayContext ?? Get.context;
+    if (overlayContext == null) {
+      return;
+    }
+
+    final ThemeData theme = Theme.of(overlayContext);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color accent = theme.colorScheme.secondary;
+    final Color background =
+        isDark ? Colors.black.withOpacity(0.88) : Colors.white.withOpacity(0.95);
+    final Color textColor = isDark ? Colors.white : Colors.black87;
+
+    if (Get.isSnackbarOpen) {
+      Get.closeCurrentSnackbar();
+    }
+
+    Get.showSnackbar(
+      GetSnackBar(
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 2),
+        animationDuration: const Duration(milliseconds: 250),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        borderRadius: 16,
+        backgroundColor: background,
+        icon: Icon(icon, color: accent),
+        titleText: Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: textColor,
+          ),
+        ),
+        messageText: Text(
+          message,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+        ),
+      ),
+    );
+  }
+
   static Uri _uri(String path, [Map<String, dynamic>? query]) {
     final base = ApiConfig.notificationBaseUrl.endsWith('/')
         ? ApiConfig.notificationBaseUrl.substring(0, ApiConfig.notificationBaseUrl.length - 1)
@@ -345,5 +438,33 @@ class UpdateService {
 
   static bool _isContextMounted(BuildContext context) {
     return context is Element && context.mounted;
+  }
+}
+
+class _VersionStateStore {
+  static final GetStorage _storage = GetStorage();
+  static const String _installedKey = 'app_version_last_installed';
+  static const String _serverKey = 'app_version_last_server';
+
+  static String? get installedVersion {
+    final dynamic value = _storage.read(_installedKey);
+    return value is String ? value : null;
+  }
+
+  static bool updateInstalledVersion(String version) {
+    final String? previous = installedVersion;
+    if (previous == version) {
+      return false;
+    }
+    _storage.write(_installedKey, version);
+    return previous != null && previous.isNotEmpty && previous != version;
+  }
+
+  static void saveServerVersion(String? version) {
+    if (version == null || version.isEmpty) {
+      _storage.remove(_serverKey);
+    } else {
+      _storage.write(_serverKey, version);
+    }
   }
 }
