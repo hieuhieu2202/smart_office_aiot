@@ -14,6 +14,8 @@ class NotificationMessage {
     this.fileContentType,
     this.fileSize,
     this.appVersion,
+    this.appKey,
+    this.appName,
   });
 
   final String? id;
@@ -28,6 +30,8 @@ class NotificationMessage {
   final String? fileContentType;
   final int? fileSize;
   final NotificationAppVersion? appVersion;
+  final String? appKey;
+  final String? appName;
 
   factory NotificationMessage.fromJson(Map<String, dynamic> json) {
     DateTime? parsedTimestamp;
@@ -145,6 +149,15 @@ class NotificationMessage {
       fileContentType: fileContentType,
       fileSize: fileSize,
       appVersion: appVersion,
+      appKey: _firstNonEmpty(json, ['appKey', 'AppKey']),
+      appName: _firstNonEmpty(json, [
+        'appName',
+        'AppName',
+        'applicationName',
+        'ApplicationName',
+        'appDisplayName',
+        'AppDisplayName',
+      ]),
     );
   }
 

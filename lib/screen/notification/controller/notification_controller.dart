@@ -116,13 +116,13 @@ class NotificationController extends GetxController {
     }
 
     try {
-      final rawResult = await NotificationService.fetchNotifications(
+      final fetchResult = await NotificationService.fetchNotifications(
         page: page,
         pageSize: pageSize,
       );
 
-      final result =
-          rawResult.where((message) => !_isDismissed(message)).toList();
+      final incoming =
+          fetchResult.items.where((message) => !_isDismissed(message)).toList();
 
       if (!append) {
         final previousMap = {
@@ -131,7 +131,7 @@ class NotificationController extends GetxController {
         final isInitialLoad = !_initialized;
         final rebuilt = <NotificationEntry>[];
 
-        for (final message in result) {
+        for (final message in incoming) {
           final key = _keyFor(message);
           final existing = previousMap[key];
           final bool isRead;
@@ -149,11 +149,11 @@ class NotificationController extends GetxController {
 
         rebuilt.sort(_sortByTimestampDesc);
         notifications.assignAll(rebuilt);
-      } else if (result.isNotEmpty) {
+      } else if (incoming.isNotEmpty) {
         var mutated = false;
         final additions = <NotificationEntry>[];
 
-        for (final message in result) {
+        for (final message in incoming) {
           final key = _keyFor(message);
           final index = notifications.indexWhere((item) => item.key == key);
           if (index != -1) {
@@ -177,8 +177,9 @@ class NotificationController extends GetxController {
         }
       }
 
-      _currentPage = page;
-      _hasMore = rawResult.length >= pageSize;
+      final fetchedPage = fetchResult.page > 0 ? fetchResult.page : page;
+      _currentPage = fetchedPage;
+      _hasMore = fetchResult.hasMore;
       error.value = null;
       _initialized = true;
     } catch (e) {
@@ -390,17 +391,18 @@ class NotificationController extends GetxController {
     }
     _syncingLatest = true;
     try {
-      final rawResult = await NotificationService.fetchNotifications(
+      final fetchResult = await NotificationService.fetchNotifications(
         page: 1,
         pageSize: pageSize,
       );
 
-      if (rawResult.isEmpty) {
+      if (fetchResult.isEmpty) {
         return;
       }
 
-      final filtered =
-          rawResult.where((message) => !_isDismissed(message)).toList();
+      final filtered = fetchResult.items
+          .where((message) => !_isDismissed(message))
+          .toList();
       if (filtered.isEmpty) {
         return;
       }

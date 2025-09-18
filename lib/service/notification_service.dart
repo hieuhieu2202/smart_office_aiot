@@ -43,11 +43,11 @@ class NotificationService {
 
   static IOClient _createIoClient() => IOClient(_createHttpClient());
 
-  static Future<List<NotificationMessage>> fetchNotifications({
+  static Future<NotificationFetchResult> fetchNotifications({
     int page = 1,
     int pageSize = 20,
   }) async {
-    final uri = _uri('/api/control/get-notifications', {
+    final uri = _uri('/api/Control/get-notifications', {
       'appKey': ApiConfig.notificationAppKey,
       'page': page,
       'pageSize': pageSize,
@@ -59,7 +59,7 @@ class NotificationService {
           .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == HttpStatus.noContent) {
-        return const [];
+        return NotificationFetchResult.empty(page: page, pageSize: pageSize);
       }
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -70,17 +70,32 @@ class NotificationService {
 
       final body = response.body.trim();
       if (body.isEmpty) {
-        return const [];
+        return NotificationFetchResult.empty(page: page, pageSize: pageSize);
       }
 
       final dynamic decoded = jsonDecode(body);
       final items = NotificationMessage.listFrom(decoded);
       items.sort((a, b) {
-        final DateTime ta = a.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final DateTime tb = b.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final DateTime ta =
+            a.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final DateTime tb =
+            b.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
         return tb.compareTo(ta);
       });
-      return items;
+
+      final pagination = _extractPagination(
+        decoded,
+        requestedPage: page,
+        requestedPageSize: pageSize,
+        itemCount: items.length,
+      );
+
+      return NotificationFetchResult(
+        items: items,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        total: pagination.total,
+      );
     } on FormatException catch (e) {
       throw Exception('Dữ liệu thông báo không hợp lệ: ${e.message}');
     } finally {
@@ -153,7 +168,7 @@ class NotificationService {
         client = _createIoClient();
         final request = http.Request(
           'GET',
-          _uri('/api/control/notifications-stream', {
+          _uri('/api/Control/notifications-stream', {
             'appKey': ApiConfig.notificationAppKey,
           }),
         );
@@ -284,4 +299,139 @@ class NotificationService {
     }
     return raw;
   }
+}
+
+class NotificationFetchResult {
+  const NotificationFetchResult({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  });
+
+  final List<NotificationMessage> items;
+  final int page;
+  final int pageSize;
+  final int total;
+
+  bool get hasMore {
+    if (total > 0 && pageSize > 0) {
+      return page * pageSize < total;
+    }
+    if (pageSize > 0) {
+      return items.length >= pageSize;
+    }
+    return items.isNotEmpty;
+  }
+
+  bool get isEmpty => items.isEmpty;
+
+  factory NotificationFetchResult.empty({int page = 1, int pageSize = 0}) {
+    return NotificationFetchResult(
+      items: const <NotificationMessage>[],
+      page: page,
+      pageSize: pageSize,
+      total: 0,
+    );
+  }
+}
+
+class _PaginationSnapshot {
+  const _PaginationSnapshot({
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  });
+
+  final int page;
+  final int pageSize;
+  final int total;
+}
+
+_PaginationSnapshot _extractPagination(
+  dynamic decoded, {
+  required int requestedPage,
+  required int requestedPageSize,
+  required int itemCount,
+}) {
+  var resolvedPage = requestedPage <= 0 ? 1 : requestedPage;
+  var resolvedPageSize = requestedPageSize < 0 ? 0 : requestedPageSize;
+  var resolvedTotal = itemCount;
+
+  if (decoded is Map<String, dynamic>) {
+    resolvedPage = _readInt(decoded, const [
+          'page',
+          'Page',
+          'currentPage',
+          'CurrentPage',
+          'pageIndex',
+          'PageIndex',
+        ]) ??
+        resolvedPage;
+
+    resolvedPageSize = _readInt(decoded, const [
+          'pageSize',
+          'PageSize',
+          'size',
+          'Size',
+          'limit',
+          'Limit',
+        ]) ??
+        resolvedPageSize;
+
+    resolvedTotal = _readInt(decoded, const [
+          'total',
+          'Total',
+          'totalCount',
+          'TotalCount',
+          'records',
+          'Records',
+        ]) ??
+        resolvedTotal;
+
+    if (resolvedPageSize <= 0) {
+      final dynamic items = decoded['items'] ?? decoded['Items'];
+      if (items is List) {
+        resolvedPageSize = items.length;
+      }
+    }
+  }
+
+  if (resolvedPage <= 0) {
+    resolvedPage = requestedPage > 0 ? requestedPage : 1;
+  }
+  if (resolvedPageSize <= 0) {
+    resolvedPageSize = itemCount > 0
+        ? itemCount
+        : (requestedPageSize > 0 ? requestedPageSize : itemCount);
+  }
+  if (resolvedTotal < itemCount) {
+    resolvedTotal = itemCount;
+  }
+
+  return _PaginationSnapshot(
+    page: resolvedPage,
+    pageSize: resolvedPageSize,
+    total: resolvedTotal,
+  );
+}
+
+int? _readInt(Map<String, dynamic> source, List<String> keys) {
+  for (final key in keys) {
+    if (!source.containsKey(key)) continue;
+    final value = source[key];
+    if (value == null) {
+      continue;
+    } else if (value is int) {
+      return value;
+    } else if (value is double) {
+      return value.toInt();
+    } else if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+  }
+  return null;
 }
