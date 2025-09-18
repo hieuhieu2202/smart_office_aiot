@@ -68,6 +68,10 @@ class _HomeTabState extends State<HomeTab> {
       }
 
       _hasPromptedUpdate = true;
+    } on UpdateCheckException catch (error) {
+      debugPrint(
+        'Không thể kiểm tra cập nhật ở màn hình Home: ${error.message}',
+      );
     } catch (error) {
       debugPrint('Không thể kiểm tra cập nhật ở màn hình Home: $error');
     } finally {

@@ -50,8 +50,10 @@ class SettingController extends GetxController {
         versionSummary.value = summary;
         _applyDisplayVersion(summary);
       }
-    } catch (e) {
-      versionError.value = 'Không thể kiểm tra cập nhật: ${e.toString()}';
+    } on UpdateCheckException catch (error) {
+      versionError.value = 'Không thể kiểm tra cập nhật: ${error.message}';
+    } catch (error) {
+      versionError.value = 'Không thể kiểm tra cập nhật: $error';
     } finally {
       isVersionChecking.value = false;
     }

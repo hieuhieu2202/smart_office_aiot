@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:developer' as developer;
@@ -12,6 +13,16 @@ import 'package:path_provider/path_provider.dart';
 import '../config/Apiconfig.dart';
 import '../model/notification_message.dart';
 import '../model/version_check_summary.dart';
+
+class UpdateCheckException implements Exception {
+  const UpdateCheckException(this.message, [this.cause]);
+
+  final String message;
+  final Object? cause;
+
+  @override
+  String toString() => message;
+}
 
 class UpdateService {
   const UpdateService();
@@ -135,6 +146,11 @@ class UpdateService {
 
       _log('Hoàn tất quy trình kiểm tra cập nhật.');
       return resolvedSummary;
+    } on UpdateCheckException catch (error, stackTrace) {
+      _log('Lỗi khi kiểm tra cập nhật: ${error.message}',
+          error: error.cause ?? error, stackTrace: stackTrace);
+      // Bỏ qua lỗi kiểm tra phiên bản để không chặn luồng khởi động ứng dụng
+      return initialSummary;
     } on Exception catch (error, stackTrace) {
       _log('Lỗi khi kiểm tra cập nhật: $error',
           error: error, stackTrace: stackTrace);
@@ -212,13 +228,13 @@ class UpdateService {
       );
 
       if (response.statusCode != HttpStatus.ok) {
+        final preview = _previewBody(response.body);
+        final message =
+            'Không thể kiểm tra cập nhật: máy chủ trả về mã ${response.statusCode}.';
         _log(
-          'Lỗi kiểm tra phiên bản (mã ${response.statusCode}). '
-          'Body: ${_previewBody(response.body)}',
+          'Lỗi kiểm tra phiên bản (mã ${response.statusCode}). Body: $preview',
         );
-        throw Exception(
-          'Không thể kiểm tra cập nhật (mã ${response.statusCode}).',
-        );
+        throw UpdateCheckException(message);
       }
 
       final body = response.body.trim();
@@ -318,14 +334,36 @@ class UpdateService {
         downloadUrl: downloadUrl,
         latestRelease: latestRelease,
       );
-    } on FormatException catch (e, stackTrace) {
-      _log('Dữ liệu kiểm tra phiên bản không hợp lệ: ${e.message}',
-          error: e, stackTrace: stackTrace);
-      throw Exception('Dữ liệu phản hồi không hợp lệ: ${e.message}');
+    } on TimeoutException catch (error, stackTrace) {
+      const message =
+          'Hết thời gian chờ (20s) khi kết nối tới máy chủ kiểm tra phiên bản.';
+      _log(message, error: error, stackTrace: stackTrace);
+      throw const UpdateCheckException(message);
+    } on SocketException catch (error, stackTrace) {
+      const message =
+          'Không thể kết nối tới máy chủ kiểm tra cập nhật. Vui lòng kiểm tra mạng.';
+      _log(message, error: error, stackTrace: stackTrace);
+      throw const UpdateCheckException(message);
+    } on http.ClientException catch (error, stackTrace) {
+      final detail = error.message.isNotEmpty
+          ? error.message
+          : 'Lỗi kết nối không xác định.';
+      final message = 'Kết nối kiểm tra cập nhật gặp sự cố: $detail';
+      _log(message, error: error, stackTrace: stackTrace);
+      throw UpdateCheckException(message, error);
+    } on HttpException catch (error, stackTrace) {
+      final message =
+          'Máy chủ từ chối yêu cầu kiểm tra cập nhật: ${error.message}';
+      _log(message, error: error, stackTrace: stackTrace);
+      throw UpdateCheckException(message, error);
+    } on FormatException catch (error, stackTrace) {
+      final message = 'Dữ liệu phản hồi không hợp lệ: ${error.message}';
+      _log(message, error: error, stackTrace: stackTrace);
+      throw UpdateCheckException(message, error);
     } catch (error, stackTrace) {
-      _log('Lỗi không xác định khi kiểm tra phiên bản: $error',
-          error: error, stackTrace: stackTrace);
-      rethrow;
+      const message = 'Đã xảy ra lỗi không xác định khi kiểm tra phiên bản.';
+      _log(message, error: error, stackTrace: stackTrace);
+      throw UpdateCheckException(message, error);
     } finally {
       client.close();
     }
