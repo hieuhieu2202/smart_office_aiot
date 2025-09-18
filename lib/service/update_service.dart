@@ -5,6 +5,7 @@ import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -171,10 +172,17 @@ class UpdateService {
         ? platform
         : (Platform.isAndroid ? 'android' : Platform.operatingSystem);
 
+    final _UpdateCache cache =
+        _UpdateCache(ApiConfig.notificationAppKey, resolvedPlatform);
+    final String? cachedInstalled = cache.readInstalledVersion();
+    final int? cachedBuildNumber = cache.readBuildNumber();
+    final int? currentBuildNumber = _tryParseInt(info.buildNumber);
+
     final List<String?> candidates = <String?>[
       overrideCurrentVersion,
       info.version,
       info.buildNumber,
+      cachedInstalled,
     ];
     String? rawCurrentVersion;
     for (final candidate in candidates) {
@@ -184,15 +192,27 @@ class UpdateService {
       }
     }
 
-    final String sanitizedCurrentVersion = _coerceVersion(rawCurrentVersion);
-    final String initialDisplayVersion =
-        sanitizeVersionForDisplay(rawCurrentVersion);
+    var sanitizedCurrentVersion = _coerceVersion(rawCurrentVersion);
+    var initialDisplayVersion = sanitizeVersionForDisplay(rawCurrentVersion);
+
+    final String? normalizedCachedInstalled =
+        _normalizeVersion(cachedInstalled);
+    if (normalizedCachedInstalled != null &&
+        normalizedCachedInstalled.isNotEmpty &&
+        _compareVersions(normalizedCachedInstalled, sanitizedCurrentVersion) >
+            0) {
+      sanitizedCurrentVersion = normalizedCachedInstalled;
+      initialDisplayVersion = sanitizeVersionForDisplay(normalizedCachedInstalled);
+    }
 
     _log(
       'Chuẩn bị gọi API kiểm tra phiên bản: '
       'currentVersion=$sanitizedCurrentVersion (raw=${rawCurrentVersion ?? 'n/a'}), '
       'display=$initialDisplayVersion, '
-      'platform=$resolvedPlatform',
+      'platform=$resolvedPlatform, '
+      'build=${currentBuildNumber ?? 'n/a'}, '
+      'cachedInstalled=${normalizedCachedInstalled ?? cachedInstalled ?? 'n/a'}, '
+      'cachedBuild=${cachedBuildNumber ?? 'n/a'}',
     );
 
     if (!Platform.isAndroid && resolvedPlatform.toLowerCase() == 'android') {
@@ -343,35 +363,75 @@ class UpdateService {
         }
       }
 
-      String resolvedInstalledVersion = sanitizedCurrentVersion;
-      if (!updateAvailable) {
-        if (normalizedServerVersion != null && normalizedServerVersion.isNotEmpty) {
+      var resolvedInstalledVersion = sanitizedCurrentVersion;
+      var effectiveUpdateAvailable = updateAvailable;
+      var resolvedDisplayVersion = sanitizeVersionForDisplay(
+        serverCurrentVersionRaw ??
+            normalizedServerVersion ??
+            serverVersionCandidate ??
+            rawCurrentVersion ??
+            resolvedInstalledVersion,
+      );
+
+      if (!effectiveUpdateAvailable) {
+        if (normalizedServerVersion != null &&
+            normalizedServerVersion.isNotEmpty) {
           resolvedInstalledVersion = normalizedServerVersion;
         } else if (normalizedServerCurrentVersion != null &&
             normalizedServerCurrentVersion.isNotEmpty) {
           resolvedInstalledVersion = normalizedServerCurrentVersion;
         }
+        resolvedDisplayVersion = sanitizeVersionForDisplay(
+          normalizedServerCurrentVersion ??
+              normalizedServerVersion ??
+              serverCurrentVersionRaw ??
+              serverVersionCandidate ??
+              resolvedInstalledVersion,
+        );
       }
 
-      final String finalDisplayVersion = sanitizeVersionForDisplay(
-        serverCurrentVersionRaw ??
-            normalizedServerVersion ??
-            serverVersionCandidate ??
-            rawCurrentVersion ??
-            sanitizedCurrentVersion,
-      );
+      final bool buildAdvanced = cachedBuildNumber != null &&
+          currentBuildNumber != null &&
+          currentBuildNumber > cachedBuildNumber;
+
+      if (buildAdvanced && effectiveUpdateAvailable) {
+        _log(
+          'Build number đã tăng từ $cachedBuildNumber lên $currentBuildNumber, '
+          'coi như bản cập nhật đã được cài đặt.',
+        );
+        effectiveUpdateAvailable = false;
+        final String? normalizedReleaseVersion = latestRelease?.versionName != null
+            ? _normalizeVersion(latestRelease!.versionName)
+            : null;
+        final String? promotedVersion = normalizedServerVersion ??
+            normalizedReleaseVersion ??
+            normalizedServerCurrentVersion ??
+            _normalizeVersion(serverVersionCandidate) ??
+            resolvedInstalledVersion;
+        if (promotedVersion != null && promotedVersion.isNotEmpty) {
+          resolvedInstalledVersion = promotedVersion;
+        }
+        resolvedDisplayVersion = sanitizeVersionForDisplay(
+          latestRelease?.versionName ??
+              serverCurrentVersionRaw ??
+              serverVersionCandidate ??
+              promotedVersion ??
+              resolvedInstalledVersion,
+        );
+      }
 
       _log(
         'Tổng hợp phiên bản: installed=$resolvedInstalledVersion, '
-        'display=$finalDisplayVersion, server=${normalizedServerVersion ?? 'n/a'}, '
-        'update=$updateAvailable',
+        'display=$resolvedDisplayVersion, server=${normalizedServerVersion ?? 'n/a'}, '
+        'update=$effectiveUpdateAvailable, build=${currentBuildNumber ?? 'n/a'} '
+        '(cache=${cachedBuildNumber ?? 'n/a'})',
       );
 
-      return VersionCheckSummary(
-        currentVersion: finalDisplayVersion,
+      final summary = VersionCheckSummary(
+        currentVersion: resolvedDisplayVersion,
         installedVersion: resolvedInstalledVersion,
         platform: resolvedPlatform,
-        updateAvailable: updateAvailable,
+        updateAvailable: effectiveUpdateAvailable,
         serverVersion:
             normalizedServerVersion ?? serverVersionCandidate ?? serverVersionRaw,
         serverCurrentVersion: serverCurrentVersionRaw,
@@ -380,6 +440,18 @@ class UpdateService {
         downloadUrl: downloadUrl,
         latestRelease: latestRelease,
       );
+
+      try {
+        await cache.writeInstalledVersion(resolvedInstalledVersion);
+        if (currentBuildNumber != null) {
+          await cache.writeBuildNumber(currentBuildNumber);
+        }
+      } catch (error, stackTrace) {
+        _log('Không thể lưu cache phiên bản: $error',
+            error: error, stackTrace: stackTrace);
+      }
+
+      return summary;
     } on TimeoutException catch (error, stackTrace) {
       const message =
           'Hết thời gian chờ (20s) khi kết nối tới máy chủ kiểm tra phiên bản.';
@@ -631,5 +703,58 @@ class UpdateService {
 
   static bool _isContextMounted(BuildContext context) {
     return context is Element && context.mounted;
+  }
+
+  static int? _tryParseInt(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+    return int.tryParse(trimmed);
+  }
+}
+
+class _UpdateCache {
+  _UpdateCache(this.appKey, this.platform)
+      : _platformKey = platform.toLowerCase().trim();
+
+  final String appKey;
+  final String platform;
+  final String _platformKey;
+
+  static final GetStorage _box = GetStorage();
+
+  String _key(String suffix) =>
+      'update_cache:$appKey:${_platformKey.isEmpty ? 'default' : _platformKey}:$suffix';
+
+  String? readInstalledVersion() {
+    final dynamic value = _box.read(_key('installed'));
+    if (value is String) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    return null;
+  }
+
+  int? readBuildNumber() {
+    final dynamic value = _box.read(_key('build'));
+    if (value is int) {
+      return value;
+    }
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    return null;
+  }
+
+  Future<void> writeInstalledVersion(String? version) async {
+    if (version == null) return;
+    final trimmed = version.trim();
+    if (trimmed.isEmpty) return;
+    await _box.write(_key('installed'), trimmed);
+  }
+
+  Future<void> writeBuildNumber(int? buildNumber) async {
+    if (buildNumber == null) return;
+    await _box.write(_key('build'), buildNumber);
   }
 }
