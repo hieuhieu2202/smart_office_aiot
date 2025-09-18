@@ -49,7 +49,8 @@ class UpdateService {
       if (summary != null) {
         _log(
           'Sử dụng dữ liệu kiểm tra phiên bản đã có: '
-          'current=${summary.currentVersion}, '
+          'display=${summary.displayVersion}, '
+          'installed=${summary.installedVersion}, '
           'server=${summary.serverVersion ?? 'n/a'}, '
           'update=${summary.updateAvailable}.',
         );
@@ -67,7 +68,7 @@ class UpdateService {
       if (!resolvedSummary.updateAvailable) {
         _log(
           'Không có bản cập nhật mới. Phiên bản hiện tại: '
-          '${resolvedSummary.currentVersion}.',
+          '${resolvedSummary.installedVersion}.',
         );
         return resolvedSummary;
       }
@@ -95,7 +96,9 @@ class UpdateService {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Phiên bản hiện tại: ${resolvedSummary.currentVersion}'),
+                  Text(
+                    'Phiên bản trên máy: ${resolvedSummary.installedVersion}',
+                  ),
                   if (serverVersion != null && serverVersion.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -182,23 +185,25 @@ class UpdateService {
     }
 
     final String sanitizedCurrentVersion = _coerceVersion(rawCurrentVersion);
-    final String displayCurrentVersion =
+    final String initialDisplayVersion =
         sanitizeVersionForDisplay(rawCurrentVersion);
 
     _log(
       'Chuẩn bị gọi API kiểm tra phiên bản: '
       'currentVersion=$sanitizedCurrentVersion (raw=${rawCurrentVersion ?? 'n/a'}), '
-      'display=$displayCurrentVersion, '
+      'display=$initialDisplayVersion, '
       'platform=$resolvedPlatform',
     );
 
     if (!Platform.isAndroid && resolvedPlatform.toLowerCase() == 'android') {
       _log('Thiết bị không phải Android nhưng platform=android, trả về bản tóm tắt mặc định.');
       return VersionCheckSummary(
-        currentVersion: displayCurrentVersion,
+        currentVersion: initialDisplayVersion,
+        installedVersion: sanitizedCurrentVersion,
         platform: resolvedPlatform,
         updateAvailable: false,
-        serverVersion: displayCurrentVersion,
+        serverVersion: initialDisplayVersion,
+        serverCurrentVersion: initialDisplayVersion,
         minSupported: null,
         notes: null,
         downloadUrl: null,
@@ -258,6 +263,18 @@ class UpdateService {
         const ['serverVersion', 'ServerVersion', 'latestVersion', 'LatestVersion'],
       );
 
+      final String? serverCurrentVersionRaw = _readString(
+        decoded,
+        const [
+          'currentVersion',
+          'CurrentVersion',
+          'installedVersion',
+          'InstalledVersion',
+          'appVersion',
+          'AppVersion',
+        ],
+      );
+
       final String? minSupported = _readString(
         decoded,
         const [
@@ -309,6 +326,9 @@ class UpdateService {
       final String? normalizedServerVersion =
           _normalizeVersion(serverVersionCandidate);
 
+      final String? normalizedServerCurrentVersion =
+          _normalizeVersion(serverCurrentVersionRaw);
+
       if (!updateAvailable && normalizedServerVersion != null) {
         final comparison = _compareVersions(
           sanitizedCurrentVersion,
@@ -323,12 +343,38 @@ class UpdateService {
         }
       }
 
+      String resolvedInstalledVersion = sanitizedCurrentVersion;
+      if (!updateAvailable) {
+        if (normalizedServerVersion != null && normalizedServerVersion.isNotEmpty) {
+          resolvedInstalledVersion = normalizedServerVersion;
+        } else if (normalizedServerCurrentVersion != null &&
+            normalizedServerCurrentVersion.isNotEmpty) {
+          resolvedInstalledVersion = normalizedServerCurrentVersion;
+        }
+      }
+
+      final String finalDisplayVersion = sanitizeVersionForDisplay(
+        serverCurrentVersionRaw ??
+            normalizedServerVersion ??
+            serverVersionCandidate ??
+            rawCurrentVersion ??
+            sanitizedCurrentVersion,
+      );
+
+      _log(
+        'Tổng hợp phiên bản: installed=$resolvedInstalledVersion, '
+        'display=$finalDisplayVersion, server=${normalizedServerVersion ?? 'n/a'}, '
+        'update=$updateAvailable',
+      );
+
       return VersionCheckSummary(
-        currentVersion: displayCurrentVersion,
+        currentVersion: finalDisplayVersion,
+        installedVersion: resolvedInstalledVersion,
         platform: resolvedPlatform,
         updateAvailable: updateAvailable,
         serverVersion:
             normalizedServerVersion ?? serverVersionCandidate ?? serverVersionRaw,
+        serverCurrentVersion: serverCurrentVersionRaw,
         minSupported: minSupported,
         notes: notes,
         downloadUrl: downloadUrl,

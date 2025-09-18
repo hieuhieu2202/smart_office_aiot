@@ -79,14 +79,24 @@ class SettingController extends GetxController {
   }
 
   void _applyDisplayVersion(VersionCheckSummary summary) {
+    final String installed =
+        UpdateService.sanitizeVersionForDisplay(summary.installedVersion);
+
     if (!summary.updateAvailable) {
-      final String? serverVersion = summary.effectiveLatestVersion;
-      if (serverVersion != null && serverVersion.trim().isNotEmpty) {
+      final String? latest = summary.effectiveLatestVersion;
+      if (latest != null && latest.trim().isNotEmpty) {
+        appVersion.value = UpdateService.sanitizeVersionForDisplay(latest);
+        return;
+      }
+
+      final String? serverCurrent = summary.serverCurrentVersion;
+      if (serverCurrent != null && serverCurrent.trim().isNotEmpty) {
         appVersion.value =
-            UpdateService.sanitizeVersionForDisplay(serverVersion);
+            UpdateService.sanitizeVersionForDisplay(serverCurrent);
         return;
       }
     }
-    appVersion.value = summary.currentVersion;
+
+    appVersion.value = installed;
   }
 }
