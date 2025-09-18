@@ -136,6 +136,7 @@ class UpdateService {
       final response = await client
           .get(
             _uri('/api/control/check-app-version', {
+              'appKey': ApiConfig.notificationAppKey,
               'currentVersion': currentVersion,
               'platform': resolvedPlatform,
             }),
@@ -204,7 +205,10 @@ class UpdateService {
       } else {
         downloadUrl = _uri(
           '/api/control/app-version/download',
-          {'platform': resolvedPlatform},
+          {
+            'appKey': ApiConfig.notificationAppKey,
+            'platform': resolvedPlatform,
+          },
         ).toString();
       }
 

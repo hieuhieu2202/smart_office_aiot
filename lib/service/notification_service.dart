@@ -48,6 +48,7 @@ class NotificationService {
     int pageSize = 20,
   }) async {
     final uri = _uri('/api/control/get-notifications', {
+      'appKey': ApiConfig.notificationAppKey,
       'page': page,
       'pageSize': pageSize,
     });
@@ -152,7 +153,9 @@ class NotificationService {
         client = _createIoClient();
         final request = http.Request(
           'GET',
-          _uri('/api/control/notifications-stream'),
+          _uri('/api/control/notifications-stream', {
+            'appKey': ApiConfig.notificationAppKey,
+          }),
         );
         request.headers[HttpHeaders.acceptHeader] = 'text/event-stream';
         request.headers[HttpHeaders.cacheControlHeader] = 'no-cache';

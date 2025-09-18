@@ -6,8 +6,10 @@ class ApiConfig {
       : 'http://192.168.0.197:5511'; // Server local/dev
 
   static String get notificationBaseUrl => isProduction
-      ? 'http://10.220.130.117:2222/SendNoti'
-      : 'http://192.168.0.197:5511/SendNoti';
+      ? 'http://10.220.130.117:2222'
+      : 'http://192.168.0.197:5511';
+
+  static const String notificationAppKey = 'smartfactoryapp';
 
   // ===== FIXTURE =====
   static String get fixtureEndpoint => '$baseUrl/Fixture/GetFixtureByQr';
