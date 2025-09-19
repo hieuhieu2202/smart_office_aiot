@@ -20,17 +20,13 @@ class CuringMonitoringApi {
       'Floor': floor,
       'Location': location,
       'ModelSerial': modelSerial,
-      // cache-buster để tránh giữ response cũ (proxy/CDN)
       '_ts': DateTime.now().millisecondsSinceEpoch,
     };
 
-    // Log tham số gửi lên để đối chiếu với web
-    // (có thể tắt sau khi xác nhận)
-    // ignore: avoid_print
-    print('[CuringApi] POST body => ${json.encode(bodyMap)}');
+    // print('[CuringApi] POST body => ${json.encode(bodyMap)}');
 
     final headers = {
-      ...AuthConfig.getAuthorizedHeaders(), // ví dụ: {'Content-Type':'application/json','Authorization':'Bearer ...'}
+      ...AuthConfig.getAuthorizedHeaders(),
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0',
@@ -38,7 +34,7 @@ class CuringMonitoringApi {
     };
 
     // ignore: avoid_print
-    print('[CuringApi] headers => ${json.encode(headers)}');
+    // print('[CuringApi] headers => ${json.encode(headers)}');
 
     final res = await http.post(
       Uri.parse(_url),

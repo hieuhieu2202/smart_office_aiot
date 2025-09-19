@@ -24,16 +24,24 @@ bool _diffAtMostOneChar(String a, String b) {
   return diff == 1;
 }
 
-/// Bộ đếm cộng dồn
-class _Agg { int pass = 0; int totalPass = 0; }
+class _Agg {
+  int pass = 0;
+  int totalPass = 0;
+}
 
-/// Kết quả cho chart
 class ModelPass {
-  final String model; final int pass; final int totalPass;
+  final String model;
+  final int pass;
+  final int totalPass;
+
   ModelPass(this.model, this.pass, this.totalPass);
 }
 
-Map<String, _Agg> _mergeNearCodes(Map<String, _Agg> src, Set<String> rackSAs, {bool log = false}) {
+Map<String, _Agg> _mergeNearCodes(
+  Map<String, _Agg> src,
+  Set<String> rackSAs, {
+  bool log = false,
+}) {
   final m = Map<String, _Agg>.from(src);
   final keys = m.keys.toList()..sort();
   final visited = <String>{};
@@ -49,16 +57,24 @@ Map<String, _Agg> _mergeNearCodes(Map<String, _Agg> src, Set<String> rackSAs, {b
 
       String canon;
       final aRack = rackSAs.contains(a), bRack = rackSAs.contains(b);
-      if (aRack && !bRack) canon = a;
-      else if (bRack && !aRack) canon = b;
-      else canon = (m[a]!.pass >= m[b]!.pass) ? a : b;
+      if (aRack && !bRack)
+        canon = a;
+      else if (bRack && !aRack)
+        canon = b;
+      else
+        canon = (m[a]!.pass >= m[b]!.pass) ? a : b;
 
       final other = (canon == a) ? b : a;
-      if (log) debugPrint('↪ MERGE NEAR: $other -> $canon (other=${m[other]!.pass}, canon=${m[canon]!.pass})');
+      if (log)
+        debugPrint(
+          '↪ MERGE NEAR: $other -> $canon (other=${m[other]!.pass}, canon=${m[canon]!.pass})',
+        );
       m[canon]!.pass += m[other]!.pass;
       m[canon]!.totalPass += m[other]!.totalPass;
       m.remove(other);
-      visited..add(canon)..add(other);
+      visited
+        ..add(canon)
+        ..add(other);
     }
   }
   return m;
@@ -66,35 +82,37 @@ Map<String, _Agg> _mergeNearCodes(Map<String, _Agg> src, Set<String> rackSAs, {b
 
 // ======================= Controller =======================
 class GroupMonitorController extends GetxController {
-  final bool enableLogs = true;
+  // ========= Log control =========
+  final _verbose = false.obs;
 
-  // Location gốc để lọc phụ thuộc
+  void enableVerbose(bool on) => _verbose.value = on;
+
+  void vlog(String Function() builder) {
+    if (_verbose.value) debugPrint(builder());
+  }
+
+  // ========= Filters =========
   List<LocationEntry> _allLocs = const <LocationEntry>[];
 
-  // OPTIONS đã lọc (giữ tên cũ để UI không phải đổi)
   final factories = <String>['F16', 'F17'].obs;
-  final floors   = <String>['ALL'].obs;
-  final rooms    = <String>['ALL'].obs;
-  final groups   = <String>['ALL'].obs;
-  final models   = <String>['ALL'].obs;
+  final floors = <String>['ALL'].obs;
+  final rooms = <String>['ALL'].obs;
+  final groups = <String>['ALL'].obs;
+  final models = <String>['ALL'].obs;
 
-  // Selections
   final selFactory = 'F16'.obs;
-  final selFloor   = '3F'.obs;
-  final selRoom    = 'ALL'.obs;
-  final selGroup   = 'J_TAG'.obs;
-  final selModel   = 'ALL'.obs;
+  final selFloor = '3F'.obs;
+  final selRoom = 'ALL'.obs;
+  final selGroup = 'J_TAG'.obs;
+  final selModel = 'ALL'.obs;
 
-  // Toggles
   final showOfflineRack = true.obs;
-  final showAnimation   = false.obs;
+  final showAnimation = false.obs;
 
-  // Data / State
-  final data      = Rxn<GroupDataMonitoring>();
+  final data = Rxn<GroupDataMonitoring>();
   final isLoading = false.obs;
-  final error     = RxnString();
+  final error = RxnString();
 
-  // Auto refresh
   final autoRefresh = true.obs;
   final intervalSec = 10.obs;
   Timer? _timer;
@@ -102,63 +120,88 @@ class GroupMonitorController extends GetxController {
   @override
   Future<void> onInit() async {
     super.onInit();
-    await _loadFilterSources();      // nạp _allLocs & dựng options
-    await refresh();                 // gọi dữ liệu đầu tiên
+    await _loadFilterSources();
+    await refresh();
 
     debounce(intervalSec, (_) => _restartTimer());
     ever(autoRefresh, (_) => _restartTimer());
     _restartTimer();
 
-    // Đổi factory -> reset các cấp còn lại giống web
     ever(selFactory, (_) {
       selFloor.value = 'ALL';
-      selRoom.value  = 'ALL';
+      selRoom.value = 'ALL';
       selGroup.value = 'ALL';
       selModel.value = 'ALL';
       _rebuildDependentOptions();
       refresh();
     });
 
-    ever(selFloor,  (_) { _rebuildDependentOptions(); refresh(); });
-    ever(selRoom,   (_) { _rebuildDependentOptions(); refresh(); });
-    ever(selGroup,  (_) { _rebuildDependentOptions(); refresh(); });
-    ever(selModel,  (_) => refresh());
+    ever(selFloor, (_) {
+      _rebuildDependentOptions();
+      refresh();
+    });
+    ever(selRoom, (_) {
+      _rebuildDependentOptions();
+      refresh();
+    });
+    ever(selGroup, (_) {
+      _rebuildDependentOptions();
+      refresh();
+    });
+    ever(selModel, (_) => refresh());
   }
 
   @override
-  void onClose() { _timer?.cancel(); super.onClose(); }
+  void onClose() {
+    _timer?.cancel();
+    super.onClose();
+  }
 
   void _restartTimer() {
     _timer?.cancel();
     if (autoRefresh.value) {
-      _timer = Timer.periodic(Duration(seconds: intervalSec.value), (_) => refresh());
+      _timer = Timer.periodic(
+        Duration(seconds: intervalSec.value),
+        (_) => refresh(),
+      );
     }
   }
 
-  // ====== Load filters & build dependent options ======
+  // ========= Filter options =========
   Future<void> _loadFilterSources() async {
     try {
       _allLocs = await RackMonitorApi.getLocations();
 
-      final fset = {
-        for (final e in _allLocs) e.factory.trim(),
-      }..removeWhere((e) => e.isEmpty);
+      final fset = {for (final e in _allLocs) e.factory.trim()}
+        ..removeWhere((e) => e.isEmpty);
 
       if (fset.isNotEmpty) {
-        factories..clear()..addAll(fset.toList()..sort((a,b)=>a.compareTo(b)));
-        if (!factories.contains(selFactory.value)) selFactory.value = factories.first;
+        factories
+          ..clear()
+          ..addAll(fset.toList()..sort());
+        if (!factories.contains(selFactory.value))
+          selFactory.value = factories.first;
       }
 
       _rebuildDependentOptions();
     } catch (e) {
       error.value = 'Load filters failed: $e';
-      // Fallback tối thiểu
       _allLocs = const <LocationEntry>[];
-      factories..clear()..addAll(['F16', 'F17']);
-      floors..clear()..addAll(['ALL', '3F']);
-      rooms ..clear()..addAll(['ALL', 'ROOM', 'ROOM 1', 'ROOM 2', 'ROOM 3']);
-      groups..clear()..addAll(['ALL', 'CTO', 'FT', 'J_TAG']);
-      models..clear()..addAll(['ALL', 'GB200', 'GB300']);
+      factories
+        ..clear()
+        ..addAll(['F16', 'F17']);
+      floors
+        ..clear()
+        ..addAll(['ALL', '3F']);
+      rooms
+        ..clear()
+        ..addAll(['ALL', 'ROOM1', 'ROOM2']);
+      groups
+        ..clear()
+        ..addAll(['ALL', 'CTO', 'FT', 'J_TAG']);
+      models
+        ..clear()
+        ..addAll(['ALL', 'GB200', 'GB300']);
     }
   }
 
@@ -168,85 +211,89 @@ class GroupMonitorController extends GetxController {
       final t = v.trim();
       if (t.isNotEmpty) s.add(t);
     }
-    final list = s.toList()..sort((a,b)=>a.toLowerCase().compareTo(b.toLowerCase()));
+    final list =
+        s.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return ['ALL', ...list];
   }
 
   void _rebuildDependentOptions() {
     final fact = selFactory.value.trim();
     final floor = selFloor.value.trim();
-    final room  = selRoom.value.trim();
+    final room = selRoom.value.trim();
     final group = selGroup.value.trim();
 
-    // FLOORS theo Factory
-    final newFloors = _mkOpts(_allLocs.where((e)=>e.factory==fact).map((e)=>e.floor));
-    floors..clear()..addAll(newFloors);
+    final newFloors = _mkOpts(
+      _allLocs.where((e) => e.factory == fact).map((e) => e.floor),
+    );
+    floors
+      ..clear()
+      ..addAll(newFloors);
     if (!floors.contains(selFloor.value)) selFloor.value = 'ALL';
 
-    // ROOMS theo Factory + Floor
-    Iterable<LocationEntry> qRoom = _allLocs.where((e)=>e.factory==fact);
-    if (selFloor.value!='ALL') qRoom = qRoom.where((e)=>e.floor==floor);
-    final newRooms = _mkOpts(qRoom.map((e)=>e.room));
-    rooms..clear()..addAll(newRooms);
+    Iterable<LocationEntry> qRoom = _allLocs.where((e) => e.factory == fact);
+    if (selFloor.value != 'ALL') qRoom = qRoom.where((e) => e.floor == floor);
+    final newRooms = _mkOpts(qRoom.map((e) => e.room));
+    rooms
+      ..clear()
+      ..addAll(newRooms);
     if (!rooms.contains(selRoom.value)) selRoom.value = 'ALL';
 
-    // GROUPS theo Factory + Floor + Room
     Iterable<LocationEntry> qGroup = qRoom;
-    if (selRoom.value!='ALL') qGroup = qGroup.where((e)=>e.room==room);
-    final newGroups = _mkOpts(qGroup.map((e)=>e.group));
-    groups..clear()..addAll(newGroups);
+    if (selRoom.value != 'ALL') qGroup = qGroup.where((e) => e.room == room);
+    final newGroups = _mkOpts(qGroup.map((e) => e.group));
+    groups
+      ..clear()
+      ..addAll(newGroups);
     if (!groups.contains(selGroup.value)) selGroup.value = 'ALL';
 
-    // MODELS theo Factory + Floor + Room + Group
     Iterable<LocationEntry> qModel = qGroup;
-    if (selGroup.value!='ALL') qModel = qModel.where((e)=>e.group==group);
-    final newModels = _mkOpts(qModel.map((e)=>e.model));
-    models..clear()..addAll(newModels);
+    if (selGroup.value != 'ALL') qModel = qModel.where((e) => e.group == group);
+    final newModels = _mkOpts(qModel.map((e) => e.model));
+    models
+      ..clear()
+      ..addAll(newModels);
     if (!models.contains(selModel.value)) selModel.value = 'ALL';
 
-    if (enableLogs) {
-      debugPrint('FILTER OPTIONS REBUILD: '
+    vlog(
+      () =>
+          'FILTER OPTIONS REBUILD: '
           'Factory=$fact, Floor=$floor, Room=$room, Group=$group\n'
           'Floors=${floors.join(", ")}\n'
           'Rooms=${rooms.join(", ")}\n'
           'Groups=${groups.join(", ")}\n'
-          'Models=${models.join(", ")}');
-    }
+          'Models=${models.join(", ")}',
+    );
   }
 
-  // ======================= BODY builder =======================
   Map<String, dynamic> _buildBody({required bool isF17}) {
     String? _nv(String s) => s == 'ALL' ? null : s;
 
     if (isF17) {
-      // F17: schema web (PascalCase + Location)
       final Map<String, dynamic> b = {
         'Factory': selFactory.value,
-        if (_nv(selFloor.value)  != null) 'Floor'      : _nv(selFloor.value),
-        if (_nv(selRoom.value)   != null) 'Location'   : _nv(selRoom.value),
-        if (_nv(selGroup.value)  != null) 'GroupName'  : _nv(selGroup.value),
-        if (_nv(selModel.value)  != null) 'ModelSerial': _nv(selModel.value),
+        if (_nv(selFloor.value) != null) 'Floor': _nv(selFloor.value),
+        if (_nv(selRoom.value) != null) 'Location': _nv(selRoom.value),
+        if (_nv(selGroup.value) != null) 'GroupName': _nv(selGroup.value),
+        if (_nv(selModel.value) != null) 'ModelSerial': _nv(selModel.value),
       };
-      if (enableLogs) debugPrint(' GỬI BODY F17(web): $b');
+      vlog(() => ' GỬI BODY F17(web): $b');
       return b;
     } else {
-      // F16: body hiện tại
       final Map<String, dynamic> b = {
-        'factory'   : selFactory.value,
-        if (_nv(selFloor.value)  != null) 'floor'     : _nv(selFloor.value),
-        if (_nv(selRoom.value)   != null) 'room'      : _nv(selRoom.value),
-        if (_nv(selGroup.value)  != null) 'groupName' : _nv(selGroup.value),
-        if (_nv(selModel.value)  != null) 'modelSerial': _nv(selModel.value),
-        'nickName'  : '',
+        'factory': selFactory.value,
+        if (_nv(selFloor.value) != null) 'floor': _nv(selFloor.value),
+        if (_nv(selRoom.value) != null) 'room': _nv(selRoom.value),
+        if (_nv(selGroup.value) != null) 'groupName': _nv(selGroup.value),
+        if (_nv(selModel.value) != null) 'modelSerial': _nv(selModel.value),
+        'nickName': '',
         'rangeDateTime': '',
-        'rackNames' : <Map<String, dynamic>>[],
+        'rackNames': <Map<String, dynamic>>[],
       };
-      if (enableLogs) debugPrint(' GỬI BODY F16(app): $b');
+      vlog(() => ' GỬI BODY F16(app): $b');
       return b;
     }
   }
 
-  // ======================= Refresh =======================
   Future<void> refresh() async {
     try {
       isLoading.value = true;
@@ -263,7 +310,7 @@ class GroupMonitorController extends GetxController {
       );
       data.value = res;
 
-      if (enableLogs) _logSnapshot();
+      _logSnapshot();
     } catch (e) {
       error.value = 'Refresh failed: $e';
     } finally {
@@ -273,23 +320,28 @@ class GroupMonitorController extends GetxController {
 
   void clearFiltersKeepFactory() {
     selFloor.value = 'ALL';
-    selRoom.value  = 'ALL';
+    selRoom.value = 'ALL';
     selGroup.value = 'ALL';
     selModel.value = 'ALL';
     _rebuildDependentOptions();
   }
 
-  // ======================= KPI Getters =======================
-  double get kpiUT     => data.value?.quantitySummary.ut ?? 0.0;
-  int    get kpiInput  => data.value?.quantitySummary.input ?? 0;
-  int    get kpiPass   => data.value?.quantitySummary.pass ?? 0;
-  int    get kpiRePass => data.value?.quantitySummary.rePass ?? 0;
-  int    get kpiFail   => data.value?.quantitySummary.fail ?? 0;
-  double get kpiFpr    => data.value?.quantitySummary.fpr ?? 0.0;
-  double get kpiYr     => data.value?.quantitySummary.yr  ?? 0.0;
-  int    get kpiWip    => data.value?.quantitySummary.wip ?? 0;
+  double get kpiUT => data.value?.quantitySummary.ut ?? 0.0;
 
-  // ======================= PASS BY MODEL =======================
+  int get kpiInput => data.value?.quantitySummary.input ?? 0;
+
+  int get kpiPass => data.value?.quantitySummary.pass ?? 0;
+
+  int get kpiRePass => data.value?.quantitySummary.rePass ?? 0;
+
+  int get kpiFail => data.value?.quantitySummary.fail ?? 0;
+
+  double get kpiFpr => data.value?.quantitySummary.fpr ?? 0.0;
+
+  double get kpiYr => data.value?.quantitySummary.yr ?? 0.0;
+
+  int get kpiWip => data.value?.quantitySummary.wip ?? 0;
+
   List<ModelPass> get passByModelAgg {
     final agg = <String, _Agg>{};
     final racks = data.value?.rackDetails ?? const <RackDetail>[];
@@ -311,10 +363,10 @@ class GroupMonitorController extends GetxController {
         String slotSA = _extractSA(s.modelName);
 
         if (slotSA.isEmpty && rackSA.isNotEmpty) {
-          if (enableLogs) {
-            debugPrint('↪ NORMALIZE: ${r.rackName}/${s.slotNumber} '
-                'slotSA="" -> rackSA=$rackSA (total=${s.totalPass})');
-          }
+          vlog(
+            () =>
+                '↪ NORMALIZE: ${r.rackName}/${s.slotNumber} slotSA="" -> rackSA=$rackSA (total=${s.totalPass})',
+          );
           slotSA = rackSA;
         }
 
@@ -322,10 +374,10 @@ class GroupMonitorController extends GetxController {
             rackSA.isNotEmpty &&
             slotSA != rackSA &&
             _diffAtMostOneChar(slotSA, rackSA)) {
-          if (enableLogs) {
-            debugPrint('↪ NORMALIZE: ${r.rackName}/${s.slotNumber} '
-                'slotSA=$slotSA ~ rackSA=$rackSA -> use rackSA (total=${s.totalPass})');
-          }
+          vlog(
+            () =>
+                '↪ NORMALIZE: ${r.rackName}/${s.slotNumber} slotSA=$slotSA ~ rackSA=$rackSA -> use rackSA (total=${s.totalPass})',
+          );
           slotSA = rackSA;
         }
 
@@ -337,43 +389,51 @@ class GroupMonitorController extends GetxController {
       }
     }
 
-    final merged = _mergeNearCodes(agg, rackSAs, log: enableLogs);
+    final merged = _mergeNearCodes(agg, rackSAs, log: _verbose.value);
 
-    final list = merged.entries
-        .map((e) => ModelPass(e.key, e.value.pass, e.value.totalPass))
-        .toList()
-      ..sort((a, b) => b.pass.compareTo(a.pass));
+    final list =
+        merged.entries
+            .map((e) => ModelPass(e.key, e.value.pass, e.value.totalPass))
+            .toList()
+          ..sort((a, b) => b.pass.compareTo(a.pass));
     return list;
   }
 
-  // ======================= LOGGING =======================
   void _logSnapshot() {
+    if (!_verbose.value) return;
     final qs = data.value?.quantitySummary;
     if (qs == null) return;
 
-    debugPrint('===== SNAPSHOT =====');
-    debugPrint('Factory=${selFactory.value}  Floor=${selFloor.value}  Room=${selRoom.value}  '
-        'Group=${selGroup.value}  Model=${selModel.value}');
-    debugPrint('UT=${qs.ut.toStringAsFixed(2)}%  INPUT=${qs.input}  FAIL=${qs.fail}  '
-        'PASS=${qs.pass}  RE-PASS=${qs.rePass}  TOTAL_PASS=${qs.totalPass}');
+    vlog(() => '===== SNAPSHOT =====');
+    vlog(
+      () =>
+          'Factory=${selFactory.value}  Floor=${selFloor.value}  Room=${selRoom.value}  Group=${selGroup.value}  Model=${selModel.value}',
+    );
+    vlog(
+      () =>
+          'UT=${qs.ut.toStringAsFixed(2)}%  INPUT=${qs.input}  FAIL=${qs.fail}  PASS=${qs.pass}  RE-PASS=${qs.rePass}  TOTAL_PASS=${qs.totalPass}',
+    );
 
     for (final r in data.value?.rackDetails ?? const <RackDetail>[]) {
       for (final s in r.slotDetails) {
-        final sa = _extractSA(s.modelName.isNotEmpty ? s.modelName : r.modelName);
-        debugPrint('· SLOT ${r.rackName}/${s.slotNumber}  '
-            'SA=$sa  pass=${s.pass}  total=${s.totalPass}');
+        final sa = _extractSA(
+          s.modelName.isNotEmpty ? s.modelName : r.modelName,
+        );
+        vlog(
+          () =>
+              '· SLOT ${r.rackName}/${s.slotNumber}  SA=$sa  pass=${s.pass}  total=${s.totalPass}',
+        );
       }
     }
 
     final agg = passByModelAgg;
-    debugPrint('--- PASS BY MODEL (Output = totalPass, merged) ---');
+    vlog(() => '--- PASS BY MODEL (Output = totalPass, merged) ---');
     for (final it in agg) {
-      debugPrint('SA=${it.model}  Output=${it.pass}');
+      vlog(() => 'SA=${it.model}  Output=${it.pass}');
     }
-    debugPrint('====================\n');
+    vlog(() => '====================\n');
   }
 
-  // ======================= Utils =======================
   Map<String, int> get slotStatusCount {
     final m = <String, int>{};
     for (final s in data.value?.slotStatic ?? const <SlotStaticItem>[]) {

@@ -12,6 +12,8 @@ import '../../routes/screen_factory.dart';
 import '../../util/dashboard_labels.dart';
 import '../../widget/custom_app_bar.dart';
 import '../setting/controller/setting_controller.dart';
+import '../../screen/home/controller/ai_controller.dart';
+import '../../screen/home/widget/ai_chat/chatbot_fab.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -25,6 +27,12 @@ class _HomeTabState extends State<HomeTab> {
   final LoginController loginController = Get.find<LoginController>();
   final SettingController settingController = Get.find<SettingController>();
   final UpdateService _updateService = const UpdateService();
+
+  // ================== AI CHAT: KHAI BÁO CONTROLLER ==================
+  // NOTE: đây là state riêng cho chat-bubble ở HomeTab
+  final AiController _ai = AiController();
+
+  // ================================================================
 
   // Map để lưu PageController cho từng module
   final Map<int, PageController> _pageControllers = {};
@@ -85,6 +93,7 @@ class _HomeTabState extends State<HomeTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeCheckForUpdates();
     });
+    _ai.setContext({'factory': 'F16', 'floor': '3F'});
   }
 
   @override
@@ -104,7 +113,7 @@ class _HomeTabState extends State<HomeTab> {
         appBar: CustomAppBar(
           title: Text(text.welcome_factory),
           isDark: isDark,
-          accent: GlobalColors.accentByIsDark(isDark ),
+          accent: GlobalColors.accentByIsDark(isDark),
           titleAlign: TextAlign.left,
         ),
         body: Container(
@@ -292,10 +301,19 @@ class _HomeTabState extends State<HomeTab> {
                                                   BorderRadius.circular(12),
 
                                               onTap: () {
-                                                if (sub.subProjects.isNotEmpty) {
-                                                  Get.to(() => ProjectListPage(project: sub));
+                                                if (sub
+                                                    .subProjects
+                                                    .isNotEmpty) {
+                                                  Get.to(
+                                                    () => ProjectListPage(
+                                                      project: sub,
+                                                    ),
+                                                  );
                                                 } else {
-                                                  Get.to(() => buildProjectScreen(sub)); // KHÔNG GỌI ProjectDetailPage ở đây!
+                                                  Get.to(
+                                                    () =>
+                                                        buildProjectScreen(sub),
+                                                  ); // KHÔNG GỌI ProjectDetailPage ở đây!
                                                 }
                                               },
 
@@ -400,6 +418,19 @@ class _HomeTabState extends State<HomeTab> {
             },
           ),
         ),
+        // ================== AI CHAT: NÚT TRÒN NỔI (BUBBLE) ==================
+        // NOTE 1: Dùng ChatbotFab (mặc định là extended). Nếu bạn muốn NÚT TRÒN NHỎ:
+        //   - Xem bên dưới "PHIÊN BẢN MINI" (đã comment).
+        floatingActionButton: ChatbotFab(controller: _ai),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+
+        // --- PHIÊN BẢN MINI (nút tròn nhỏ) ---
+        // floatingActionButton: FloatingActionButton.small(
+        //   onPressed: () => AiChatSheet.show(context, _ai),
+        //   child: const Icon(Icons.smart_toy_outlined),
+        // ),
+        // floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        // ================================================================
       );
     });
   }

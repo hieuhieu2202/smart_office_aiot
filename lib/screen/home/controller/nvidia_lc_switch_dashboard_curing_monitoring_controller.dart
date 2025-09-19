@@ -4,27 +4,39 @@ import '../../../service/nvidia_lc_switch_dashboard_curing_monitoring_api.dart';
 
 class CuringMonitoringController extends GetxController {
   // ===== FILTER =====
-  final customer    = 'NVIDIA'.obs;
+  final customer = 'NVIDIA'.obs;
   final factoryName = 'F16'.obs;
-  final floor       = '3F'.obs;
-  final location    = 'ROOM1'.obs;
+  final floor = '3F'.obs;
+  final location = 'ROOM1'.obs;
   final modelSerial = 'SWITCH'.obs;
 
   // ===== RAW =====
   final rawJson = Rxn<Map<String, dynamic>>();
 
   // ===== STATES =====
-  final isLoading      = false.obs;
-  final errorMessage   = ''.obs;
-  final lastFetchIso   = ''.obs;
+  final isLoading = false.obs;
+  final errorMessage = ''.obs;
+  final lastFetchIso = ''.obs;
 
   Timer? _timer;
+
+  // ===== LOG GATE =====
+  bool _verbose = false; // Mặc định tắt log
+  /// Bật/tắt log từ bên ngoài (ví dụ trong initState/dispose của màn hình)
+  void enableVerbose(bool on) => _verbose = on;
+
+  void _log(String Function() builder) {
+    if (_verbose) {
+      print(builder());
+    }
+  }
 
   // ===== GETTERS (UI) =====
   Map<String, dynamic> get _data =>
       (rawJson.value?['Data'] as Map<String, dynamic>?) ?? {};
 
-  int get wip  => int.tryParse('${_data['Wip'] ?? 0}') ?? 0;
+  int get wip => int.tryParse('${_data['Wip'] ?? 0}') ?? 0;
+
   int get pass => int.tryParse('${_data['Pass'] ?? 0}') ?? 0;
 
   List<Map<String, dynamic>> get passDetails =>
@@ -33,9 +45,10 @@ class CuringMonitoringController extends GetxController {
   List<Map<String, dynamic>> get sensorDatas =>
       List<Map<String, dynamic>>.from(_data['SensorDatas'] ?? const []);
 
-
   List<Map<String, dynamic>> get rackDetails {
-    final list = List<Map<String, dynamic>>.from(_data['RackDetails'] ?? const []);
+    final list = List<Map<String, dynamic>>.from(
+      _data['RackDetails'] ?? const [],
+    );
 
     int _statusPriority(String s) {
       switch (s.toLowerCase()) {
@@ -86,47 +99,47 @@ class CuringMonitoringController extends GetxController {
       final pb = _statusPriority(sb);
       if (pa != pb) return pa.compareTo(pb); // finished < running < others
 
-      // Cùng nhóm
       final nameA = (a['Name'] ?? '').toString();
       final nameB = (b['Name'] ?? '').toString();
 
       if (sa.toLowerCase() == 'finished') {
-        // |Time| GIẢM dần
         final tA = _parseToSeconds((a['Time'] ?? '').toString());
         final tB = _parseToSeconds((b['Time'] ?? '').toString());
         final absA = tA == null ? -1 : tA.abs();
         final absB = tB == null ? -1 : tB.abs();
         if (absA != absB) return absB.compareTo(absA); // DESC by abs
 
-        final numA = (a['Number'] is num)
-            ? (a['Number'] as num).toInt()
-            : _extractNumberFromName(nameA);
-        final numB = (b['Number'] is num)
-            ? (b['Number'] as num).toInt()
-            : _extractNumberFromName(nameB);
+        final numA =
+            (a['Number'] is num)
+                ? (a['Number'] as num).toInt()
+                : _extractNumberFromName(nameA);
+        final numB =
+            (b['Number'] is num)
+                ? (b['Number'] as num).toInt()
+                : _extractNumberFromName(nameB);
         if (numA != numB) return numA.compareTo(numB);
 
         return _naturalNameCompare(nameA, nameB);
       }
 
       if (sa.toLowerCase() == 'running') {
-        // Percent GIẢM dần
         final pA = _toPercent(a['Percent']) ?? -1;
         final pB = _toPercent(b['Percent']) ?? -1;
         if (pA != pB) return pB.compareTo(pA); // DESC
 
-        final numA = (a['Number'] is num)
-            ? (a['Number'] as num).toInt()
-            : _extractNumberFromName(nameA);
-        final numB = (b['Number'] is num)
-            ? (b['Number'] as num).toInt()
-            : _extractNumberFromName(nameB);
+        final numA =
+            (a['Number'] is num)
+                ? (a['Number'] as num).toInt()
+                : _extractNumberFromName(nameA);
+        final numB =
+            (b['Number'] is num)
+                ? (b['Number'] as num).toInt()
+                : _extractNumberFromName(nameB);
         if (numA != numB) return numA.compareTo(numB);
 
         return _naturalNameCompare(nameA, nameB);
       }
 
-      // others
       return _naturalNameCompare(nameA, nameB);
     });
 
@@ -141,24 +154,33 @@ class CuringMonitoringController extends GetxController {
 
       final res = await CuringMonitoringApi.fetch(
         customer: customer.value,
-        factory:  factoryName.value,
-        floor:    floor.value,
+        factory: factoryName.value,
+        floor: floor.value,
         location: location.value,
         modelSerial: modelSerial.value,
       );
 
-      rawJson.value = res;                             // notify Obx
+      rawJson.value = res;
       lastFetchIso.value = DateTime.now().toIso8601String();
-      update();                                        // ✅ nếu có GetBuilder ở đâu đó
+      update();
 
       final data = res['Data'] ?? {};
-      final racks = List<Map<String, dynamic>>.from(data['RackDetails'] ?? const []);
-      final passDetails = List<Map<String, dynamic>>.from(data['PassDetails'] ?? const []);
-      print('✅ [${DateTime.now()}] Nhận dữ liệu: Wip=${data['Wip']} | Pass=${data['Pass']} '
-          '| rackCount=${racks.length} | passDetailCount=${passDetails.length}');
+      final racks = List<Map<String, dynamic>>.from(
+        data['RackDetails'] ?? const [],
+      );
+      final passDetails = List<Map<String, dynamic>>.from(
+        data['PassDetails'] ?? const [],
+      );
+
+      //  Log đã GATED
+      _log(
+        () =>
+            '✅ [${DateTime.now()}] Nhận dữ liệu: '
+            'Wip=${data['Wip']} | Pass=${data['Pass']} | rackCount=${racks.length} | passDetailCount=${passDetails.length}',
+      );
     } catch (e) {
       errorMessage.value = e.toString();
-      print('❌ Lỗi khi fetch API: $e');
+      _log(() => '❌ Lỗi khi fetch API: $e');
     } finally {
       if (showLoading) isLoading.value = false;
     }
@@ -166,20 +188,30 @@ class CuringMonitoringController extends GetxController {
 
   void refreshAll() => fetchData(showLoading: true);
 
-  @override
-  void onInit() {
-    super.onInit();
-    fetchData(showLoading: true);
+  // ===== AUTO REFRESH (Timer) =====
+  void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 10), (_) {
-      print(' Gọi fetchData() từ Timer lúc ${DateTime.now()}');
+      // _log(() => ' Gọi fetchData() từ Timer lúc ${DateTime.now()}'); // GATED
       fetchData(showLoading: false);
     });
   }
 
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchData(showLoading: true);
+    _startTimer();
+  }
+
   @override
   void onClose() {
-    _timer?.cancel();
+    _stopTimer();
     super.onClose();
   }
 }

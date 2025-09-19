@@ -2,6 +2,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'http_helper.dart';
 
+/// ===== LOG GATE cho service (tùy chọn bật/tắt từ controller/màn hình) =====
+class CuringApiLog {
+  static bool network = false; // bật/tắt log network
+  static void net(String Function() b) {
+    if (network) print(b());
+  }
+}
+
 class RackMonitorApi {
   RackMonitorApi._();
 
@@ -16,6 +24,7 @@ class RackMonitorApi {
   // -------------------------- Location APIs --------------------------
   static Future<List<String>> getModels() async {
     final uri = Uri.parse('$_base/Location/GetModels');
+    CuringApiLog.net(() => '[CuringApi] GET $uri');
     final res = await HttpHelper().get(
       uri,
       headers: _headers(),
@@ -28,6 +37,7 @@ class RackMonitorApi {
 
   static Future<List<String>> getGroups() async {
     final uri = Uri.parse('$_base/Location/GetGroups');
+    CuringApiLog.net(() => '[CuringApi] GET $uri');
     final res = await HttpHelper().get(
       uri,
       headers: _headers(),
@@ -40,6 +50,7 @@ class RackMonitorApi {
 
   static Future<List<String>> getFactories() async {
     final uri = Uri.parse('$_base/Location/GetFactories');
+    CuringApiLog.net(() => '[CuringApi] GET $uri');
     final res = await HttpHelper().get(
       uri,
       headers: _headers(),
@@ -52,6 +63,7 @@ class RackMonitorApi {
 
   static Future<List<String>> getFloors() async {
     final uri = Uri.parse('$_base/Location/GetFloors');
+    CuringApiLog.net(() => '[CuringApi] GET $uri');
     final res = await HttpHelper().get(
       uri,
       headers: _headers(),
@@ -64,6 +76,7 @@ class RackMonitorApi {
 
   static Future<List<String>> getRooms() async {
     final uri = Uri.parse('$_base/Location/GetRooms');
+    CuringApiLog.net(() => '[CuringApi] GET $uri');
     final res = await HttpHelper().get(
       uri,
       headers: _headers(),
@@ -76,6 +89,7 @@ class RackMonitorApi {
 
   static Future<List<LocationEntry>> getLocations() async {
     final uri = Uri.parse('$_base/Location/GetLocations');
+    CuringApiLog.net(() => '[CuringApi] GET $uri');
     final res = await HttpHelper().get(
       uri,
       headers: _headers(),
@@ -127,21 +141,12 @@ class RackMonitorApi {
     if ([models, groups, factories, floors, rooms].any((l) => l.isEmpty)) {
       try {
         final locs = await getLocations();
-        if (models.isEmpty) {
-          models = {for (final e in locs) e.model}.toList();
-        }
-        if (groups.isEmpty) {
-          groups = {for (final e in locs) e.group}.toList();
-        }
-        if (factories.isEmpty) {
+        if (models.isEmpty) models = {for (final e in locs) e.model}.toList();
+        if (groups.isEmpty) groups = {for (final e in locs) e.group}.toList();
+        if (factories.isEmpty)
           factories = {for (final e in locs) e.factory}.toList();
-        }
-        if (floors.isEmpty) {
-          floors = {for (final e in locs) e.floor}.toList();
-        }
-        if (rooms.isEmpty) {
-          rooms = {for (final e in locs) e.room}.toList();
-        }
+        if (floors.isEmpty) floors = {for (final e in locs) e.floor}.toList();
+        if (rooms.isEmpty) rooms = {for (final e in locs) e.room}.toList();
       } catch (_) {}
     }
 
@@ -163,6 +168,7 @@ class RackMonitorApi {
   // -------------------------- Quick ping --------------------------
   static Future<void> quickPing() async {
     final uri = Uri.parse('$_base/Location/GetModels');
+    CuringApiLog.net(() => '[CuringApi] quickPing $uri');
     await HttpHelper().get(
       uri,
       headers: _headers(),
@@ -175,6 +181,8 @@ class RackMonitorApi {
     Map<String, dynamic>? body,
   }) async {
     final uri = Uri.parse('$_base/Monitor/GetGroupDataMonitoring');
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body ?? {})}');
     final res = await HttpHelper().post(
       uri,
       headers: _headers(),
@@ -191,6 +199,8 @@ class RackMonitorApi {
     Map<String, dynamic>? body,
   }) async {
     final uri = Uri.parse('$_base/Monitor/GetGroupDataMonitoring1');
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body ?? {})}');
     final res = await HttpHelper().post(
       uri,
       headers: _headers(),
@@ -228,6 +238,16 @@ void _ensure200(http.Response res, String apiName) {
   if (res.statusCode != 200) {
     throw Exception('$apiName failed: ${res.statusCode} ${res.body}');
   }
+}
+
+// -------------------------- Safe body logger --------------------------
+String _safeBody(Map<String, dynamic> body) {
+  final Map<String, dynamic> copy = Map.from(body);
+  // Loại bỏ token hoặc chuỗi quá dài nếu có
+  copy.removeWhere(
+    (k, v) => k.toLowerCase().contains('token') || v.toString().length > 500,
+  );
+  return copy.toString();
 }
 
 // -------------------------- Models --------------------------

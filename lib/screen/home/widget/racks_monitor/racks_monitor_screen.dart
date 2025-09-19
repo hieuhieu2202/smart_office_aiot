@@ -33,22 +33,8 @@ class GroupMonitorScreen extends StatelessWidget {
           return Text(parts.isEmpty ? 'Rack Monitor' : parts.join('  ·  '));
         }),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () async {
-              await showModalBottomSheet(
-                isScrollControlled: true,
-                context: context,
-                backgroundColor:
-                    isDark ? const Color(0xFF071833) : Colors.white,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                builder: (_) => RackFilterSheet(controller: c),
-              );
-            },
-            tooltip: 'Filter',
-          ),
+          RackFilterPanel(controller: c),
+
           Obx(
             () => IconButton(
               icon: const Icon(Icons.refresh),
@@ -119,7 +105,7 @@ class GroupMonitorScreen extends StatelessWidget {
               );
             }
 
-            // ===== Mobile: 1 cột (SUMMARY + các panel + Grid)
+            // ===== Mobile: 1 cột
             return RefreshIndicator(
               onRefresh: c.refresh,
               child: CustomScrollView(
@@ -148,8 +134,6 @@ class GroupMonitorScreen extends StatelessWidget {
           },
         );
       }),
-
-
     );
   }
 }
