@@ -20,6 +20,7 @@ class NotificationAttachmentService {
   static final Map<String, NotificationAttachmentPayload> _payloadCache =
       <String, NotificationAttachmentPayload>{};
   static final Set<String> _emptyPayloadKeys = <String>{};
+  static const int _maxInlineBytes = 5 * 1024 * 1024; // 5MB
 
   static Future<void> openAttachment(NotificationMessage message) async {
     try {
@@ -121,6 +122,18 @@ class NotificationAttachmentService {
     if (uri != null) {
       final fileName = _remoteFileName(message, uri);
       final mimeType = message.fileContentType ?? _mimeFromExtension(fileName);
+      NotificationAttachmentPayload? inlinePreview;
+      if (_shouldPrefetchPreview(mimeType, fileName)) {
+        inlinePreview = await _downloadRemotePreview(
+          message,
+          uri,
+          fileName,
+          mimeType,
+        );
+      }
+      if (inlinePreview != null) {
+        return inlinePreview;
+      }
       return NotificationAttachmentPayload.remote(
         remoteUri: uri,
         fileName: fileName,
@@ -224,6 +237,84 @@ class NotificationAttachmentService {
     final file = File('${cacheDir.path}/$fileName');
     await file.writeAsBytes(bytes, flush: true);
     return file;
+  }
+
+  static bool _shouldPrefetchPreview(String? mimeType, String fileName) {
+    final lowerMime = mimeType?.toLowerCase();
+    if (lowerMime != null && lowerMime.startsWith('image/')) {
+      return true;
+    }
+    final dotIndex = fileName.lastIndexOf('.');
+    if (dotIndex == -1 || dotIndex == fileName.length - 1) {
+      return false;
+    }
+    const previewableExtensions = <String>{
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'bmp',
+      'webp',
+      'heic',
+      'heif',
+    };
+    final ext = fileName.substring(dotIndex + 1).toLowerCase();
+    return previewableExtensions.contains(ext);
+  }
+
+  static Future<NotificationAttachmentPayload?> _downloadRemotePreview(
+    NotificationMessage message,
+    Uri uri,
+    String fileName,
+    String? mimeType,
+  ) async {
+    HttpClient? client;
+    try {
+      client = HttpClient();
+      if (uri.scheme == 'https') {
+        client.badCertificateCallback = (cert, host, port) => host == uri.host;
+      }
+
+      final request = await client.getUrl(uri);
+      request.headers.set(HttpHeaders.acceptHeader, 'image/*');
+      request.headers.set(HttpHeaders.userAgentHeader, 'smart-office-aiot/1.0');
+      final response = await request.close().timeout(const Duration(seconds: 20));
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        debugPrint('Không tải được preview cho $uri (mã ${response.statusCode}).');
+        return null;
+      }
+
+      final contentLength = response.contentLength;
+      if (contentLength != -1 && contentLength > _maxInlineBytes) {
+        debugPrint('Bỏ qua preview vì kích thước quá lớn ($contentLength bytes).');
+        return null;
+      }
+
+      final bytes = await consolidateHttpClientResponseBytes(
+        response,
+        autoUncompress: true,
+      );
+      if (bytes.isEmpty || bytes.lengthInBytes > _maxInlineBytes) {
+        return null;
+      }
+
+      final resolvedMime =
+          mimeType ?? response.headers.contentType?.mimeType ?? _mimeFromExtension(fileName);
+      final file = await _writeToCache(message, fileName, bytes);
+      return NotificationAttachmentPayload.inline(
+        file: file,
+        bytes: bytes,
+        fileName: fileName,
+        mimeType: resolvedMime,
+        remoteUri: uri,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Không thể tải trước tệp đính kèm $uri: $error\n$stackTrace');
+      return null;
+    } finally {
+      client?.close(force: true);
+    }
   }
 
   static String _remoteFileName(NotificationMessage message, Uri uri) {

@@ -7,7 +7,8 @@ class NotificationAttachmentPayload {
     required this.bytes,
     required this.fileName,
     this.mimeType,
-  })  : remoteUri = null;
+    this.remoteUri,
+  });
 
   const NotificationAttachmentPayload.remote({
     required this.remoteUri,

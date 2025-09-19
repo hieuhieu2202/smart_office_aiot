@@ -37,6 +37,8 @@ class NotificationCard extends StatelessWidget {
 
     final String? timestamp = message.formattedTimestamp;
     final String bodyPreview = _buildSnippet(message.body);
+    final bool hasBody = bodyPreview.isNotEmpty;
+    final String fallbackBody = hasBody ? bodyPreview : 'Không có nội dung chi tiết.';
     final chips = <Widget>[];
 
     if (message.hasAttachment) {
@@ -62,6 +64,15 @@ class NotificationCard extends StatelessWidget {
         accent: accent,
         icon: Icons.apps_rounded,
         label: appName,
+      ));
+    }
+    final String? appKey = message.appKey?.trim();
+    if (appKey != null && appKey.isNotEmpty) {
+      chips.add(_buildMetaChip(
+        isDark: isDark,
+        accent: accent,
+        icon: Icons.vpn_key_rounded,
+        label: 'Key: $appKey',
       ));
     }
     final String? versionLabel = message.appVersion?.versionName?.trim();
@@ -147,19 +158,18 @@ class NotificationCard extends StatelessWidget {
                             ],
                           ],
                         ),
-                        if (bodyPreview.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            bodyPreview,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              height: 1.35,
-                              color: secondaryTextColor,
-                            ),
+                        const SizedBox(height: 8),
+                        Text(
+                          fallbackBody,
+                          maxLines: hasBody ? 4 : 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            height: 1.35,
+                            fontWeight: hasBody ? FontWeight.w500 : FontWeight.w400,
+                            color: secondaryTextColor,
                           ),
-                        ],
+                        ),
                         if (chips.isNotEmpty) ...[
                           const SizedBox(height: 12),
                           Wrap(
