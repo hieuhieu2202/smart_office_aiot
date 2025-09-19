@@ -18,12 +18,11 @@ class NotificationTab extends StatefulWidget {
   State<NotificationTab> createState() => _NotificationTabState();
 }
 
-enum _NotificationSwipeAction { toggleRead, delete }
-
 class _NotificationTabState extends State<NotificationTab> {
   late final SettingController settingController;
   late final NotificationController notificationController;
   late final ScrollController _scrollController;
+  String? _openSwipeKey;
 
   @override
   void initState() {
@@ -216,245 +215,43 @@ class _NotificationTabState extends State<NotificationTab> {
           final entry = items[index];
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Dismissible(
+            child: _SwipeableNotificationCard(
               key: ValueKey(entry.key),
-              direction: DismissDirection.endToStart,
-              movementDuration: const Duration(milliseconds: 220),
-              background: const SizedBox.shrink(),
-              secondaryBackground: _buildSwipeBackground(
-                isDark: isDark,
-                accent: accent,
-                entry: entry,
-              ),
-              confirmDismiss: (direction) async {
-                if (direction == DismissDirection.endToStart) {
-                  await _handleSwipeAction(
-                    context,
-                    entry,
-                    accent,
-                    isDark,
-                    index,
-                  );
-                }
-                return false;
+              entry: entry,
+              isDark: isDark,
+              accent: accent,
+              isOpen: _openSwipeKey == entry.key,
+              onOpenChanged: (isOpen) {
+                setState(() {
+                  if (isOpen) {
+                    _openSwipeKey = entry.key;
+                  } else if (_openSwipeKey == entry.key) {
+                    _openSwipeKey = null;
+                  }
+                });
               },
-              child: NotificationCard(
-                message: entry.message,
-                isDark: isDark,
-                accent: accent,
-                isUnread: !entry.isRead,
-                onTap: () => _openDetails(entry),
-              ),
+              onTap: () => _openDetails(entry),
+              onToggleRead: () {
+                setState(() {
+                  if (_openSwipeKey == entry.key) {
+                    _openSwipeKey = null;
+                  }
+                });
+                _performToggleReadState(context, entry, accent);
+              },
+              onDelete: () {
+                setState(() {
+                  if (_openSwipeKey == entry.key) {
+                    _openSwipeKey = null;
+                  }
+                });
+                _performDeleteNotification(context, entry, index, accent);
+              },
             ),
           );
         },
       ),
     );
-  }
-
-  Widget _buildSwipeBackground({
-    required bool isDark,
-    required Color accent,
-    required NotificationEntry entry,
-  }) {
-    final Color readColor = entry.isRead ? Colors.orangeAccent : accent;
-    final gradient = LinearGradient(
-      colors: [
-        readColor.withOpacity(isDark ? 0.24 : 0.16),
-        Colors.redAccent.withOpacity(isDark ? 0.28 : 0.18),
-      ],
-      begin: Alignment.centerRight,
-      end: Alignment.centerLeft,
-    );
-
-    return Container(
-      alignment: Alignment.centerRight,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildSwipePill(
-            icon: entry.isRead ? Icons.markunread : Icons.mark_email_read_outlined,
-            label: entry.isRead ? 'Chưa đọc' : 'Đã đọc',
-            color: readColor,
-          ),
-          const SizedBox(width: 12),
-          _buildSwipePill(
-            icon: Icons.delete_outline,
-            label: 'Xoá',
-            color: Colors.redAccent,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _handleSwipeAction(
-    BuildContext context,
-    NotificationEntry entry,
-    Color accent,
-    bool isDark,
-    int index,
-  ) async {
-    final action = await _showSwipeActionSheet(
-      context,
-      entry,
-      accent,
-      isDark,
-    );
-
-    switch (action) {
-      case _NotificationSwipeAction.toggleRead:
-        await _confirmToggleReadState(context, entry, accent, isDark);
-        break;
-      case _NotificationSwipeAction.delete:
-        await _confirmDeleteNotification(context, entry, index, accent, isDark);
-        break;
-      case null:
-        break;
-    }
-  }
-
-  Future<_NotificationSwipeAction?> _showSwipeActionSheet(
-    BuildContext context,
-    NotificationEntry entry,
-    Color accent,
-    bool isDark,
-  ) {
-    final Color background = isDark ? const Color(0xFF1C1F25) : Colors.white;
-    final Color dividerColor =
-        (isDark ? Colors.white : Colors.black).withOpacity(isDark ? 0.08 : 0.06);
-    final bool markUnread = entry.isRead;
-
-    return showModalBottomSheet<_NotificationSwipeAction>(
-      context: context,
-      backgroundColor: background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 42,
-                  height: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: dividerColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                ListTile(
-                  leading: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: accent.withOpacity(isDark ? 0.25 : 0.18),
-                    child: Icon(
-                      markUnread ? Icons.markunread : Icons.mark_email_read_outlined,
-                      color: accent,
-                    ),
-                  ),
-                  title: Text(
-                    markUnread ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? GlobalColors.darkPrimaryText
-                          : GlobalColors.lightPrimaryText,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Áp dụng cho "${entry.message.title}"',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isDark
-                          ? GlobalColors.darkSecondaryText
-                          : GlobalColors.lightSecondaryText,
-                    ),
-                  ),
-                  onTap: () => Navigator.of(context).pop(_NotificationSwipeAction.toggleRead),
-                ),
-                Divider(height: 1, color: dividerColor),
-                ListTile(
-                  leading: CircleAvatar(
-                    radius: 20,
-                    backgroundColor:
-                        Colors.redAccent.withOpacity(isDark ? 0.28 : 0.16),
-                    child: const Icon(
-                      Icons.delete_outline,
-                      color: Colors.white,
-                    ),
-                  ),
-                  title: Text(
-                    'Xoá thông báo',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? GlobalColors.darkPrimaryText
-                          : GlobalColors.lightPrimaryText,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Bỏ "${entry.message.title}" khỏi danh sách',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isDark
-                          ? GlobalColors.darkSecondaryText
-                          : GlobalColors.lightSecondaryText,
-                    ),
-                  ),
-                  onTap: () => Navigator.of(context).pop(_NotificationSwipeAction.delete),
-                ),
-                Divider(height: 1, color: dividerColor),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Huỷ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? GlobalColors.darkSecondaryText
-                          : GlobalColors.lightSecondaryText,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _confirmToggleReadState(
-    BuildContext context,
-    NotificationEntry entry,
-    Color accent,
-    bool isDark,
-  ) async {
-    final bool markUnread = entry.isRead;
-    final bool confirmed = await _showConfirmationDialog(
-      context,
-      title: markUnread ? 'Đánh dấu chưa đọc?' : 'Đánh dấu đã đọc?',
-      message:
-          'Bạn có chắc muốn ${markUnread ? 'đánh dấu lại là chưa đọc' : 'đánh dấu là đã đọc'} "${entry.message.title}"?',
-      confirmLabel: markUnread ? 'Chưa đọc' : 'Đã đọc',
-      accent: accent,
-      isDark: isDark,
-    );
-    if (!confirmed) return;
-
-    _performToggleReadState(context, entry, accent);
   }
 
   void _performToggleReadState(
@@ -490,26 +287,6 @@ class _NotificationTabState extends State<NotificationTab> {
     );
   }
 
-  Future<void> _confirmDeleteNotification(
-    BuildContext context,
-    NotificationEntry entry,
-    int index,
-    Color accent,
-    bool isDark,
-  ) async {
-    final bool confirmed = await _showConfirmationDialog(
-      context,
-      title: 'Xoá thông báo?',
-      message: 'Bạn có chắc muốn xoá "${entry.message.title}" khỏi danh sách?',
-      confirmLabel: 'Xoá',
-      accent: Colors.redAccent,
-      isDark: isDark,
-    );
-    if (!confirmed) return;
-
-    _performDeleteNotification(context, entry, index, accent);
-  }
-
   void _performDeleteNotification(
     BuildContext context,
     NotificationEntry entry,
@@ -530,93 +307,6 @@ class _NotificationTabState extends State<NotificationTab> {
             notificationController.restore(entry, index: index);
           },
         ),
-      ),
-    );
-  }
-
-  Future<bool> _showConfirmationDialog(
-    BuildContext context, {
-    required String title,
-    required String message,
-    required String confirmLabel,
-    required Color accent,
-    required bool isDark,
-  }) {
-    final Color background = isDark ? const Color(0xFF1C1F25) : Colors.white;
-    final Color titleColor =
-        isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText;
-    final Color messageColor =
-        isDark ? GlobalColors.darkSecondaryText : GlobalColors.lightSecondaryText;
-
-    return showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: background,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            title,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: titleColor,
-            ),
-          ),
-          content: Text(
-            message,
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-              color: messageColor,
-            ),
-          ),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Huỷ'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(confirmLabel.toUpperCase()),
-            ),
-          ],
-        );
-      },
-    ).then((value) => value ?? false);
-  }
-
-  Widget _buildSwipePill({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 18),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -752,5 +442,258 @@ class _NotificationTabState extends State<NotificationTab> {
         ),
       );
     });
+  }
+}
+
+class _SwipeableNotificationCard extends StatefulWidget {
+  const _SwipeableNotificationCard({
+    super.key,
+    required this.entry,
+    required this.isDark,
+    required this.accent,
+    required this.isOpen,
+    required this.onOpenChanged,
+    required this.onTap,
+    required this.onToggleRead,
+    required this.onDelete,
+  });
+
+  final NotificationEntry entry;
+  final bool isDark;
+  final Color accent;
+  final bool isOpen;
+  final ValueChanged<bool> onOpenChanged;
+  final VoidCallback onTap;
+  final VoidCallback onToggleRead;
+  final VoidCallback onDelete;
+
+  @override
+  State<_SwipeableNotificationCard> createState() =>
+      _SwipeableNotificationCardState();
+}
+
+class _SwipeableNotificationCardState extends State<_SwipeableNotificationCard>
+    with SingleTickerProviderStateMixin {
+  static const double _actionWidth = 168;
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+  double _dragExtent = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    if (widget.isOpen) {
+      _controller.value = 1;
+      _dragExtent = -_actionWidth;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _SwipeableNotificationCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.entry.key != oldWidget.entry.key) {
+      if (widget.isOpen) {
+        _controller.value = 1;
+        _dragExtent = -_actionWidth;
+      } else {
+        _controller.value = 0;
+        _dragExtent = 0;
+      }
+      return;
+    }
+    if (widget.isOpen && !oldWidget.isOpen) {
+      _open();
+    } else if (!widget.isOpen && oldWidget.isOpen) {
+      _close();
+    }
+  }
+
+  void _open() {
+    _controller.animateTo(1, curve: Curves.easeOut);
+    _dragExtent = -_actionWidth;
+  }
+
+  void _close() {
+    _controller.animateTo(0, curve: Curves.easeOut);
+    _dragExtent = 0;
+  }
+
+  void _handleDragStart(DragStartDetails details) {
+    _dragExtent = -_controller.value * _actionWidth;
+  }
+
+  void _handleDragUpdate(DragUpdateDetails details) {
+    _dragExtent += details.delta.dx;
+    final double progress = (-_dragExtent / _actionWidth).clamp(0.0, 1.0);
+    _controller.value = progress;
+  }
+
+  void _handleDragEnd(DragEndDetails details) {
+    final bool shouldOpen =
+        _controller.value > 0.4 || (details.primaryVelocity ?? 0) < -260;
+    if (shouldOpen) {
+      widget.onOpenChanged(true);
+      _open();
+    } else {
+      widget.onOpenChanged(false);
+      _close();
+    }
+  }
+
+  void _handleCardTap() {
+    if (_controller.value > 0.05) {
+      widget.onOpenChanged(false);
+      _close();
+    } else {
+      widget.onTap();
+    }
+  }
+
+  void _handleToggleRead() {
+    widget.onOpenChanged(false);
+    _close();
+    widget.onToggleRead();
+  }
+
+  void _handleDelete() {
+    widget.onOpenChanged(false);
+    _close();
+    widget.onDelete();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool markUnread = widget.entry.isRead;
+    final Color markColor = markUnread ? Colors.orangeAccent : widget.accent;
+    final Color deleteColor = Colors.redAccent;
+    final Color paneBackground = widget.isDark
+        ? const Color(0xFF1C1F25)
+        : const Color(0xFFF2F4F8);
+
+    return GestureDetector(
+      onHorizontalDragStart: _handleDragStart,
+      onHorizontalDragUpdate: _handleDragUpdate,
+      onHorizontalDragEnd: _handleDragEnd,
+      behavior: HitTestBehavior.translucent,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Container(
+                width: _actionWidth,
+                decoration: BoxDecoration(
+                  color: paneBackground,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: _SwipeActionButton(
+                        color: markColor,
+                        label: markUnread ? 'Chưa đọc' : 'Đã đọc',
+                        icon: markUnread
+                            ? Icons.markunread
+                            : Icons.mark_email_read_outlined,
+                        onTap: _handleToggleRead,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _SwipeActionButton(
+                        color: deleteColor,
+                        label: 'Xoá',
+                        icon: Icons.delete_outline,
+                        onTap: _handleDelete,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              final double offset = -_animation.value * _actionWidth;
+              return Transform.translate(
+                offset: Offset(offset, 0),
+                child: child,
+              );
+            },
+            child: NotificationCard(
+              message: widget.entry.message,
+              isDark: widget.isDark,
+              accent: widget.accent,
+              isUnread: !widget.entry.isRead,
+              onTap: _handleCardTap,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SwipeActionButton extends StatelessWidget {
+  const _SwipeActionButton({
+    required this.color,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final Color color;
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 22),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
