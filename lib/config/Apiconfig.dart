@@ -10,21 +10,18 @@ class ApiConfig {
   /// Đổi giá trị này nếu server dev/prod đặt ở đường dẫn khác.
   static const String _notificationContextPath = '/SendNoti';
 
-  static String get notificationBaseUrl {
-    final baseHost = isProduction
-        ? 'http://10.220.130.117:2222'
-        : 'http://192.168.0.197:5511';
+  static String get _notificationHost => isProduction
+      ? 'http://10.220.130.117:2222'
+      : 'http://192.168.0.197:5511';
 
+  static String get notificationBaseUrl {
     final context = _notificationContextPath.trim();
     if (context.isEmpty) {
-      return baseHost;
+      return _notificationHost;
     }
 
-    if (context.startsWith('/')) {
-      return '$baseHost$context';
-    }
-
-    return '$baseHost/$context';
+    final prefix = context.startsWith('/') ? context : '/$context';
+    return '$_notificationHost$prefix';
   }
 
   static const String notificationAppKey = 'smartfactoryapp';
@@ -45,12 +42,19 @@ class ApiConfig {
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
-    final base = notificationBaseUrl.endsWith('/')
-        ? notificationBaseUrl.substring(0, notificationBaseUrl.length - 1)
-        : notificationBaseUrl;
-    if (url.startsWith('/')) {
-      return '$base$url';
+
+    final context = _notificationContextPath.trim();
+    final sanitizedContext = context.isEmpty
+        ? ''
+        : (context.startsWith('/') ? context : '/$context');
+    final sanitizedPath = url.startsWith('/') ? url : '/$url';
+
+    if (sanitizedContext.isNotEmpty &&
+        (sanitizedPath == sanitizedContext ||
+            sanitizedPath.startsWith('$sanitizedContext/'))) {
+      return '$_notificationHost$sanitizedPath';
     }
-    return '$base/$url';
+
+    return '$_notificationHost$sanitizedContext$sanitizedPath';
   }
 }
