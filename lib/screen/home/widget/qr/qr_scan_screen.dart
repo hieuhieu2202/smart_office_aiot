@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-
-import 'package:smart_factory/screen/home/widget/qr/FixtureDetailScreen.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:smart_factory/config/ApiConfig.dart';
+import 'package:smart_factory/screen/home/widget/qr/FixtureDetailScreen.dart';
+import 'package:smart_factory/screen/home/widget/qr/ShieldingBoxDetailScreen.dart';
+
+import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
 
 class QRScanScreen extends StatefulWidget {
   const QRScanScreen({Key? key}) : super(key: key);
@@ -13,127 +16,345 @@ class QRScanScreen extends StatefulWidget {
   State<QRScanScreen> createState() => _QRScanScreenState();
 }
 
-class _QRScanScreenState extends State<QRScanScreen> {
-  final MobileScannerController controller = MobileScannerController();
+class _QRScanScreenState extends State<QRScanScreen>
+    with SingleTickerProviderStateMixin {
+  final MobileScannerController controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.normal,
+    detectionTimeoutMs: 700,
+    formats: const [BarcodeFormat.qrCode],
+  );
+
+  final navbarController = Get.find<NavbarController>();
+
   bool _isProcessing = false;
+  bool _showScanner = true;
+
+  late final AnimationController _scanAnim;
+  late final Animation<double> _scanTween;
+
+  @override
+  void initState() {
+    super.initState();
+    _scanAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _scanTween = CurvedAnimation(parent: _scanAnim, curve: Curves.linear);
+  }
+
+  @override
+  void dispose() {
+    _scanAnim.dispose();
+    controller.dispose();
+    super.dispose();
+  }
 
   void _showSnack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  ({String model, String station, String? mac})? _parseQr(String code) {
+    if (code.isEmpty) return null;
+    final raw = code.trim().replaceFirst(
+      RegExp(r'^\s*QR:\s*', caseSensitive: false),
+      '',
+    );
+
+    //  Query string: an toàn cho mọi ký tự đặc biệt ---
+    final lower = raw.toLowerCase();
+    final hasModelKey = lower.contains('model=');
+    final hasStationKey = lower.contains('station=');
+    if (hasModelKey && hasStationKey) {
+      final q = () {
+        final qmark = raw.indexOf('?');
+        if (qmark >= 0 && qmark < raw.length - 1)
+          return raw.substring(qmark + 1);
+        return raw;
+      }();
+
+      final Map<String, String> kv = {};
+      for (final seg in q.split(RegExp(r'[&;]'))) {
+        final idx = seg.indexOf('=');
+        if (idx <= 0) continue;
+        final key = seg.substring(0, idx).trim().toLowerCase();
+        final val = seg.substring(idx + 1);
+        String decoded;
+        try {
+          decoded = Uri.decodeComponent(val);
+        } catch (_) {
+          decoded = val;
+        }
+        kv[key] = decoded;
+      }
+
+      String? model = kv['model'] ?? kv['modelname'];
+      String? station = kv['station'] ?? kv['stationname'];
+      String? mac = kv['mac'] ?? kv['sheildingmac'] ?? kv['shieldingmac'];
+
+      if ((model ?? '').isNotEmpty && (station ?? '').isNotEmpty) {
+        return (
+          model: model!.trim(),
+          station: station!.trim(),
+          mac: (mac ?? '').trim().isEmpty ? null : mac!.trim(),
+        );
+      }
+    }
+
+    // Fallback: tách theo ký tự (giữ chuẩn cũ của Fixture) ---
+    const seps = ['#', '/', '_', '|'];
+    for (final d in seps) {
+      if (raw.contains(d)) {
+        final parts =
+            raw
+                .split(d)
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .toList();
+        if (parts.length >= 2) {
+          final model = parts[0];
+          final station = parts[1];
+          final mac = parts.length >= 3 ? parts[2] : null;
+          if (model.isNotEmpty && station.isNotEmpty) {
+            return (
+              model: model,
+              station: station,
+              mac: mac?.isNotEmpty == true ? mac : null,
+            );
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // ====== ROUTER: có mac -> SheildingBox; không có mac -> Fixture ======
   Future<void> _handleCode(String code) async {
     if (_isProcessing) return;
     _isProcessing = true;
 
     try {
-      debugPrint(">>> QR raw value: $code");
-
-      // Chấp nhận định dạng "Model#Station" hoặc "Model/Station"
-      final delimiter = code.contains('#')
-          ? '#'
-          : (code.contains('/') ? '/' : null);
-
-      if (delimiter == null) {
-        _showSnack("QR không hợp lệ: $code");
+      final parsed = _parseQr(code);
+      if (parsed == null) {
+        _showSnack("QR không hợp lệ.");
         return;
       }
 
-      final parts = code.split(delimiter);
-      if (parts.length < 2) {
-        _showSnack("QR không hợp lệ (thiếu model/station): $code");
-        return;
+      final model = parsed.model;
+      final station = parsed.station;
+      final mac = parsed.mac;
+
+      late final Uri url;
+      late final String target; // 'fixture' | 'shielding'
+
+      if (mac != null && mac.isNotEmpty) {
+        // SheildingBox (3 tham số)
+        url = Uri.parse(
+          '${ApiConfig.shieldingEndpoint}'
+          '?model=${Uri.encodeQueryComponent(model)}'
+          '&station=${Uri.encodeQueryComponent(station)}'
+          '&mac=${Uri.encodeQueryComponent(mac)}',
+        );
+        target = 'shielding';
+      } else {
+        // Fixture (2 tham số)
+        url = Uri.parse(
+          '${ApiConfig.fixtureEndpoint}'
+          '?model=${Uri.encodeQueryComponent(model)}'
+          '&station=${Uri.encodeQueryComponent(station)}',
+        );
+        target = 'fixture';
       }
 
-      final model = parts[0].trim();
-      final station = parts[1].trim();
-      debugPrint(">>> Model: $model, Station: $station");
-
-      final url = Uri.parse(
-        '${ApiConfig.fixtureEndpoint}?model=${Uri.encodeComponent(model)}&station=${Uri.encodeComponent(station)}',
-      );
-      debugPrint(">>> URL gọi API: $url");
-
-      final response = await http.get(url);
-      debugPrint(">>> Status: ${response.statusCode}");
-
+      final res = await http.get(url, headers: {'Accept': 'application/json'});
       if (!mounted) return;
 
-      if (response.statusCode == 200 && response.body.isNotEmpty) {
-        final decoded = jsonDecode(response.body);
-
-        if (decoded is Map &&
-            decoded['success'] == true &&
-            decoded['data'] != null) {
-          await controller.stop(); // tránh quét lặp khi điều hướng
-
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => FixtureDetailScreen(
-                model: model,
-                station: station,
-                data: decoded['data'],
-              ),
-            ),
-          );
-
-          if (mounted) await controller.start(); // quay lại tiếp tục quét
-        } else {
-          _showSnack("Không tìm thấy thông tin cho QR.");
-        }
-      } else if (response.statusCode == 204) {
-        _showSnack("Không có dữ liệu (204).");
-      } else {
-        _showSnack("Lỗi khi lấy dữ liệu từ server: ${response.statusCode}");
+      if (res.statusCode != 200 || res.body.isEmpty) {
+        _showSnack('Lỗi server: HTTP ${res.statusCode}');
+        return;
       }
+
+      final body = jsonDecode(res.body);
+      final success =
+          (body is Map) && (body['success'] == true || body['Success'] == true);
+      final data = (body is Map) ? (body['data'] ?? body['Data']) : null;
+
+      if (!success || data == null) {
+        _showSnack(
+          body is Map && body['message'] != null
+              ? body['message'].toString()
+              : 'Không tìm thấy dữ liệu.',
+        );
+        return;
+      }
+
+      setState(() => _showScanner = false);
+      await controller.stop();
+
+      if (target == 'fixture') {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => FixtureDetailScreen(
+                  model: model,
+                  station: station,
+                  data: Map<String, dynamic>.from(data),
+                ),
+          ),
+        );
+      } else {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => ShieldingBoxDetailScreen(
+                  data: Map<String, dynamic>.from(data),
+                ),
+          ),
+        );
+      }
+
+      if (!mounted) return;
+      setState(() => _showScanner = true);
+      await controller.start();
     } catch (e) {
-      _showSnack("Lỗi kết nối đến server: $e");
+      _showSnack("Lỗi kết nối: $e");
     } finally {
       _isProcessing = false;
     }
   }
 
   @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        navbarController.changTab(0);
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Quét QR"),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => navbarController.changTab(0),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.flash_on),
+              onPressed: () => controller.toggleTorch(),
+              tooltip: 'Bật/tắt đèn',
+            ),
+            IconButton(
+              icon: const Icon(Icons.cameraswitch),
+              onPressed: () => controller.switchCamera(),
+              tooltip: 'Đổi camera',
+            ),
+          ],
+        ),
+        body:
+            _showScanner
+                ? LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = constraints.biggest;
+                    final double boxSize = size.shortestSide * 0.68;
+                    final Rect scanRect = Rect.fromCenter(
+                      center: Offset(size.width / 2, size.height / 2),
+                      width: boxSize,
+                      height: boxSize,
+                    );
+
+                    return Stack(
+                      children: [
+                        MobileScanner(
+                          controller: controller,
+                          scanWindow: scanRect,
+                          onDetect: (capture) async {
+                            if (_isProcessing) return;
+
+                            for (final b in capture.barcodes) {
+                              final String? value = b.rawValue;
+                              if (value == null || value.isEmpty) continue;
+
+                              final parsed = _parseQr(value);
+                              if (parsed == null) continue;
+
+                              await controller.stop();
+                              await _handleCode(value);
+                              break;
+                            }
+                          },
+                        ),
+                        AnimatedBuilder(
+                          animation: _scanTween,
+                          builder: (context, _) {
+                            return IgnorePointer(
+                              child: CustomPaint(
+                                size: Size.infinite,
+                                painter: _ScanOverlayPainter(
+                                  rect: scanRect,
+                                  t: _scanTween.value,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                )
+                : const Center(child: Text("Đang tạm dừng camera...")),
+      ),
+    );
+  }
+}
+
+// ====== Overlay======
+class _ScanOverlayPainter extends CustomPainter {
+  final Rect rect;
+  final double t;
+
+  _ScanOverlayPainter({required this.rect, required this.t});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final overlay = Paint()..color = Colors.black.withOpacity(0.5);
+    final pathScreen =
+        Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final pathHole =
+        Path()
+          ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)));
+    final diff = Path.combine(PathOperation.difference, pathScreen, pathHole);
+    canvas.drawPath(diff, overlay);
+
+    // viền
+    final border =
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(16)),
+      border,
+    );
+
+    // vạch vàng chạy
+    final scanY = rect.top + rect.height * t;
+    final scanLine =
+        Paint()
+          ..color = Colors.amber
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3;
+    canvas.drawLine(
+      Offset(rect.left + 8, scanY),
+      Offset(rect.right - 8, scanY),
+      scanLine,
+    );
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Quét QR"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.flash_on),
-            onPressed: () => controller.toggleTorch(),
-            tooltip: 'Bật/tắt đèn',
-          ),
-          IconButton(
-            icon: const Icon(Icons.cameraswitch),
-            onPressed: () => controller.switchCamera(),
-            tooltip: 'Đổi camera',
-          ),
-        ],
-      ),
-      body: MobileScanner(
-        controller: controller,
-        // onDetect nhận BarcodeCapture
-        onDetect: (BarcodeCapture capture) async {
-          for (final b in capture.barcodes) {
-            final String? code = b.rawValue;
-            if (code != null && code.isNotEmpty) {
-              // tạm dừng để tránh quét nhiều lần
-              await controller.stop();
-              await _handleCode(code);
-              if (mounted) await controller.start();
-              break;
-            }
-          }
-        },
-      ),
-    );
+  bool shouldRepaint(covariant _ScanOverlayPainter old) {
+    return old.t != t || old.rect != rect;
   }
 }

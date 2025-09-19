@@ -7,10 +7,13 @@ import 'package:smart_factory/config/global_text_style.dart';
 import 'package:smart_factory/screen/home/controller/home_controller.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/screen/login/controller/login_controller.dart';
+import 'package:smart_factory/service/update_service.dart';
 import '../../routes/screen_factory.dart';
 import '../../util/dashboard_labels.dart';
 import '../../widget/custom_app_bar.dart';
 import '../setting/controller/setting_controller.dart';
+import '../../screen/home/controller/ai_controller.dart';
+import '../../screen/home/widget/ai_chat/chatbot_fab.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -23,10 +26,20 @@ class _HomeTabState extends State<HomeTab> {
   final HomeController homeController = Get.find<HomeController>();
   final LoginController loginController = Get.find<LoginController>();
   final SettingController settingController = Get.find<SettingController>();
+  final UpdateService _updateService = const UpdateService();
+
+  // ================== AI CHAT: KHAI BÁO CONTROLLER ==================
+  // NOTE: đây là state riêng cho chat-bubble ở HomeTab
+  final AiController _ai = AiController();
+
+  // ================================================================
 
   // Map để lưu PageController cho từng module
   final Map<int, PageController> _pageControllers = {};
   final Map<int, int> _currentPageIndexes = {};
+
+  bool _isCheckingUpdate = false;
+  bool _hasPromptedUpdate = false;
 
   // Helper: chia subProjects thành các "trang", mỗi trang tối đa 4 cái
   List<List<T>> chunk<T>(List<T> list, int size) {
@@ -37,6 +50,50 @@ class _HomeTabState extends State<HomeTab> {
       );
     }
     return chunks;
+  }
+
+  Future<void> _maybeCheckForUpdates() async {
+    if (!mounted || _hasPromptedUpdate || _isCheckingUpdate) {
+      return;
+    }
+
+    _isCheckingUpdate = true;
+    try {
+      var summary = settingController.versionSummary.value;
+      summary ??= await _updateService.fetchVersionSummary();
+      if (!mounted) return;
+
+      final result = await _updateService.checkAndPrompt(
+        context,
+        initialSummary: summary,
+      );
+
+      if (!mounted) return;
+
+      final effectiveSummary = result ?? summary;
+      if (effectiveSummary != null) {
+        settingController.applyVersionSummary(effectiveSummary);
+      }
+
+      _hasPromptedUpdate = true;
+    } on UpdateCheckException catch (error) {
+      debugPrint(
+        'Không thể kiểm tra cập nhật ở màn hình Home: ${error.message}',
+      );
+    } catch (error) {
+      debugPrint('Không thể kiểm tra cập nhật ở màn hình Home: $error');
+    } finally {
+      _isCheckingUpdate = false;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeCheckForUpdates();
+    });
+    _ai.setContext({'factory': 'F16', 'floor': '3F'});
   }
 
   @override
@@ -56,7 +113,7 @@ class _HomeTabState extends State<HomeTab> {
         appBar: CustomAppBar(
           title: Text(text.welcome_factory),
           isDark: isDark,
-          accent: GlobalColors.accentByIsDark(isDark ),
+          accent: GlobalColors.accentByIsDark(isDark),
           titleAlign: TextAlign.left,
         ),
         body: Container(
@@ -244,10 +301,19 @@ class _HomeTabState extends State<HomeTab> {
                                                   BorderRadius.circular(12),
 
                                               onTap: () {
-                                                if (sub.subProjects.isNotEmpty) {
-                                                  Get.to(() => ProjectListPage(project: sub));
+                                                if (sub
+                                                    .subProjects
+                                                    .isNotEmpty) {
+                                                  Get.to(
+                                                    () => ProjectListPage(
+                                                      project: sub,
+                                                    ),
+                                                  );
                                                 } else {
-                                                  Get.to(() => buildProjectScreen(sub)); // KHÔNG GỌI ProjectDetailPage ở đây!
+                                                  Get.to(
+                                                    () =>
+                                                        buildProjectScreen(sub),
+                                                  ); // KHÔNG GỌI ProjectDetailPage ở đây!
                                                 }
                                               },
 
@@ -352,6 +418,19 @@ class _HomeTabState extends State<HomeTab> {
             },
           ),
         ),
+        // ================== AI CHAT: NÚT TRÒN NỔI (BUBBLE) ==================
+        // NOTE 1: Dùng ChatbotFab (mặc định là extended). Nếu bạn muốn NÚT TRÒN NHỎ:
+        //   - Xem bên dưới "PHIÊN BẢN MINI" (đã comment).
+        floatingActionButton: ChatbotFab(controller: _ai),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+
+        // --- PHIÊN BẢN MINI (nút tròn nhỏ) ---
+        // floatingActionButton: FloatingActionButton.small(
+        //   onPressed: () => AiChatSheet.show(context, _ai),
+        //   child: const Icon(Icons.smart_toy_outlined),
+        // ),
+        // floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        // ================================================================
       );
     });
   }
