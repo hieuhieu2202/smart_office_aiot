@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../config/Apiconfig.dart';
 import '../../config/global_color.dart';
 import '../../model/notification_attachment_payload.dart';
 import '../../model/notification_entry.dart';
@@ -60,8 +59,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(isDark, accent, message, primaryText, secondaryText),
-            const SizedBox(height: 18),
-            _buildMetadataChips(isDark, accent, message),
             const SizedBox(height: 24),
             _buildBodyCard(isDark, message, primaryText),
             const SizedBox(height: 24),
@@ -132,101 +129,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildMetadataChips(
-    bool isDark,
-    Color accent,
-    NotificationMessage message,
-  ) {
-    final List<Widget> chips = [];
-    final String? appName = message.appName?.trim();
-    final String? appKey = () {
-      final String? raw = message.appKey?.trim();
-      if (raw != null && raw.isNotEmpty) {
-        return raw;
-      }
-      final String fallback = ApiConfig.notificationAppKey.trim();
-      return fallback.isNotEmpty ? fallback : null;
-    }();
-    final String? targetVersion = message.targetVersion?.trim();
-    final String? relatedVersion = message.appVersion?.versionName?.trim();
-
-    if (appName != null && appName.isNotEmpty) {
-      chips.add(_buildInfoChip(
-        isDark: isDark,
-        accent: accent,
-        icon: Icons.apps_rounded,
-        label: appName,
-      ));
-    }
-    if (appKey != null && appKey.isNotEmpty) {
-      chips.add(_buildInfoChip(
-        isDark: isDark,
-        accent: accent,
-        icon: Icons.vpn_key_rounded,
-        label: 'Key: $appKey',
-      ));
-    }
-    if (targetVersion != null && targetVersion.isNotEmpty) {
-      chips.add(_buildInfoChip(
-        isDark: isDark,
-        accent: accent,
-        icon: Icons.system_update_alt_rounded,
-        label: 'Yêu cầu: $targetVersion',
-      ));
-    }
-    if (relatedVersion != null && relatedVersion.isNotEmpty) {
-      chips.add(_buildInfoChip(
-        isDark: isDark,
-        accent: accent,
-        icon: Icons.new_releases_outlined,
-        label: 'Đính kèm: $relatedVersion',
-      ));
-    }
-
-    if (chips.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: chips,
-    );
-  }
-
-  Widget _buildInfoChip({
-    required bool isDark,
-    required Color accent,
-    required IconData icon,
-    required String label,
-  }) {
-    final Color background = accent.withOpacity(isDark ? 0.18 : 0.1);
-    final Color textColor =
-        isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: accent),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
