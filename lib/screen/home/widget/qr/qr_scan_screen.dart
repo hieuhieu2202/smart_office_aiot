@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_scanner/mobile_scanner.dart';
-
 import 'package:smart_factory/config/ApiConfig.dart';
 import 'package:smart_factory/screen/home/widget/qr/FixtureDetailScreen.dart';
 import 'package:smart_factory/screen/home/widget/qr/ShieldingBoxDetailScreen.dart';
@@ -57,9 +56,10 @@ class _QRScanScreenState extends State<QRScanScreen>
 
   ({String model, String station, String? mac})? _parseQr(String code) {
     if (code.isEmpty) return null;
-    final raw = code
-        .trim()
-        .replaceFirst(RegExp(r'^\s*QR:\s*', caseSensitive: false), '');
+    final raw = code.trim().replaceFirst(
+      RegExp(r'^\s*QR:\s*', caseSensitive: false),
+      '',
+    );
 
     //  Query string: an toàn cho mọi ký tự đặc biệt ---
     final lower = raw.toLowerCase();
@@ -68,7 +68,8 @@ class _QRScanScreenState extends State<QRScanScreen>
     if (hasModelKey && hasStationKey) {
       final q = () {
         final qmark = raw.indexOf('?');
-        if (qmark >= 0 && qmark < raw.length - 1) return raw.substring(qmark + 1);
+        if (qmark >= 0 && qmark < raw.length - 1)
+          return raw.substring(qmark + 1);
         return raw;
       }();
 
@@ -93,9 +94,9 @@ class _QRScanScreenState extends State<QRScanScreen>
 
       if ((model ?? '').isNotEmpty && (station ?? '').isNotEmpty) {
         return (
-        model: model!.trim(),
-        station: station!.trim(),
-        mac: (mac ?? '').trim().isEmpty ? null : mac!.trim(),
+          model: model!.trim(),
+          station: station!.trim(),
+          mac: (mac ?? '').trim().isEmpty ? null : mac!.trim(),
         );
       }
     }
@@ -104,20 +105,21 @@ class _QRScanScreenState extends State<QRScanScreen>
     const seps = ['#', '/', '_', '|'];
     for (final d in seps) {
       if (raw.contains(d)) {
-        final parts = raw
-            .split(d)
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        final parts =
+            raw
+                .split(d)
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .toList();
         if (parts.length >= 2) {
           final model = parts[0];
           final station = parts[1];
           final mac = parts.length >= 3 ? parts[2] : null;
           if (model.isNotEmpty && station.isNotEmpty) {
             return (
-            model: model,
-            station: station,
-            mac: mac?.isNotEmpty == true ? mac : null,
+              model: model,
+              station: station,
+              mac: mac?.isNotEmpty == true ? mac : null,
             );
           }
         }
@@ -150,17 +152,17 @@ class _QRScanScreenState extends State<QRScanScreen>
         // SheildingBox (3 tham số)
         url = Uri.parse(
           '${ApiConfig.shieldingEndpoint}'
-              '?model=${Uri.encodeQueryComponent(model)}'
-              '&station=${Uri.encodeQueryComponent(station)}'
-              '&mac=${Uri.encodeQueryComponent(mac)}',
+          '?model=${Uri.encodeQueryComponent(model)}'
+          '&station=${Uri.encodeQueryComponent(station)}'
+          '&mac=${Uri.encodeQueryComponent(mac)}',
         );
         target = 'shielding';
       } else {
         // Fixture (2 tham số)
         url = Uri.parse(
           '${ApiConfig.fixtureEndpoint}'
-              '?model=${Uri.encodeQueryComponent(model)}'
-              '&station=${Uri.encodeQueryComponent(station)}',
+          '?model=${Uri.encodeQueryComponent(model)}'
+          '&station=${Uri.encodeQueryComponent(station)}',
         );
         target = 'fixture';
       }
@@ -174,14 +176,16 @@ class _QRScanScreenState extends State<QRScanScreen>
       }
 
       final body = jsonDecode(res.body);
-      final success = (body is Map) &&
-          (body['success'] == true || body['Success'] == true);
+      final success =
+          (body is Map) && (body['success'] == true || body['Success'] == true);
       final data = (body is Map) ? (body['data'] ?? body['Data']) : null;
 
       if (!success || data == null) {
-        _showSnack(body is Map && body['message'] != null
-            ? body['message'].toString()
-            : 'Không tìm thấy dữ liệu.');
+        _showSnack(
+          body is Map && body['message'] != null
+              ? body['message'].toString()
+              : 'Không tìm thấy dữ liệu.',
+        );
         return;
       }
 
@@ -192,20 +196,22 @@ class _QRScanScreenState extends State<QRScanScreen>
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => FixtureDetailScreen(
-              model: model,
-              station: station,
-              data: Map<String, dynamic>.from(data),
-            ),
+            builder:
+                (_) => FixtureDetailScreen(
+                  model: model,
+                  station: station,
+                  data: Map<String, dynamic>.from(data),
+                ),
           ),
         );
       } else {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ShieldingBoxDetailScreen(
-              data: Map<String, dynamic>.from(data),
-            ),
+            builder:
+                (_) => ShieldingBoxDetailScreen(
+                  data: Map<String, dynamic>.from(data),
+                ),
           ),
         );
       }
@@ -247,63 +253,64 @@ class _QRScanScreenState extends State<QRScanScreen>
             ),
           ],
         ),
-        body: _showScanner
-            ? LayoutBuilder(
-          builder: (context, constraints) {
-            final size = constraints.biggest;
-            final double boxSize = size.shortestSide * 0.68;
-            final Rect scanRect = Rect.fromCenter(
-              center: Offset(size.width / 2, size.height / 2),
-              width: boxSize,
-              height: boxSize,
-            );
+        body:
+            _showScanner
+                ? LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = constraints.biggest;
+                    final double boxSize = size.shortestSide * 0.68;
+                    final Rect scanRect = Rect.fromCenter(
+                      center: Offset(size.width / 2, size.height / 2),
+                      width: boxSize,
+                      height: boxSize,
+                    );
 
-            return Stack(
-              children: [
-                MobileScanner(
-                  controller: controller,
-                  scanWindow: scanRect,
-                  onDetect: (capture) async {
-                    if (_isProcessing) return;
+                    return Stack(
+                      children: [
+                        MobileScanner(
+                          controller: controller,
+                          scanWindow: scanRect,
+                          onDetect: (capture) async {
+                            if (_isProcessing) return;
 
-                    for (final b in capture.barcodes) {
-                      final String? value = b.rawValue;
-                      if (value == null || value.isEmpty) continue;
+                            for (final b in capture.barcodes) {
+                              final String? value = b.rawValue;
+                              if (value == null || value.isEmpty) continue;
 
-                      final parsed = _parseQr(value);
-                      if (parsed == null) continue;
+                              final parsed = _parseQr(value);
+                              if (parsed == null) continue;
 
-                      await controller.stop();
-                      await _handleCode(value);
-                      break;
-                    }
-                  },
-                ),
-                AnimatedBuilder(
-                  animation: _scanTween,
-                  builder: (context, _) {
-                    return IgnorePointer(
-                      child: CustomPaint(
-                        size: Size.infinite,
-                        painter: _ScanOverlayPainter(
-                          rect: scanRect,
-                          t: _scanTween.value,
+                              await controller.stop();
+                              await _handleCode(value);
+                              break;
+                            }
+                          },
                         ),
-                      ),
+                        AnimatedBuilder(
+                          animation: _scanTween,
+                          builder: (context, _) {
+                            return IgnorePointer(
+                              child: CustomPaint(
+                                size: Size.infinite,
+                                painter: _ScanOverlayPainter(
+                                  rect: scanRect,
+                                  t: _scanTween.value,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     );
                   },
-                ),
-              ],
-            );
-          },
-        )
-            : const Center(child: Text("Đang tạm dừng camera...")),
+                )
+                : const Center(child: Text("Đang tạm dừng camera...")),
       ),
     );
   }
 }
 
-// ====== Overlay quét (giữ nguyên style cũ) ======
+// ====== Overlay======
 class _ScanOverlayPainter extends CustomPainter {
   final Rect rect;
   final double t;
@@ -314,28 +321,36 @@ class _ScanOverlayPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final overlay = Paint()..color = Colors.black.withOpacity(0.5);
     final pathScreen =
-    Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+        Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     final pathHole =
-    Path()..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)));
+        Path()
+          ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)));
     final diff = Path.combine(PathOperation.difference, pathScreen, pathHole);
     canvas.drawPath(diff, overlay);
 
     // viền
-    final border = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
+    final border =
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3;
     canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(16)), border);
+      RRect.fromRectAndRadius(rect, const Radius.circular(16)),
+      border,
+    );
 
     // vạch vàng chạy
     final scanY = rect.top + rect.height * t;
-    final scanLine = Paint()
-      ..color = Colors.amber
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
+    final scanLine =
+        Paint()
+          ..color = Colors.amber
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3;
     canvas.drawLine(
-        Offset(rect.left + 8, scanY), Offset(rect.right - 8, scanY), scanLine);
+      Offset(rect.left + 8, scanY),
+      Offset(rect.right - 8, scanY),
+      scanLine,
+    );
   }
 
   @override

@@ -7,13 +7,11 @@ class ShieldingBoxDetailScreen extends StatelessWidget {
 
   const ShieldingBoxDetailScreen({super.key, required this.data});
 
-  // Lấy giá trị string an toàn
   String _str(String key) {
     final v = data[key];
     return (v == null || v.toString().trim().isEmpty) ? '-' : v.toString();
   }
 
-  // Tiêu đề appbar: "Model - Station" (nếu có)
   String _title() {
     final m = _str('Model_Name');
     final s = _str('Station_Name');
@@ -27,9 +25,10 @@ class ShieldingBoxDetailScreen extends StatelessWidget {
   String _buildPdfUrl(String fileName) {
     final clean = fileName.trim();
     final isFull = clean.startsWith('http://') || clean.startsWith('https://');
-    final url = isFull
-        ? clean
-        : '${ApiConfig.shieldingFileBase}/${Uri.encodeComponent(clean)}';
+    final url =
+        isFull
+            ? clean
+            : '${ApiConfig.shieldingFileBase}/${Uri.encodeComponent(clean)}';
     debugPrint('[Shielding] PDF URL = $url');
     return url;
   }
@@ -45,9 +44,9 @@ class ShieldingBoxDetailScreen extends StatelessWidget {
   void _openLogFile(BuildContext context) {
     final file = _apiFileName();
     if (file.isEmpty || file == '-') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không có file để mở')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Không có file để mở')));
       return;
     }
     final url = _buildPdfUrl(file);
@@ -63,12 +62,17 @@ class ShieldingBoxDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_title(), style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(
+          _title(),
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 2,
           child: Column(
             children: [
@@ -78,7 +82,6 @@ class ShieldingBoxDetailScreen extends StatelessWidget {
               const Divider(height: 1),
               _buildRow("Station", _str("Station_Name"), theme),
               const Divider(height: 1),
-              // >>> Thêm dòng Mac Sheilding-Box
               _buildRow("Mac Sheilding-Box", _str("Mac"), theme),
               const Divider(height: 1),
               _buildRow("Ngày Calibration", _str("Calibration_Date"), theme),
@@ -160,13 +163,21 @@ class ShieldingBoxDetailScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: hasFile ? Colors.blue : theme.colorScheme.onSurface,
+                        color:
+                            hasFile ? Colors.blue : theme.colorScheme.onSurface,
                         decoration:
-                        hasFile ? TextDecoration.underline : TextDecoration.none,
+                            hasFile
+                                ? TextDecoration.underline
+                                : TextDecoration.none,
                       ),
                     ),
                   ),
-                  if (hasFile) const Icon(Icons.picture_as_pdf, size: 18, color: Colors.red),
+                  if (hasFile)
+                    const Icon(
+                      Icons.picture_as_pdf,
+                      size: 18,
+                      color: Colors.red,
+                    ),
                 ],
               ),
             ),

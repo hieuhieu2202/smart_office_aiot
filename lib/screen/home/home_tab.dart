@@ -11,6 +11,8 @@ import '../../routes/screen_factory.dart';
 import '../../util/dashboard_labels.dart';
 import '../../widget/custom_app_bar.dart';
 import '../setting/controller/setting_controller.dart';
+import '../../screen/home/controller/ai_controller.dart';
+import '../../screen/home/widget/ai_chat/chatbot_fab.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -23,6 +25,12 @@ class _HomeTabState extends State<HomeTab> {
   final HomeController homeController = Get.find<HomeController>();
   final LoginController loginController = Get.find<LoginController>();
   final SettingController settingController = Get.find<SettingController>();
+
+
+  // ================== AI CHAT: KHAI BÁO CONTROLLER ==================
+  // NOTE: đây là state riêng cho chat-bubble ở HomeTab
+  final AiController _ai = AiController();
+  // ================================================================
 
   // Map để lưu PageController cho từng module
   final Map<int, PageController> _pageControllers = {};
@@ -37,6 +45,23 @@ class _HomeTabState extends State<HomeTab> {
       );
     }
     return chunks;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // ================== AI CHAT: GHIM CONTEXT MẶC ĐỊNH ==================
+    // NOTE: theo yêu cầu của bạn: Curing Monitoring chỉ F16/3F/ROOM1 (ví dụ)
+    // Bạn có thể chỉnh tùy theo module đang ở màn hình Home
+    _ai.setContext({
+      'factory': 'F16',
+      'floor': '3F',
+      // 'group': 'J_TAG',        // nếu muốn mặc định cho Rack
+      // 'model': 'SA009400',     // nếu muốn mặc định cho Rack
+      // 'cduName': 'CDU#4',      // nếu muốn mặc định cho CDU detail
+      // 'ip': '10.122.206.25',   // nếu muốn tìm theo IP
+    });
+    // ================================================================
   }
 
   @override
@@ -352,6 +377,19 @@ class _HomeTabState extends State<HomeTab> {
             },
           ),
         ),
+        // ================== AI CHAT: NÚT TRÒN NỔI (BUBBLE) ==================
+        // NOTE 1: Dùng ChatbotFab (mặc định là extended). Nếu bạn muốn NÚT TRÒN NHỎ:
+        //   - Xem bên dưới "PHIÊN BẢN MINI" (đã comment).
+        floatingActionButton: ChatbotFab(controller: _ai),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+
+        // --- PHIÊN BẢN MINI (nút tròn nhỏ) ---
+        // floatingActionButton: FloatingActionButton.small(
+        //   onPressed: () => AiChatSheet.show(context, _ai),
+        //   child: const Icon(Icons.smart_toy_outlined),
+        // ),
+        // floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        // ================================================================
       );
     });
   }
