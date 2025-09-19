@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../config/Apiconfig.dart';
 import '../../config/global_color.dart';
 import '../../model/notification_message.dart';
 
@@ -66,7 +67,14 @@ class NotificationCard extends StatelessWidget {
         label: appName,
       ));
     }
-    final String? appKey = message.appKey?.trim();
+    final String? appKey = () {
+      final String? raw = message.appKey?.trim();
+      if (raw != null && raw.isNotEmpty) {
+        return raw;
+      }
+      final String fallback = ApiConfig.notificationAppKey.trim();
+      return fallback.isNotEmpty ? fallback : null;
+    }();
     if (appKey != null && appKey.isNotEmpty) {
       chips.add(_buildMetaChip(
         isDark: isDark,
