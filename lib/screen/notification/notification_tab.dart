@@ -18,6 +18,8 @@ class NotificationTab extends StatefulWidget {
   State<NotificationTab> createState() => _NotificationTabState();
 }
 
+enum _NotificationSwipeAction { toggleRead, delete }
+
 class _NotificationTabState extends State<NotificationTab> {
   late final SettingController settingController;
   late final NotificationController notificationController;
@@ -216,31 +218,25 @@ class _NotificationTabState extends State<NotificationTab> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Dismissible(
               key: ValueKey(entry.key),
-              direction: DismissDirection.horizontal,
+              direction: DismissDirection.endToStart,
               movementDuration: const Duration(milliseconds: 220),
-              background: _buildSwipeBackground(
-                isDark: isDark,
-                accent: accent,
-                entry: entry,
-                isLeading: true,
-              ),
+              background: const SizedBox.shrink(),
               secondaryBackground: _buildSwipeBackground(
                 isDark: isDark,
                 accent: accent,
                 entry: entry,
-                isLeading: false,
               ),
               confirmDismiss: (direction) async {
-                if (direction == DismissDirection.startToEnd) {
-                  _toggleReadState(context, entry, accent);
-                  return false;
-                }
-                return true;
-              },
-              onDismissed: (direction) {
                 if (direction == DismissDirection.endToStart) {
-                  _deleteNotification(context, entry, index, accent);
+                  await _handleSwipeAction(
+                    context,
+                    entry,
+                    accent,
+                    isDark,
+                    index,
+                  );
                 }
+                return false;
               },
               child: NotificationCard(
                 message: entry.message,
@@ -260,45 +256,208 @@ class _NotificationTabState extends State<NotificationTab> {
     required bool isDark,
     required Color accent,
     required NotificationEntry entry,
-    required bool isLeading,
   }) {
-    final bool markAction = isLeading;
-    final Color baseColor = markAction
-        ? (entry.isRead ? Colors.orangeAccent : accent)
-        : Colors.redAccent;
-    final IconData icon = markAction
-        ? (entry.isRead ? Icons.markunread : Icons.mark_email_read_outlined)
-        : Icons.delete_outline;
-    final String label = markAction
-        ? (entry.isRead ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc')
-        : 'Xoá';
-    final double opacity = isDark ? 0.35 : 0.22;
+    final Color readColor = entry.isRead ? Colors.orangeAccent : accent;
+    final gradient = LinearGradient(
+      colors: [
+        readColor.withOpacity(isDark ? 0.24 : 0.16),
+        Colors.redAccent.withOpacity(isDark ? 0.28 : 0.18),
+      ],
+      begin: Alignment.centerRight,
+      end: Alignment.centerLeft,
+    );
 
     return Container(
-      alignment: markAction ? Alignment.centerLeft : Alignment.centerRight,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: baseColor.withOpacity(opacity),
-        borderRadius: BorderRadius.circular(18),
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+          _buildSwipePill(
+            icon: entry.isRead ? Icons.markunread : Icons.mark_email_read_outlined,
+            label: entry.isRead ? 'Chưa đọc' : 'Đã đọc',
+            color: readColor,
+          ),
+          const SizedBox(width: 12),
+          _buildSwipePill(
+            icon: Icons.delete_outline,
+            label: 'Xoá',
+            color: Colors.redAccent,
           ),
         ],
       ),
     );
   }
 
-  void _toggleReadState(
+  Future<void> _handleSwipeAction(
+    BuildContext context,
+    NotificationEntry entry,
+    Color accent,
+    bool isDark,
+    int index,
+  ) async {
+    final action = await _showSwipeActionSheet(
+      context,
+      entry,
+      accent,
+      isDark,
+    );
+
+    switch (action) {
+      case _NotificationSwipeAction.toggleRead:
+        await _confirmToggleReadState(context, entry, accent, isDark);
+        break;
+      case _NotificationSwipeAction.delete:
+        await _confirmDeleteNotification(context, entry, index, accent, isDark);
+        break;
+      case null:
+        break;
+    }
+  }
+
+  Future<_NotificationSwipeAction?> _showSwipeActionSheet(
+    BuildContext context,
+    NotificationEntry entry,
+    Color accent,
+    bool isDark,
+  ) {
+    final Color background = isDark ? const Color(0xFF1C1F25) : Colors.white;
+    final Color dividerColor =
+        (isDark ? Colors.white : Colors.black).withOpacity(isDark ? 0.08 : 0.06);
+    final bool markUnread = entry.isRead;
+
+    return showModalBottomSheet<_NotificationSwipeAction>(
+      context: context,
+      backgroundColor: background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: dividerColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                ListTile(
+                  leading: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: accent.withOpacity(isDark ? 0.25 : 0.18),
+                    child: Icon(
+                      markUnread ? Icons.markunread : Icons.mark_email_read_outlined,
+                      color: accent,
+                    ),
+                  ),
+                  title: Text(
+                    markUnread ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? GlobalColors.darkPrimaryText
+                          : GlobalColors.lightPrimaryText,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Áp dụng cho "${entry.message.title}"',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDark
+                          ? GlobalColors.darkSecondaryText
+                          : GlobalColors.lightSecondaryText,
+                    ),
+                  ),
+                  onTap: () => Navigator.of(context).pop(_NotificationSwipeAction.toggleRead),
+                ),
+                Divider(height: 1, color: dividerColor),
+                ListTile(
+                  leading: CircleAvatar(
+                    radius: 20,
+                    backgroundColor:
+                        Colors.redAccent.withOpacity(isDark ? 0.28 : 0.16),
+                    child: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.white,
+                    ),
+                  ),
+                  title: Text(
+                    'Xoá thông báo',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? GlobalColors.darkPrimaryText
+                          : GlobalColors.lightPrimaryText,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Bỏ "${entry.message.title}" khỏi danh sách',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDark
+                          ? GlobalColors.darkSecondaryText
+                          : GlobalColors.lightSecondaryText,
+                    ),
+                  ),
+                  onTap: () => Navigator.of(context).pop(_NotificationSwipeAction.delete),
+                ),
+                Divider(height: 1, color: dividerColor),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'Huỷ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? GlobalColors.darkSecondaryText
+                          : GlobalColors.lightSecondaryText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmToggleReadState(
+    BuildContext context,
+    NotificationEntry entry,
+    Color accent,
+    bool isDark,
+  ) async {
+    final bool markUnread = entry.isRead;
+    final bool confirmed = await _showConfirmationDialog(
+      context,
+      title: markUnread ? 'Đánh dấu chưa đọc?' : 'Đánh dấu đã đọc?',
+      message:
+          'Bạn có chắc muốn ${markUnread ? 'đánh dấu lại là chưa đọc' : 'đánh dấu là đã đọc'} "${entry.message.title}"?',
+      confirmLabel: markUnread ? 'Chưa đọc' : 'Đã đọc',
+      accent: accent,
+      isDark: isDark,
+    );
+    if (!confirmed) return;
+
+    _performToggleReadState(context, entry, accent);
+  }
+
+  void _performToggleReadState(
     BuildContext context,
     NotificationEntry entry,
     Color accent,
@@ -331,7 +490,27 @@ class _NotificationTabState extends State<NotificationTab> {
     );
   }
 
-  void _deleteNotification(
+  Future<void> _confirmDeleteNotification(
+    BuildContext context,
+    NotificationEntry entry,
+    int index,
+    Color accent,
+    bool isDark,
+  ) async {
+    final bool confirmed = await _showConfirmationDialog(
+      context,
+      title: 'Xoá thông báo?',
+      message: 'Bạn có chắc muốn xoá "${entry.message.title}" khỏi danh sách?',
+      confirmLabel: 'Xoá',
+      accent: Colors.redAccent,
+      isDark: isDark,
+    );
+    if (!confirmed) return;
+
+    _performDeleteNotification(context, entry, index, accent);
+  }
+
+  void _performDeleteNotification(
     BuildContext context,
     NotificationEntry entry,
     int index,
@@ -351,6 +530,93 @@ class _NotificationTabState extends State<NotificationTab> {
             notificationController.restore(entry, index: index);
           },
         ),
+      ),
+    );
+  }
+
+  Future<bool> _showConfirmationDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required Color accent,
+    required bool isDark,
+  }) {
+    final Color background = isDark ? const Color(0xFF1C1F25) : Colors.white;
+    final Color titleColor =
+        isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText;
+    final Color messageColor =
+        isDark ? GlobalColors.darkSecondaryText : GlobalColors.lightSecondaryText;
+
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: background,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: titleColor,
+            ),
+          ),
+          content: Text(
+            message,
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              color: messageColor,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Huỷ'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(confirmLabel.toUpperCase()),
+            ),
+          ],
+        );
+      },
+    ).then((value) => value ?? false);
+  }
+
+  Widget _buildSwipePill({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 18),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
       ),
     );
   }

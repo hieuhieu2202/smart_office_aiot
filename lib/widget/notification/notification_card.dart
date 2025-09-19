@@ -37,9 +37,6 @@ class NotificationCard extends StatelessWidget {
         : Colors.transparent;
 
     final String? timestamp = message.formattedTimestamp;
-    final String bodyPreview = _buildSnippet(message.body);
-    final bool hasBody = bodyPreview.isNotEmpty;
-    final String fallbackBody = hasBody ? bodyPreview : 'Không có nội dung chi tiết.';
     final chips = <Widget>[];
 
     if (message.hasAttachment) {
@@ -96,7 +93,7 @@ class NotificationCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Stack(
           clipBehavior: Clip.none,
@@ -104,45 +101,64 @@ class NotificationCard extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: borderColor, width: isUnread ? 1.2 : 1),
                 boxShadow: isDark
                     ? []
                     : [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 10,
-                          offset: const Offset(0, 6),
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 14,
+                          offset: const Offset(0, 10),
                         ),
                       ],
               ),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-              child: Row(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 46,
-                    height: 46,
+                    height: 4,
                     decoration: BoxDecoration(
-                      color: accent.withOpacity(isDark ? 0.22 : 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.notifications_rounded,
-                      color: accent,
-                      size: 24,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      gradient: LinearGradient(
+                        colors: [
+                          accent.withOpacity(isDark ? 0.6 : 0.4),
+                          accent.withOpacity(isDark ? 0.15 : 0.05),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                accent.withOpacity(isDark ? 0.32 : 0.18),
+                                accent.withOpacity(isDark ? 0.18 : 0.08),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.notifications_rounded,
+                            color: accent,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
                                 message.title,
                                 style: TextStyle(
                                   fontSize: 16,
@@ -153,87 +169,77 @@ class NotificationCard extends StatelessWidget {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            if (timestamp != null) ...[
-                              const SizedBox(width: 12),
-                              Text(
-                                timestamp,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: secondaryTextColor,
+                              if (timestamp != null) ...[
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: accent.withOpacity(isDark ? 0.18 : 0.12),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    timestamp,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.1,
+                                      color: isDark
+                                          ? GlobalColors.darkPrimaryText
+                                          : GlobalColors.lightPrimaryText,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                              ],
+                              if (chips.isNotEmpty) ...[
+                                const SizedBox(height: 14),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: chips,
+                                ),
+                              ],
                             ],
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          fallbackBody,
-                          maxLines: hasBody ? 4 : 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            height: 1.35,
-                            fontWeight: hasBody ? FontWeight.w500 : FontWeight.w400,
-                            color: secondaryTextColor,
                           ),
                         ),
-                        if (chips.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: chips,
-                          ),
-                        ],
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 22,
+                          color: isDark ? Colors.white54 : Colors.black38,
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 22,
-                    color: isDark ? Colors.white54 : Colors.black38,
                   ),
                 ],
               ),
             ),
             if (isUnread)
               Positioned(
-                right: 18,
-                top: 16,
+                right: 20,
+                top: 12,
                 child: Container(
-                  width: 8,
-                  height: 8,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
                     color: accent,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
                         color: accent.withOpacity(0.35),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
+                ),
               ),
-            ),
           ],
         ),
       ),
     );
-  }
-
-  String _buildSnippet(String body) {
-    final normalized = body.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (normalized.isEmpty) {
-      return '';
-    }
-    const limit = 140;
-    if (normalized.length <= limit) {
-      return normalized;
-    }
-    return '${normalized.substring(0, limit - 1)}…';
   }
 
   Widget _buildMetaChip({
