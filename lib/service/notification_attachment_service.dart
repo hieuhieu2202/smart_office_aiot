@@ -17,9 +17,13 @@ import '../screen/notification/notification_attachment_viewer.dart';
 class NotificationAttachmentService {
   NotificationAttachmentService._();
 
+  static final Map<String, NotificationAttachmentPayload> _payloadCache =
+      <String, NotificationAttachmentPayload>{};
+  static final Set<String> _emptyPayloadKeys = <String>{};
+
   static Future<void> openAttachment(NotificationMessage message) async {
     try {
-      final payload = await _resolve(message);
+      final payload = await resolve(message);
       if (payload == null) {
         _showError(
           'Không có tệp đính kèm',
@@ -69,7 +73,33 @@ class NotificationAttachmentService {
     }
   }
 
-  static Future<NotificationAttachmentPayload?> _resolve(
+  static Future<NotificationAttachmentPayload?> resolve(
+    NotificationMessage message,
+  ) async {
+    final key = _cacheKey(message);
+    if (_payloadCache.containsKey(key)) {
+      return _payloadCache[key];
+    }
+    if (_emptyPayloadKeys.contains(key)) {
+      return null;
+    }
+
+    final payload = await _resolveInternal(message);
+    if (payload != null) {
+      _payloadCache[key] = payload;
+    } else {
+      _emptyPayloadKeys.add(key);
+    }
+    return payload;
+  }
+
+  static void clearCacheFor(NotificationMessage message) {
+    final key = _cacheKey(message);
+    _payloadCache.remove(key);
+    _emptyPayloadKeys.remove(key);
+  }
+
+  static Future<NotificationAttachmentPayload?> _resolveInternal(
     NotificationMessage message,
   ) async {
     final String? normalized = _normalizedBase64(message.fileBase64);
@@ -77,7 +107,7 @@ class NotificationAttachmentService {
       final bytes = base64Decode(normalized);
       final mimeType = _inferMimeType(message);
       final fileName = _buildFileName(message, mimeType);
-      final file = await _writeToCache(fileName, bytes);
+      final file = await _writeToCache(message, fileName, bytes);
       return NotificationAttachmentPayload.inline(
         file: file,
         bytes: bytes,
@@ -170,9 +200,24 @@ class NotificationAttachmentService {
     return replaced.replaceAll(RegExp(r'\s+'), '_');
   }
 
-  static Future<File> _writeToCache(String fileName, Uint8List bytes) async {
+  static Future<File> _writeToCache(
+    NotificationMessage message,
+    String fileName,
+    Uint8List bytes,
+  ) async {
     final directory = await getTemporaryDirectory();
-    final cacheDir = Directory('${directory.path}/notification_attachments');
+    final appKey = message.appKey?.trim().isNotEmpty == true
+        ? message.appKey!.trim()
+        : 'default';
+    final bucket = _slugify(
+      message.id?.trim().isNotEmpty == true
+          ? message.id!.trim()
+          : message.timestampUtc?.millisecondsSinceEpoch.toString() ??
+              DateTime.now().millisecondsSinceEpoch.toString(),
+    );
+    final cacheDir = Directory(
+      '${directory.path}/notification_attachments/$appKey/$bucket',
+    );
     if (!await cacheDir.exists()) {
       await cacheDir.create(recursive: true);
     }
@@ -266,6 +311,43 @@ class NotificationAttachmentService {
         return 'text/csv';
     }
     return null;
+  }
+
+  static String _cacheKey(NotificationMessage message) {
+    final buffer = StringBuffer();
+    buffer.write(message.appKey?.trim().isNotEmpty == true
+        ? message.appKey!.trim()
+        : 'default');
+    buffer.write('::');
+    if (message.id?.trim().isNotEmpty == true) {
+      buffer.write(message.id!.trim());
+    } else {
+      buffer.write(message.title);
+      buffer.write('::');
+      buffer.write(message.body.hashCode);
+    }
+    buffer.write('::');
+    buffer.write(
+      message.timestampUtc?.millisecondsSinceEpoch ??
+          DateTime.now().millisecondsSinceEpoch,
+    );
+    if (message.fileName?.trim().isNotEmpty == true) {
+      buffer.write('::');
+      buffer.write(message.fileName!.trim());
+    }
+    if (message.fileUrl?.trim().isNotEmpty == true) {
+      buffer.write('::');
+      buffer.write(message.fileUrl!.trim());
+    }
+    if (message.fileBase64?.isNotEmpty == true) {
+      buffer.write('::inline');
+    }
+    return buffer.toString();
+  }
+
+  static String _slugify(String value) {
+    final sanitized = value.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    return sanitized.replaceAll(RegExp(r'\s+'), '_');
   }
 
   static void _showError(String title, String message) {

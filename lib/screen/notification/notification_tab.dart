@@ -11,8 +11,6 @@ import '../setting/controller/setting_controller.dart';
 import 'controller/notification_controller.dart';
 import 'notification_detail_screen.dart';
 
-enum _NotificationSwipeAction { toggleReadState, delete }
-
 class NotificationTab extends StatefulWidget {
   const NotificationTab({super.key});
 
@@ -189,6 +187,7 @@ class _NotificationTabState extends State<NotificationTab> {
   }
 
   Widget _buildList(
+    BuildContext context,
     bool isDark,
     Color accent,
     List<NotificationEntry> items,
@@ -217,22 +216,31 @@ class _NotificationTabState extends State<NotificationTab> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Dismissible(
               key: ValueKey(entry.key),
-              direction: DismissDirection.endToStart,
+              direction: DismissDirection.horizontal,
               movementDuration: const Duration(milliseconds: 220),
-              dismissThresholds: const {
-                DismissDirection.endToStart: 0.4,
-              },
-              background: const SizedBox.shrink(),
-              secondaryBackground: _buildSwipeOptionsBackground(
-                isRead: entry.isRead,
-                accent: accent,
+              background: _buildSwipeBackground(
                 isDark: isDark,
+                accent: accent,
+                entry: entry,
+                isLeading: true,
+              ),
+              secondaryBackground: _buildSwipeBackground(
+                isDark: isDark,
+                accent: accent,
+                entry: entry,
+                isLeading: false,
               ),
               confirmDismiss: (direction) async {
-                if (direction == DismissDirection.endToStart) {
-                  await _handleSwipeAction(entry, accent);
+                if (direction == DismissDirection.startToEnd) {
+                  _toggleReadState(context, entry, accent);
+                  return false;
                 }
-                return false;
+                return true;
+              },
+              onDismissed: (direction) {
+                if (direction == DismissDirection.endToStart) {
+                  _deleteNotification(context, entry, index, accent);
+                }
               },
               child: NotificationCard(
                 message: entry.message,
@@ -248,63 +256,35 @@ class _NotificationTabState extends State<NotificationTab> {
     );
   }
 
-  Widget _buildSwipeOptionsBackground({
-    required bool isRead,
-    required Color accent,
+  Widget _buildSwipeBackground({
     required bool isDark,
+    required Color accent,
+    required NotificationEntry entry,
+    required bool isLeading,
   }) {
-    final markLabel = isRead ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc';
-    final markIcon = isRead ? Icons.markunread : Icons.mark_email_read_outlined;
-    final backgroundOpacity = isDark ? 0.22 : 0.12;
+    final bool markAction = isLeading;
+    final Color baseColor = markAction
+        ? (entry.isRead ? Colors.orangeAccent : accent)
+        : Colors.redAccent;
+    final IconData icon = markAction
+        ? (entry.isRead ? Icons.markunread : Icons.mark_email_read_outlined)
+        : Icons.delete_outline;
+    final String label = markAction
+        ? (entry.isRead ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc')
+        : 'Xoá';
+    final double opacity = isDark ? 0.35 : 0.22;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        color: accent.withOpacity(backgroundOpacity),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            _buildSwipeChip(
-              color: Colors.redAccent,
-              icon: Icons.delete_outline,
-              label: 'Xoá',
-            ),
-            const SizedBox(width: 12),
-            _buildSwipeChip(
-              color: accent,
-              icon: markIcon,
-              label: markLabel,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSwipeChip({
-    required Color color,
-    required IconData icon,
-    required String label,
-  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      alignment: markAction ? Alignment.centerLeft : Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: baseColor.withOpacity(opacity),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 18),
+          Icon(icon, color: Colors.white, size: 20),
           const SizedBox(width: 8),
           Text(
             label,
@@ -318,128 +298,61 @@ class _NotificationTabState extends State<NotificationTab> {
     );
   }
 
-  Future<void> _handleSwipeAction(
-    NotificationEntry entry,
-    Color accent,
-  ) async {
-    if (!mounted) return;
-    final selected = await _showActionPicker(entry, accent);
-    if (selected == null) return;
-    if (!mounted) return;
-
-    switch (selected) {
-      case _NotificationSwipeAction.toggleReadState:
-        final bool markUnread = entry.isRead;
-        final confirm = await _showConfirmDialog(
-          title: markUnread ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc',
-          message: markUnread
-              ? 'Bạn có chắc chắn muốn đánh dấu thông báo "${entry.message.title}" là chưa đọc?'
-              : 'Bạn có chắc chắn muốn đánh dấu thông báo "${entry.message.title}" là đã đọc?',
-          confirmLabel: 'Xác nhận',
-          confirmColor: accent,
-        );
-        if (confirm) {
-          if (markUnread) {
-            notificationController.markAsUnread(entry);
-          } else {
-            notificationController.markAsRead(entry);
-          }
-        }
-        break;
-      case _NotificationSwipeAction.delete:
-        final confirm = await _showConfirmDialog(
-          title: 'Xoá thông báo',
-          message:
-              'Bạn có chắc chắn muốn xoá thông báo "${entry.message.title}"? Hành động này không thể hoàn tác.',
-          confirmLabel: 'Xoá',
-          confirmColor: Colors.redAccent,
-        );
-        if (confirm) {
-          notificationController.remove(entry);
-        }
-        break;
-    }
-  }
-
-  Future<_NotificationSwipeAction?> _showActionPicker(
+  void _toggleReadState(
+    BuildContext context,
     NotificationEntry entry,
     Color accent,
   ) {
-    final bool isCurrentlyRead = entry.isRead;
-    final String toggleLabel =
-        isCurrentlyRead ? 'Đánh dấu là chưa đọc' : 'Đánh dấu là đã đọc';
-    final IconData toggleIcon =
-        isCurrentlyRead ? Icons.markunread : Icons.mark_email_read_outlined;
-
-    return showDialog<_NotificationSwipeAction>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Chọn thao tác'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(toggleIcon, color: accent),
-                title: Text(toggleLabel),
-                onTap: () => Navigator.of(dialogContext)
-                    .pop(_NotificationSwipeAction.toggleReadState),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.delete_outline,
-                    color: Colors.redAccent),
-                title: const Text('Xoá thông báo'),
-                onTap: () => Navigator.of(dialogContext)
-                    .pop(_NotificationSwipeAction.delete),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Huỷ'),
-            ),
-          ],
-        );
-      },
+    final bool markUnread = entry.isRead;
+    final updated = markUnread
+        ? notificationController.markAsUnread(entry)
+        : notificationController.markAsRead(entry);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          markUnread
+              ? 'Đã đánh dấu "${entry.message.title}" là chưa đọc'
+              : 'Đã đánh dấu "${entry.message.title}" là đã đọc',
+        ),
+        action: SnackBarAction(
+          label: 'HOÀN TÁC',
+          textColor: accent,
+          onPressed: () {
+            if (markUnread) {
+              notificationController.markAsRead(updated ?? entry);
+            } else {
+              notificationController.markAsUnread(updated ?? entry);
+            }
+          },
+        ),
+      ),
     );
   }
 
-  Future<bool> _showConfirmDialog({
-    required String title,
-    required String message,
-    required String confirmLabel,
-    required Color confirmColor,
-  }) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(
-            message,
-            style: const TextStyle(height: 1.3),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Huỷ'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: confirmColor,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(confirmLabel),
-            ),
-          ],
-        );
-      },
+  void _deleteNotification(
+    BuildContext context,
+    NotificationEntry entry,
+    int index,
+    Color accent,
+  ) {
+    final messenger = ScaffoldMessenger.of(context);
+    final removed = notificationController.remove(entry);
+    if (!removed) return;
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Đã xoá "${entry.message.title}"'),
+        action: SnackBarAction(
+          label: 'HOÀN TÁC',
+          textColor: accent,
+          onPressed: () {
+            notificationController.restore(entry, index: index);
+          },
+        ),
+      ),
     );
-
-    return result ?? false;
   }
 
   Widget _buildIncomingBanner(
@@ -539,6 +452,7 @@ class _NotificationTabState extends State<NotificationTab> {
             _buildEmptyState(context, isDark, errorMessage, accent);
       } else {
         bodyContent = _buildList(
+          context,
           isDark,
           accent,
           notifications,

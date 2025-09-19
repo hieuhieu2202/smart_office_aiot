@@ -103,7 +103,22 @@ class NotificationController extends GetxController {
     notifications.removeAt(index);
     _rememberDismissedKey(entry.key);
     _recalculateUnread();
+    _log('Loại bỏ thông báo ${entry.key} khỏi danh sách (index=$index)');
     return true;
+  }
+
+  void restore(NotificationEntry entry, {int? index}) {
+    _forgetDismissedKey(entry.key);
+    notifications.removeWhere((item) => item.key == entry.key);
+    if (index != null && index >= 0 && index <= notifications.length) {
+      notifications.insert(index, entry);
+    } else {
+      notifications.add(entry);
+    }
+    notifications.sort(_sortByTimestampDesc);
+    notifications.refresh();
+    _recalculateUnread();
+    _log('Khôi phục thông báo ${entry.key} vào danh sách (index=$index)');
   }
 
   Future<void> _load({
@@ -548,6 +563,13 @@ class NotificationController extends GetxController {
   void _rememberDismissedKey(String key) {
     if (_dismissedKeys.add(key)) {
       _log('Ghi nhớ thông báo đã xoá: $key');
+      _persistDismissedKeys();
+    }
+  }
+
+  void _forgetDismissedKey(String key) {
+    if (_dismissedKeys.remove(key)) {
+      _log('Huỷ bỏ ghi nhớ thông báo đã xoá: $key');
       _persistDismissedKeys();
     }
   }

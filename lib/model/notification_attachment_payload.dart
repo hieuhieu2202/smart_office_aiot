@@ -25,6 +25,8 @@ class NotificationAttachmentPayload {
   bool get isInline => file != null && bytes != null;
   bool get isRemote => remoteUri != null;
 
+  bool get hasInlineImage => isInline && isImage;
+
   bool get isImage {
     final lowerMime = mimeType?.toLowerCase();
     if (lowerMime != null && lowerMime.startsWith('image/')) {
