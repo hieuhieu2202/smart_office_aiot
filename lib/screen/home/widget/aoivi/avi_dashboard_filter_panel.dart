@@ -876,76 +876,123 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Obx(() {
-                                        final groups =
-                                            dashboardController.groupNames.toList();
-                                        return _buildSelectionField(
-                                          label: 'Group',
-                                          placeholder: 'Chọn group',
-                                          value: _group,
-                                          options: groups,
-                                          isDark: isDark,
-                                          isLoading: dashboardController
-                                              .isGroupLoading.value,
-                                          fieldKey: _groupFieldKey,
-                                          fieldLink: _groupLink,
-                                          fieldId: 'group',
-                                          onSelected: (val) {
-                                            if (val != _group) {
-                                              _onGroupChanged(val);
-                                            }
-                                          },
-                                        );
-                                      }),
-                                      const SizedBox(height: 18),
-                                      Obx(() {
-                                        final machines =
-                                            dashboardController.machineNames
-                                                .toList();
-                                        return _buildSelectionField(
-                                          label: 'Machine',
-                                          placeholder: 'Chọn machine',
-                                          value: _machine,
-                                          options: machines,
-                                          isDark: isDark,
-                                          isLoading: dashboardController
-                                              .isMachineLoading.value,
-                                          fieldKey: _machineFieldKey,
-                                          fieldLink: _machineLink,
-                                          fieldId: 'machine',
-                                          onSelected: (val) {
-                                            if (val != _machine) {
-                                              _onMachineChanged(val);
-                                            }
-                                          },
-                                        );
-                                      }),
-                                      const SizedBox(height: 18),
-                                      Obx(() {
-                                        final models =
-                                            dashboardController.modelNames.toList();
-                                        return _buildSelectionField(
-                                          label: 'Model',
-                                          placeholder: 'Chọn model',
-                                          value: _model,
-                                          options: models,
-                                          isDark: isDark,
-                                          isLoading: dashboardController
-                                              .isModelLoading.value,
-                                          fieldKey: _modelFieldKey,
-                                          fieldLink: _modelLink,
-                                          fieldId: 'model',
-                                          onSelected: (val) {
-                                            if (val != _model) {
-                                              setState(() {
-                                                _model = val;
-                                              });
-                                            }
-                                          },
-                                        );
-                                      }),
-                                      const SizedBox(height: 20),
-                                      _buildDateRangeField(isDark),
+                                      LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final bool stackVertically =
+                                              constraints.maxWidth < 320;
+
+                                          Widget buildGroupField() {
+                                            return Obx(() {
+                                              final groups = dashboardController
+                                                  .groupNames
+                                                  .toList();
+                                              return _buildSelectionField(
+                                                label: 'Group',
+                                                placeholder: 'Chọn group',
+                                                value: _group,
+                                                options: groups,
+                                                isDark: isDark,
+                                                isLoading: dashboardController
+                                                    .isGroupLoading.value,
+                                                fieldKey: _groupFieldKey,
+                                                fieldLink: _groupLink,
+                                                fieldId: 'group',
+                                                onSelected: (val) {
+                                                  if (val != _group) {
+                                                    _onGroupChanged(val);
+                                                  }
+                                                },
+                                              );
+                                            });
+                                          }
+
+                                          Widget buildMachineField() {
+                                            return Obx(() {
+                                              final machines = dashboardController
+                                                  .machineNames
+                                                  .toList();
+                                              return _buildSelectionField(
+                                                label: 'Machine',
+                                                placeholder: 'Chọn machine',
+                                                value: _machine,
+                                                options: machines,
+                                                isDark: isDark,
+                                                isLoading: dashboardController
+                                                    .isMachineLoading.value,
+                                                fieldKey: _machineFieldKey,
+                                                fieldLink: _machineLink,
+                                                fieldId: 'machine',
+                                                onSelected: (val) {
+                                                  if (val != _machine) {
+                                                    _onMachineChanged(val);
+                                                  }
+                                                },
+                                              );
+                                            });
+                                          }
+
+                                          Widget buildModelField() {
+                                            return Obx(() {
+                                              final models = dashboardController
+                                                  .modelNames
+                                                  .toList();
+                                              return _buildSelectionField(
+                                                label: 'Model',
+                                                placeholder: 'Chọn model',
+                                                value: _model,
+                                                options: models,
+                                                isDark: isDark,
+                                                isLoading: dashboardController
+                                                    .isModelLoading.value,
+                                                fieldKey: _modelFieldKey,
+                                                fieldLink: _modelLink,
+                                                fieldId: 'model',
+                                                onSelected: (val) {
+                                                  if (val != _model) {
+                                                    setState(() {
+                                                      _model = val;
+                                                    });
+                                                  }
+                                                },
+                                              );
+                                            });
+                                          }
+
+                                          return Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              if (stackVertically) ...[
+                                                buildGroupField(),
+                                                const SizedBox(height: 18),
+                                                buildMachineField(),
+                                                const SizedBox(height: 18),
+                                                buildModelField(),
+                                              ] else ...[
+                                                Row(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Expanded(
+                                                      child: buildGroupField(),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: buildMachineField(),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: buildModelField(),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                              const SizedBox(height: 20),
+                                              _buildDateRangeField(isDark),
+                                            ],
+                                          );
+                                        },
+                                      ),
                                     ],
                                   ),
                                 ),

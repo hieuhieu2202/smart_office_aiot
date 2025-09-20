@@ -138,39 +138,118 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
     );
   }
 
-  Widget _buildFilterSummaryRow(BuildContext context, double maxWidth) {
-    return Obx(
-          () => Wrap(
-            spacing: 10,
-            runSpacing: 10,
+  Widget _buildFilterSummaryRow(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double availableWidth = constraints.maxWidth;
+        final double width = availableWidth.isFinite
+            ? availableWidth
+            : MediaQuery.of(context).size.width;
+        const double spacing = 12;
+        final bool stackVertically = width < 320;
+        final double pillWidth = stackVertically
+            ? width
+            : (width - (2 * spacing)) / 3;
+
+        return Obx(() {
+          Widget buildPill({
+            required IconData icon,
+            required String label,
+            required String value,
+            required bool isDefault,
+          }) {
+            return _buildFilterSummaryPill(
+              context,
+              icon: icon,
+              label: label,
+              value: value,
+              maxWidth: pillWidth,
+              isDefault: isDefault,
+            );
+          }
+
+          if (stackVertically) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                buildPill(
+                  icon: Icons.account_tree_outlined,
+                  label: 'Group',
+                  value: controller.selectedGroup.value,
+                  isDefault: _matchesDefault(
+                    controller.selectedGroup.value,
+                    controller.defaultGroup,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                buildPill(
+                  icon: Icons.precision_manufacturing,
+                  label: 'Machine',
+                  value: controller.selectedMachine.value,
+                  isDefault: _matchesDefault(
+                    controller.selectedMachine.value,
+                    controller.defaultMachine,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                buildPill(
+                  icon: Icons.view_in_ar,
+                  label: 'Model',
+                  value: controller.selectedModel.value,
+                  isDefault: _matchesDefault(
+                    controller.selectedModel.value,
+                    controller.defaultModel,
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildFilterSummaryPill(
-                context,
-                icon: Icons.account_tree_outlined,
-                label: 'Group',
-                value: controller.selectedGroup.value,
-                maxWidth: maxWidth,
-                isDefault: _matchesDefault(controller.selectedGroup.value, controller.defaultGroup),
+              SizedBox(
+                width: pillWidth,
+                child: buildPill(
+                  icon: Icons.account_tree_outlined,
+                  label: 'Group',
+                  value: controller.selectedGroup.value,
+                  isDefault: _matchesDefault(
+                    controller.selectedGroup.value,
+                    controller.defaultGroup,
+                  ),
+                ),
               ),
-              _buildFilterSummaryPill(
-                context,
-                icon: Icons.precision_manufacturing,
-                label: 'Machine',
-                value: controller.selectedMachine.value,
-                maxWidth: maxWidth,
-                isDefault:
-                    _matchesDefault(controller.selectedMachine.value, controller.defaultMachine),
+              SizedBox(width: spacing),
+              SizedBox(
+                width: pillWidth,
+                child: buildPill(
+                  icon: Icons.precision_manufacturing,
+                  label: 'Machine',
+                  value: controller.selectedMachine.value,
+                  isDefault: _matchesDefault(
+                    controller.selectedMachine.value,
+                    controller.defaultMachine,
+                  ),
+                ),
               ),
-              _buildFilterSummaryPill(
-                context,
-                icon: Icons.view_in_ar,
-                label: 'Model',
-                value: controller.selectedModel.value,
-            maxWidth: maxWidth,
-            isDefault: _matchesDefault(controller.selectedModel.value, controller.defaultModel),
-          ),
-        ],
-      ),
+              SizedBox(width: spacing),
+              SizedBox(
+                width: pillWidth,
+                child: buildPill(
+                  icon: Icons.view_in_ar,
+                  label: 'Model',
+                  value: controller.selectedModel.value,
+                  isDefault: _matchesDefault(
+                    controller.selectedModel.value,
+                    controller.defaultModel,
+                  ),
+                ),
+              ),
+            ],
+          );
+        });
+      },
     );
   }
 
@@ -280,14 +359,9 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
     final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
     final topPadding = mediaQuery.padding.top;
-    final availableWidth = mediaQuery.size.width;
-    final double maxWidth = availableWidth > 0
-        ? (availableWidth - 160).clamp(140.0, availableWidth).toDouble()
-        : 140.0;
-
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, 20),
+      padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, 16),
       decoration: BoxDecoration(
         gradient: headerGradient,
         boxShadow: [
@@ -408,9 +482,9 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
               _buildRefreshButton(),
             ],
           ),
-          const SizedBox(height: 18),
-          _buildFilterSummaryRow(context, maxWidth),
           const SizedBox(height: 14),
+          _buildFilterSummaryRow(context),
+          const SizedBox(height: 12),
           _buildLastUpdatedRow(),
         ],
       ),
