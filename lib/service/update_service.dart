@@ -38,45 +38,45 @@ class UpdateService {
     BuildContext context, {
     VersionCheckSummary? initialSummary,
   }) async {
-    _log('Bắt đầu kiểm tra cập nhật và hiển thị thông báo nếu cần.');
+    // _log('Bắt đầu kiểm tra cập nhật và hiển thị thông báo nếu cần.');
     if (!Platform.isAndroid) {
       // Luồng cài đặt hiện tại chỉ hỗ trợ Android (APK)
-      _log('Thiết bị không phải Android (${Platform.operatingSystem}), bỏ qua kiểm tra.');
+      // _log('Thiết bị không phải Android (${Platform.operatingSystem}), bỏ qua kiểm tra.');
       return initialSummary;
     }
 
     try {
       VersionCheckSummary? summary = initialSummary;
       if (summary != null) {
-        _log(
-          'Sử dụng dữ liệu kiểm tra phiên bản đã có: '
-          'display=${summary.displayVersion}, '
-          'installed=${summary.installedVersion}, '
-          'server=${summary.serverVersion ?? 'n/a'}, '
-          'update=${summary.updateAvailable}.',
-        );
+        // _log(
+        //   'Sử dụng dữ liệu kiểm tra phiên bản đã có: '
+        //   'display=${summary.displayVersion}, '
+        //   'installed=${summary.installedVersion}, '
+        //   'server=${summary.serverVersion ?? 'n/a'}, '
+        //   'update=${summary.updateAvailable}.',
+        // );
       } else {
         summary = await fetchVersionSummary();
       }
 
       if (summary == null) {
-        _log('Không nhận được thông tin phiên bản từ server.');
+        // _log('Không nhận được thông tin phiên bản từ server.');
         return null;
       }
 
       final VersionCheckSummary resolvedSummary = summary;
 
       if (!resolvedSummary.updateAvailable) {
-        _log(
-          'Không có bản cập nhật mới. Phiên bản hiện tại: '
-          '${resolvedSummary.installedVersion}.',
-        );
+        // _log(
+        //   'Không có bản cập nhật mới. Phiên bản hiện tại: '
+        //   '${resolvedSummary.installedVersion}.',
+        // );
         return resolvedSummary;
       }
 
       final downloadUrl = resolvedSummary.downloadUrl;
       if (downloadUrl == null || downloadUrl.isEmpty) {
-        _log('Server báo có cập nhật nhưng không có đường dẫn tải.');
+        // _log('Server báo có cập nhật nhưng không có đường dẫn tải.');
         return resolvedSummary;
       }
 
@@ -151,26 +151,26 @@ class UpdateService {
           try {
             await promptCache.writePendingVersion(expectedVersion);
           } catch (error, stackTrace) {
-            _log('Không thể lưu phiên bản dự kiến: $error',
-                error: error, stackTrace: stackTrace);
+            // _log('Không thể lưu phiên bản dự kiến: $error',
+            //     error: error, stackTrace: stackTrace);
           }
         }
-        _log('Người dùng đồng ý cập nhật, bắt đầu tải file.');
+        // _log('Người dùng đồng ý cập nhật, bắt đầu tải file.');
         await _downloadAndInstall(context, downloadUrl);
       } else {
-        _log('Người dùng từ chối cập nhật hoặc dialog bị đóng.');
+        // _log('Người dùng từ chối cập nhật hoặc dialog bị đóng.');
       }
 
-      _log('Hoàn tất quy trình kiểm tra cập nhật.');
+      // _log('Hoàn tất quy trình kiểm tra cập nhật.');
       return resolvedSummary;
     } on UpdateCheckException catch (error, stackTrace) {
-      _log('Lỗi khi kiểm tra cập nhật: ${error.message}',
-          error: error.cause ?? error, stackTrace: stackTrace);
+      // _log('Lỗi khi kiểm tra cập nhật: ${error.message}',
+      //     error: error.cause ?? error, stackTrace: stackTrace);
       // Bỏ qua lỗi kiểm tra phiên bản để không chặn luồng khởi động ứng dụng
       return initialSummary;
     } on Exception catch (error, stackTrace) {
-      _log('Lỗi khi kiểm tra cập nhật: $error',
-          error: error, stackTrace: stackTrace);
+      // _log('Lỗi khi kiểm tra cập nhật: $error',
+      //     error: error, stackTrace: stackTrace);
       // Bỏ qua lỗi kiểm tra phiên bản để không chặn luồng khởi động ứng dụng
       return initialSummary;
     }
@@ -229,19 +229,19 @@ class UpdateService {
       initialDisplayVersion = sanitizeVersionForDisplay(normalizedPendingVersion);
     }
 
-    _log(
-      'Chuẩn bị gọi API kiểm tra phiên bản: '
-      'currentVersion=$sanitizedCurrentVersion (raw=${rawCurrentVersion ?? 'n/a'}), '
-      'display=$initialDisplayVersion, '
-      'platform=$resolvedPlatform, '
-      'build=${currentBuildNumber ?? 'n/a'}, '
-      'cachedInstalled=${normalizedCachedInstalled ?? cachedInstalled ?? 'n/a'}, '
-      'pending=${normalizedPendingVersion ?? cachedPending ?? 'n/a'}, '
-      'cachedBuild=${cachedBuildNumber ?? 'n/a'}',
-    );
+    // _log(
+    //   'Chuẩn bị gọi API kiểm tra phiên bản: '
+    //   'currentVersion=$sanitizedCurrentVersion (raw=${rawCurrentVersion ?? 'n/a'}), '
+    //   'display=$initialDisplayVersion, '
+    //   'platform=$resolvedPlatform, '
+    //   'build=${currentBuildNumber ?? 'n/a'}, '
+    //   'cachedInstalled=${normalizedCachedInstalled ?? cachedInstalled ?? 'n/a'}, '
+    //   'pending=${normalizedPendingVersion ?? cachedPending ?? 'n/a'}, '
+    //   'cachedBuild=${cachedBuildNumber ?? 'n/a'}',
+    // );
 
     if (!Platform.isAndroid && resolvedPlatform.toLowerCase() == 'android') {
-      _log('Thiết bị không phải Android nhưng platform=android, trả về bản tóm tắt mặc định.');
+      // _log('Thiết bị không phải Android nhưng platform=android, trả về bản tóm tắt mặc định.');
       return VersionCheckSummary(
         currentVersion: initialDisplayVersion,
         installedVersion: sanitizedCurrentVersion,
@@ -281,14 +281,14 @@ class UpdateService {
         final preview = _previewBody(response.body);
         final message =
             'Không thể kiểm tra cập nhật: máy chủ trả về mã ${response.statusCode}.';
-        _log(
-          'Lỗi kiểm tra phiên bản (mã ${response.statusCode}). Body: $preview',
-        );
+        // _log(
+        //   'Lỗi kiểm tra phiên bản (mã ${response.statusCode}). Body: $preview',
+        // );
         throw UpdateCheckException(message);
       }
 
       final body = response.body.trim();
-      _log('Phản hồi kiểm tra phiên bản: ${_previewBody(body)}');
+      // _log('Phản hồi kiểm tra phiên bản: ${_previewBody(body)}');
 
       final dynamic decoded = jsonDecode(body);
       if (decoded is! Map<String, dynamic>) {
@@ -396,19 +396,19 @@ class UpdateService {
       if (versionComparison != null) {
         if (versionComparison < 0) {
           if (!updateAvailable) {
-            _log(
-              'Phiên bản hiện tại ($sanitizedCurrentVersion) nhỏ hơn '
-              '$comparisonTarget, bật cờ cập nhật.',
-            );
+            // _log(
+            //   'Phiên bản hiện tại ($sanitizedCurrentVersion) nhỏ hơn '
+            //   '$comparisonTarget, bật cờ cập nhật.',
+            // );
           }
           effectiveUpdateAvailable = true;
         } else {
           if (updateAvailable) {
-            _log(
-              'Server báo có cập nhật nhưng phiên bản hiện tại '
-              '($sanitizedCurrentVersion) không nhỏ hơn $comparisonTarget. '
-              'Bỏ qua cờ cập nhật.',
-            );
+            // _log(
+            //   'Server báo có cập nhật nhưng phiên bản hiện tại '
+            //   '($sanitizedCurrentVersion) không nhỏ hơn $comparisonTarget. '
+            //   'Bỏ qua cờ cập nhật.',
+            // );
           }
           effectiveUpdateAvailable = false;
         }
@@ -419,10 +419,10 @@ class UpdateService {
         final minComparison =
             _compareVersions(sanitizedCurrentVersion, normalizedMinSupported);
         if (minComparison < 0 && !effectiveUpdateAvailable) {
-          _log(
-            'Phiên bản hiện tại ($sanitizedCurrentVersion) thấp hơn mức tối thiểu '
-            '$normalizedMinSupported, bật cờ cập nhật.',
-          );
+          // _log(
+          //   'Phiên bản hiện tại ($sanitizedCurrentVersion) thấp hơn mức tối thiểu '
+          //   '$normalizedMinSupported, bật cờ cập nhật.',
+          // );
           effectiveUpdateAvailable = true;
         }
       }
@@ -463,10 +463,10 @@ class UpdateService {
           currentBuildNumber > cachedBuildNumber;
 
       if (buildAdvanced && effectiveUpdateAvailable) {
-        _log(
-          'Build number đã tăng từ $cachedBuildNumber lên $currentBuildNumber, '
-          'coi như bản cập nhật đã được cài đặt.',
-        );
+        // _log(
+        //   'Build number đã tăng từ $cachedBuildNumber lên $currentBuildNumber, '
+        //   'coi như bản cập nhật đã được cài đặt.',
+        // );
         effectiveUpdateAvailable = false;
         final String? promotedVersion = normalizedServerVersion ??
             normalizedReleaseVersion ??
@@ -485,12 +485,12 @@ class UpdateService {
         );
       }
 
-      _log(
-        'Tổng hợp phiên bản: installed=$resolvedInstalledVersion, '
-        'display=$resolvedDisplayVersion, server=${serverVersionDisplay ?? 'n/a'}, '
-        'update=$effectiveUpdateAvailable, compare=${versionComparison ?? 'n/a'}, '
-        'build=${currentBuildNumber ?? 'n/a'} (cache=${cachedBuildNumber ?? 'n/a'})',
-      );
+      // _log(
+      //   'Tổng hợp phiên bản: installed=$resolvedInstalledVersion, '
+      //   'display=$resolvedDisplayVersion, server=${serverVersionDisplay ?? 'n/a'}, '
+      //   'update=$effectiveUpdateAvailable, compare=${versionComparison ?? 'n/a'}, '
+      //   'build=${currentBuildNumber ?? 'n/a'} (cache=${cachedBuildNumber ?? 'n/a'})',
+      // );
 
       final summary = VersionCheckSummary(
         currentVersion: resolvedDisplayVersion,
@@ -528,40 +528,40 @@ class UpdateService {
           await cache.writeBuildNumber(currentBuildNumber);
         }
       } catch (error, stackTrace) {
-        _log('Không thể lưu cache phiên bản: $error',
-            error: error, stackTrace: stackTrace);
+        // _log('Không thể lưu cache phiên bản: $error',
+        //     error: error, stackTrace: stackTrace);
       }
 
       return summary;
     } on TimeoutException catch (error, stackTrace) {
       const message =
           'Hết thời gian chờ (20s) khi kết nối tới máy chủ kiểm tra phiên bản.';
-      _log(message, error: error, stackTrace: stackTrace);
+      // _log(message, error: error, stackTrace: stackTrace);
       throw const UpdateCheckException(message);
     } on SocketException catch (error, stackTrace) {
       const message =
           'Không thể kết nối tới máy chủ kiểm tra cập nhật. Vui lòng kiểm tra mạng.';
-      _log(message, error: error, stackTrace: stackTrace);
+      // _log(message, error: error, stackTrace: stackTrace);
       throw const UpdateCheckException(message);
     } on http.ClientException catch (error, stackTrace) {
       final detail = error.message.isNotEmpty
           ? error.message
           : 'Lỗi kết nối không xác định.';
       final message = 'Kết nối kiểm tra cập nhật gặp sự cố: $detail';
-      _log(message, error: error, stackTrace: stackTrace);
+      // _log(message, error: error, stackTrace: stackTrace);
       throw UpdateCheckException(message, error);
     } on HttpException catch (error, stackTrace) {
       final message =
           'Máy chủ từ chối yêu cầu kiểm tra cập nhật: ${error.message}';
-      _log(message, error: error, stackTrace: stackTrace);
+      // _log(message, error: error, stackTrace: stackTrace);
       throw UpdateCheckException(message, error);
     } on FormatException catch (error, stackTrace) {
       final message = 'Dữ liệu phản hồi không hợp lệ: ${error.message}';
-      _log(message, error: error, stackTrace: stackTrace);
+      // _log(message, error: error, stackTrace: stackTrace);
       throw UpdateCheckException(message, error);
     } catch (error, stackTrace) {
       const message = 'Đã xảy ra lỗi không xác định khi kiểm tra phiên bản.';
-      _log(message, error: error, stackTrace: stackTrace);
+      // _log(message, error: error, stackTrace: stackTrace);
       throw UpdateCheckException(message, error);
     } finally {
       client.close();
@@ -606,7 +606,7 @@ class UpdateService {
     );
 
     try {
-      _log('Bắt đầu tải gói cập nhật từ $url tới $filePath');
+      // _log('Bắt đầu tải gói cập nhật từ $url tới $filePath');
       await dio.download(
         url,
         filePath,
@@ -624,14 +624,14 @@ class UpdateService {
           sendTimeout: const Duration(minutes: 2),
         ),
       );
-      _log('Đã tải xong gói cập nhật: $filePath');
+      // _log('Đã tải xong gói cập nhật: $filePath');
     } finally {
       if (_isContextMounted(context)) {
         Navigator.of(context, rootNavigator: true).pop();
       }
     }
 
-    _log('Mở file cài đặt: $filePath');
+    // _log('Mở file cài đặt: $filePath');
     await OpenFilex.open(filePath);
   }
 

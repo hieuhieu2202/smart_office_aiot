@@ -12,8 +12,8 @@ import '../../../service/notification_service.dart';
 
 class NotificationController extends GetxController {
   NotificationController({this.pageSize = 20, GetStorage? storage})
-      : _storage = storage ?? GetStorage(),
-        _dismissedStorageKey = _buildDismissedStorageKey();
+    : _storage = storage ?? GetStorage(),
+      _dismissedStorageKey = _buildDismissedStorageKey();
 
   final int pageSize;
   static const int _maxAutoAdvancePages = 10;
@@ -44,13 +44,14 @@ class NotificationController extends GetxController {
   final Set<String> _dismissedKeys = <String>{};
 
   bool get hasMore => _hasMore;
+
   bool get isFetching => _fetching;
 
   @override
   void onInit() {
     super.onInit();
     _loadDismissedKeys();
-    _log('Khởi tạo NotificationController (pageSize=$pageSize)');
+    // _log('Khởi tạo NotificationController (pageSize=$pageSize)');
     refreshNotifications(showLoader: true);
     _connectStream();
     _startAutoPolling();
@@ -58,7 +59,7 @@ class NotificationController extends GetxController {
 
   @override
   void onClose() {
-    _log('Đóng NotificationController');
+    // _log('Đóng NotificationController');
     _streamSubscription?.cancel();
     _reconnectTimer?.cancel();
     _bannerTimer?.cancel();
@@ -73,7 +74,9 @@ class NotificationController extends GetxController {
     _hasMore = true;
     await _load(page: 1, append: false, showLoader: showLoader);
     var attempts = 0;
-    while (notifications.isEmpty && _hasMore && attempts < _maxAutoAdvancePages) {
+    while (notifications.isEmpty &&
+        _hasMore &&
+        attempts < _maxAutoAdvancePages) {
       attempts++;
       await _load(page: _currentPage + 1, append: true);
     }
@@ -103,7 +106,7 @@ class NotificationController extends GetxController {
     notifications.removeAt(index);
     _rememberDismissedKey(entry.key);
     _recalculateUnread();
-    _log('Loại bỏ thông báo ${entry.key} khỏi danh sách (index=$index)');
+    // _log('Loại bỏ thông báo ${entry.key} khỏi danh sách (index=$index)');
     return true;
   }
 
@@ -118,7 +121,7 @@ class NotificationController extends GetxController {
     notifications.sort(_sortByTimestampDesc);
     notifications.refresh();
     _recalculateUnread();
-    _log('Khôi phục thông báo ${entry.key} vào danh sách (index=$index)');
+    // _log('Khôi phục thông báo ${entry.key} vào danh sách (index=$index)');
   }
 
   Future<void> _load({
@@ -128,7 +131,7 @@ class NotificationController extends GetxController {
   }) async {
     if (_fetching) return;
     _fetching = true;
-    _log('Tải thông báo page=$page append=$append showLoader=$showLoader');
+    // _log('Tải thông báo page=$page append=$append showLoader=$showLoader');
     if (showLoader) {
       isLoading.value = true;
     }
@@ -139,16 +142,16 @@ class NotificationController extends GetxController {
         pageSize: pageSize,
       );
 
-      _log(
-        'Nhận ${fetchResult.items.length} thông báo (page=${fetchResult.page}, '
-        'pageSize=${fetchResult.pageSize}, total=${fetchResult.total}).',
-      );
+      // _log(
+      //   'Nhận ${fetchResult.items.length} thông báo (page=${fetchResult.page}, '
+      //   'pageSize=${fetchResult.pageSize}, total=${fetchResult.total}).',
+      // );
 
       final filtered = <NotificationMessage>[];
       for (final message in fetchResult.items) {
         final key = _keyFor(message);
         if (_isDismissedKey(key)) {
-          _log('Bỏ qua thông báo $key vì người dùng đã xoá trước đó.');
+          // _log('Bỏ qua thông báo $key vì người dùng đã xoá trước đó.');
           continue;
         }
         filtered.add(message);
@@ -187,7 +190,9 @@ class NotificationController extends GetxController {
           final key = _keyFor(message);
           final index = notifications.indexWhere((item) => item.key == key);
           if (index != -1) {
-            notifications[index] = notifications[index].copyWith(message: message);
+            notifications[index] = notifications[index].copyWith(
+              message: message,
+            );
             mutated = true;
           } else {
             additions.add(
@@ -212,10 +217,10 @@ class NotificationController extends GetxController {
       _hasMore = fetchResult.hasMore;
       error.value = null;
       _initialized = true;
-      _log('Hoàn tất tải trang $fetchedPage. hasMore=$_hasMore');
+      // _log('Hoàn tất tải trang $fetchedPage. hasMore=$_hasMore');
     } catch (e, stackTrace) {
       error.value = e.toString();
-      _log('Lỗi khi tải thông báo: $e', error: e, stackTrace: stackTrace);
+      // _log('Lỗi khi tải thông báo: $e', error: e, stackTrace: stackTrace);
       if (!append && notifications.isEmpty) {
         notifications.clear();
       }
@@ -225,13 +230,15 @@ class NotificationController extends GetxController {
       }
       _fetching = false;
       _recalculateUnread();
-      _log('Kết thúc tải trang $page. Tổng thông báo hiện tại: '
-          '${notifications.length}');
+      // _log(
+      //   'Kết thúc tải trang $page. Tổng thông báo hiện tại: '
+      //   '${notifications.length}',
+      // );
     }
   }
 
   void _connectStream() {
-    _log('Đăng ký nhận realtime notifications');
+    // _log('Đăng ký nhận realtime notifications');
     _streamSubscription?.cancel();
     _streamSubscription = NotificationService.realtimeNotifications().listen(
       (message) {
@@ -250,7 +257,7 @@ class NotificationController extends GetxController {
   void _scheduleReconnect() {
     if (isClosed) return;
     _reconnectTimer?.cancel();
-    _log('Lên lịch kết nối lại realtime stream sau 1s');
+    // _log('Lên lịch kết nối lại realtime stream sau 1s');
     _reconnectTimer = Timer(const Duration(seconds: 1), () {
       if (!isClosed) {
         _connectStream();
@@ -263,11 +270,11 @@ class NotificationController extends GetxController {
     bool markUnread = true,
     bool triggerRefresh = true,
   }) {
-    _log(
-      'Xử lý thông báo realtime: id=${message.id ?? '-'} '
-      'title=${message.title} markUnread=$markUnread '
-      'triggerRefresh=$triggerRefresh',
-    );
+    // _log(
+    //   'Xử lý thông báo realtime: id=${message.id ?? '-'} '
+    //   'title=${message.title} markUnread=$markUnread '
+    //   'triggerRefresh=$triggerRefresh',
+    // );
     final entry = _upsert(message, markUnread: markUnread);
     if (entry != null) {
       if (markUnread) {
@@ -280,10 +287,13 @@ class NotificationController extends GetxController {
     }
   }
 
-  NotificationEntry? _upsert(NotificationMessage message, {bool markUnread = false}) {
+  NotificationEntry? _upsert(
+    NotificationMessage message, {
+    bool markUnread = false,
+  }) {
     final key = _keyFor(message);
     if (_isDismissedKey(key)) {
-      _log('Thông báo $key đã bị người dùng xoá, bỏ qua.');
+      // _log('Thông báo $key đã bị người dùng xoá, bỏ qua.');
       return null;
     }
     final index = notifications.indexWhere((item) => item.key == key);
@@ -298,7 +308,7 @@ class NotificationController extends GetxController {
       notifications.sort(_sortByTimestampDesc);
       notifications.refresh();
       _recalculateUnread();
-      _log('Cập nhật thông báo hiện có: key=$key markUnread=$markUnread');
+      // _log('Cập nhật thông báo hiện có: key=$key markUnread=$markUnread');
       return updated;
     }
 
@@ -311,7 +321,7 @@ class NotificationController extends GetxController {
     notifications.sort(_sortByTimestampDesc);
     notifications.refresh();
     _recalculateUnread();
-    _log('Thêm thông báo mới: key=$key markUnread=$markUnread');
+    // _log('Thêm thông báo mới: key=$key markUnread=$markUnread');
     return entry;
   }
 
@@ -334,14 +344,15 @@ class NotificationController extends GetxController {
   }
 
   int _sortByTimestampDesc(NotificationEntry a, NotificationEntry b) {
-    final DateTime at = a.message.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
-    final DateTime bt = b.message.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final DateTime at =
+        a.message.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final DateTime bt =
+        b.message.timestampUtc ?? DateTime.fromMillisecondsSinceEpoch(0);
     return bt.compareTo(at);
   }
 
   void _recalculateUnread() {
-    unreadCount.value =
-        notifications.where((entry) => !entry.isRead).length;
+    unreadCount.value = notifications.where((entry) => !entry.isRead).length;
   }
 
   void _showBanner(NotificationEntry entry) {
@@ -367,9 +378,10 @@ class NotificationController extends GetxController {
     final ThemeData theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final Color accent = theme.colorScheme.secondary;
-    final Color background = isDark
-        ? Colors.black.withOpacity(0.85)
-        : Colors.white.withOpacity(0.94);
+    final Color background =
+        isDark
+            ? Colors.black.withOpacity(0.85)
+            : Colors.white.withOpacity(0.94);
     final Color textColor = isDark ? Colors.white : Colors.black87;
 
     if (Get.isSnackbarOpen) {
@@ -405,31 +417,33 @@ class NotificationController extends GetxController {
   void _triggerSoftRefresh() {
     if (isClosed) return;
     _autoRefreshTimer?.cancel();
-    _log('Đặt lịch làm mới nhẹ sau 600ms');
-    _autoRefreshTimer = Timer(const Duration(milliseconds: 600), () async {
+    // _log('Đặt lịch làm mới nhẹ sau 600ms');
+    _autoRefreshTimer = Timer(const Duration(milliseconds: 10000), () async {
       _autoRefreshTimer = null;
       if (isClosed) return;
       if (_fetching) {
-        _log('Đang tải dữ liệu, sẽ thử lại soft refresh');
+        // _log('Đang tải dữ liệu, sẽ thử lại soft refresh');
         _triggerSoftRefresh();
         return;
       }
-      _log('Thực thi soft refresh');
+      // _log('Thực thi soft refresh');
       await refreshNotifications(showLoader: false);
     });
   }
 
   void _startAutoPolling() {
     _pollingTimer?.cancel();
-    _log('Bật auto polling mỗi ${_pollingInterval.inSeconds}s');
+    // _log('Bật auto polling mỗi ${_pollingInterval.inSeconds}s');
     _pollingTimer = Timer.periodic(_pollingInterval, (_) {
       if (isClosed || !_initialized || _fetching || _syncingLatest) {
-        _log('Bỏ qua auto polling tick (isClosed=$isClosed, '
-            '_initialized=$_initialized, _fetching=$_fetching, '
-            '_syncingLatest=$_syncingLatest)');
+        // _log(
+        //   'Bỏ qua auto polling tick (isClosed=$isClosed, '
+        //   '_initialized=$_initialized, _fetching=$_fetching, '
+        //   '_syncingLatest=$_syncingLatest)',
+        // );
         return;
       }
-      _log('Auto polling tick, đồng bộ trang đầu');
+      // _log('Auto polling tick, đồng bộ trang đầu');
       unawaited(_syncLatest());
     });
   }
@@ -439,7 +453,7 @@ class NotificationController extends GetxController {
       return;
     }
     _syncingLatest = true;
-    _log('Bắt đầu đồng bộ trang đầu để tìm thông báo mới');
+    // _log('Bắt đầu đồng bộ trang đầu để tìm thông báo mới');
     try {
       final fetchResult = await NotificationService.fetchNotifications(
         page: 1,
@@ -447,7 +461,7 @@ class NotificationController extends GetxController {
       );
 
       if (fetchResult.isEmpty) {
-        _log('Không có thông báo nào khi đồng bộ.');
+        // _log('Không có thông báo nào khi đồng bộ.');
         return;
       }
 
@@ -456,13 +470,13 @@ class NotificationController extends GetxController {
       for (final message in fetchResult.items) {
         final key = _keyFor(message);
         if (_isDismissedKey(key)) {
-          _log('Thông báo $key đã bị loại bỏ trước đó, bỏ qua.');
+          // _log('Thông báo $key đã bị loại bỏ trước đó, bỏ qua.');
           continue;
         }
         final exists =
             notifications.indexWhere((item) => item.key == key) != -1;
         if (exists) {
-          _log('Đã có thông báo $key, cập nhật nội dung.');
+          // _log('Đã có thông báo $key, cập nhật nội dung.');
           _upsert(message, markUnread: false);
         } else {
           final entry = _upsert(message, markUnread: true);
@@ -473,7 +487,7 @@ class NotificationController extends GetxController {
       }
 
       if (newlyAdded.isNotEmpty) {
-        _log('Có ${newlyAdded.length} thông báo mới từ đồng bộ.');
+        // _log('Có ${newlyAdded.length} thông báo mới từ đồng bộ.');
         newlyAdded.sort(_sortByTimestampDesc);
         for (final entry in newlyAdded) {
           if (!isClosed) {
@@ -482,14 +496,17 @@ class NotificationController extends GetxController {
           }
         }
       } else {
-        _log('Không có thông báo mới cần hiển thị sau đồng bộ.');
+        // _log('Không có thông báo mới cần hiển thị sau đồng bộ.');
       }
     } catch (error, stackTrace) {
-      _log('Lỗi khi đồng bộ thông báo mới: $error',
-          error: error, stackTrace: stackTrace);
+      // _log(
+      //   'Lỗi khi đồng bộ thông báo mới: $error',
+      //   error: error,
+      //   stackTrace: stackTrace,
+      // );
       // Bỏ qua lỗi khi đồng bộ ngầm, lần sau sẽ thử lại.
     } finally {
-      _log('Kết thúc đồng bộ thông báo mới.');
+      // _log('Kết thúc đồng bộ thông báo mới.');
       _syncingLatest = false;
     }
   }
@@ -556,20 +573,20 @@ class NotificationController extends GetxController {
       }
     }
     if (_dismissedKeys.isNotEmpty) {
-      _log('Khôi phục ${_dismissedKeys.length} thông báo đã xoá trước đó.');
+      // _log('Khôi phục ${_dismissedKeys.length} thông báo đã xoá trước đó.');
     }
   }
 
   void _rememberDismissedKey(String key) {
     if (_dismissedKeys.add(key)) {
-      _log('Ghi nhớ thông báo đã xoá: $key');
+      // _log('Ghi nhớ thông báo đã xoá: $key');
       _persistDismissedKeys();
     }
   }
 
   void _forgetDismissedKey(String key) {
     if (_dismissedKeys.remove(key)) {
-      _log('Huỷ bỏ ghi nhớ thông báo đã xoá: $key');
+      // _log('Huỷ bỏ ghi nhớ thông báo đã xoá: $key');
       _persistDismissedKeys();
     }
   }

@@ -5,7 +5,7 @@ import 'dart:convert';
 
 class PTHDashboardApi {
   static final String _baseUrl =
-      "https://10.220.23.244:4433/api/CCDMachine/AOIVI/";
+      "https://10.220.130.117/newweb/api/Customer/Automation/CCDMachine/";
 
   static Future<List<String>> getGroupNames() async {
     var url = Uri.parse("${_baseUrl}GetGroupNames");
@@ -152,7 +152,7 @@ class PTHDashboardApi {
 
     // Gắn path trực tiếp vào cuối URL
     final url = Uri.parse(
-      "https://10.220.23.244:4433/api/Image/raw/$normalizedPath",
+      "https://10.220.130.117/newweb/api/Image/raw/$normalizedPath",
     );
 
     try {
