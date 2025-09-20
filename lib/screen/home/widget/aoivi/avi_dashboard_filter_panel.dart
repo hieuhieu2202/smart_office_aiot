@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -29,6 +31,14 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
   String? _model;
   DateTimeRange? _dateRange;
   final TextEditingController _rangeController = TextEditingController();
+  final LayerLink _groupLink = LayerLink();
+  final LayerLink _machineLink = LayerLink();
+  final LayerLink _modelLink = LayerLink();
+  final GlobalKey _groupFieldKey = GlobalKey();
+  final GlobalKey _machineFieldKey = GlobalKey();
+  final GlobalKey _modelFieldKey = GlobalKey();
+  OverlayEntry? _activeOverlay;
+  String? _activeOverlayField;
 
   @override
   void initState() {
@@ -47,6 +57,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
 
   @override
   void dispose() {
+    _removeActiveOverlay();
     _controller.dispose();
     _rangeController.dispose();
     super.dispose();
@@ -59,6 +70,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
       _controller.forward();
       _syncFormWithController(useSetState: true, refreshOptions: true);
     } else if (!widget.show && oldWidget.show) {
+      _removeActiveOverlay();
       _controller.reverse();
       if (mounted) {
         FocusScope.of(context).unfocus();
@@ -115,6 +127,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
 
   Future<void> _onGroupChanged(String value) async {
     FocusScope.of(context).unfocus();
+    _removeActiveOverlay();
     setState(() {
       _group = value;
       _machine = null;
@@ -138,6 +151,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
 
   Future<void> _onMachineChanged(String value) async {
     FocusScope.of(context).unfocus();
+    _removeActiveOverlay();
     setState(() {
       _machine = value;
       _model = null;
@@ -163,6 +177,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
 
   Future<void> _onResetPressed() async {
     FocusScope.of(context).unfocus();
+    _removeActiveOverlay();
     final defaultRange = dashboardController.getDefaultRange();
     _parseRange(defaultRange);
 
@@ -208,150 +223,196 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
     );
   }
 
-  Future<void> _openSelectionSheet({
-    required String title,
+  void _removeActiveOverlay() {
+    _activeOverlay?.remove();
+    _activeOverlay = null;
+    _activeOverlayField = null;
+  }
+
+  void _showOptionsOverlay({
+    required String fieldId,
+    required GlobalKey fieldKey,
+    required LayerLink fieldLink,
     required List<String> options,
+    required String label,
     required String? selectedValue,
     required ValueChanged<String> onSelected,
-  }) async {
-    FocusScope.of(context).unfocus();
-    if (options.isEmpty) return;
+  }) {
+    if (!mounted || options.isEmpty) {
+      _removeActiveOverlay();
+      return;
+    }
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final maxHeight = MediaQuery.of(context).size.height * 0.55;
-        final baseColor = isDark ? GlobalColors.cardDarkBg : Colors.white;
-        final dividerColor =
-            isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE8EAED);
-        final activeColor =
-            isDark ? const Color(0xFF8BC34A) : const Color(0xFF1B5E20);
+    final overlay = Overlay.of(context);
+    final fieldContext = fieldKey.currentContext;
+    if (overlay == null || fieldContext == null) return;
 
-        return SafeArea(
-          top: false,
-          child: Container(
-            margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: baseColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.20),
-                  blurRadius: 24,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+    final renderBox = fieldContext.findRenderObject();
+    if (renderBox is! RenderBox) return;
+
+    final fieldSize = renderBox.size;
+    final fieldOffset = renderBox.localToGlobal(Offset.zero);
+    final media = MediaQuery.of(context);
+    final availableBelow =
+        media.size.height - (fieldOffset.dy + fieldSize.height) - media.padding.bottom - 16;
+    final availableAbove = fieldOffset.dy - media.padding.top - 16;
+    const double upwardGap = 44;
+    final bool canOpenUpward = availableAbove > upwardGap + 160;
+    final bool openUpward = availableBelow < 180 && canOpenUpward;
+    final maxUsableHeight = openUpward
+        ? availableAbove - upwardGap
+        : availableBelow;
+    final overlayHeight = math.max(120.0, math.min(maxUsableHeight, 320.0));
+    final offset = openUpward
+        ? Offset(0, -overlayHeight - upwardGap)
+        : Offset(0, fieldSize.height + 8);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor =
+        isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE0E4EC);
+    final dividerColor =
+        isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE3E7ED);
+    final highlightColor =
+        isDark ? GlobalColors.primaryButtonDark : GlobalColors.primaryButtonLight;
+
+    _removeActiveOverlay();
+
+    final overlayEntry = OverlayEntry(
+      builder: (_) {
+        return Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: _removeActiveOverlay,
+            child: Stack(
               children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 44,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.20)
-                        : Colors.black.withOpacity(0.10),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF1A237E),
+                CompositedTransformFollower(
+                  link: fieldLink,
+                  showWhenUnlinked: false,
+                  offset: offset,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      width: fieldSize.width,
+                      constraints: BoxConstraints(
+                        maxHeight: overlayHeight,
+                        minWidth: fieldSize.width,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isDark ? GlobalColors.cardDarkBg : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.16),
+                            blurRadius: 18,
+                            offset: const Offset(0, 12),
                           ),
-                        ),
+                        ],
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.of(sheetContext).pop(),
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: isDark ? Colors.white70 : Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Divider(color: dividerColor, height: 1),
-                Flexible(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: maxHeight),
-                    child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      shrinkWrap: true,
-                      itemCount: options.length,
-                      separatorBuilder: (_, __) => Divider(
-                        color: dividerColor,
-                        height: 1,
-                      ),
-                      itemBuilder: (_, index) {
-                        final option = options[index];
-                        final isSelected = option == selectedValue;
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 6,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 8, 12),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF263238),
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints.tightFor(
+                                      width: 36, height: 36),
+                                  onPressed: _removeActiveOverlay,
+                                  icon: Icon(
+                                    Icons.close_rounded,
+                                    size: 20,
+                                    color: isDark ? Colors.white70 : Colors.black45,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          onTap: () => Navigator.of(sheetContext).pop(option),
-                          leading: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            height: 26,
-                            width: 26,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? activeColor.withOpacity(0.12)
-                                  : Colors.transparent,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color:
-                                    isSelected ? activeColor : dividerColor,
+                          Divider(height: 1, thickness: 1, color: dividerColor),
+                          Expanded(
+                            child: Scrollbar(
+                              thumbVisibility: options.length > 6,
+                              child: ListView.separated(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 0, vertical: 8),
+                                itemCount: options.length,
+                                separatorBuilder: (_, __) => Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  indent: 16,
+                                  endIndent: 16,
+                                  color: dividerColor,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final option = options[index];
+                                  final isSelected = option == selectedValue;
+                                  return Material(
+                                    color: isSelected
+                                        ? highlightColor.withOpacity(0.12)
+                                        : Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () {
+                                        _removeActiveOverlay();
+                                        onSelected(option);
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                option,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: isSelected
+                                                      ? FontWeight.w600
+                                                      : FontWeight.w500,
+                                                  color: isSelected
+                                                      ? highlightColor
+                                                      : (isDark
+                                                          ? Colors.white
+                                                          : const Color(0xFF1D1D35)),
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (isSelected)
+                                              Icon(
+                                                Icons.check_rounded,
+                                                size: 18,
+                                                color: highlightColor,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                            child: Center(
-                              child: Icon(
-                                Icons.check_rounded,
-                                size: 16,
-                                color: isSelected
-                                    ? activeColor
-                                    : Colors.transparent,
-                              ),
-                            ),
                           ),
-                          title: Text(
-                            option,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                              color: isSelected
-                                  ? activeColor
-                                  : (isDark
-                                      ? Colors.white
-                                      : const Color(0xFF1C1C28)),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      },
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
               ],
             ),
           ),
@@ -359,9 +420,9 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
       },
     );
 
-    if (result != null && mounted) {
-      onSelected(result);
-    }
+    overlay.insert(overlayEntry);
+    _activeOverlay = overlayEntry;
+    _activeOverlayField = fieldId;
   }
 
   Widget _buildSelectionField({
@@ -372,7 +433,18 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
     required bool isDark,
     required bool isLoading,
     required ValueChanged<String> onSelected,
+    required GlobalKey fieldKey,
+    required LayerLink fieldLink,
+    required String fieldId,
   }) {
+    if ((isLoading || options.isEmpty) && _activeOverlayField == fieldId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _activeOverlayField == fieldId) {
+          _removeActiveOverlay();
+        }
+      });
+    }
+
     final textStyle = TextStyle(
       fontSize: 15,
       fontWeight: FontWeight.w500,
@@ -393,63 +465,85 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
           ),
         ),
         const SizedBox(height: 10),
-        Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: _tileDecoration(isDark),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      value ?? placeholder,
-                      style: textStyle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+        CompositedTransformTarget(
+          link: fieldLink,
+          child: Stack(
+            children: [
+              Container(
+                key: fieldKey,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: _tileDecoration(isDark),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Text(
+                          value ?? placeholder,
+                          key: ValueKey(value ?? placeholder),
+                          style: textStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ),
-                  ),
-                  Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: isDark ? Colors.white70 : Colors.grey[700],
-                  ),
-                ],
-              ),
-            ),
-            Positioned.fill(
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: (isLoading || options.isEmpty)
-                      ? null
-                      : () => _openSelectionSheet(
-                            title: label,
-                            options: options,
-                            selectedValue: value,
-                            onSelected: onSelected,
-                          ),
+                    AnimatedRotation(
+                      turns: _activeOverlayField == fieldId ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: isDark ? Colors.white70 : Colors.grey[700],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            if (isLoading)
               Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? GlobalColors.cardDarkBg.withOpacity(0.36)
-                        : Colors.white.withOpacity(0.55),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Center(
-                    child: SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
+                    onTap: (isLoading || options.isEmpty)
+                        ? null
+                        : () {
+                            FocusScope.of(context).unfocus();
+                            if (_activeOverlayField == fieldId) {
+                              _removeActiveOverlay();
+                            } else {
+                              _showOptionsOverlay(
+                                fieldId: fieldId,
+                                fieldKey: fieldKey,
+                                fieldLink: fieldLink,
+                                options: options,
+                                label: label,
+                                selectedValue: value,
+                                onSelected: onSelected,
+                              );
+                            }
+                          },
                   ),
                 ),
               ),
-          ],
+              if (isLoading)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? GlobalColors.cardDarkBg.withOpacity(0.36)
+                          : Colors.white.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
         if (!isLoading && options.isEmpty)
           Padding(
@@ -561,6 +655,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
             GestureDetector(
               onTap: () {
                 FocusScope.of(context).unfocus();
+                _removeActiveOverlay();
                 widget.onClose();
               },
               child: Container(color: Colors.transparent),
@@ -627,6 +722,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                               icon: const Icon(Icons.close, size: 26),
                               onPressed: () {
                                 FocusScope.of(context).unfocus();
+                                _removeActiveOverlay();
                                 widget.onClose();
                               },
                             ),
@@ -650,6 +746,9 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                                     isDark: isDark,
                                     isLoading:
                                         dashboardController.isGroupLoading.value,
+                                    fieldKey: _groupFieldKey,
+                                    fieldLink: _groupLink,
+                                    fieldId: 'group',
                                     onSelected: (val) {
                                       if (val != _group) {
                                         _onGroupChanged(val);
@@ -669,6 +768,9 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                                     isDark: isDark,
                                     isLoading:
                                         dashboardController.isMachineLoading.value,
+                                    fieldKey: _machineFieldKey,
+                                    fieldLink: _machineLink,
+                                    fieldId: 'machine',
                                     onSelected: (val) {
                                       if (val != _machine) {
                                         _onMachineChanged(val);
@@ -688,6 +790,9 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                                     isDark: isDark,
                                     isLoading:
                                         dashboardController.isModelLoading.value,
+                                    fieldKey: _modelFieldKey,
+                                    fieldLink: _modelLink,
+                                    fieldId: 'model',
                                     onSelected: (val) {
                                       if (val != _model) {
                                         setState(() {
@@ -730,6 +835,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                                   ),
                                   onPressed: () {
                                     FocusScope.of(context).unfocus();
+                                    _removeActiveOverlay();
                                     widget.onClose();
                                   },
                                   child: const Text('Hủy'),
@@ -748,6 +854,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                                       ? null
                                       : () {
                                           FocusScope.of(context).unfocus();
+                                          _removeActiveOverlay();
                                           final range =
                                               _rangeController.text.trim();
                                           widget.onApply({
