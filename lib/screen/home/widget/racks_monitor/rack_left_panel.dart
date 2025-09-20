@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../service/lc_switch_rack_api.dart'
     show RackDetail, SlotDetail;
+import 'rack_status_utils.dart';
 
 /// ===== Palette (theo web) =====
 class _RackColors {
@@ -36,10 +37,8 @@ class _RackColors {
       dark ? Colors.white10 : Colors.grey.shade300;
 }
 
-String _norm(String? s) => (s ?? '').trim().toUpperCase();
-
 Color _statusColor(String? status) {
-  switch (_norm(status)) {
+  switch (normalizeRackStatus(status)) {
     case 'PASS':
       return _RackColors.green;
     case 'TESTING':
@@ -55,89 +54,29 @@ Color _statusColor(String? status) {
   }
 }
 
-/// Tập từ khóa thể hiện offline/no-connect
-const _offlineKeywords = {
-  'OFFLINE',
-  'NO CONNECT',
-  'NO_CONNECT',
-  'DISCONNECTED',
-  'DISCONNECT',
-  'NOT CONNECTED',
-  'POWER OFF',
-  'POWER_OFF',
-};
-
-/// Có hoạt động thực sự (để coi là chạy)?
-/// CHỈ tính khi có input hoặc totalPass > 0 (bỏ runtime/totalTime, bỏ UT).
-bool _hasActivityRack(RackDetail rack, List<SlotDetail> slots) {
-  if (rack.input > 0) return true; // có PCS thực sự
-  for (final s in slots) {
-    if (s.input > 0) return true;      // slot có input
-    if (s.totalPass > 0) return true;  // slot có pass
-  }
-  return false;
-}
-
-/// Nhận diện OFFLINE cho cả rack
-/// - Bất kỳ slot có status thuộc _offlineKeywords => OFFLINE
-/// - Hoặc KHÔNG có hoạt động thực sự ở rack/slot => OFFLINE
-/// (KHÔNG dựa vào UT)
-bool _isOfflineRack(List<SlotDetail> slots, RackDetail rack) {
-  if (slots.isEmpty) return true;
-
-  for (final s in slots) {
-    final st = _norm(s.status);
-    if (_offlineKeywords.contains(st)) return true;
-  }
-
-  final hasActivity = _hasActivityRack(rack, slots);
-  if (!hasActivity) return true;
-
-  return false;
-}
-
-/// Nhận diện OFFLINE / EMPTY cho từng slot (tone xám giống web)
-bool _isOfflineSlot(SlotDetail s) {
-  final st = _norm(s.status);
-  if (_offlineKeywords.contains(st)) return true;
-
-  final noActivity = (s.input == 0) && (s.totalPass == 0);
-  return noActivity;
-}
-
-/// RUNNING khi có hoạt động thực sự (bỏ UT)
-bool _isRunningRack(RackDetail rack, List<SlotDetail> slots) {
-  return _hasActivityRack(rack, slots);
-}
-
 /// =================== LEGEND BAR ===================
 class RackStatusLegendBar extends StatelessWidget {
-  const RackStatusLegendBar({super.key});
+  const RackStatusLegendBar({super.key, this.margin});
+
+  final EdgeInsetsGeometry? margin;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: margin ?? const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? const [Color(0xFF0F2C4A), Color(0xFF113A66)]
-              : const [Color(0xFFE6F1FF), Color(0xFFDCEBFF)],
+              ? const [Color(0xFF0F2C4A), Color(0xFF143254)]
+              : const [Color(0xFFEAF3FF), Color(0xFFDCE7FB)],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black54 : Colors.black12,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -189,9 +128,9 @@ class _LegendItem extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 12,
-              letterSpacing: .3,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+              letterSpacing: .2,
               color: isDark ? Colors.white : const Color(0xFF0F2540),
             ),
           ),
@@ -210,12 +149,11 @@ class RackLeftPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenH = MediaQuery.of(context).size.height;
-    final itemH = (screenH * 0.34).clamp(230.0, 360.0);
+    final itemH = (screenH * 0.3).clamp(220.0, 320.0);
 
     // Tạo danh sách child: Legend + spacing + từng Rack + spacing
     final children = <Widget>[
-      const RackStatusLegendBar(),
-      const SizedBox(height: 6),
+      const SizedBox(height: 8),
     ];
 
     for (int i = 0; i < racks.length; i++) {
@@ -280,8 +218,8 @@ class _RackCardState extends State<_RackCard>
     final rack = widget.rack;
     final slots = rack.slotDetails;
 
-    final isOffline = _isOfflineRack(slots, rack);
-    final isRunning = _isRunningRack(rack, slots);
+    final isOffline = isRackOffline(rack, slots: slots);
+    final isRunning = isRackRunning(rack, slots: slots);
 
     return LayoutBuilder(
       builder: (ctx, box) {
@@ -594,7 +532,7 @@ class _SlotListState extends State<_SlotList> {
 
             // === QUY TẮC XÁM CHO SLOT ===
             final bool slotGray =
-                widget.dimmed || _isOfflineSlot(s) || (s.yr <= 0) ||
+                widget.dimmed || isSlotOffline(s) || (s.yr <= 0) ||
                     (s.input == 0 && s.totalPass == 0);
 
             // Tone theo slotGray

@@ -4,7 +4,8 @@ import 'dart:convert';
 import 'package:smart_factory/service/auth/auth_config.dart';
 
 class CleanRoomApi {
-  static final String _baseUrl = "https://10.220.23.244:4433/api/cleanroom/";
+  static final String _baseUrl =
+      "https://10.220.130.117/newweb/api/nvidia/cleanroom/";
 
   static Future<List<String>> getCustomers() async {
     var url = Uri.parse("${_baseUrl}Location/GetCustomers");

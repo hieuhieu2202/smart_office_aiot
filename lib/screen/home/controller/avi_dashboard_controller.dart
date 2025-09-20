@@ -13,6 +13,9 @@ class AOIVIDashboardController extends GetxController {
   var selectedRangeDateTime = ''.obs;
 
   var isLoading = false.obs;
+  var isGroupLoading = false.obs;
+  var isMachineLoading = false.obs;
+  var isModelLoading = false.obs;
   var monitoringData = Rxn<Map>(); // Dùng Rxn để tránh lỗi null
 
   // Thông tin mặc định
@@ -52,42 +55,47 @@ class AOIVIDashboardController extends GetxController {
   }
 
   /// Reset filter về giá trị mặc định
-  void resetFilters() {
+  Future<void> resetFilters() async {
     selectedGroup.value = defaultGroup;
     selectedMachine.value = defaultMachine;
     selectedModel.value = defaultModel;
     selectedRangeDateTime.value = getDefaultRange();
-    fetchMonitoring(
+    await loadMachines(defaultGroup);
+    await fetchMonitoring(
       groupName: defaultGroup,
       machineName: defaultMachine,
       modelName: defaultModel,
-      rangeDateTime: getDefaultRange(),
+      rangeDateTime: selectedRangeDateTime.value,
       opTime: defaultOpTime,
       showLoading: true,
     );
   }
 
   /// Load danh sách group
-  void loadGroups() async {
-    isLoading.value = true;
+  Future<List<String>> loadGroups({bool updateSelection = true}) async {
+    isGroupLoading.value = true;
     try {
       final names = await PTHDashboardApi.getGroupNames();
       names.removeWhere((item) => item == "ALL");
       names.insert(0, "ALL");
       groupNames.value = names;
       // Nếu chưa có selected, set về mặc định
-      if (!groupNames.contains(selectedGroup.value)) {
+      if (updateSelection && !groupNames.contains(selectedGroup.value)) {
         selectedGroup.value = defaultGroup;
       }
-      loadMachines(selectedGroup.value);
+      if (updateSelection) {
+        await loadMachines(selectedGroup.value);
+      }
+      return groupNames.toList();
     } finally {
-      isLoading.value = false;
+      isGroupLoading.value = false;
     }
   }
 
   /// Load danh sách machine theo group
-  void loadMachines(String group) async {
-    isLoading.value = true;
+  Future<List<String>> loadMachines(String group,
+      {bool updateSelection = true, String? preferredMachine}) async {
+    isMachineLoading.value = true;
     try {
       final names = await PTHDashboardApi.getMachineNames(group);
       machineNames.value =
@@ -95,30 +103,45 @@ class AOIVIDashboardController extends GetxController {
               ? []
               : (["ALL", ...names.where((item) => item != "ALL")]);
       // Nếu chưa có selected, set về mặc định
-      if (!machineNames.contains(selectedMachine.value)) {
-        selectedMachine.value =
-            machineNames.isNotEmpty ? machineNames.first : defaultMachine;
+      if (updateSelection) {
+        if (!machineNames.contains(selectedMachine.value)) {
+          selectedMachine.value =
+              machineNames.isNotEmpty ? machineNames.first : defaultMachine;
+        }
+        await loadModels(group, selectedMachine.value);
+      } else {
+        final target = (preferredMachine != null &&
+                machineNames.contains(preferredMachine))
+            ? preferredMachine
+            : (machineNames.isNotEmpty ? machineNames.first : null);
+        if (target != null) {
+          await loadModels(group, target, updateSelection: false);
+        } else {
+          modelNames.value = ["ALL"];
+        }
       }
-      loadModels(group, selectedMachine.value);
+      return machineNames.toList();
     } finally {
-      isLoading.value = false;
+      isMachineLoading.value = false;
     }
   }
 
   /// Load danh sách model theo group + machine
-  void loadModels(String group, String machine) async {
-    isLoading.value = true;
+  Future<List<String>> loadModels(String group, String machine,
+      {bool updateSelection = true}) async {
+    isModelLoading.value = true;
     try {
       final names = await PTHDashboardApi.getModelNames(group, machine);
       modelNames.value =
           names.isEmpty
               ? ["ALL"]
               : (["ALL", ...names.where((item) => item != "ALL")]);
-      if (!modelNames.contains(selectedModel.value)) {
+      if (updateSelection && !modelNames.contains(selectedModel.value)) {
         selectedModel.value = modelNames.first;
       }
+      return modelNames.toList();
     } finally {
-      isLoading.value = false;
+      isModelLoading.value = false;
     }
   }
 
@@ -136,10 +159,23 @@ class AOIVIDashboardController extends GetxController {
     try {
       // Ưu tiên filter nếu có
       if (filters != null) {
-        groupName = filters['groupName'] ?? selectedGroup.value;
-        machineName = filters['machineName'] ?? selectedMachine.value;
-        modelName = filters['modelName'] ?? selectedModel.value;
-        rangeDateTime = filters['rangeDateTime'] ?? selectedRangeDateTime.value;
+        groupName =
+            (filters['groupName'] as String?)?.trim().isNotEmpty == true
+                ? filters['groupName']
+                : selectedGroup.value;
+        machineName =
+            (filters['machineName'] as String?)?.trim().isNotEmpty == true
+                ? filters['machineName']
+                : selectedMachine.value;
+        modelName =
+            (filters['modelName'] as String?)?.trim().isNotEmpty == true
+                ? filters['modelName']
+                : selectedModel.value;
+        final filterRange = (filters['rangeDateTime'] as String?)?.trim();
+        rangeDateTime =
+            (filterRange != null && filterRange.isNotEmpty)
+                ? filterRange
+                : selectedRangeDateTime.value;
         opTime = filters['opTime'] ?? defaultOpTime;
       }
       // Cập nhật selected
@@ -159,6 +195,10 @@ class AOIVIDashboardController extends GetxController {
       monitoringData.value = data;
       // Ghi nhận thời gian cập nhật gần nhất
       lastUpdateTime.value = DateFormat('HH:mm:ss').format(DateTime.now());
+      if (filters != null) {
+        await loadMachines(selectedGroup.value,
+            preferredMachine: selectedMachine.value);
+      }
     } catch (e) {
       Get.snackbar('Lỗi lấy dữ liệu', e.toString());
     } finally {
