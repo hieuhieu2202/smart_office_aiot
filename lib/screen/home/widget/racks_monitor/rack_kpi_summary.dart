@@ -66,17 +66,72 @@ class RackNumbersBox extends StatelessWidget {
         ),
       ];
 
-      return Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: metrics
-            .map(
-              (metric) => _SummaryMetricTile(
-                metric: metric,
-                isDark: isDark,
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          const spacing = 12.0;
+          const minTileWidth = 120.0;
+          const maxTileWidth = 168.0;
+
+          double availableWidth = constraints.maxWidth;
+          if (!availableWidth.isFinite) {
+            availableWidth =
+                metrics.length * maxTileWidth + spacing * (metrics.length - 1);
+          }
+
+          final minRequiredWidth =
+              metrics.length * minTileWidth + spacing * (metrics.length - 1);
+
+          if (availableWidth < minRequiredWidth) {
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  for (int i = 0; i < metrics.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        right: i == metrics.length - 1 ? 0 : spacing,
+                      ),
+                      child: SizedBox(
+                        width: minTileWidth,
+                        child: _SummaryMetricTile(
+                          metric: metrics[i],
+                          isDark: isDark,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-            )
-            .toList(),
+            );
+          }
+
+          final tileWidth = ((availableWidth - spacing * (metrics.length - 1)) /
+                  metrics.length)
+              .clamp(minTileWidth, maxTileWidth);
+          final contentWidth =
+              tileWidth * metrics.length + spacing * (metrics.length - 1);
+
+          return Align(
+            alignment: Alignment.center,
+            child: SizedBox(
+              width: contentWidth,
+              child: Row(
+                children: [
+                  for (int i = 0; i < metrics.length; i++) ...[
+                    if (i != 0) const SizedBox(width: spacing),
+                    SizedBox(
+                      width: tileWidth,
+                      child: _SummaryMetricTile(
+                        metric: metrics[i],
+                        isDark: isDark,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
       );
     });
   }
@@ -138,84 +193,81 @@ class _SummaryMetricTile extends StatelessWidget {
     final theme = Theme.of(context);
     final base = metric.color;
     final textColor = isDark ? Colors.white : const Color(0xFF0A1F33);
-    final captionColor = textColor.withOpacity(isDark ? 0.7 : 0.6);
+    final captionColor = textColor.withOpacity(isDark ? 0.7 : 0.55);
     final gradient = isDark
-        ? [base.withOpacity(0.42), base.withOpacity(0.24)]
-        : [base.withOpacity(0.18), base.withOpacity(0.08)];
+        ? [base.withOpacity(0.32), base.withOpacity(0.16)]
+        : [base.withOpacity(0.14), Colors.white.withOpacity(0.9)];
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 150, maxWidth: 200),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: gradient,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+        border: Border.all(color: base.withOpacity(isDark ? 0.38 : 0.22)),
+        boxShadow: [
+          BoxShadow(
+            color: base.withOpacity(isDark ? 0.22 : 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
-          border: Border.all(color: base.withOpacity(isDark ? 0.4 : 0.25)),
-          boxShadow: [
-            BoxShadow(
-              color: base.withOpacity(isDark ? 0.25 : 0.16),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(isDark ? 0.22 : 0.2),
-                  ),
-                  child: Icon(
-                    metric.icon,
-                    size: 16,
-                    color: isDark ? Colors.white : base,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(isDark ? 0.25 : 0.18),
+                ),
+                child: Icon(
+                  metric.icon,
+                  size: 14,
+                  color: isDark ? Colors.white : base,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  metric.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
+                    color: textColor,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    metric.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.4,
-                      color: textColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              metric.value,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: textColor,
               ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            metric.value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: textColor,
             ),
-            const SizedBox(height: 4),
-            Text(
-              metric.caption,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: captionColor,
-              ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            metric.caption,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: captionColor,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

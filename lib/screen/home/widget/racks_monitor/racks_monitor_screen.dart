@@ -238,41 +238,61 @@ class _RackInsightsColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        RackNumbersBox(controller: controller),
-        const SizedBox(height: 10),
-        _PanelCard(
-          margin: EdgeInsets.zero,
-          child: _RackPopulationCard(
-            total: totalRacks,
-            online: onlineCount,
-            offline: offlineCount,
-            activeFilter: activeFilter,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _PanelCard(
-          margin: EdgeInsets.zero,
-          child: PassByModelBar(controller: controller),
-        ),
-        const SizedBox(height: 10),
-        _PanelCard(
-          margin: EdgeInsets.zero,
-          child: SlotStatusDonut(controller: controller),
-        ),
-        const SizedBox(height: 10),
-        _PanelCard(
-          margin: EdgeInsets.zero,
-          child: YieldRateGauge(controller: controller),
-        ),
-        const SizedBox(height: 10),
-        _PanelCard(
-          margin: EdgeInsets.zero,
-          child: WipPassSummary(controller: controller),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 10.0;
+        final availableWidth = constraints.maxWidth;
+        final allowTwoUp = availableWidth >= 620;
+        final double pairedWidth = allowTwoUp
+            ? (availableWidth - gap) / 2
+            : availableWidth;
+
+        Widget chartCard(Widget child) {
+          return SizedBox(
+            width: pairedWidth,
+            child: _PanelCard(
+              margin: EdgeInsets.zero,
+              child: child,
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            RackNumbersBox(controller: controller),
+            const SizedBox(height: gap),
+            _PanelCard(
+              margin: EdgeInsets.zero,
+              child: _RackPopulationCard(
+                total: totalRacks,
+                online: onlineCount,
+                offline: offlineCount,
+                activeFilter: activeFilter,
+              ),
+            ),
+            const SizedBox(height: gap),
+            _PanelCard(
+              margin: EdgeInsets.zero,
+              child: PassByModelBar(controller: controller),
+            ),
+            const SizedBox(height: gap),
+            Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                chartCard(SlotStatusDonut(controller: controller)),
+                chartCard(YieldRateGauge(controller: controller)),
+              ],
+            ),
+            const SizedBox(height: gap),
+            _PanelCard(
+              margin: EdgeInsets.zero,
+              child: WipPassSummary(controller: controller),
+            ),
+          ],
+        );
+      },
     );
   }
 }
