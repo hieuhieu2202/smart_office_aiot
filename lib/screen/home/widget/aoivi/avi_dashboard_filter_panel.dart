@@ -48,7 +48,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
       vsync: this,
       duration: const Duration(milliseconds: 250),
     );
-    _offset = Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+    _offset = Tween<Offset>(begin: const Offset(0.12, -0.06), end: Offset.zero)
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     if (widget.show) _controller.forward();
 
@@ -735,9 +735,26 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final media = MediaQuery.of(context);
+    final width = media.size.width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final panelWidth = width >= 900 ? 420.0 : width * 0.85;
+    final bool isWide = width >= 1180;
+    final bool isTablet = width >= 820;
+    final double panelWidth = isWide
+        ? 360.0
+        : isTablet
+            ? 340.0
+            : math.min(width * 0.92, 332.0);
+    final double sidePadding = isWide
+        ? 32
+        : isTablet
+            ? 24
+            : 16;
+    final double topOffset = media.padding.top + (isTablet ? 96 : 88);
+    final double availableHeight = media.size.height - topOffset - 32;
+    final double scrollMaxHeight = availableHeight > 0
+        ? math.min(availableHeight, 520.0)
+        : 360.0;
 
     return IgnorePointer(
       ignoring: !widget.show,
@@ -752,231 +769,268 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                 _removeActiveOverlay();
                 widget.onClose();
               },
-              child: Container(color: Colors.transparent),
+              child: Container(color: Colors.black.withOpacity(0.08)),
             ),
             SlideTransition(
               position: _offset,
               child: Align(
-                alignment: Alignment.centerRight,
-                child: Material(
-                  color: Colors.transparent,
-                  elevation: 10,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: panelWidth,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      color:
-                          isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.10),
-                          blurRadius: 14,
-                          offset: const Offset(-4, 2),
-                        ),
-                      ],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Bộ lọc dữ liệu',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1A237E),
-                              ),
-                            ),
-                            const Spacer(),
-                            Obx(() {
-                              final disabled = dashboardController.isLoading.value ||
-                                  dashboardController.isGroupLoading.value ||
-                                  dashboardController.isMachineLoading.value ||
-                                  dashboardController.isModelLoading.value;
-                              return TextButton.icon(
-                                onPressed: disabled ? null : _onResetPressed,
-                                icon: const Icon(Icons.restart_alt_rounded, size: 20),
-                                label: const Text('Đặt lại'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: isDark
-                                      ? Colors.white70
-                                      : GlobalColors.primaryButtonLight,
-                                ),
-                              );
-                            }),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 26),
-                              onPressed: () {
-                                FocusScope.of(context).unfocus();
-                                _removeActiveOverlay();
-                                widget.onClose();
-                              },
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    width < 520 ? 16 : sidePadding,
+                    topOffset,
+                    sidePadding,
+                    24,
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    elevation: 12,
+                    borderRadius: BorderRadius.circular(18),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: panelWidth,
+                      ),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? GlobalColors.cardDarkBg
+                              : GlobalColors.cardLightBg,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.08)
+                                : const Color(0xFFE2E6F0),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.12),
+                              blurRadius: 18,
+                              offset: const Offset(0, 10),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Obx(() {
-                                  final groups =
-                                      dashboardController.groupNames.toList();
-                                  return _buildSelectionField(
-                                    label: 'Group',
-                                    placeholder: 'Chọn group',
-                                    value: _group,
-                                    options: groups,
-                                    isDark: isDark,
-                                    isLoading:
-                                        dashboardController.isGroupLoading.value,
-                                    fieldKey: _groupFieldKey,
-                                    fieldLink: _groupLink,
-                                    fieldId: 'group',
-                                    onSelected: (val) {
-                                      if (val != _group) {
-                                        _onGroupChanged(val);
-                                      }
-                                    },
-                                  );
-                                }),
-                                const SizedBox(height: 22),
-                                Obx(() {
-                                  final machines =
-                                      dashboardController.machineNames.toList();
-                                  return _buildSelectionField(
-                                    label: 'Machine',
-                                    placeholder: 'Chọn machine',
-                                    value: _machine,
-                                    options: machines,
-                                    isDark: isDark,
-                                    isLoading:
-                                        dashboardController.isMachineLoading.value,
-                                    fieldKey: _machineFieldKey,
-                                    fieldLink: _machineLink,
-                                    fieldId: 'machine',
-                                    onSelected: (val) {
-                                      if (val != _machine) {
-                                        _onMachineChanged(val);
-                                      }
-                                    },
-                                  );
-                                }),
-                                const SizedBox(height: 22),
-                                Obx(() {
-                                  final models =
-                                      dashboardController.modelNames.toList();
-                                  return _buildSelectionField(
-                                    label: 'Model',
-                                    placeholder: 'Chọn model',
-                                    value: _model,
-                                    options: models,
-                                    isDark: isDark,
-                                    isLoading:
-                                        dashboardController.isModelLoading.value,
-                                    fieldKey: _modelFieldKey,
-                                    fieldLink: _modelLink,
-                                    fieldId: 'model',
-                                    onSelected: (val) {
-                                      if (val != _model) {
-                                        setState(() {
-                                          _model = val;
-                                        });
-                                      }
-                                    },
-                                  );
-                                }),
-                                const SizedBox(height: 24),
-                                _buildDateRangeField(isDark),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        Obx(() {
-                          final isBusy = dashboardController.isLoading.value;
-                          final isOptionsBusy =
-                              dashboardController.isGroupLoading.value ||
-                                  dashboardController.isMachineLoading.value ||
-                                  dashboardController.isModelLoading.value;
-                          return Row(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: isDark
-                                        ? Colors.white70
-                                        : Colors.grey[800],
-                                    side: BorderSide(
-                                      color: (isDark
-                                              ? Colors.white24
-                                              : Colors.grey.shade400)
-                                          .withOpacity(0.7),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Bộ lọc dữ liệu',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF1F2B5B),
                                     ),
                                   ),
-                                  onPressed: () {
-                                    FocusScope.of(context).unfocus();
-                                    _removeActiveOverlay();
-                                    widget.onClose();
-                                  },
-                                  child: const Text('Hủy'),
+                                  const Spacer(),
+                                  Obx(() {
+                                    final disabled =
+                                        dashboardController.isLoading.value ||
+                                            dashboardController
+                                                .isGroupLoading.value ||
+                                            dashboardController
+                                                .isMachineLoading.value ||
+                                            dashboardController
+                                                .isModelLoading.value;
+                                    return TextButton.icon(
+                                      onPressed: disabled ? null : _onResetPressed,
+                                      icon: const Icon(
+                                        Icons.restart_alt_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text('Đặt lại'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: isDark
+                                            ? Colors.white70
+                                            : GlobalColors.primaryButtonLight,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                  IconButton(
+                                    icon: const Icon(Icons.close_rounded, size: 24),
+                                    onPressed: () {
+                                      FocusScope.of(context).unfocus();
+                                      _removeActiveOverlay();
+                                      widget.onClose();
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 18),
+                              ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxHeight: scrollMaxHeight,
+                                ),
+                                child: SingleChildScrollView(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Obx(() {
+                                        final groups =
+                                            dashboardController.groupNames.toList();
+                                        return _buildSelectionField(
+                                          label: 'Group',
+                                          placeholder: 'Chọn group',
+                                          value: _group,
+                                          options: groups,
+                                          isDark: isDark,
+                                          isLoading: dashboardController
+                                              .isGroupLoading.value,
+                                          fieldKey: _groupFieldKey,
+                                          fieldLink: _groupLink,
+                                          fieldId: 'group',
+                                          onSelected: (val) {
+                                            if (val != _group) {
+                                              _onGroupChanged(val);
+                                            }
+                                          },
+                                        );
+                                      }),
+                                      const SizedBox(height: 18),
+                                      Obx(() {
+                                        final machines =
+                                            dashboardController.machineNames
+                                                .toList();
+                                        return _buildSelectionField(
+                                          label: 'Machine',
+                                          placeholder: 'Chọn machine',
+                                          value: _machine,
+                                          options: machines,
+                                          isDark: isDark,
+                                          isLoading: dashboardController
+                                              .isMachineLoading.value,
+                                          fieldKey: _machineFieldKey,
+                                          fieldLink: _machineLink,
+                                          fieldId: 'machine',
+                                          onSelected: (val) {
+                                            if (val != _machine) {
+                                              _onMachineChanged(val);
+                                            }
+                                          },
+                                        );
+                                      }),
+                                      const SizedBox(height: 18),
+                                      Obx(() {
+                                        final models =
+                                            dashboardController.modelNames.toList();
+                                        return _buildSelectionField(
+                                          label: 'Model',
+                                          placeholder: 'Chọn model',
+                                          value: _model,
+                                          options: models,
+                                          isDark: isDark,
+                                          isLoading: dashboardController
+                                              .isModelLoading.value,
+                                          fieldKey: _modelFieldKey,
+                                          fieldLink: _modelLink,
+                                          fieldId: 'model',
+                                          onSelected: (val) {
+                                            if (val != _model) {
+                                              setState(() {
+                                                _model = val;
+                                              });
+                                            }
+                                          },
+                                        );
+                                      }),
+                                      const SizedBox(height: 20),
+                                      _buildDateRangeField(isDark),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF4CAF50),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                  ),
-                                  onPressed: (isBusy || isOptionsBusy)
-                                      ? null
-                                      : () {
+                              const SizedBox(height: 16),
+                              Obx(() {
+                                final isBusy = dashboardController.isLoading.value;
+                                final isOptionsBusy =
+                                    dashboardController.isGroupLoading.value ||
+                                        dashboardController
+                                            .isMachineLoading.value ||
+                                        dashboardController
+                                            .isModelLoading.value;
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton(
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: isDark
+                                              ? Colors.white70
+                                              : Colors.grey[800],
+                                          side: BorderSide(
+                                            color: (isDark
+                                                    ? Colors.white24
+                                                    : Colors.grey.shade400)
+                                                .withOpacity(0.7),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                          ),
+                                        ),
+                                        onPressed: () {
                                           FocusScope.of(context).unfocus();
                                           _removeActiveOverlay();
-                                          final range =
-                                              _rangeController.text.trim();
-                                          widget.onApply({
-                                            'groupName': _group,
-                                            'machineName': _machine,
-                                            'modelName': _model,
-                                            'rangeDateTime': range,
-                                          });
+                                          widget.onClose();
                                         },
-                                  child: isBusy
-                                      ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
+                                        child: const Text('Hủy'),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFF4CAF50),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 12,
                                           ),
-                                        )
-                                      : const Text('Áp dụng'),
-                                ),
-                              ),
+                                        ),
+                                        onPressed: (isBusy || isOptionsBusy)
+                                            ? null
+                                            : () {
+                                                FocusScope.of(context).unfocus();
+                                                _removeActiveOverlay();
+                                                final range =
+                                                    _rangeController.text.trim();
+                                                widget.onApply({
+                                                  'groupName': _group,
+                                                  'machineName': _machine,
+                                                  'modelName': _model,
+                                                  'rangeDateTime': range,
+                                                });
+                                              },
+                                        child: isBusy
+                                            ? const SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<Color>(
+                                                    Colors.white,
+                                                  ),
+                                                ),
+                                              )
+                                            : const Text('Áp dụng'),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }),
                             ],
-                          );
-                        }),
-                      ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
