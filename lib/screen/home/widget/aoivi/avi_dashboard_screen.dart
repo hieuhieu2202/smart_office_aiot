@@ -95,30 +95,31 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
     final isDark = theme.brightness == Brightness.dark;
     final accent = theme.colorScheme.primary;
 
+    final baseOverlay = theme.colorScheme.onSurface.withOpacity(isDark ? 0.08 : 0.06);
     final Color backgroundColor = highlight
-        ? accent.withOpacity(isDark ? 0.22 : 0.16)
-        : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05));
+        ? accent.withOpacity(isDark ? 0.2 : 0.14)
+        : baseOverlay;
     final Color borderColor = highlight
-        ? accent.withOpacity(isDark ? 0.55 : 0.35)
-        : (isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.06));
+        ? accent.withOpacity(isDark ? 0.45 : 0.28)
+        : theme.dividerColor.withOpacity(isDark ? 0.4 : 0.6);
     final Color iconColor = highlight
         ? accent
-        : (isDark ? Colors.white : Colors.black87);
+        : theme.colorScheme.onSurface.withOpacity(isDark ? 0.9 : 0.8);
 
     final button = Material(
       color: Colors.transparent,
       child: InkWell(
-        customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: borderColor, width: 1),
           ),
-          child: child ?? Icon(icon, color: iconColor, size: 20),
+          child: child ?? Icon(icon, color: iconColor, size: 18),
         ),
       ),
     );
@@ -146,11 +147,11 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
             child: child,
           );
         },
-        child: Icon(Icons.refresh_rounded,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Colors.black87,
-            size: 20),
+        child: Icon(
+          Icons.refresh_rounded,
+          color: Theme.of(context).colorScheme.onSurface,
+          size: 18,
+        ),
       ),
     );
   }
@@ -158,12 +159,11 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
   Widget _buildFilterSummaryRow(BuildContext context) {
     return Obx(() {
       return Wrap(
-        spacing: 10,
-        runSpacing: 10,
+        spacing: 8,
+        runSpacing: 8,
         children: [
           _buildFilterSummaryChip(
             context,
-            icon: Icons.account_tree_outlined,
             label: 'Group',
             value: controller.selectedGroup.value,
             isDefault: _matchesDefault(
@@ -173,7 +173,6 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
           ),
           _buildFilterSummaryChip(
             context,
-            icon: Icons.precision_manufacturing,
             label: 'Machine',
             value: controller.selectedMachine.value,
             isDefault: _matchesDefault(
@@ -183,7 +182,6 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
           ),
           _buildFilterSummaryChip(
             context,
-            icon: Icons.view_in_ar,
             label: 'Model',
             value: controller.selectedModel.value,
             isDefault: _matchesDefault(
@@ -198,7 +196,6 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
 
   Widget _buildFilterSummaryChip(
     BuildContext context, {
-    required IconData icon,
     required String label,
     required String value,
     required bool isDefault,
@@ -207,31 +204,32 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
     final isDark = theme.brightness == Brightness.dark;
     final accent = theme.colorScheme.primary;
     final baseBackground = isDefault
-        ? (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04))
-        : accent.withOpacity(isDark ? 0.22 : 0.16);
+        ? theme.colorScheme.onSurface.withOpacity(isDark ? 0.04 : 0.05)
+        : accent.withOpacity(isDark ? 0.2 : 0.14);
     final borderColor = isDefault
-        ? (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05))
-        : accent.withOpacity(isDark ? 0.55 : 0.32);
-    final iconColor = isDefault
-        ? theme.colorScheme.onSurface.withOpacity(0.65)
-        : accent;
+        ? theme.colorScheme.onSurface.withOpacity(isDark ? 0.06 : 0.07)
+        : accent.withOpacity(isDark ? 0.45 : 0.28);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSurface.withOpacity(0.6),
-          letterSpacing: 0.5,
+          color: theme.colorScheme.onSurface.withOpacity(0.55),
+          letterSpacing: 0.4,
           fontWeight: FontWeight.w600,
         ) ??
         TextStyle(
-          color: theme.colorScheme.onSurface.withOpacity(0.6),
+          color: theme.colorScheme.onSurface.withOpacity(0.55),
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
+          letterSpacing: 0.4,
         );
-    final valueStyle = theme.textTheme.bodyMedium?.copyWith(
-          color: isDefault ? theme.colorScheme.onSurface : accent,
+    final valueStyle = theme.textTheme.bodySmall?.copyWith(
+          color: isDefault
+              ? theme.colorScheme.onSurface.withOpacity(0.85)
+              : accent,
           fontWeight: FontWeight.w600,
         ) ??
         TextStyle(
-          color: isDefault ? theme.colorScheme.onSurface : accent,
+          color: isDefault
+              ? theme.colorScheme.onSurface.withOpacity(0.85)
+              : accent,
           fontSize: 13,
           fontWeight: FontWeight.w600,
         );
@@ -240,38 +238,28 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
       constraints: const BoxConstraints(maxWidth: 220),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: baseBackground,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: borderColor),
         ),
-        child: Row(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: iconColor, size: 18),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label.toUpperCase(),
-                    style: labelStyle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    value.isNotEmpty ? value : '—',
-                    style: valueStyle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+            Text(
+              label.toUpperCase(),
+              style: labelStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value.isNotEmpty ? value : '—',
+              style: valueStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -286,13 +274,13 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
         return const SizedBox.shrink();
       }
       final theme = Theme.of(context);
-      final mutedColor = theme.colorScheme.onSurface.withOpacity(0.6);
+      final mutedColor = theme.colorScheme.onSurface.withOpacity(0.55);
       return AnimatedOpacity(
         duration: const Duration(milliseconds: 220),
         opacity: 1,
         child: Row(
           children: [
-            Icon(Icons.history_toggle_off, color: mutedColor, size: 18),
+            Icon(Icons.history_toggle_off, color: mutedColor, size: 16),
             const SizedBox(width: 6),
             Text(
               'Đã cập nhật lúc ${DateFormat.Hms().format(time)}',
@@ -319,28 +307,23 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
     final mediaQuery = MediaQuery.of(context);
     final topPadding = mediaQuery.padding.top;
     final isDark = theme.brightness == Brightness.dark;
-    final surfaceColor = theme.colorScheme.surface;
-    final surfaceTint = theme.colorScheme.surfaceTint;
-    final borderColor = theme.colorScheme.onSurface.withOpacity(isDark ? 0.12 : 0.08);
-    final headerBackground = Color.alphaBlend(
-      surfaceTint.withOpacity(isDark ? 0.12 : 0.05),
-      surfaceColor,
-    );
+    final borderColor = theme.dividerColor.withOpacity(isDark ? 0.4 : 0.7);
+    final headerBackground = theme.colorScheme.surface;
     final titleColor = theme.colorScheme.onSurface;
     final subtitleColor = titleColor.withOpacity(0.7);
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, 16),
+      padding: EdgeInsets.fromLTRB(16, topPadding + 10, 16, 12),
       decoration: BoxDecoration(
         color: headerBackground,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
         border: Border(bottom: BorderSide(color: borderColor)),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withOpacity(isDark ? 0.35 : 0.12),
-            offset: const Offset(0, 8),
-            blurRadius: 24,
+            color: theme.shadowColor.withOpacity(isDark ? 0.25 : 0.08),
+            offset: const Offset(0, 4),
+            blurRadius: 12,
           ),
         ],
       ),
@@ -364,22 +347,22 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
                     onTapCancel: () => setState(() => _backPressed = false),
                     onTapUp: (_) => setState(() => _backPressed = false),
                     child: Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: titleColor.withOpacity(isDark ? 0.08 : 0.06),
-                        borderRadius: BorderRadius.circular(16),
+                        color: titleColor.withOpacity(isDark ? 0.08 : 0.05),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: borderColor),
                       ),
                       child: Icon(
                         Icons.arrow_back_rounded,
                         color: titleColor,
-                        size: 20,
+                        size: 18,
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,14 +370,14 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
                     Obx(
                       () => Text(
                         _resolvePrimaryTitle(),
-                        style: theme.textTheme.titleLarge?.copyWith(
+                        style: theme.textTheme.titleMedium?.copyWith(
                               color: titleColor,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.2,
                             ) ??
                             TextStyle(
                               color: titleColor,
-                              fontSize: 20,
+                              fontSize: 18,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.2,
                             ),
@@ -402,13 +385,13 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Obx(
                       () => Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Icon(Icons.calendar_today_rounded,
-                              color: subtitleColor, size: 16),
+                              color: subtitleColor, size: 14),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
@@ -432,7 +415,7 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Obx(
                 () => _buildToolbarButton(
                   context,
@@ -448,13 +431,13 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
                   },
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _buildRefreshButton(context),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildFilterSummaryRow(context),
           const SizedBox(height: 12),
+          _buildFilterSummaryRow(context),
+          const SizedBox(height: 10),
           _buildLastUpdatedRow(context),
         ],
       ),
