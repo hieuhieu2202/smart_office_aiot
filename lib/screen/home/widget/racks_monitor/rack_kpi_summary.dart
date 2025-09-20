@@ -68,9 +68,9 @@ class RackNumbersBox extends StatelessWidget {
 
       return LayoutBuilder(
         builder: (context, constraints) {
-          const spacing = 12.0;
-          const minTileWidth = 120.0;
-          const maxTileWidth = 168.0;
+          const spacing = 6.0;
+          const minTileWidth = 96.0;
+          const maxTileWidth = 132.0;
 
           double availableWidth = constraints.maxWidth;
           if (!availableWidth.isFinite) {
@@ -192,80 +192,71 @@ class _SummaryMetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final base = metric.color;
-    final textColor = isDark ? Colors.white : const Color(0xFF0A1F33);
-    final captionColor = textColor.withOpacity(isDark ? 0.7 : 0.55);
-    final gradient = isDark
-        ? [base.withOpacity(0.32), base.withOpacity(0.16)]
-        : [base.withOpacity(0.14), Colors.white.withOpacity(0.9)];
+    final labelStyle = theme.textTheme.labelMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.2,
+      color: base,
+    );
+    final valueStyle = theme.textTheme.titleMedium?.copyWith(
+      fontSize: 15,
+      fontWeight: FontWeight.w800,
+      color: base,
+    );
+    final captionStyle = theme.textTheme.bodySmall?.copyWith(
+      fontWeight: FontWeight.w600,
+      color: base.withOpacity(0.85),
+    );
+
+    final backgroundColor = isDark
+        ? const Color(0xFF0F172A)
+        : theme.colorScheme.surfaceVariant.withOpacity(0.65);
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.04)
+        : theme.colorScheme.outline.withOpacity(0.3);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradient,
-        ),
-        border: Border.all(color: base.withOpacity(isDark ? 0.38 : 0.22)),
-        boxShadow: [
-          BoxShadow(
-            color: base.withOpacity(isDark ? 0.22 : 0.12),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(isDark ? 0.25 : 0.18),
-                ),
-                child: Icon(
-                  metric.icon,
-                  size: 14,
-                  color: isDark ? Colors.white : base,
-                ),
+              Icon(
+                metric.icon,
+                size: 18,
+                color: base,
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              const SizedBox(width: 6),
+              Flexible(
                 child: Text(
                   metric.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.3,
-                    color: textColor,
-                  ),
+                  style: labelStyle,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           Text(
             metric.value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: textColor,
-            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: valueStyle,
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 2),
           Text(
             metric.caption,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: captionColor,
-            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: captionStyle,
           ),
         ],
       ),
