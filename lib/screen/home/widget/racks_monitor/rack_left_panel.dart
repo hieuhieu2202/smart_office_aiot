@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../service/lc_switch_rack_api.dart'
     show RackDetail, SlotDetail;
+import 'rack_status_utils.dart';
 
 /// ===== Palette (theo web) =====
 class _RackColors {
@@ -36,10 +37,8 @@ class _RackColors {
       dark ? Colors.white10 : Colors.grey.shade300;
 }
 
-String _norm(String? s) => (s ?? '').trim().toUpperCase();
-
 Color _statusColor(String? status) {
-  switch (_norm(status)) {
+  switch (normalizeRackStatus(status)) {
     case 'PASS':
       return _RackColors.green;
     case 'TESTING':
@@ -53,61 +52,6 @@ Color _statusColor(String? status) {
     default:
       return _RackColors.offline;
   }
-}
-
-/// Tập từ khóa thể hiện offline/no-connect
-const _offlineKeywords = {
-  'OFFLINE',
-  'NO CONNECT',
-  'NO_CONNECT',
-  'DISCONNECTED',
-  'DISCONNECT',
-  'NOT CONNECTED',
-  'POWER OFF',
-  'POWER_OFF',
-};
-
-/// Có hoạt động thực sự (để coi là chạy)?
-/// CHỈ tính khi có input hoặc totalPass > 0 (bỏ runtime/totalTime, bỏ UT).
-bool _hasActivityRack(RackDetail rack, List<SlotDetail> slots) {
-  if (rack.input > 0) return true; // có PCS thực sự
-  for (final s in slots) {
-    if (s.input > 0) return true;      // slot có input
-    if (s.totalPass > 0) return true;  // slot có pass
-  }
-  return false;
-}
-
-/// Nhận diện OFFLINE cho cả rack
-/// - Bất kỳ slot có status thuộc _offlineKeywords => OFFLINE
-/// - Hoặc KHÔNG có hoạt động thực sự ở rack/slot => OFFLINE
-/// (KHÔNG dựa vào UT)
-bool _isOfflineRack(List<SlotDetail> slots, RackDetail rack) {
-  if (slots.isEmpty) return true;
-
-  for (final s in slots) {
-    final st = _norm(s.status);
-    if (_offlineKeywords.contains(st)) return true;
-  }
-
-  final hasActivity = _hasActivityRack(rack, slots);
-  if (!hasActivity) return true;
-
-  return false;
-}
-
-/// Nhận diện OFFLINE / EMPTY cho từng slot (tone xám giống web)
-bool _isOfflineSlot(SlotDetail s) {
-  final st = _norm(s.status);
-  if (_offlineKeywords.contains(st)) return true;
-
-  final noActivity = (s.input == 0) && (s.totalPass == 0);
-  return noActivity;
-}
-
-/// RUNNING khi có hoạt động thực sự (bỏ UT)
-bool _isRunningRack(RackDetail rack, List<SlotDetail> slots) {
-  return _hasActivityRack(rack, slots);
 }
 
 /// =================== LEGEND BAR ===================
@@ -280,8 +224,8 @@ class _RackCardState extends State<_RackCard>
     final rack = widget.rack;
     final slots = rack.slotDetails;
 
-    final isOffline = _isOfflineRack(slots, rack);
-    final isRunning = _isRunningRack(rack, slots);
+    final isOffline = isRackOffline(rack, slots: slots);
+    final isRunning = isRackRunning(rack, slots: slots);
 
     return LayoutBuilder(
       builder: (ctx, box) {
@@ -594,7 +538,7 @@ class _SlotListState extends State<_SlotList> {
 
             // === QUY TẮC XÁM CHO SLOT ===
             final bool slotGray =
-                widget.dimmed || _isOfflineSlot(s) || (s.yr <= 0) ||
+                widget.dimmed || isSlotOffline(s) || (s.yr <= 0) ||
                     (s.input == 0 && s.totalPass == 0);
 
             // Tone theo slotGray
