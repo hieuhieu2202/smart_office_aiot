@@ -30,20 +30,20 @@ class YieldRateGauge extends StatelessWidget {
         Center(
           child: SizedBox(
             // rộng hơn cao để có khoảng trống dưới cho “0” và “100”
-            width: 240, height: 150,
+            width: 210, height: 130,
             child: CustomPaint(
               painter: _GaugePainter(
                 value: yr,
                 baseColor: baseColor,
                 activeColor: activeColor,
                 labelColor: labelColor,
-                thickness: 14,        // mỏng hơn → đỡ đè chữ
-                sideLabelPadding: 8,  // khoảng cách “0/100” với cung
+                thickness: 12,        // mỏng hơn → đỡ đè chữ
+                sideLabelPadding: 6,  // khoảng cách “0/100” với cung
               ),
               // đặt % hơi cao lên để nằm gọn trong lòng cung
               child: LayoutBuilder(
                 builder: (context, c) => Padding(
-                  padding: const EdgeInsets.only(top: 8), // đẩy text lên chút
+                  padding: const EdgeInsets.only(top: 6), // đẩy text lên chút
                   child: Align(
                     alignment: const Alignment(0, -0.05),
                     child: Text(

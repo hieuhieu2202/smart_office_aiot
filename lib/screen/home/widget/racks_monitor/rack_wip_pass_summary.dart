@@ -40,13 +40,13 @@ class WipPassSummary extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: tiles
-              .map((metric) => _TotalTile(metric: metric))
-              .toList(),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _TotalTile(metric: tiles[0])),
+            const SizedBox(width: 12),
+            Expanded(child: _TotalTile(metric: tiles[1])),
+          ],
         ),
       ],
     );
@@ -77,62 +77,53 @@ class _TotalTile extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 150, maxWidth: 220),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.black.withOpacity(0.05),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: isDark ? Colors.white.withOpacity(0.04) : Colors.white,
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: metric.color.withOpacity(isDark ? 0.2 : 0.14),
+            ),
+            child: Icon(metric.icon, color: metric.color, size: 18),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: metric.color.withOpacity(isDark ? 0.18 : 0.12),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: metric.color.withOpacity(0.18),
-              ),
-              child: Icon(metric.icon, color: metric.color, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    metric.label,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
-                      color: metric.color,
-                    ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  metric.label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                    color: metric.color,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    metric.value,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  metric.value,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -30,21 +30,21 @@ class SlotStatusDonut extends StatelessWidget {
           Text('SLOT STATUS', style: Theme.of(context).textTheme.labelMedium),
           const SizedBox(height: 8),
           AspectRatio(
-            aspectRatio: 1.2,
+            aspectRatio: 1,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 PieChart(
                   PieChartData(
                     sectionsSpace: 0,
-                    centerSpaceRadius: 50,
+                    centerSpaceRadius: 42,
                     startDegreeOffset: -90,
                     sections: slices.map((e) {
                       return PieChartSectionData(
                         value: e.value.toDouble(),
                         title: '',
                         color: e.color,
-                        radius: 30,
+                        radius: 34,
                       );
                     }).toList(),
                   ),
@@ -54,17 +54,17 @@ class SlotStatusDonut extends StatelessWidget {
                   children: [
                     Text(
                       '$total slot',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 12,
             runSpacing: 4,

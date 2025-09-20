@@ -240,16 +240,22 @@ class _RackInsightsColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        const gap = 10.0;
-        final availableWidth = constraints.maxWidth;
-        final allowTwoUp = availableWidth >= 620;
-        final double pairedWidth = allowTwoUp
-            ? (availableWidth - gap) / 2
+        const gap = 12.0;
+        final availableWidth =
+            constraints.maxWidth.isFinite && constraints.maxWidth > 0
+                ? constraints.maxWidth
+                : MediaQuery.of(context).size.width;
+        final allowGrid = availableWidth >= 640;
+        final double halfWidth = allowGrid
+            ? (((availableWidth - gap) / 2).clamp(0.0, availableWidth)).toDouble()
             : availableWidth;
 
-        Widget chartCard(Widget child) {
+        Widget tile({required Widget child, int span = 1}) {
+          final width = !allowGrid || span >= 2
+              ? availableWidth
+              : halfWidth;
           return SizedBox(
-            width: pairedWidth,
+            width: width,
             child: _PanelCard(
               margin: EdgeInsets.zero,
               child: child,
@@ -262,33 +268,32 @@ class _RackInsightsColumn extends StatelessWidget {
           children: [
             RackNumbersBox(controller: controller),
             const SizedBox(height: gap),
-            _PanelCard(
-              margin: EdgeInsets.zero,
-              child: _RackPopulationCard(
-                total: totalRacks,
-                online: onlineCount,
-                offline: offlineCount,
-                activeFilter: activeFilter,
-              ),
-            ),
-            const SizedBox(height: gap),
-            _PanelCard(
-              margin: EdgeInsets.zero,
-              child: PassByModelBar(controller: controller),
-            ),
-            const SizedBox(height: gap),
             Wrap(
               spacing: gap,
               runSpacing: gap,
+              alignment:
+                  allowGrid ? WrapAlignment.start : WrapAlignment.center,
               children: [
-                chartCard(SlotStatusDonut(controller: controller)),
-                chartCard(YieldRateGauge(controller: controller)),
+                tile(
+                  span: 2,
+                  child: _RackPopulationCard(
+                    total: totalRacks,
+                    online: onlineCount,
+                    offline: offlineCount,
+                    activeFilter: activeFilter,
+                  ),
+                ),
+                tile(
+                  span: 2,
+                  child: PassByModelBar(controller: controller),
+                ),
+                tile(child: SlotStatusDonut(controller: controller)),
+                tile(child: YieldRateGauge(controller: controller)),
+                tile(
+                  span: 2,
+                  child: WipPassSummary(controller: controller),
+                ),
               ],
-            ),
-            const SizedBox(height: gap),
-            _PanelCard(
-              margin: EdgeInsets.zero,
-              child: WipPassSummary(controller: controller),
             ),
           ],
         );
@@ -572,7 +577,7 @@ class _RackPopulationCard extends StatelessWidget {
     final highlightOffline = activeFilter != _RackListFilter.online;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
@@ -613,7 +618,7 @@ class _RackPopulationCard extends StatelessWidget {
               color: theme.colorScheme.onSurface.withOpacity(0.65),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -637,11 +642,11 @@ class _RackPopulationCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
-              minHeight: 8,
+              minHeight: 6,
               value: onlineRatio,
               backgroundColor:
                   theme.colorScheme.onSurface.withOpacity(
@@ -651,7 +656,7 @@ class _RackPopulationCard extends StatelessWidget {
                   const AlwaysStoppedAnimation<Color>(Color(0xFF20C25D)),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             total == 0
                 ? 'Adjust the filters to view rack connectivity.'
@@ -695,9 +700,9 @@ class _AvailabilityStat extends StatelessWidget {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         color: background,
         border: Border.all(
           color: highlight ? accent.withOpacity(0.45) : Colors.transparent,
@@ -706,13 +711,13 @@ class _AvailabilityStat extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: color.withOpacity(0.2),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -902,7 +907,7 @@ class _PanelCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: margin ?? EdgeInsets.zero,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0B1E30) : Colors.white,
         borderRadius: BorderRadius.circular(20),
