@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../../../../service/lc_switch_rack_api.dart' show RackDetail;
 import '../../controller/racks_monitor_controller.dart';
 import 'rack_filter_sheet.dart';
@@ -11,162 +12,446 @@ import 'rack_status_utils.dart';
 import 'rack_wip_pass_summary.dart';
 import 'rack_yield_rate_gauge.dart';
 
-class GroupMonitorScreen extends StatelessWidget {
+enum _RackListFilter { all, online, offline }
+
+class GroupMonitorScreen extends StatefulWidget {
   const GroupMonitorScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(GroupMonitorController());
+  State<GroupMonitorScreen> createState() => _GroupMonitorScreenState();
+}
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Obx(() {
-            final f = controller.selFactory.value;
-            final fl = controller.selFloor.value;
-            final g = controller.selGroup.value;
-            final m = controller.selModel.value;
-            final parts = <String>[
-              f,
-              if (fl != 'ALL') fl,
-              if (g != 'ALL') g,
-              if (m != 'ALL') m,
-            ];
-            return Text(parts.isEmpty ? 'Rack Monitor' : parts.join('  ·  '));
-          }),
-          actions: [
-            RackFilterPanel(controller: controller),
-            Obx(
-              () => IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: controller.isLoading.value ? null : controller.refresh,
-                tooltip: 'Refresh',
-              ),
+class _GroupMonitorScreenState extends State<GroupMonitorScreen> {
+  late final GroupMonitorController controller;
+  final ValueNotifier<_RackListFilter> _filter =
+      ValueNotifier<_RackListFilter>(_RackListFilter.all);
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(GroupMonitorController());
+  }
+
+  @override
+  void dispose() {
+    _filter.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Obx(() {
+          final f = controller.selFactory.value;
+          final fl = controller.selFloor.value;
+          final g = controller.selGroup.value;
+          final m = controller.selModel.value;
+          final parts = <String>[
+            f,
+            if (fl != 'ALL') fl,
+            if (g != 'ALL') g,
+            if (m != 'ALL') m,
+          ];
+          return Text(parts.isEmpty ? 'Rack Monitor' : parts.join('  ·  '));
+        }),
+        actions: [
+          RackFilterPanel(controller: controller),
+          Obx(
+            () => IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed:
+                  controller.isLoading.value ? null : controller.refresh,
+              tooltip: 'Refresh',
             ),
-            const SizedBox(width: 6),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
+      body: Obx(() {
+        final error = controller.error.value;
+        if (error != null) {
+          return _ErrorState(
+            message: error,
+            onRetry: controller.refresh,
+          );
+        }
+
+        if (controller.isLoading.value && controller.data.value == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final data = controller.data.value;
+        if (data == null) {
+          return const Center(child: Text('No data'));
+        }
+
+        final partition = _RackPartition.from(data.rackDetails);
+
+        return Stack(
+          children: [
+            ValueListenableBuilder<_RackListFilter>(
+              valueListenable: _filter,
+              builder: (context, filter, _) {
+                late final List<RackDetail> selectedRacks;
+                switch (filter) {
+                  case _RackListFilter.all:
+                    selectedRacks = [
+                      ...partition.online,
+                      ...partition.offline,
+                    ];
+                    break;
+                  case _RackListFilter.online:
+                    selectedRacks = partition.online;
+                    break;
+                  case _RackListFilter.offline:
+                    selectedRacks = partition.offline;
+                    break;
+                }
+
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final wide = constraints.maxWidth >= 1180;
+                    final insights = _RackInsightsColumn(
+                      controller: controller,
+                      totalRacks: partition.total,
+                      onlineCount: partition.online.length,
+                      offlineCount: partition.offline.length,
+                      activeFilter: filter,
+                    );
+
+                    final slivers = <Widget>[
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: wide
+                              ? const EdgeInsets.fromLTRB(12, 16, 12, 8)
+                              : const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                          child: _RackFilterRibbon(
+                            filter: filter,
+                            total: partition.total,
+                            online: partition.online.length,
+                            offline: partition.offline.length,
+                            onChanged: (value) => _filter.value = value,
+                          ),
+                        ),
+                      ),
+                      if (selectedRacks.isEmpty) ...[
+                        const SliverToBoxAdapter(
+                          child: RackStatusLegendBar(),
+                        ),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: _EmptyRacksMessage(
+                            mode: filter,
+                            onRefresh: controller.refresh,
+                          ),
+                        ),
+                      ] else ...[
+                        RackLeftPanel(racks: selectedRacks),
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                      ],
+                    ];
+
+                    if (wide) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: RefreshIndicator(
+                              onRefresh: controller.refresh,
+                              child: CustomScrollView(
+                                physics: const BouncingScrollPhysics(
+                                  parent: AlwaysScrollableScrollPhysics(),
+                                ),
+                                slivers: slivers,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: 360,
+                            child: SingleChildScrollView(
+                              padding:
+                                  const EdgeInsets.fromLTRB(12, 16, 12, 24),
+                              physics: const BouncingScrollPhysics(),
+                              child: insights,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return RefreshIndicator(
+                      onRefresh: controller.refresh,
+                      child: CustomScrollView(
+                        physics: const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
+                        ),
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(12, 16, 12, 12),
+                              child: insights,
+                            ),
+                          ),
+                          ...slivers,
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            if (controller.isLoading.value && controller.data.value != null)
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  ignoring: true,
+                  child: LinearProgressIndicator(minHeight: 2),
+                ),
+              ),
           ],
-          bottom: const PreferredSize(
-            preferredSize: Size.fromHeight(72),
-            child: _RackCategoryTabs(),
+        );
+      }),
+    );
+  }
+}
+
+class _RackInsightsColumn extends StatelessWidget {
+  const _RackInsightsColumn({
+    required this.controller,
+    required this.totalRacks,
+    required this.onlineCount,
+    required this.offlineCount,
+    required this.activeFilter,
+  });
+
+  final GroupMonitorController controller;
+  final int totalRacks;
+  final int onlineCount;
+  final int offlineCount;
+  final _RackListFilter activeFilter;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        RackNumbersBox(controller: controller),
+        const SizedBox(height: 12),
+        _PanelCard(
+          margin: EdgeInsets.zero,
+          child: _RackPopulationCard(
+            total: totalRacks,
+            online: onlineCount,
+            offline: offlineCount,
+            activeFilter: activeFilter,
           ),
         ),
-        body: Obx(() {
-          final error = controller.error.value;
-          if (error != null) {
-            return _ErrorState(
-              message: error,
-              onRetry: controller.refresh,
-            );
-          }
+        const SizedBox(height: 12),
+        _PanelCard(
+          margin: EdgeInsets.zero,
+          child: PassByModelBar(controller: controller),
+        ),
+        const SizedBox(height: 12),
+        _PanelCard(
+          margin: EdgeInsets.zero,
+          child: SlotStatusDonut(controller: controller),
+        ),
+        const SizedBox(height: 12),
+        _PanelCard(
+          margin: EdgeInsets.zero,
+          child: YieldRateGauge(controller: controller),
+        ),
+        const SizedBox(height: 12),
+        _PanelCard(
+          margin: EdgeInsets.zero,
+          child: WipPassSummary(controller: controller),
+        ),
+      ],
+    );
+  }
+}
 
-          if (controller.isLoading.value && controller.data.value == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
+class _RackFilterRibbon extends StatelessWidget {
+  const _RackFilterRibbon({
+    required this.filter,
+    required this.total,
+    required this.online,
+    required this.offline,
+    required this.onChanged,
+  });
 
-          final data = controller.data.value;
-          if (data == null) {
-            return const Center(child: Text('No data'));
-          }
+  final _RackListFilter filter;
+  final int total;
+  final int online;
+  final int offline;
+  final ValueChanged<_RackListFilter> onChanged;
 
-          final split = _RackPartition.from(data.rackDetails);
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final items = [
+      _RibbonItem(
+        filter: _RackListFilter.all,
+        label: 'All',
+        count: total,
+        icon: Icons.apps_rounded,
+        color: isDark
+            ? const Color(0xFF64B5F6)
+            : const Color(0xFF1565C0),
+      ),
+      _RibbonItem(
+        filter: _RackListFilter.online,
+        label: 'Online',
+        count: online,
+        icon: Icons.cloud_done_rounded,
+        color: const Color(0xFF20C25D),
+      ),
+      _RibbonItem(
+        filter: _RackListFilter.offline,
+        label: 'Offline',
+        count: offline,
+        icon: Icons.cloud_off_rounded,
+        color: const Color(0xFFE53935),
+      ),
+    ];
 
-          return Stack(
-            children: [
-              TabBarView(
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  _RackMonitorTab(
-                    controller: controller,
-                    racks: split.online,
-                    totalRacks: split.total,
-                    onlineCount: split.online.length,
-                    offlineCount: split.offline.length,
-                    highlightOnline: true,
-                  ),
-                  _RackMonitorTab(
-                    controller: controller,
-                    racks: split.offline,
-                    totalRacks: split.total,
-                    onlineCount: split.online.length,
-                    offlineCount: split.offline.length,
-                    highlightOnline: false,
-                  ),
-                ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF0D1F33)
+            : const Color(0xFFF1F6FF),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.06),
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            for (final item in items)
+              _RibbonChip(
+                key: ValueKey(item.filter),
+                item: item,
+                selected: item.filter == filter,
+                onTap: () => onChanged(item.filter),
               ),
-              if (controller.isLoading.value && controller.data.value != null)
-                const Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    ignoring: true,
-                    child: LinearProgressIndicator(minHeight: 2),
-                  ),
-                ),
-            ],
-          );
-        }),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _RackCategoryTabs extends StatelessWidget {
-  const _RackCategoryTabs();
+class _RibbonItem {
+  const _RibbonItem({
+    required this.filter,
+    required this.label,
+    required this.count,
+    required this.icon,
+    required this.color,
+  });
+
+  final _RackListFilter filter;
+  final String label;
+  final int count;
+  final IconData icon;
+  final Color color;
+}
+
+class _RibbonChip extends StatelessWidget {
+  const _RibbonChip({
+    super.key,
+    required this.item,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _RibbonItem item;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<GroupMonitorController>();
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final accent = selected
+        ? item.color
+        : theme.colorScheme.onSurface.withOpacity(0.65);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Divider(
-          height: 1,
-          thickness: 1,
-          color: theme.dividerColor.withOpacity(isDark ? 0.25 : 0.6),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF1F4F8),
-              borderRadius: BorderRadius.circular(28),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: selected
+                ? item.color.withOpacity(0.18)
+                : theme.colorScheme.surface.withOpacity(
+                    theme.brightness == Brightness.dark ? 0.3 : 0.9,
+                  ),
+            border: Border.all(
+              color: selected
+                  ? item.color.withOpacity(0.5)
+                  : theme.colorScheme.outline.withOpacity(
+                      theme.brightness == Brightness.dark ? 0.25 : 0.35,
+                    ),
             ),
-            child: Obx(() {
-              final racks = controller.data.value?.rackDetails ?? const <RackDetail>[];
-              final split = _RackPartition.from(racks);
-              return TabBar(
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelStyle: theme.textTheme.titleSmall?.copyWith(
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(item.icon, size: 18, color: accent),
+              const SizedBox(width: 8),
+              Text(
+                item.label,
+                style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w700,
+                  color: accent,
                 ),
-                labelColor: isDark ? Colors.white : const Color(0xFF0F2540),
-                unselectedLabelColor: isDark ? Colors.white70 : Colors.black54,
-                indicator: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.12) : Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    if (!isDark)
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                  ],
-                ),
-                tabs: [
-                  Tab(text: 'Online (${split.online.length})'),
-                  Tab(text: 'Offline (${split.offline.length})'),
-                ],
-              );
-            }),
+              ),
+              const SizedBox(width: 10),
+              _RibbonBadge(color: accent, count: item.count),
+            ],
           ),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _RibbonBadge extends StatelessWidget {
+  const _RibbonBadge({required this.color, required this.count});
+
+  final Color color;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: color.withOpacity(isDark ? 0.18 : 0.12),
+      ),
+      child: Text(
+        '$count',
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+      ),
     );
   }
 }
@@ -196,276 +481,120 @@ class _RackPartition {
   int get total => online.length + offline.length;
 }
 
-class _RackMonitorTab extends StatelessWidget {
-  const _RackMonitorTab({
-    required this.controller,
-    required this.racks,
-    required this.totalRacks,
-    required this.onlineCount,
-    required this.offlineCount,
-    required this.highlightOnline,
-  });
-
-  final GroupMonitorController controller;
-  final List<RackDetail> racks;
-  final int totalRacks;
-  final int onlineCount;
-  final int offlineCount;
-  final bool highlightOnline;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final metrics = [
-      _PanelCard(child: PassByModelBar(controller: controller)),
-      _PanelCard(child: SlotStatusDonut(controller: controller)),
-      _PanelCard(child: YieldRateGauge(controller: controller)),
-      _PanelCard(child: WipPassSummary(controller: controller)),
-    ];
-
-    Widget buildEmptyState() {
-      return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const RackStatusLegendBar(),
-              const SizedBox(height: 16),
-              _EmptyRacksMessage(
-                highlightOnline: highlightOnline,
-                onRefresh: controller.refresh,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final header = SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-        child: _RackOverviewHeader(
-          controller: controller,
-          totalRacks: totalRacks,
-          onlineCount: onlineCount,
-          offlineCount: offlineCount,
-          highlightOnline: highlightOnline,
-        ),
-      ),
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 1100;
-
-        if (wide) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: CustomScrollView(
-                  physics: const BouncingScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics(),
-                  ),
-                  slivers: [
-                    header,
-                    if (racks.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: buildEmptyState(),
-                      )
-                    else
-                      RackLeftPanel(racks: racks),
-                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: 360,
-                child: ColoredBox(
-                  color: isDark
-                      ? const Color(0xFF061A2F)
-                      : const Color(0xFFF5F7FA),
-                  child: ListView(
-                    physics: const BouncingScrollPhysics(
-                      parent: AlwaysScrollableScrollPhysics(),
-                    ),
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-                    children: metrics,
-                  ),
-                ),
-              ),
-            ],
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: controller.refresh,
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            slivers: [
-              header,
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                  child: Column(children: metrics),
-                ),
-              ),
-              if (racks.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: buildEmptyState(),
-                )
-              else
-                RackLeftPanel(racks: racks),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _RackOverviewHeader extends StatelessWidget {
-  const _RackOverviewHeader({
-    required this.controller,
-    required this.totalRacks,
-    required this.onlineCount,
-    required this.offlineCount,
-    required this.highlightOnline,
-  });
-
-  final GroupMonitorController controller;
-  final int totalRacks;
-  final int onlineCount;
-  final int offlineCount;
-  final bool highlightOnline;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final horizontal = constraints.maxWidth >= 720;
-        final summaryCard = _PanelCard(
-          margin: EdgeInsets.zero,
-          child: RackNumbersBox(controller: controller),
-        );
-        final availabilityCard = _PanelCard(
-          margin: EdgeInsets.zero,
-          child: _RackPopulationCard(
-            total: totalRacks,
-            online: onlineCount,
-            offline: offlineCount,
-            highlightOnline: highlightOnline,
-          ),
-        );
-
-        if (horizontal) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: summaryCard),
-              const SizedBox(width: 12),
-              Expanded(child: availabilityCard),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            summaryCard,
-            const SizedBox(height: 12),
-            availabilityCard,
-          ],
-        );
-      },
-    );
-  }
-}
-
 class _RackPopulationCard extends StatelessWidget {
   const _RackPopulationCard({
     required this.total,
     required this.online,
     required this.offline,
-    required this.highlightOnline,
+    required this.activeFilter,
   });
 
   final int total;
   final int online;
   final int offline;
-  final bool highlightOnline;
+  final _RackListFilter activeFilter;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+    final isDark = theme.brightness == Brightness.dark;
     final onlineRatio = total == 0 ? 0.0 : online / total;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Rack availability',
-          style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+    final highlightOnline = activeFilter != _RackListFilter.offline;
+    final highlightOffline = activeFilter != _RackListFilter.online;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? const [Color(0xFF0F2639), Color(0xFF0A1B2A)]
+              : const [Color(0xFFF7FAFF), Color(0xFFE8F1FF)],
         ),
-        const SizedBox(height: 6),
-        Text(
-          total == 0 ? 'No racks detected for this filter.' : 'Total racks: $total',
-          style: textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.65),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.35)
+                : Colors.blueGrey.withOpacity(0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _AvailabilityStat(
-                label: 'Online',
-                count: online,
-                accent: const Color(0xFF20C25D),
-                highlight: highlightOnline,
-              ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Rack availability',
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _AvailabilityStat(
-                label: 'Offline',
-                count: offline,
-                accent: const Color(0xFFE53935),
-                highlight: !highlightOnline,
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            total == 0
+                ? 'No racks detected for this filter.'
+                : 'Total racks: $total',
+            style: textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.65),
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
-            minHeight: 6,
-            value: onlineRatio,
-            backgroundColor: theme.colorScheme.onSurface.withOpacity(0.08),
-            valueColor: const AlwaysStoppedAnimation(Color(0xFF20C25D)),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          total == 0
-              ? 'Adjust the filters to view rack connectivity.'
-              : '${(onlineRatio * 100).toStringAsFixed(0)}% of racks are online',
-          style: textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _AvailabilityStat(
+                  label: 'Online',
+                  count: online,
+                  accent: const Color(0xFF20C25D),
+                  highlight: highlightOnline,
+                  icon: Icons.cloud_done_rounded,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _AvailabilityStat(
+                  label: 'Offline',
+                  count: offline,
+                  accent: const Color(0xFFE53935),
+                  highlight: highlightOffline,
+                  icon: Icons.cloud_off_rounded,
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 20),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 8,
+              value: onlineRatio,
+              backgroundColor:
+                  theme.colorScheme.onSurface.withOpacity(
+                isDark ? 0.15 : 0.08,
+              ),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(Color(0xFF20C25D)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            total == 0
+                ? 'Adjust the filters to view rack connectivity.'
+                : '${(onlineRatio * 100).toStringAsFixed(0)}% of racks are online',
+            style: textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.65),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -476,44 +605,70 @@ class _AvailabilityStat extends StatelessWidget {
     required this.count,
     required this.accent,
     required this.highlight,
+    required this.icon,
   });
 
   final String label;
   final int count;
   final Color accent;
   final bool highlight;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-    final bg = highlight ? accent.withOpacity(0.15) : onSurface.withOpacity(0.05);
-    final color = highlight ? accent : onSurface.withOpacity(0.7);
+    final color = highlight
+        ? accent
+        : theme.colorScheme.onSurface.withOpacity(0.65);
+    final background = highlight
+        ? accent.withOpacity(0.18)
+        : theme.colorScheme.onSurface.withOpacity(
+            theme.brightness == Brightness.dark ? 0.15 : 0.06,
+          );
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: highlight ? accent.withOpacity(0.4) : Colors.transparent),
+        borderRadius: BorderRadius.circular(18),
+        color: background,
+        border: Border.all(
+          color: highlight ? accent.withOpacity(0.45) : Colors.transparent,
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            label.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(
-              letterSpacing: 0.6,
-              fontWeight: FontWeight.w700,
-              color: color,
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withOpacity(0.2),
             ),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 6),
-          Text(
-            '$count',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: color,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$count',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -524,60 +679,85 @@ class _AvailabilityStat extends StatelessWidget {
 
 class _EmptyRacksMessage extends StatelessWidget {
   const _EmptyRacksMessage({
-    required this.highlightOnline,
+    required this.mode,
     required this.onRefresh,
   });
 
-  final bool highlightOnline;
+  final _RackListFilter mode;
   final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final accent = highlightOnline ? const Color(0xFF20C25D) : const Color(0xFFE53935);
-    final title = highlightOnline ? 'No online racks' : 'No offline racks';
-    final subtitle = highlightOnline
-        ? 'All racks that match your filters are currently offline.'
-        : 'Great! Every rack that matches your filters is online right now.';
+    late final Color accent;
+    late final IconData icon;
+    late final String title;
+    late final String subtitle;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: accent.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: accent.withOpacity(0.35)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            highlightOnline ? Icons.cloud_off : Icons.cloud_done,
-            size: 48,
-            color: accent,
+    switch (mode) {
+      case _RackListFilter.all:
+        accent = const Color(0xFF1E88E5);
+        icon = Icons.storage_rounded;
+        title = 'No racks to show';
+        subtitle =
+            'Try adjusting the filters or refresh to pull the latest rack status.';
+        break;
+      case _RackListFilter.online:
+        accent = const Color(0xFF20C25D);
+        icon = Icons.cloud_done_rounded;
+        title = 'No online racks';
+        subtitle =
+            'All racks that match your filters are currently offline.';
+        break;
+      case _RackListFilter.offline:
+        accent = const Color(0xFFE53935);
+        icon = Icons.cloud_off_rounded;
+        title = 'No offline racks';
+        subtitle =
+            'Great! Every rack that matches your filters is online right now.';
+        break;
+    }
+
+    final theme = Theme.of(context);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: accent.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: accent.withOpacity(0.35)),
           ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: accent,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 52, color: accent),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: onRefresh,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
-            ),
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: onRefresh,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Refresh'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -654,21 +834,22 @@ class _PanelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      margin: margin ?? const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: margin ?? EdgeInsets.zero,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0E2A3A) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? const Color(0xFF0B1E30) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.white24 : Colors.grey.shade300,
+          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
         ),
         boxShadow: [
-          if (!isDark)
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.4)
+                : Colors.blueGrey.withOpacity(0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: child,
