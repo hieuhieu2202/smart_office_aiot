@@ -195,78 +195,352 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
     });
   }
 
-  InputDecoration _inputDecoration(String label, bool isDark) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: isDark
-          ? GlobalColors.inputDarkFill.withOpacity(0.16)
-          : GlobalColors.inputLightFill.withOpacity(0.18),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+  BoxDecoration _tileDecoration(bool isDark) {
+    return BoxDecoration(
+      color: isDark
+          ? GlobalColors.inputDarkFill.withOpacity(0.24)
+          : const Color(0xFFF5F6FA),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color:
+            isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE0E4EC),
       ),
     );
   }
 
-  Widget _buildDropdownField({
-    required String label,
-    required String? value,
-    required List<String> items,
-    required bool isDark,
-    required bool isLoading,
-    required ValueChanged<String?>? onChanged,
-  }) {
-    final List<String> options = List<String>.from(items);
-    final String? selectedValue =
-        (value != null && options.contains(value)) ? value : null;
+  Future<void> _openSelectionSheet({
+    required String title,
+    required List<String> options,
+    required String? selectedValue,
+    required ValueChanged<String> onSelected,
+  }) async {
+    FocusScope.of(context).unfocus();
+    if (options.isEmpty) return;
 
-    final dropdown = DropdownButtonFormField<String>(
-      value: selectedValue,
-      items: options
-          .map(
-            (item) => DropdownMenuItem<String>(
-              value: item,
-              child: Text(
-                item,
-                overflow: TextOverflow.ellipsis,
-              ),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final maxHeight = MediaQuery.of(context).size.height * 0.55;
+        final baseColor = isDark ? GlobalColors.cardDarkBg : Colors.white;
+        final dividerColor =
+            isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE8EAED);
+        final activeColor =
+            isDark ? const Color(0xFF8BC34A) : const Color(0xFF1B5E20);
+
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.only(top: 12),
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.20),
+                  blurRadius: 24,
+                  offset: const Offset(0, -4),
+                ),
+              ],
             ),
-          )
-          .toList(),
-      onChanged: isLoading ? null : onChanged,
-      isExpanded: true,
-      menuMaxHeight: 320,
-      icon: const Icon(Icons.keyboard_arrow_down_rounded),
-      decoration: _inputDecoration(label, isDark),
-      hint: const Text('Chọn giá trị'),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.20)
+                        : Colors.black.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF1A237E),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(color: dividerColor, height: 1),
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxHeight),
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      shrinkWrap: true,
+                      itemCount: options.length,
+                      separatorBuilder: (_, __) => Divider(
+                        color: dividerColor,
+                        height: 1,
+                      ),
+                      itemBuilder: (_, index) {
+                        final option = options[index];
+                        final isSelected = option == selectedValue;
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 6,
+                          ),
+                          onTap: () => Navigator.of(sheetContext).pop(option),
+                          leading: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            height: 26,
+                            width: 26,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? activeColor.withOpacity(0.12)
+                                  : Colors.transparent,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color:
+                                    isSelected ? activeColor : dividerColor,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.check_rounded,
+                                size: 16,
+                                color: isSelected
+                                    ? activeColor
+                                    : Colors.transparent,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            option,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: isSelected
+                                  ? activeColor
+                                  : (isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1C1C28)),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
     );
 
-    return Stack(
+    if (result != null && mounted) {
+      onSelected(result);
+    }
+  }
+
+  Widget _buildSelectionField({
+    required String label,
+    required String placeholder,
+    required String? value,
+    required List<String> options,
+    required bool isDark,
+    required bool isLoading,
+    required ValueChanged<String> onSelected,
+  }) {
+    final textStyle = TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.w500,
+      color: value == null
+          ? (isDark ? Colors.white54 : Colors.black45)
+          : (isDark ? Colors.white : const Color(0xFF1D1D35)),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        dropdown,
-        if (isLoading)
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark
-                    ? GlobalColors.cardDarkBg.withOpacity(0.38)
-                    : Colors.white.withOpacity(0.45),
-                borderRadius: BorderRadius.circular(10),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white70 : const Color(0xFF455A64),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: _tileDecoration(isDark),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      value ?? placeholder,
+                      style: textStyle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: isDark ? Colors.white70 : Colors.grey[700],
+                  ),
+                ],
               ),
-              child: const Center(
-                child: SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: (isLoading || options.isEmpty)
+                      ? null
+                      : () => _openSelectionSheet(
+                            title: label,
+                            options: options,
+                            selectedValue: value,
+                            onSelected: onSelected,
+                          ),
                 ),
               ),
             ),
+            if (isLoading)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? GlobalColors.cardDarkBg.withOpacity(0.36)
+                        : Colors.white.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        if (!isLoading && options.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'Không có dữ liệu khả dụng',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.white54 : Colors.black45,
+              ),
+            ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildDateRangeField(bool isDark) {
+    final valueText = _rangeController.text.trim();
+    final hasValue = valueText.isNotEmpty;
+    final displayText = hasValue ? valueText : 'Chọn khoảng thời gian';
+    final textColor = hasValue
+        ? (isDark ? Colors.white : const Color(0xFF1D1D35))
+        : (isDark ? Colors.white54 : Colors.black45);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Date range',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white70 : const Color(0xFF455A64),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: _tileDecoration(isDark),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      displayText,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: textColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    size: 20,
+                    color: isDark ? Colors.white70 : Colors.grey[700],
+                  ),
+                ],
+              ),
+            ),
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () async {
+                    FocusScope.of(context).unfocus();
+                    final now = DateTime.now();
+                    final picked = await showDateRangePicker(
+                      context: context,
+                      firstDate: DateTime(now.year - 1),
+                      lastDate: DateTime(now.year + 1),
+                      initialDateRange: _dateRange,
+                    );
+                    if (picked != null) {
+                      final format = DateFormat('yyyy/MM/dd HH:mm');
+                      setState(() {
+                        _dateRange = picked;
+                        _rangeController.text =
+                            '${format.format(picked.start)} - ${format.format(picked.end)}';
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -358,7 +632,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                             ),
                           ],
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 24),
                         Expanded(
                           child: SingleChildScrollView(
                             padding: const EdgeInsets.only(bottom: 12),
@@ -368,88 +642,63 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                                 Obx(() {
                                   final groups =
                                       dashboardController.groupNames.toList();
-                                  return _buildDropdownField(
+                                  return _buildSelectionField(
                                     label: 'Group',
+                                    placeholder: 'Chọn group',
                                     value: _group,
-                                    items: groups,
+                                    options: groups,
                                     isDark: isDark,
                                     isLoading:
                                         dashboardController.isGroupLoading.value,
-                                    onChanged: (val) {
-                                      if (val != null) {
+                                    onSelected: (val) {
+                                      if (val != _group) {
                                         _onGroupChanged(val);
                                       }
                                     },
                                   );
                                 }),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 22),
                                 Obx(() {
                                   final machines =
                                       dashboardController.machineNames.toList();
-                                  return _buildDropdownField(
+                                  return _buildSelectionField(
                                     label: 'Machine',
+                                    placeholder: 'Chọn machine',
                                     value: _machine,
-                                    items: machines,
+                                    options: machines,
                                     isDark: isDark,
                                     isLoading:
                                         dashboardController.isMachineLoading.value,
-                                    onChanged: (val) {
-                                      if (val != null) {
+                                    onSelected: (val) {
+                                      if (val != _machine) {
                                         _onMachineChanged(val);
                                       }
                                     },
                                   );
                                 }),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 22),
                                 Obx(() {
                                   final models =
                                       dashboardController.modelNames.toList();
-                                  return _buildDropdownField(
+                                  return _buildSelectionField(
                                     label: 'Model',
+                                    placeholder: 'Chọn model',
                                     value: _model,
-                                    items: models,
+                                    options: models,
                                     isDark: isDark,
                                     isLoading:
                                         dashboardController.isModelLoading.value,
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _model = val;
-                                      });
+                                    onSelected: (val) {
+                                      if (val != _model) {
+                                        setState(() {
+                                          _model = val;
+                                        });
+                                      }
                                     },
                                   );
                                 }),
-                                const SizedBox(height: 20),
-                                TextFormField(
-                                  controller: _rangeController,
-                                  readOnly: true,
-                                  style: const TextStyle(fontSize: 15),
-                                  onTap: () async {
-                                    FocusScope.of(context).unfocus();
-                                    final now = DateTime.now();
-                                    final picked = await showDateRangePicker(
-                                      context: context,
-                                      firstDate: DateTime(now.year - 1),
-                                      lastDate: DateTime(now.year + 1),
-                                      initialDateRange: _dateRange,
-                                    );
-                                    if (picked != null) {
-                                      final format =
-                                          DateFormat('yyyy/MM/dd HH:mm');
-                                      setState(() {
-                                        _dateRange = picked;
-                                        _rangeController.text =
-                                            '${format.format(picked.start)} - ${format.format(picked.end)}';
-                                      });
-                                    }
-                                  },
-                                  decoration:
-                                      _inputDecoration('Date range', isDark)
-                                          .copyWith(
-                                    suffixIcon: const Icon(
-                                      Icons.calendar_today_rounded,
-                                    ),
-                                  ),
-                                ),
+                                const SizedBox(height: 24),
+                                _buildDateRangeField(isDark),
                               ],
                             ),
                           ),
