@@ -246,14 +246,14 @@ class _RackInsightsColumn extends StatelessWidget {
                 ? constraints.maxWidth
                 : MediaQuery.of(context).size.width;
         final allowGrid = availableWidth >= 640;
-        final double halfWidth = allowGrid
-            ? (((availableWidth - gap) / 2).clamp(0.0, availableWidth)).toDouble()
-            : availableWidth;
+        final canPairCharts = availableWidth >= 300;
+        final double halfWidth =
+            (((availableWidth - gap) / 2).clamp(0.0, availableWidth)).toDouble();
 
-        Widget tile({required Widget child, int span = 1}) {
-          final width = !allowGrid || span >= 2
-              ? availableWidth
-              : halfWidth;
+        Widget tile({required Widget child, int span = 1, bool forceHalf = false}) {
+          final useHalfWidth =
+              span < 2 && (allowGrid || (forceHalf && canPairCharts));
+          final width = useHalfWidth ? halfWidth : availableWidth;
           return SizedBox(
             width: width,
             child: _PanelCard(
@@ -287,8 +287,14 @@ class _RackInsightsColumn extends StatelessWidget {
                   span: 2,
                   child: PassByModelBar(controller: controller),
                 ),
-                tile(child: SlotStatusDonut(controller: controller)),
-                tile(child: YieldRateGauge(controller: controller)),
+                tile(
+                  child: SlotStatusDonut(controller: controller),
+                  forceHalf: true,
+                ),
+                tile(
+                  child: YieldRateGauge(controller: controller),
+                  forceHalf: true,
+                ),
                 tile(
                   span: 2,
                   child: WipPassSummary(controller: controller),
