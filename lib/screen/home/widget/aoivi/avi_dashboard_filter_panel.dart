@@ -39,6 +39,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
   final GlobalKey _modelFieldKey = GlobalKey();
   OverlayEntry? _activeOverlay;
   String? _activeOverlayField;
+  TextEditingController? _overlaySearchController;
 
   @override
   void initState() {
@@ -224,6 +225,8 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
   }
 
   void _removeActiveOverlay() {
+    _overlaySearchController?.dispose();
+    _overlaySearchController = null;
     _activeOverlay?.remove();
     _activeOverlay = null;
     _activeOverlayField = null;
@@ -237,6 +240,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
     required String label,
     required String? selectedValue,
     required ValueChanged<String> onSelected,
+    bool enableSearch = false,
   }) {
     if (!mounted || options.isEmpty) {
       _removeActiveOverlay();
@@ -273,15 +277,35 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
         isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE3E7ED);
     final highlightColor =
         isDark ? GlobalColors.primaryButtonDark : GlobalColors.primaryButtonLight;
+    final textColor = isDark ? Colors.white : const Color(0xFF1D1D35);
+    final hintColor = isDark ? Colors.white54 : Colors.black45;
+    final searchFillColor = isDark
+        ? GlobalColors.inputDarkFill.withOpacity(0.4)
+        : const Color(0xFFF4F6FC);
 
     _removeActiveOverlay();
+
+    final allOptions = List<String>.from(options);
+    TextEditingController? searchController;
+    if (enableSearch) {
+      _overlaySearchController?.dispose();
+      _overlaySearchController = TextEditingController();
+      searchController = _overlaySearchController;
+    } else {
+      _overlaySearchController?.dispose();
+      _overlaySearchController = null;
+    }
+    String searchQuery = '';
 
     final overlayEntry = OverlayEntry(
       builder: (_) {
         return Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
-            onTap: _removeActiveOverlay,
+            onTap: () {
+              FocusScope.of(context).unfocus();
+              _removeActiveOverlay();
+            },
             child: Stack(
               children: [
                 CompositedTransformFollower(
@@ -290,126 +314,195 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                   offset: offset,
                   child: Material(
                     color: Colors.transparent,
-                    child: Container(
-                      width: fieldSize.width,
-                      constraints: BoxConstraints(
-                        maxHeight: overlayHeight,
-                        minWidth: fieldSize.width,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            isDark ? GlobalColors.cardDarkBg : Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: borderColor),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.16),
-                            blurRadius: 18,
-                            offset: const Offset(0, 12),
+                    child: StatefulBuilder(
+                      builder: (context, setOverlayState) {
+                        final query = searchQuery.trim().toLowerCase();
+                        final filteredOptions = query.isEmpty
+                            ? allOptions
+                            : allOptions
+                                .where((option) => option.toLowerCase().contains(query))
+                                .toList();
+                        return Container(
+                          width: fieldSize.width,
+                          constraints: BoxConstraints(
+                            maxHeight: overlayHeight,
+                            minWidth: fieldSize.width,
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 14, 8, 12),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    label,
+                          decoration: BoxDecoration(
+                            color:
+                                isDark ? GlobalColors.cardDarkBg : Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: borderColor),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.16),
+                                blurRadius: 18,
+                                offset: const Offset(0, 12),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (enableSearch)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                                  child: TextField(
+                                    controller: searchController,
+                                    autofocus: true,
                                     style: TextStyle(
                                       fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? Colors.white
-                                          : const Color(0xFF263238),
+                                      color: textColor,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                  ),
-                                ),
-                                IconButton(
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints.tightFor(
-                                      width: 36, height: 36),
-                                  onPressed: _removeActiveOverlay,
-                                  icon: Icon(
-                                    Icons.close_rounded,
-                                    size: 20,
-                                    color: isDark ? Colors.white70 : Colors.black45,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Divider(height: 1, thickness: 1, color: dividerColor),
-                          Expanded(
-                            child: Scrollbar(
-                              thumbVisibility: options.length > 6,
-                              child: ListView.separated(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 0, vertical: 8),
-                                itemCount: options.length,
-                                separatorBuilder: (_, __) => Divider(
-                                  height: 1,
-                                  thickness: 1,
-                                  indent: 16,
-                                  endIndent: 16,
-                                  color: dividerColor,
-                                ),
-                                itemBuilder: (context, index) {
-                                  final option = options[index];
-                                  final isSelected = option == selectedValue;
-                                  return Material(
-                                    color: isSelected
-                                        ? highlightColor.withOpacity(0.12)
-                                        : Colors.transparent,
-                                    child: InkWell(
-                                      onTap: () {
-                                        _removeActiveOverlay();
-                                        onSelected(option);
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                option,
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: isSelected
-                                                      ? FontWeight.w600
-                                                      : FontWeight.w500,
-                                                  color: isSelected
-                                                      ? highlightColor
-                                                      : (isDark
-                                                          ? Colors.white
-                                                          : const Color(0xFF1D1D35)),
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            if (isSelected)
-                                              Icon(
-                                                Icons.check_rounded,
+                                    decoration: InputDecoration(
+                                      hintText: 'Tìm kiếm $label',
+                                      hintStyle: TextStyle(
+                                        color: hintColor,
+                                        fontSize: 14,
+                                      ),
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                        horizontal: 12,
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.search,
+                                        size: 18,
+                                        color: hintColor,
+                                      ),
+                                      suffixIcon: query.isNotEmpty
+                                          ? IconButton(
+                                              splashRadius: 18,
+                                              icon: Icon(
+                                                Icons.close_rounded,
                                                 size: 18,
-                                                color: highlightColor,
+                                                color: hintColor,
                                               ),
-                                          ],
+                                              onPressed: () {
+                                                searchController?.clear();
+                                                setOverlayState(() {
+                                                  searchQuery = '';
+                                                });
+                                              },
+                                            )
+                                          : null,
+                                      filled: true,
+                                      fillColor: searchFillColor,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: isDark
+                                              ? Colors.white12
+                                              : const Color(0xFFD1D7E3),
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: isDark
+                                              ? Colors.white12
+                                              : const Color(0xFFD1D7E3),
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: highlightColor,
                                         ),
                                       ),
                                     ),
-                                  );
-                                },
+                                    onChanged: (value) {
+                                      setOverlayState(() {
+                                        searchQuery = value;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              if (enableSearch)
+                                Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color: dividerColor,
+                                ),
+                              Expanded(
+                                child: filteredOptions.isEmpty
+                                    ? Center(
+                                        child: Text(
+                                          'Không tìm thấy kết quả phù hợp',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: isDark ? Colors.white54 : Colors.black45,
+                                          ),
+                                        ),
+                                      )
+                                    : Scrollbar(
+                                        thumbVisibility: filteredOptions.length > 6,
+                                        child: ListView.separated(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 0, vertical: 8),
+                                          itemCount: filteredOptions.length,
+                                          separatorBuilder: (_, __) => Divider(
+                                            height: 1,
+                                            thickness: 1,
+                                            indent: 16,
+                                            endIndent: 16,
+                                            color: dividerColor,
+                                          ),
+                                          itemBuilder: (context, index) {
+                                            final option = filteredOptions[index];
+                                            final isSelected = option == selectedValue;
+                                            return Material(
+                                              color: isSelected
+                                                  ? highlightColor.withOpacity(0.12)
+                                                  : Colors.transparent,
+                                              child: InkWell(
+                                                onTap: () {
+                                                  FocusScope.of(context).unfocus();
+                                                  _removeActiveOverlay();
+                                                  onSelected(option);
+                                                },
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 12,
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          option,
+                                                          style: TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight: isSelected
+                                                                ? FontWeight.w600
+                                                                : FontWeight.w500,
+                                                            color: isSelected
+                                                                ? highlightColor
+                                                                : textColor,
+                                                          ),
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                      if (isSelected)
+                                                        Icon(
+                                                          Icons.check_rounded,
+                                                          size: 18,
+                                                          color: highlightColor,
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -518,6 +611,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                                 label: label,
                                 selectedValue: value,
                                 onSelected: onSelected,
+                                enableSearch: true,
                               );
                             }
                           },
