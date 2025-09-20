@@ -158,38 +158,43 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
 
   Widget _buildFilterSummaryRow(BuildContext context) {
     return Obx(() {
-      return Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _buildFilterSummaryChip(
-            context,
-            label: 'Group',
-            value: controller.selectedGroup.value,
-            isDefault: _matchesDefault(
-              controller.selectedGroup.value,
-              controller.defaultGroup,
+      return Align(
+        alignment: Alignment.center,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          runAlignment: WrapAlignment.center,
+          children: [
+            _buildFilterSummaryChip(
+              context,
+              label: 'Group',
+              value: controller.selectedGroup.value,
+              isDefault: _matchesDefault(
+                controller.selectedGroup.value,
+                controller.defaultGroup,
+              ),
             ),
-          ),
-          _buildFilterSummaryChip(
-            context,
-            label: 'Machine',
-            value: controller.selectedMachine.value,
-            isDefault: _matchesDefault(
-              controller.selectedMachine.value,
-              controller.defaultMachine,
+            _buildFilterSummaryChip(
+              context,
+              label: 'Machine',
+              value: controller.selectedMachine.value,
+              isDefault: _matchesDefault(
+                controller.selectedMachine.value,
+                controller.defaultMachine,
+              ),
             ),
-          ),
-          _buildFilterSummaryChip(
-            context,
-            label: 'Model',
-            value: controller.selectedModel.value,
-            isDefault: _matchesDefault(
-              controller.selectedModel.value,
-              controller.defaultModel,
+            _buildFilterSummaryChip(
+              context,
+              label: 'Model',
+              value: controller.selectedModel.value,
+              isDefault: _matchesDefault(
+                controller.selectedModel.value,
+                controller.defaultModel,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     });
   }
@@ -278,25 +283,30 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
       return AnimatedOpacity(
         duration: const Duration(milliseconds: 220),
         opacity: 1,
-        child: Row(
-          children: [
-            Icon(Icons.history_toggle_off, color: mutedColor, size: 16),
-            const SizedBox(width: 6),
-            Text(
-              'Đã cập nhật lúc ${DateFormat.Hms().format(time)}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                    color: mutedColor,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w500,
-                  ) ??
-                  TextStyle(
-                    color: mutedColor,
-                    fontSize: 13,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w500,
-                  ),
-            ),
-          ],
+        child: Align(
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.history_toggle_off, color: mutedColor, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                'Đã cập nhật lúc ${DateFormat.Hms().format(time)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                      color: mutedColor,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w500,
+                    ) ??
+                    TextStyle(
+                      color: mutedColor,
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+            ],
+          ),
         ),
       );
     });
