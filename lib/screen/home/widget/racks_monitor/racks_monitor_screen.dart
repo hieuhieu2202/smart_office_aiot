@@ -249,16 +249,25 @@ class _RackInsightsColumn extends StatelessWidget {
         final canPairCharts = availableWidth >= 300;
         final double halfWidth =
             (((availableWidth - gap) / 2).clamp(0.0, availableWidth)).toDouble();
+        const double chartTileHeight = 200;
 
-        Widget tile({required Widget child, int span = 1, bool forceHalf = false}) {
+        Widget tile({
+          required Widget child,
+          int span = 1,
+          bool forceHalf = false,
+          double? fixedHeight,
+        }) {
           final useHalfWidth =
               span < 2 && (allowGrid || (forceHalf && canPairCharts));
           final width = useHalfWidth ? halfWidth : availableWidth;
+          final Widget cardChild = fixedHeight != null
+              ? SizedBox(height: fixedHeight, child: child)
+              : child;
           return SizedBox(
             width: width,
             child: _PanelCard(
               margin: EdgeInsets.zero,
-              child: child,
+              child: cardChild,
             ),
           );
         }
@@ -290,10 +299,12 @@ class _RackInsightsColumn extends StatelessWidget {
                 tile(
                   child: SlotStatusDonut(controller: controller),
                   forceHalf: true,
+                  fixedHeight: chartTileHeight,
                 ),
                 tile(
                   child: YieldRateGauge(controller: controller),
                   forceHalf: true,
+                  fixedHeight: chartTileHeight,
                 ),
                 tile(
                   span: 2,

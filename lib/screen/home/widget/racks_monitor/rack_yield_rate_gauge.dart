@@ -23,13 +23,28 @@ class YieldRateGauge extends StatelessWidget {
         final rawWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.of(context).size.width;
-        final gaugeWidth = rawWidth.clamp(110.0, 240.0).toDouble();
-        final gaugeHeight = (gaugeWidth * 0.65).clamp(80.0, 160.0).toDouble();
-        final thickness = (gaugeWidth * 0.095).clamp(8.0, 14.0).toDouble();
-        final sidePadding = (gaugeWidth * 0.08).clamp(6.0, 16.0).toDouble();
-        final labelFontSize = (gaugeWidth * 0.12).clamp(10.0, 14.0).toDouble();
+        final maxHeight =
+            constraints.maxHeight.isFinite ? constraints.maxHeight : double.infinity;
+
+        double widthCap = rawWidth;
+        if (maxHeight.isFinite) {
+          widthCap = math.min(widthCap, math.max(120.0, maxHeight - 72));
+        }
+        final gaugeWidth = widthCap.clamp(120.0, 190.0).toDouble();
+
+        final baseGaugeHeight = (gaugeWidth * 0.62).clamp(90.0, 140.0).toDouble();
+        final gaugeHeight = maxHeight.isFinite
+            ? math.min(baseGaugeHeight, math.max(86.0, maxHeight - 68))
+            : baseGaugeHeight;
+
+        final thickness = (gaugeWidth * 0.085).clamp(7.0, 12.0).toDouble();
+        final sidePadding = (gaugeWidth * 0.07).clamp(6.0, 14.0).toDouble();
+        final labelFontSize = (gaugeWidth * 0.11).clamp(10.0, 13.0).toDouble();
         final percentFontSize =
-            (gaugeWidth * 0.28).clamp(18.0, 26.0).toDouble();
+            (gaugeWidth * 0.26).clamp(18.0, 24.0).toDouble();
+
+        final hasBoundedHeight =
+            constraints.maxHeight.isFinite && constraints.maxHeight > 0;
 
         final labelTextStyle = TextStyle(
           color: labelColor,
@@ -47,40 +62,48 @@ class YieldRateGauge extends StatelessWidget {
               color: labelColor,
             );
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'YIELD RATE',
-              style: textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w800,
+        final gauge = Center(
+          child: SizedBox(
+            width: gaugeWidth,
+            height: gaugeHeight,
+            child: CustomPaint(
+              painter: _GaugePainter(
+                value: yr,
+                baseColor: baseColor,
+                activeColor: activeColor,
+                thickness: thickness,
+                sideLabelPadding: sidePadding,
+                labelTextStyle: labelTextStyle,
               ),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: SizedBox(
-                width: gaugeWidth,
-                height: gaugeHeight,
-                child: CustomPaint(
-                  painter: _GaugePainter(
-                    value: yr,
-                    baseColor: baseColor,
-                    activeColor: activeColor,
-                    thickness: thickness,
-                    sideLabelPadding: sidePadding,
-                    labelTextStyle: labelTextStyle,
-                  ),
-                  child: Align(
-                    alignment: const Alignment(0, -0.18),
-                    child: Text(
-                      '${yr.toStringAsFixed(1)}%',
-                      style: percentStyle,
-                    ),
-                  ),
+              child: Align(
+                alignment: const Alignment(0, -0.18),
+                child: Text(
+                  '${yr.toStringAsFixed(1)}%',
+                  style: percentStyle,
                 ),
               ),
             ),
-          ],
+          ),
+        );
+
+        final headerStyle = textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+        );
+
+        final children = <Widget>[
+          Text('YIELD RATE', style: headerStyle),
+          const SizedBox(height: 6),
+        ];
+
+        if (hasBoundedHeight) {
+          children.add(Expanded(child: gauge));
+        } else {
+          children.add(gauge);
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
         );
       },
     );

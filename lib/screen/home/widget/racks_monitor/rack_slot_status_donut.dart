@@ -1,6 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../../controller/racks_monitor_controller.dart';
 
 class SlotStatusDonut extends StatelessWidget {
@@ -16,12 +19,20 @@ class SlotStatusDonut extends StatelessWidget {
         final rawWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.of(context).size.width;
-        final chartSize = rawWidth.clamp(120.0, 220.0).toDouble();
+        final maxHeight =
+            constraints.maxHeight.isFinite ? constraints.maxHeight : double.infinity;
+        double chartCap = rawWidth;
+        if (maxHeight.isFinite) {
+          chartCap = math.min(chartCap, math.max(88.0, maxHeight - 74));
+        }
+        final chartSize = chartCap.clamp(88.0, 150.0).toDouble();
         final sectionRadius = chartSize * 0.38;
-        final centerRadius = chartSize * 0.32;
+        final centerRadius = chartSize * 0.33;
         final sectionSpacing = chartSize * 0.02;
-        final legendSpacing = chartSize < 170 ? 8.0 : 12.0;
-        final legendTopGap = chartSize < 170 ? 8.0 : 10.0;
+        final legendSpacing = chartSize < 130 ? 6.0 : 8.0;
+        final legendTopGap = chartSize < 130 ? 6.0 : 8.0;
+        final hasBoundedHeight =
+            constraints.maxHeight.isFinite && constraints.maxHeight > 0;
 
         return Obx(() {
           final data = controller.slotStatusCount;
@@ -35,12 +46,18 @@ class SlotStatusDonut extends StatelessWidget {
             _Slice('NotUsed', data['NotUsed'] ?? 0, Colors.grey),
           ].where((e) => e.value > 0).toList();
 
-          final legendStyle = Theme.of(context).textTheme.bodySmall;
+          final baseLegendStyle =
+              Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.15);
           final legendColor =
-              legendStyle?.color ?? (isDark ? Colors.white70 : Colors.black54);
+              baseLegendStyle?.color ?? (isDark ? Colors.white70 : Colors.black54);
+          final legendStyle = baseLegendStyle ??
+              TextStyle(
+                fontSize: 11,
+                height: 1.15,
+                color: legendColor,
+              );
 
-          final totalFontSize =
-              (chartSize * 0.18).clamp(14.0, 22.0).toDouble();
+          final totalFontSize = (chartSize * 0.2).clamp(14.0, 20.0).toDouble();
           final totalStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
                 fontSize: totalFontSize,
@@ -52,78 +69,113 @@ class SlotStatusDonut extends StatelessWidget {
                 color: isDark ? Colors.white : Colors.black,
               );
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('SLOT STATUS', style: Theme.of(context).textTheme.labelMedium),
-              const SizedBox(height: 8),
-              Align(
+          final chart = Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: chartSize,
+              height: chartSize,
+              child: Stack(
                 alignment: Alignment.center,
-                child: SizedBox(
-                  width: chartSize,
-                  height: chartSize,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      PieChart(
-                        PieChartData(
-                          sectionsSpace: sectionSpacing,
-                          centerSpaceRadius: centerRadius,
-                          startDegreeOffset: -90,
-                          sections: slices.isEmpty
-                              ? [
-                                  PieChartSectionData(
-                                    value: 1,
-                                    color: isDark
-                                        ? Colors.white10
-                                        : Colors.black12,
-                                    radius: sectionRadius,
-                                  ),
-                                ]
-                              : slices.map((e) {
-                                  return PieChartSectionData(
+                children: [
+                  PieChart(
+                    PieChartData(
+                      sectionsSpace: sectionSpacing,
+                      centerSpaceRadius: centerRadius,
+                      startDegreeOffset: -90,
+                      sections: slices.isEmpty
+                          ? [
+                              PieChartSectionData(
+                                value: 1,
+                                color: isDark ? Colors.white10 : Colors.black12,
+                                radius: sectionRadius,
+                              ),
+                            ]
+                          : slices
+                              .map((e) => PieChartSectionData(
                                     value: e.value.toDouble(),
                                     title: '',
                                     color: e.color,
                                     radius: sectionRadius,
-                                  );
-                                }).toList(),
-                        ),
-                      ),
-                      Text('$total slot', style: totalStyle),
-                    ],
+                                  ))
+                              .toList(),
+                    ),
                   ),
-                ),
+                  Text('$total slot', style: totalStyle),
+                ],
               ),
-              SizedBox(height: legendTopGap),
-              if (slices.isEmpty)
-                Text(
-                  'No slot activity recorded',
-                  style: (legendStyle ?? const TextStyle(fontSize: 12)).copyWith(
-                    color: legendColor.withOpacity(0.75),
+            ),
+          );
+
+          final Widget legend = slices.isEmpty
+              ? Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    'No slot activity recorded',
+                    textAlign: TextAlign.center,
+                    style: legendStyle.copyWith(
+                      color: legendColor.withOpacity(0.75),
+                    ),
                   ),
                 )
-              else
-                Wrap(
-                  spacing: legendSpacing,
-                  runSpacing: 4,
-                  children: slices.map((e) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          margin: const EdgeInsets.only(right: 4),
-                          decoration:
-                              BoxDecoration(color: e.color, shape: BoxShape.circle),
-                        ),
-                        Text('${e.label}: ${e.value}', style: legendStyle),
-                      ],
-                    );
-                  }).toList(),
+              : Align(
+                  alignment: Alignment.center,
+                  child: Wrap(
+                    spacing: legendSpacing,
+                    runSpacing: 4,
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: slices.map((e) {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            margin: const EdgeInsets.only(right: 4),
+                            decoration: BoxDecoration(
+                              color: e.color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          Text('${e.label}: ${e.value}', style: legendStyle),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                );
+
+          final titleStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              );
+
+          final children = <Widget>[
+            Text('SLOT STATUS', style: titleStyle),
+            const SizedBox(height: 6),
+          ];
+
+          if (hasBoundedHeight) {
+            children.add(
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    chart,
+                    SizedBox(height: legendTopGap),
+                    legend,
+                  ],
                 ),
-            ],
+              ),
+            );
+          } else {
+            children
+              ..add(chart)
+              ..add(SizedBox(height: legendTopGap))
+              ..add(legend);
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
           );
         });
       },
