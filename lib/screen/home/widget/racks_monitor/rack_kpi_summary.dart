@@ -12,16 +12,13 @@ class RackNumbersBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final gradientColors = isDark
-        ? const [Color(0xFF10273C), Color(0xFF0B1C2C)]
-        : const [Color(0xFFF8FBFF), Color(0xFFE9F1FF)];
 
     return Obx(() {
       final data = controller.data.value;
       final qs = data?.quantitySummary;
 
       if (qs == null) {
-        return _buildEmpty(theme, gradientColors, isDark);
+        return _buildEmpty(theme, isDark);
       }
 
       final metrics = [
@@ -69,59 +66,33 @@ class RackNumbersBox extends StatelessWidget {
         ),
       ];
 
-      return Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: gradientColors,
-          ),
-          border: Border.all(
-            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withOpacity(0.35)
-                  : Colors.blueGrey.withOpacity(0.12),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: metrics
-              .map(
-                (metric) => _SummaryMetricTile(
-                  metric: metric,
-                  isDark: isDark,
-                ),
-              )
-              .toList(),
-        ),
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: metrics
+            .map(
+              (metric) => _SummaryMetricTile(
+                metric: metric,
+                isDark: isDark,
+              ),
+            )
+            .toList(),
       );
     });
   }
 
   Widget _buildEmpty(
     ThemeData theme,
-    List<Color> gradientColors,
     bool isDark,
   ) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradientColors,
-        ),
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : theme.colorScheme.surfaceVariant.withOpacity(0.8),
         border: Border.all(
-          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+          color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
         ),
       ),
       padding: const EdgeInsets.all(16),
@@ -165,66 +136,82 @@ class _SummaryMetricTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final base = metric.color;
+    final textColor = isDark ? Colors.white : const Color(0xFF0A1F33);
+    final captionColor = textColor.withOpacity(isDark ? 0.7 : 0.6);
+    final gradient = isDark
+        ? [base.withOpacity(0.42), base.withOpacity(0.24)]
+        : [base.withOpacity(0.18), base.withOpacity(0.08)];
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 150, maxWidth: 220),
+      constraints: const BoxConstraints(minWidth: 150, maxWidth: 200),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.black.withOpacity(0.05),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradient,
           ),
+          border: Border.all(color: base.withOpacity(isDark ? 0.4 : 0.25)),
           boxShadow: [
             BoxShadow(
-              color: metric.color.withOpacity(isDark ? 0.18 : 0.12),
+              color: base.withOpacity(isDark ? 0.25 : 0.16),
               blurRadius: 14,
-              offset: const Offset(0, 8),
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: metric.color.withOpacity(0.18),
-              ),
-              child: Icon(metric.icon, color: metric.color, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(isDark ? 0.22 : 0.2),
+                  ),
+                  child: Icon(
+                    metric.icon,
+                    size: 16,
+                    color: isDark ? Colors.white : base,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
                     metric.label,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
-                      color: metric.color,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    metric.value,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
                       fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                      color: textColor,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    metric.caption,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                    ),
-                  ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              metric.value,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              metric.caption,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: captionColor,
               ),
             ),
           ],

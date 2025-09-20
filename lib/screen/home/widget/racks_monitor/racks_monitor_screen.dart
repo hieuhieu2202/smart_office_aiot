@@ -21,22 +21,35 @@ class GroupMonitorScreen extends StatefulWidget {
   State<GroupMonitorScreen> createState() => _GroupMonitorScreenState();
 }
 
-class _GroupMonitorScreenState extends State<GroupMonitorScreen> {
+class _GroupMonitorScreenState extends State<GroupMonitorScreen>
+    with SingleTickerProviderStateMixin {
   late final GroupMonitorController controller;
-  final ValueNotifier<_RackListFilter> _filter =
-      ValueNotifier<_RackListFilter>(_RackListFilter.all);
+  late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     controller = Get.put(GroupMonitorController());
+    _tabController = TabController(length: _RackListFilter.values.length, vsync: this)
+      ..addListener(_handleTabChange);
   }
 
   @override
   void dispose() {
-    _filter.dispose();
+    _tabController
+      ..removeListener(_handleTabChange)
+      ..dispose();
     super.dispose();
   }
+
+  void _handleTabChange() {
+    if (!_tabController.indexIsChanging) {
+      setState(() {});
+    }
+  }
+
+  _RackListFilter get _activeFilter =>
+      _RackListFilter.values[_tabController.index];
 
   @override
   Widget build(BuildContext context) {
@@ -88,118 +101,106 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen> {
 
         final partition = _RackPartition.from(data.rackDetails);
 
+        final filter = _activeFilter;
+        late final List<RackDetail> selectedRacks;
+        switch (filter) {
+          case _RackListFilter.all:
+            selectedRacks = [
+              ...partition.online,
+              ...partition.offline,
+            ];
+            break;
+          case _RackListFilter.online:
+            selectedRacks = partition.online;
+            break;
+          case _RackListFilter.offline:
+            selectedRacks = partition.offline;
+            break;
+        }
+
         return Stack(
           children: [
-            ValueListenableBuilder<_RackListFilter>(
-              valueListenable: _filter,
-              builder: (context, filter, _) {
-                late final List<RackDetail> selectedRacks;
-                switch (filter) {
-                  case _RackListFilter.all:
-                    selectedRacks = [
-                      ...partition.online,
-                      ...partition.offline,
-                    ];
-                    break;
-                  case _RackListFilter.online:
-                    selectedRacks = partition.online;
-                    break;
-                  case _RackListFilter.offline:
-                    selectedRacks = partition.offline;
-                    break;
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 1180;
+                final insights = _RackInsightsColumn(
+                  controller: controller,
+                  totalRacks: partition.total,
+                  onlineCount: partition.online.length,
+                  offlineCount: partition.offline.length,
+                  activeFilter: filter,
+                );
+
+                final slivers = <Widget>[
+                  if (!wide)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+                        child: insights,
+                      ),
+                    ),
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _RackHeaderDelegate(
+                      height: 122,
+                      child: _RackPinnedHeader(
+                        controller: _tabController,
+                        total: partition.total,
+                        online: partition.online.length,
+                        offline: partition.offline.length,
+                      ),
+                    ),
+                  ),
+                  if (selectedRacks.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _EmptyRacksMessage(
+                        mode: filter,
+                        onRefresh: controller.refresh,
+                      ),
+                    )
+                  else ...[
+                    RackLeftPanel(racks: selectedRacks),
+                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  ],
+                ];
+
+                if (wide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: controller.refresh,
+                          child: CustomScrollView(
+                            physics: const BouncingScrollPhysics(
+                              parent: AlwaysScrollableScrollPhysics(),
+                            ),
+                            slivers: slivers,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: 320,
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
+                          physics: const BouncingScrollPhysics(),
+                          child: insights,
+                        ),
+                      ),
+                    ],
+                  );
                 }
 
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    final wide = constraints.maxWidth >= 1180;
-                    final insights = _RackInsightsColumn(
-                      controller: controller,
-                      totalRacks: partition.total,
-                      onlineCount: partition.online.length,
-                      offlineCount: partition.offline.length,
-                      activeFilter: filter,
-                    );
-
-                    final slivers = <Widget>[
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: wide
-                              ? const EdgeInsets.fromLTRB(12, 16, 12, 8)
-                              : const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                          child: _RackFilterRibbon(
-                            filter: filter,
-                            total: partition.total,
-                            online: partition.online.length,
-                            offline: partition.offline.length,
-                            onChanged: (value) => _filter.value = value,
-                          ),
-                        ),
-                      ),
-                      if (selectedRacks.isEmpty) ...[
-                        const SliverToBoxAdapter(
-                          child: RackStatusLegendBar(),
-                        ),
-                        SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: _EmptyRacksMessage(
-                            mode: filter,
-                            onRefresh: controller.refresh,
-                          ),
-                        ),
-                      ] else ...[
-                        RackLeftPanel(racks: selectedRacks),
-                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                      ],
-                    ];
-
-                    if (wide) {
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: RefreshIndicator(
-                              onRefresh: controller.refresh,
-                              child: CustomScrollView(
-                                physics: const BouncingScrollPhysics(
-                                  parent: AlwaysScrollableScrollPhysics(),
-                                ),
-                                slivers: slivers,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          SizedBox(
-                            width: 360,
-                            child: SingleChildScrollView(
-                              padding:
-                                  const EdgeInsets.fromLTRB(12, 16, 12, 24),
-                              physics: const BouncingScrollPhysics(),
-                              child: insights,
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-
-                    return RefreshIndicator(
-                      onRefresh: controller.refresh,
-                      child: CustomScrollView(
-                        physics: const BouncingScrollPhysics(
-                          parent: AlwaysScrollableScrollPhysics(),
-                        ),
-                        slivers: [
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(12, 16, 12, 12),
-                              child: insights,
-                            ),
-                          ),
-                          ...slivers,
-                        ],
-                      ),
-                    );
-                  },
+                return RefreshIndicator(
+                  onRefresh: controller.refresh,
+                  child: CustomScrollView(
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    slivers: slivers,
+                  ),
                 );
               },
             ),
@@ -241,7 +242,7 @@ class _RackInsightsColumn extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         RackNumbersBox(controller: controller),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _PanelCard(
           margin: EdgeInsets.zero,
           child: _RackPopulationCard(
@@ -251,22 +252,22 @@ class _RackInsightsColumn extends StatelessWidget {
             activeFilter: activeFilter,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _PanelCard(
           margin: EdgeInsets.zero,
           child: PassByModelBar(controller: controller),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _PanelCard(
           margin: EdgeInsets.zero,
           child: SlotStatusDonut(controller: controller),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _PanelCard(
           margin: EdgeInsets.zero,
           child: YieldRateGauge(controller: controller),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _PanelCard(
           margin: EdgeInsets.zero,
           child: WipPassSummary(controller: controller),
@@ -276,43 +277,107 @@ class _RackInsightsColumn extends StatelessWidget {
   }
 }
 
-class _RackFilterRibbon extends StatelessWidget {
-  const _RackFilterRibbon({
-    required this.filter,
+class _RackHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _RackHeaderDelegate({required this.height, required this.child});
+
+  final double height;
+  final Widget child;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(covariant _RackHeaderDelegate oldDelegate) {
+    return oldDelegate.height != height || oldDelegate.child != child;
+  }
+}
+
+class _RackPinnedHeader extends StatelessWidget {
+  const _RackPinnedHeader({
+    required this.controller,
     required this.total,
     required this.online,
     required this.offline,
-    required this.onChanged,
   });
 
-  final _RackListFilter filter;
+  final TabController controller;
   final int total;
   final int online;
   final int offline;
-  final ValueChanged<_RackListFilter> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final items = [
-      _RibbonItem(
-        filter: _RackListFilter.all,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: theme.colorScheme.surface,
+      elevation: isDark ? 4 : 2,
+      shadowColor: Colors.black.withOpacity(isDark ? 0.35 : 0.12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _RackTabSelector(
+              controller: controller,
+              total: total,
+              online: online,
+              offline: offline,
+            ),
+            const SizedBox(height: 10),
+            const RackStatusLegendBar(margin: EdgeInsets.zero),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RackTabSelector extends StatelessWidget {
+  const _RackTabSelector({
+    required this.controller,
+    required this.total,
+    required this.online,
+    required this.offline,
+  });
+
+  final TabController controller;
+  final int total;
+  final int online;
+  final int offline;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final tabs = [
+      _RackTabData(
         label: 'All',
         count: total,
         icon: Icons.apps_rounded,
-        color: isDark
-            ? const Color(0xFF64B5F6)
-            : const Color(0xFF1565C0),
+        color: isDark ? const Color(0xFF64B5F6) : const Color(0xFF1565C0),
       ),
-      _RibbonItem(
-        filter: _RackListFilter.online,
+      _RackTabData(
         label: 'Online',
         count: online,
         icon: Icons.cloud_done_rounded,
         color: const Color(0xFF20C25D),
       ),
-      _RibbonItem(
-        filter: _RackListFilter.offline,
+      _RackTabData(
         label: 'Offline',
         count: offline,
         icon: Icons.cloud_off_rounded,
@@ -320,28 +385,27 @@ class _RackFilterRibbon extends StatelessWidget {
       ),
     ];
 
+    final activeIndex = controller.index;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF0D1F33)
-            : const Color(0xFFF1F6FF),
-        borderRadius: BorderRadius.circular(28),
+        color: isDark ? const Color(0xFF0F2233) : const Color(0xFFF1F4FA),
+        borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.06),
+          color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
         ),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         child: Row(
           children: [
-            for (final item in items)
-              _RibbonChip(
-                key: ValueKey(item.filter),
-                item: item,
-                selected: item.filter == filter,
-                onTap: () => onChanged(item.filter),
+            for (var i = 0; i < tabs.length; i++)
+              _RackTabChip(
+                data: tabs[i],
+                selected: activeIndex == i,
+                onTap: () => controller.animateTo(i),
               ),
           ],
         ),
@@ -350,31 +414,28 @@ class _RackFilterRibbon extends StatelessWidget {
   }
 }
 
-class _RibbonItem {
-  const _RibbonItem({
-    required this.filter,
+class _RackTabData {
+  const _RackTabData({
     required this.label,
     required this.count,
     required this.icon,
     required this.color,
   });
 
-  final _RackListFilter filter;
   final String label;
   final int count;
   final IconData icon;
   final Color color;
 }
 
-class _RibbonChip extends StatelessWidget {
-  const _RibbonChip({
-    super.key,
-    required this.item,
+class _RackTabChip extends StatelessWidget {
+  const _RackTabChip({
+    required this.data,
     required this.selected,
     required this.onTap,
   });
 
-  final _RibbonItem item;
+  final _RackTabData data;
   final bool selected;
   final VoidCallback onTap;
 
@@ -382,75 +443,61 @@ class _RibbonChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = selected
-        ? item.color
+        ? data.color
         : theme.colorScheme.onSurface.withOpacity(0.65);
+    final bgColor = selected
+        ? data.color.withOpacity(theme.brightness == Brightness.dark ? 0.3 : 0.16)
+        : Colors.transparent;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22),
+        onTap: selected ? null : onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: selected
-                ? item.color.withOpacity(0.18)
-                : theme.colorScheme.surface.withOpacity(
-                    theme.brightness == Brightness.dark ? 0.3 : 0.9,
-                  ),
+            color: bgColor,
+            borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: selected
-                  ? item.color.withOpacity(0.5)
-                  : theme.colorScheme.outline.withOpacity(
-                      theme.brightness == Brightness.dark ? 0.25 : 0.35,
-                    ),
+                  ? data.color.withOpacity(0.45)
+                  : theme.colorScheme.outline.withOpacity(0.2),
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(item.icon, size: 18, color: accent),
-              const SizedBox(width: 8),
+              Icon(data.icon, size: 16, color: accent),
+              const SizedBox(width: 6),
               Text(
-                item.label,
-                style: theme.textTheme.labelLarge?.copyWith(
+                data.label,
+                style: theme.textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: accent,
                 ),
               ),
-              const SizedBox(width: 10),
-              _RibbonBadge(color: accent, count: item.count),
+              const SizedBox(width: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(selected ? 0.22 : 0.14),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${data.count}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                    color: accent,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _RibbonBadge extends StatelessWidget {
-  const _RibbonBadge({required this.color, required this.count});
-
-  final Color color;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: color.withOpacity(isDark ? 0.18 : 0.12),
-      ),
-      child: Text(
-        '$count',
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
       ),
     );
   }
