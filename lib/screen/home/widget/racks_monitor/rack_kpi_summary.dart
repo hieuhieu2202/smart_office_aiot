@@ -25,42 +25,36 @@ class RackNumbersBox extends StatelessWidget {
         _SummaryMetric(
           label: 'PASS',
           value: qs.pass.toString(),
-          caption: 'PCS',
           icon: Icons.check_circle_rounded,
           color: const Color(0xFF20C25D),
         ),
         _SummaryMetric(
           label: 'FAIL',
           value: qs.fail.toString(),
-          caption: 'PCS',
           icon: Icons.cancel_rounded,
           color: const Color(0xFFE53935),
         ),
         _SummaryMetric(
           label: 'YR',
           value: '${qs.yr.toStringAsFixed(2)} %',
-          caption: 'Yield rate',
           icon: Icons.percent_rounded,
           color: const Color(0xFF1E88E5),
         ),
         _SummaryMetric(
           label: 'FPR',
           value: '${qs.fpr.toStringAsFixed(2)} %',
-          caption: 'First pass rate',
           icon: Icons.flag_rounded,
           color: const Color(0xFF7E57C2),
         ),
         _SummaryMetric(
           label: 'UT',
           value: '${qs.ut.toStringAsFixed(2)} %',
-          caption: 'Utilization',
           icon: Icons.refresh_rounded,
           color: const Color(0xFFFFB300),
         ),
         _SummaryMetric(
           label: 'WIP',
           value: qs.wip.toString(),
-          caption: 'In process',
           icon: Icons.inventory_2_rounded,
           color: const Color(0xFF26C6DA),
         ),
@@ -68,59 +62,26 @@ class RackNumbersBox extends StatelessWidget {
 
       return LayoutBuilder(
         builder: (context, constraints) {
-          const spacing = 6.0;
-          const minTileWidth = 96.0;
-          const maxTileWidth = 132.0;
+          const spacing = 8.0;
+          const minTileWidth = 88.0;
+          const maxTileWidth = 128.0;
 
           double availableWidth = constraints.maxWidth;
-          if (!availableWidth.isFinite) {
+          if (!availableWidth.isFinite || availableWidth <= 0) {
             availableWidth =
                 metrics.length * maxTileWidth + spacing * (metrics.length - 1);
           }
 
-          final minRequiredWidth =
-              metrics.length * minTileWidth + spacing * (metrics.length - 1);
-
-          if (availableWidth < minRequiredWidth) {
+          if (availableWidth < minTileWidth) {
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               child: Row(
                 children: [
-                  for (int i = 0; i < metrics.length; i++)
-                    Padding(
-                      padding: EdgeInsets.only(
-                        right: i == metrics.length - 1 ? 0 : spacing,
-                      ),
-                      child: SizedBox(
-                        width: minTileWidth,
-                        child: _SummaryMetricTile(
-                          metric: metrics[i],
-                          isDark: isDark,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          }
-
-          final tileWidth = ((availableWidth - spacing * (metrics.length - 1)) /
-                  metrics.length)
-              .clamp(minTileWidth, maxTileWidth);
-          final contentWidth =
-              tileWidth * metrics.length + spacing * (metrics.length - 1);
-
-          return Align(
-            alignment: Alignment.center,
-            child: SizedBox(
-              width: contentWidth,
-              child: Row(
-                children: [
                   for (int i = 0; i < metrics.length; i++) ...[
                     if (i != 0) const SizedBox(width: spacing),
                     SizedBox(
-                      width: tileWidth,
+                      width: minTileWidth,
                       child: _SummaryMetricTile(
                         metric: metrics[i],
                         isDark: isDark,
@@ -129,6 +90,52 @@ class RackNumbersBox extends StatelessWidget {
                   ],
                 ],
               ),
+            );
+          }
+
+          int columns =
+              (availableWidth / (minTileWidth + spacing)).floor();
+          if (columns < 1) {
+            columns = 1;
+          } else if (columns > 3) {
+            columns = 3;
+          }
+          if (columns > metrics.length) {
+            columns = metrics.length;
+          }
+          final tileWidth = ((availableWidth - spacing * (columns - 1)) /
+                  columns)
+              .clamp(minTileWidth, maxTileWidth);
+          final rows = (metrics.length / columns).ceil();
+
+          return Align(
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                for (int row = 0; row < rows; row++) ...[
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (int i = row * columns;
+                          i < (row + 1) * columns && i < metrics.length;
+                          i++) ...[
+                        if (i != row * columns) const SizedBox(width: spacing),
+                        SizedBox(
+                          width: tileWidth,
+                          child: _SummaryMetricTile(
+                            metric: metrics[i],
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (row != rows - 1) const SizedBox(height: spacing),
+                ],
+              ],
             ),
           );
         },
@@ -167,14 +174,12 @@ class _SummaryMetric {
   const _SummaryMetric({
     required this.label,
     required this.value,
-    required this.caption,
     required this.icon,
     required this.color,
   });
 
   final String label;
   final String value;
-  final String caption;
   final IconData icon;
   final Color color;
 }
@@ -197,14 +202,9 @@ class _SummaryMetricTile extends StatelessWidget {
       letterSpacing: 0.2,
       color: base,
     );
-    final valueStyle = theme.textTheme.titleMedium?.copyWith(
-      fontSize: 15,
+    final valueStyle = theme.textTheme.titleSmall?.copyWith(
       fontWeight: FontWeight.w800,
       color: base,
-    );
-    final captionStyle = theme.textTheme.bodySmall?.copyWith(
-      fontWeight: FontWeight.w600,
-      color: base.withOpacity(0.85),
     );
 
     final backgroundColor = isDark
@@ -230,7 +230,7 @@ class _SummaryMetricTile extends StatelessWidget {
             children: [
               Icon(
                 metric.icon,
-                size: 18,
+                size: 16,
                 color: base,
               ),
               const SizedBox(width: 6),
@@ -250,13 +250,6 @@ class _SummaryMetricTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: valueStyle,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            metric.caption,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: captionStyle,
           ),
         ],
       ),
