@@ -21,25 +21,34 @@ class NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryTextColor =
+    final Color primaryTextColor =
         isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText;
-    final secondaryTextColor =
-        isDark ? GlobalColors.darkSecondaryText : GlobalColors.lightSecondaryText;
-    final baseCardColor =
-        isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg;
-    final accentOverlay = accent.withOpacity(isDark ? 0.22 : 0.12);
-    final cardColor = isUnread
-        ? Color.lerp(baseCardColor, accentOverlay, 0.45) ?? accentOverlay
-        : baseCardColor;
-    final borderColor = isUnread
-        ? accent.withOpacity(isDark ? 0.55 : 0.45)
-        : Colors.transparent;
-    final glowColor = accent.withOpacity(
-      isUnread ? (isDark ? 0.22 : 0.18) : (isDark ? 0.12 : 0.08),
-    );
-    final haloOpacity = isUnread ? (isDark ? 0.24 : 0.18) : (isDark ? 0.14 : 0.08);
+    final Color secondaryTextColor = isDark
+        ? GlobalColors.darkSecondaryText
+        : GlobalColors.lightSecondaryText;
 
+    final Color cardColor = isDark ? const Color(0xFF131A2B) : Colors.white;
+    final Color outlineColor = isUnread
+        ? accent.withOpacity(isDark ? 0.5 : 0.35)
+        : (isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE4E8F2));
+    final Color shadowColor =
+        isDark ? Colors.black.withOpacity(0.45) : const Color(0x14172133);
+    final Color iconBackgroundColor = isUnread
+        ? accent.withOpacity(isDark ? 0.24 : 0.15)
+        : (isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF2F5FB));
+    final Color badgeBackgroundColor =
+        accent.withOpacity(isDark ? 0.22 : 0.14);
+    final Color badgeTextColor = isDark ? Colors.white : accent;
+    final Color timestampBackgroundColor =
+        isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF5F7FC);
+
+    final String title = message.title.trim().isNotEmpty
+        ? message.title.trim()
+        : 'Thông báo';
+    final String bodyText = message.body.trim();
+    final bool hasBody = bodyText.isNotEmpty;
     final String? timestamp = message.formattedTimestamp;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -49,120 +58,174 @@ class NotificationCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: borderColor, width: 1),
+            border: Border.all(
+              color: outlineColor,
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: glowColor,
-                blurRadius: isUnread ? 22 : 12,
-                spreadRadius: isUnread ? 2.2 : 0,
-                offset: const Offset(0, 10),
+                color: shadowColor,
+                blurRadius: 20,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
           child: Stack(
-            clipBehavior: Clip.none,
             children: [
-              Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          accent.withOpacity(haloOpacity),
-                          Colors.transparent,
-                        ],
+              if (isUnread)
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      width: 4,
+                      margin: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(isDark ? 0.85 : 0.7),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
                 ),
-              ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(18, 20, 20, 18),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                padding: EdgeInsets.fromLTRB(
+                  isUnread ? 28 : 20,
+                  18,
+                  20,
+                  18,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: accent.withOpacity(isDark ? 0.28 : 0.18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: accent.withOpacity(isDark ? 0.35 : 0.3),
-                            blurRadius: 14,
-                            offset: const Offset(0, 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: iconBackgroundColor,
+                            border: Border.all(
+                              color: accent.withOpacity(isDark ? 0.5 : 0.25),
+                              width: 1,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.notifications_active_rounded,
-                        color: isDark ? Colors.white : accent,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
+                          child: Icon(
+                            Icons.notifications_none_rounded,
+                            size: 24,
+                            color: accent,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  message.title,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.25,
-                                    color: primaryTextColor,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      title,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.3,
+                                        color: primaryTextColor,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                  maxLines: 2,
+                                  if (isUnread)
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(999),
+                                        color: badgeBackgroundColor,
+                                        border: Border.all(
+                                          color: accent.withOpacity(
+                                            isDark ? 0.55 : 0.4,
+                                          ),
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Mới',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.2,
+                                          color: badgeTextColor,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              if (hasBody) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  bodyText,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    color: secondaryTextColor,
+                                  ),
+                                  maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              if (isUnread)
-                                Container(
-                                  margin: const EdgeInsets.only(left: 8),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (timestamp != null) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: timestampBackgroundColor,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.schedule_rounded,
+                                  size: 16,
+                                  color: secondaryTextColor.withOpacity(
+                                    isDark ? 0.85 : 0.7,
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: accent.withOpacity(isDark ? 0.3 : 0.2),
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    'Mới',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.3,
-                                      color: isDark ? Colors.white : accent,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  timestamp,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.2,
+                                    color: secondaryTextColor.withOpacity(
+                                      isDark ? 0.95 : 0.85,
                                     ),
                                   ),
                                 ),
-                            ],
-                          ),
-                          if (timestamp != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              timestamp,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: secondaryTextColor,
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
                         ],
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
