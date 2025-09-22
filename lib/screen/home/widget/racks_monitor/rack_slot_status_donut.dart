@@ -24,6 +24,8 @@ class SlotStatusDonut extends StatelessWidget {
   static const double _legendMaxHeight = 88.0;
   static const double _legendMinSpacing = 12.0;
   static const double _legendMaxSpacing = 22.0;
+  static const double _legendHeaderSpacingMin = 10.0;
+  static const double _legendHeaderSpacingMax = 18.0;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -39,20 +41,6 @@ class SlotStatusDonut extends StatelessWidget {
         );
   }
 
-  static TextStyle footerTextStyle(ThemeData theme) {
-    final textTheme = theme.textTheme;
-    final accent = theme.colorScheme.primary;
-    return textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: accent,
-        ) ??
-        TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: accent,
-        );
-  }
-
   static double estimateContentHeight({
     required double width,
     required ThemeData theme,
@@ -61,17 +49,12 @@ class SlotStatusDonut extends StatelessWidget {
     int legendItemCount = 0,
   }) {
     final headerStyle = headerTextStyle(theme);
-    final footerStyle = footerTextStyle(theme);
     final topHeaderHeight = includeHeader
         ? _headerBandHeight(headerStyle, theme.textTheme)
-        : 0.0;
-    final footerHeight = includeHeader
-        ? _footerHeight(footerStyle, theme.textTheme)
         : 0.0;
     final geometry = _resolveGeometry(
       width: width,
       topHeaderHeight: topHeaderHeight,
-      footerHeight: footerHeight,
       includeLegend: includeLegend,
       includeHeader: includeHeader,
       legendItemCount: legendItemCount,
@@ -86,10 +69,6 @@ class SlotStatusDonut extends StatelessWidget {
     return ChartCardHeader.heightForStyle(headerStyle, textTheme);
   }
 
-  static double _footerHeight(TextStyle footerStyle, TextTheme textTheme) {
-    return ChartCardFooter.heightForStyle(footerStyle, textTheme);
-  }
-
   static double _topSpacingForChart(double chartSize) {
     if (chartSize <= 0) return 0;
     return (chartSize * 0.085).clamp(10.0, 18.0);
@@ -100,10 +79,17 @@ class SlotStatusDonut extends StatelessWidget {
     return (chartSize * 0.07).clamp(10.0, 20.0);
   }
 
+  static double _legendSpacingWithHeader(double chartSize) {
+    if (chartSize <= 0) {
+      return _legendHeaderSpacingMin;
+    }
+    return (chartSize * 0.09)
+        .clamp(_legendHeaderSpacingMin, _legendHeaderSpacingMax);
+  }
+
   static _SlotStatusGeometry _resolveGeometry({
     required double width,
     required double topHeaderHeight,
-    required double footerHeight,
     double? maxHeight,
     bool includeLegend = true,
     bool includeHeader = true,
@@ -129,12 +115,12 @@ class SlotStatusDonut extends StatelessWidget {
         : 0.0;
     var legendSpacing = hasLegend
         ? (includeHeader
-            ? ChartCardFooter.childSpacing
+            ? _legendSpacingWithHeader(chartSize)
             : math.max(_legendSpacingEstimate(chartSize), 12.0))
         : 0.0;
     var tileHeight = chartSize + legendHeight + legendSpacing;
     if (includeHeader) {
-      tileHeight += topHeaderHeight + footerHeight + topSpacing + bottomSpacing;
+      tileHeight += topHeaderHeight + topSpacing + bottomSpacing;
     }
 
     final limit = maxHeight != null && maxHeight.isFinite ? maxHeight : null;
@@ -151,12 +137,12 @@ class SlotStatusDonut extends StatelessWidget {
             : 0.0;
         final legendSpace = hasLegend
             ? (includeHeader
-                ? ChartCardFooter.childSpacing
+                ? _legendSpacingWithHeader(mid)
                 : math.max(_legendSpacingEstimate(mid), 12.0))
             : 0.0;
         var total = mid + legend + legendSpace;
         if (includeHeader) {
-          total += topHeaderHeight + footerHeight + spacingTop + spacingBottom;
+          total += topHeaderHeight + spacingTop + spacingBottom;
         }
         if (total <= limit) {
           best = mid;
@@ -170,7 +156,7 @@ class SlotStatusDonut extends StatelessWidget {
       bottomSpacing = includeHeader ? _bottomSpacingForChart(chartSize) : 0.0;
       legendSpacing = hasLegend
           ? (includeHeader
-              ? ChartCardFooter.childSpacing
+              ? _legendSpacingWithHeader(chartSize)
               : math.max(_legendSpacingEstimate(chartSize), 12.0))
           : 0.0;
       legendHeight = hasLegend
@@ -178,8 +164,7 @@ class SlotStatusDonut extends StatelessWidget {
           : 0.0;
       tileHeight = chartSize + legendHeight + legendSpacing;
       if (includeHeader) {
-        tileHeight +=
-            topHeaderHeight + footerHeight + topSpacing + bottomSpacing;
+        tileHeight += topHeaderHeight + topSpacing + bottomSpacing;
       }
     }
 
@@ -198,12 +183,8 @@ class SlotStatusDonut extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final headerStyle = headerTextStyle(theme);
-    final footerStyle = footerTextStyle(theme);
     final topHeaderHeight = showHeader
         ? _headerBandHeight(headerStyle, textTheme)
-        : 0.0;
-    final footerHeight = showHeader
-        ? _footerHeight(footerStyle, textTheme)
         : 0.0;
 
     return LayoutBuilder(
@@ -241,7 +222,6 @@ class SlotStatusDonut extends StatelessWidget {
           final geometry = _resolveGeometry(
             width: maxWidth,
             topHeaderHeight: topHeaderHeight,
-            footerHeight: footerHeight,
             maxHeight: maxHeight,
             includeLegend: hasLegend,
             includeHeader: showHeader,
@@ -373,14 +353,6 @@ class SlotStatusDonut extends StatelessWidget {
                 )
               : null;
 
-          final footer = showHeader
-              ? ChartCardFooter(
-                  label: 'Slot status detail',
-                  textStyle: footerStyle,
-                  child: legendWidget,
-                )
-              : null;
-
           final headerWidget = showHeader
               ? ChartCardHeader(
                   label: 'SLOT STATUS',
@@ -388,8 +360,10 @@ class SlotStatusDonut extends StatelessWidget {
                 )
               : null;
 
-          final inlineLegendSpacing = (!showHeader && legendWidget != null)
-              ? math.max(_legendSpacingEstimate(chartSize), 12.0)
+          final legendSpacing = hasLegend
+              ? (showHeader
+                  ? _legendSpacingWithHeader(chartSize)
+                  : math.max(_legendSpacingEstimate(chartSize), 12.0))
               : 0.0;
 
           if (constraints.maxHeight.isFinite && constraints.maxHeight > 0) {
@@ -404,17 +378,10 @@ class SlotStatusDonut extends StatelessWidget {
                   Expanded(
                     child: Center(child: chart),
                   ),
-                  if (!showHeader && legendWidget != null) ...[
-                    if (inlineLegendSpacing > 0)
-                      SizedBox(height: inlineLegendSpacing),
-                    Center(child: legendWidget),
-                  ]
-                  else if (showHeader && footer != null) ...[
+                  if (legendWidget != null) ...[
                     if (bottomSpacing > 0) SizedBox(height: bottomSpacing),
-                    footer,
-                  ]
-                  else if (footer != null) ...[
-                    footer,
+                    if (legendSpacing > 0) SizedBox(height: legendSpacing),
+                    Center(child: legendWidget),
                   ],
                 ],
               ),
@@ -429,14 +396,10 @@ class SlotStatusDonut extends StatelessWidget {
               if (headerWidget != null && topSpacing > 0)
                 SizedBox(height: topSpacing),
               Center(child: chart),
-              if (!showHeader && legendWidget != null) ...[
-                if (inlineLegendSpacing > 0)
-                  SizedBox(height: inlineLegendSpacing),
-                Center(child: legendWidget),
-              ]
-              else if (footer != null) ...[
+              if (legendWidget != null) ...[
                 if (bottomSpacing > 0) SizedBox(height: bottomSpacing),
-                footer,
+                if (legendSpacing > 0) SizedBox(height: legendSpacing),
+                Center(child: legendWidget),
               ],
             ],
           );
@@ -612,8 +575,7 @@ class _LegendEntry extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 5),
-        Text('$label ${slice.value} (${slice.percentageLabel})',
-            style: textStyle),
+        Text('$label ${slice.value}', style: textStyle),
       ],
     );
   }
