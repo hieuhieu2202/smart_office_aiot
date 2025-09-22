@@ -29,8 +29,8 @@ class SlotStatusDonut extends StatelessWidget {
         final sectionRadius = chartSize * 0.36;
         final centerRadius = chartSize * 0.32;
         final sectionSpacing = chartSize * 0.02;
-        final legendSpacing = chartSize < 108 ? 4.0 : 6.0;
-        final legendTopGap = chartSize < 100 ? 4.0 : 6.0;
+        final legendSpacing = chartSize < 108 ? 12.0 : 14.0;
+        final legendTopGap = chartSize < 100 ? 6.0 : 8.0;
         final titleSpacing = (chartSize * 0.07).clamp(6.0, 11.0).toDouble();
         final hasBoundedHeight =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0;
@@ -121,7 +121,7 @@ class SlotStatusDonut extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Wrap(
                     spacing: legendSpacing,
-                    runSpacing: 4,
+                    runSpacing: 6,
                     alignment: WrapAlignment.center,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: slices.map((e) {

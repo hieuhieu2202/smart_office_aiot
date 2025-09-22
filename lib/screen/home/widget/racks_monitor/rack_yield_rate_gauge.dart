@@ -43,9 +43,6 @@ class YieldRateGauge extends StatelessWidget {
         final percentFontSize =
             (gaugeWidth * 0.24).clamp(16.0, 22.0).toDouble();
 
-        final hasBoundedHeight =
-            constraints.maxHeight.isFinite && constraints.maxHeight > 0;
-
         final labelTextStyle = TextStyle(
           color: labelColor,
           fontWeight: FontWeight.w700,
@@ -91,23 +88,21 @@ class YieldRateGauge extends StatelessWidget {
         );
         final headerSpacing = (gaugeWidth * 0.07).clamp(6.0, 11.0).toDouble();
 
-        final children = <Widget>[
-          Padding(
-            padding: EdgeInsets.only(bottom: headerSpacing),
-            child: Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
-          ),
-        ];
-
-        if (hasBoundedHeight) {
-          children.add(Expanded(child: gauge));
-        } else {
-          children.add(gauge);
-        }
-
-        return Column(
+        final content = Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
-          children: children,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(bottom: headerSpacing),
+              child: Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
+            ),
+            gauge,
+          ],
+        );
+
+        return Align(
+          alignment: Alignment.center,
+          child: content,
         );
       },
     );
