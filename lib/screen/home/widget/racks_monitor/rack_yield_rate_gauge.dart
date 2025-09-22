@@ -16,9 +16,10 @@ class YieldRateGauge extends StatelessWidget {
   final bool showHeader;
 
   static const double _minGaugeWidth = 94.0;
-  static const double _maxGaugeWidth = 150.0;
-  static const double _heightFactor = 0.58;
+  static const double _maxGaugeWidth = 160.0;
+  static const double _heightFactor = 0.64;
   static const double _footerSpacingFactor = 0.9;
+  static const Color _activeArcColor = Color(0xFF00FF76);
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -103,7 +104,7 @@ class YieldRateGauge extends StatelessWidget {
     final maxGauge = math.min(effectiveWidth, _maxGaugeWidth);
     final minGauge = math.min(_minGaugeWidth, maxGauge);
     var gaugeWidth =
-        math.min(maxGauge, effectiveWidth * 0.72).clamp(minGauge, maxGauge);
+        math.min(maxGauge, effectiveWidth * 0.76).clamp(minGauge, maxGauge);
 
     var gaugeHeight = gaugeWidth * _heightFactor;
     var spacing = includeHeader ? _spacingForWidth(gaugeWidth) : 0.0;
@@ -185,28 +186,31 @@ class YieldRateGauge extends StatelessWidget {
         final labelColor = textTheme.bodyMedium?.color ??
             (isDark ? Colors.white70 : Colors.black87);
         final tickStyle = TextStyle(
-          fontSize: (gaugeWidth * 0.085).clamp(9.0, 12.0),
+          fontSize: (gaugeWidth * 0.08).clamp(9.0, 12.0),
           fontWeight: FontWeight.w600,
           color: labelColor.withOpacity(isDark ? 0.9 : 0.75),
         );
         final percentColor = isDark ? Colors.white : theme.colorScheme.onSurface;
         final percentStyle = textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
-              fontSize: (gaugeWidth * 0.21).clamp(18.0, 26.0),
+              fontSize: (gaugeWidth * 0.23).clamp(20.0, 28.0),
               color: percentColor,
               shadows:
                   isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             ) ??
             TextStyle(
               fontWeight: FontWeight.w900,
-              fontSize: (gaugeWidth * 0.22).clamp(19.0, 26.0),
+              fontSize: (gaugeWidth * 0.24).clamp(21.0, 28.0),
               color: percentColor,
               shadows:
                   isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             );
 
-        final thickness = (gaugeWidth * 0.1).clamp(8.0, 15.0);
-        final sidePadding = (gaugeWidth * 0.1).clamp(9.0, 20.0);
+        final thickness = (gaugeWidth * 0.14).clamp(11.0, 18.0);
+        final sidePadding = (gaugeWidth * 0.08).clamp(8.0, 16.0);
+        final isWholePercent = (yr - yr.roundToDouble()).abs() < 0.005;
+        final percentageLabel =
+            '${yr.toStringAsFixed(isWholePercent ? 0 : 2)}%';
 
         final gauge = SizedBox(
           width: gaugeWidth,
@@ -217,13 +221,13 @@ class YieldRateGauge extends StatelessWidget {
               baseColor: isDark
                   ? Colors.white.withOpacity(0.18)
                   : theme.colorScheme.onSurface.withOpacity(0.12),
-              activeColor: const Color(0xFF00E676),
+              activeColor: _activeArcColor,
               thickness: thickness,
               sideLabelPadding: sidePadding,
               labelTextStyle: tickStyle,
             ),
             child: Center(
-              child: Text('${yr.toStringAsFixed(2)}%', style: percentStyle),
+              child: Text(percentageLabel, style: percentStyle),
             ),
           ),
         );

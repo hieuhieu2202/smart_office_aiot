@@ -19,7 +19,7 @@ class SlotStatusDonut extends StatelessWidget {
 
   static const double _minChartSize = 78.0;
   static const double _maxChartSize = 108.0;
-  static const double _preferredScale = 0.5;
+  static const double _preferredScale = 0.44;
   static const double _legendMinHeight = 24.0;
   static const double _legendMaxHeight = 88.0;
   static const double _legendMinSpacing = 12.0;
@@ -71,12 +71,12 @@ class SlotStatusDonut extends StatelessWidget {
 
   static double _topSpacingForChart(double chartSize) {
     if (chartSize <= 0) return 0;
-    return (chartSize * 0.12).clamp(14.0, 24.0);
+    return (chartSize * 0.18).clamp(18.0, 30.0);
   }
 
   static double _bottomSpacingForChart(double chartSize) {
     if (chartSize <= 0) return 0;
-    return (chartSize * 0.1).clamp(12.0, 22.0);
+    return (chartSize * 0.12).clamp(14.0, 24.0);
   }
 
   static double _legendSpacingWithHeader(double chartSize) {
