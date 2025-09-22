@@ -292,6 +292,7 @@ class SftpScreen extends StatelessWidget {
           );
         }),
         floatingActionButton: FloatingActionButton(
+          heroTag: 'stp-refresh-fab',
           backgroundColor: isDark
               ? GlobalColors.primaryButtonDark
               : GlobalColors.primaryButtonLight,

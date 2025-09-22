@@ -14,23 +14,34 @@ class SlotStatusDonut extends StatelessWidget {
     final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
 
+    final baseHeaderStyle =
+        textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700) ??
+            TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: textTheme.labelLarge?.color ?? theme.colorScheme.onSurface,
+            );
+    final headerFontSize = baseHeaderStyle.fontSize ?? 14;
+    final headerHeight =
+        headerFontSize * (baseHeaderStyle.height ?? textTheme.labelLarge?.height ?? 1.25);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : MediaQuery.of(context).size.width;
-        final chartSize = maxWidth.clamp(108.0, 148.0).toDouble();
-        final titleSpacing = (chartSize * 0.08).clamp(8.0, 12.0).toDouble();
-        final legendSpacing = (chartSize * 0.12).clamp(12.0, 18.0).toDouble();
+        final maxHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
+            ? constraints.maxHeight
+            : null;
 
         final legendBaseStyle = textTheme.bodySmall?.copyWith(
-              fontSize: 12,
+              fontSize: 11,
               height: 1.2,
               color: (textTheme.bodySmall?.color ?? theme.colorScheme.onSurface)
                   .withOpacity(isDark ? 0.9 : 0.8),
             ) ??
             TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               height: 1.2,
               color: theme.colorScheme.onSurface.withOpacity(isDark ? 0.9 : 0.8),
             );
@@ -48,6 +59,39 @@ class SlotStatusDonut extends StatelessWidget {
             _Slice('Waiting', data['Waiting'] ?? 0, const Color(0xFFFFA726)),
             _Slice('NotUsed', data['NotUsed'] ?? 0, const Color(0xFF90A4AE)),
           ].where((slice) => slice.value > 0).toList();
+
+          int columnsForWidth(double width, int itemCount) {
+            if (itemCount <= 1) return 1;
+            if (width >= 280 && itemCount >= 3) return 3;
+            if (width >= 110 && itemCount >= 2) return 2;
+            return 1;
+          }
+
+          final legendColumns = columnsForWidth(maxWidth, slices.length);
+          final legendRows = slices.isEmpty
+              ? 1
+              : ((slices.length + legendColumns - 1) ~/ legendColumns);
+
+          const minChartSize = 82.0;
+          final maxChartByWidth = maxWidth.clamp(96.0, 132.0).toDouble();
+          double chartSize = maxChartByWidth;
+          double titleSpacing = (chartSize * 0.06).clamp(6.0, 10.0).toDouble();
+          double legendSpacing = (chartSize * 0.08).clamp(6.0, 12.0).toDouble();
+
+          if (maxHeight != null) {
+            final baseLineHeight =
+                (legendBaseStyle.fontSize ?? 11) * (legendBaseStyle.height ?? 1.2);
+            final rowHeight = baseLineHeight + 10;
+            final legendHeightEstimate = legendRows <= 0
+                ? 0
+                : (legendRows * rowHeight) + ((legendRows - 1) * 8);
+            final reservedHeight =
+                headerHeight + titleSpacing + legendSpacing + legendHeightEstimate;
+            final availableForChart = maxHeight - reservedHeight;
+            chartSize = availableForChart.clamp(minChartSize, maxChartByWidth);
+            titleSpacing = (chartSize * 0.06).clamp(6.0, 10.0).toDouble();
+            legendSpacing = (chartSize * 0.08).clamp(6.0, 12.0).toDouble();
+          }
 
           final totalFontSize = (chartSize * 0.19).clamp(14.0, 20.0).toDouble();
           final totalStyle = textTheme.titleMedium?.copyWith(
@@ -112,35 +156,58 @@ class SlotStatusDonut extends StatelessWidget {
                     ),
                   ),
                 )
-              : Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    for (final slice in slices)
-                      _LegendChip(
-                        color: slice.color,
-                        label: slice.label,
-                        value: slice.value,
-                        textStyle: legendBaseStyle,
-                      ),
-                  ],
+              : LayoutBuilder(
+                  builder: (context, legendConstraints) {
+                    final width = legendConstraints.maxWidth.isFinite &&
+                            legendConstraints.maxWidth > 0
+                        ? legendConstraints.maxWidth
+                        : maxWidth;
+                    final columns = columnsForWidth(width, slices.length);
+                    const spacing = 10.0;
+                    const runSpacing = 8.0;
+                    final itemWidth = columns <= 1
+                        ? width
+                        : (width - ((columns - 1) * spacing)) / columns;
+
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: runSpacing,
+                      alignment:
+                          columns <= 1 ? WrapAlignment.center : WrapAlignment.start,
+                      runAlignment: WrapAlignment.center,
+                      children: [
+                        for (final slice in slices)
+                          SizedBox(
+                            width: itemWidth,
+                            child: _LegendChip(
+                              color: slice.color,
+                              label: slice.label,
+                              value: slice.value,
+                              textStyle: legendBaseStyle,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 );
 
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                'SLOT STATUS',
-                style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: titleSpacing),
-              chart,
-              SizedBox(height: legendSpacing),
-              legend,
-            ],
+          return Align(
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'SLOT STATUS',
+                  style: baseHeaderStyle,
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: titleSpacing),
+                chart,
+                SizedBox(height: legendSpacing),
+                legend,
+              ],
+            ),
           );
         });
       },
@@ -175,25 +242,39 @@ class _LegendChip extends StatelessWidget {
     final background = color.withOpacity(isDark ? 0.22 : 0.12);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withOpacity(0.35)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 8,
-            height: 8,
+            width: 7,
+            height: 7,
             margin: const EdgeInsets.only(right: 6),
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
             ),
           ),
-          Text('$label: $value', style: textStyle),
+          Expanded(
+            child: Text(
+              label,
+              style: textStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$value',
+            style: textStyle.copyWith(fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );

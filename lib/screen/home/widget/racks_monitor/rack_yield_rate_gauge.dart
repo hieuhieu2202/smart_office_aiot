@@ -15,15 +15,49 @@ class YieldRateGauge extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final yr = controller.kpiYr.clamp(0, 100).toDouble();
 
+    final headerStyle = textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+        ) ??
+        TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+          color: textTheme.labelLarge?.color ??
+              (isDark ? Colors.white : theme.colorScheme.onSurface),
+        );
+    final headerFontSize = headerStyle.fontSize ?? 14;
+    final headerLineHeight = headerStyle.height ?? textTheme.labelLarge?.height ?? 1.25;
+    final headerHeight = headerFontSize * headerLineHeight;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : MediaQuery.of(context).size.width;
+        final maxHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
+            ? constraints.maxHeight
+            : null;
 
-        final gaugeWidth = maxWidth.clamp(120.0, 160.0).toDouble();
+        const minGaugeWidth = 104.0;
+        const maxGaugeWidth = 168.0;
+
+        double gaugeWidth = maxWidth < minGaugeWidth
+            ? maxWidth
+            : maxWidth.clamp(minGaugeWidth, maxGaugeWidth).toDouble();
+        double headerSpacing = (gaugeWidth * 0.08).clamp(8.0, 14.0).toDouble();
+
+        if (maxHeight != null) {
+          final availableForGauge = maxHeight - headerHeight - headerSpacing;
+          if (availableForGauge.isFinite && availableForGauge > 0) {
+            final widthFromHeight = availableForGauge / 0.68;
+            if (widthFromHeight.isFinite && widthFromHeight > 0) {
+              final targetWidth = widthFromHeight.clamp(minGaugeWidth, maxGaugeWidth);
+              gaugeWidth = math.min(targetWidth, maxWidth);
+              headerSpacing = (gaugeWidth * 0.08).clamp(8.0, 14.0).toDouble();
+            }
+          }
+        }
+
         final gaugeHeight = (gaugeWidth * 0.68).toDouble();
-        final headerSpacing = (gaugeWidth * 0.08).clamp(8.0, 14.0).toDouble();
         final labelFontSize = (gaugeWidth * 0.1).clamp(9.5, 12.5).toDouble();
         final percentFontSize = (gaugeWidth * 0.25).clamp(18.0, 26.0).toDouble();
         final thickness = (gaugeWidth * 0.12).clamp(10.0, 14.0).toDouble();
@@ -44,14 +78,6 @@ class YieldRateGauge extends StatelessWidget {
             TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: percentFontSize,
-              color: labelColor,
-            );
-        final headerStyle = textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-            ) ??
-            TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
               color: labelColor,
             );
 
@@ -75,14 +101,17 @@ class YieldRateGauge extends StatelessWidget {
           ),
         );
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
-            SizedBox(height: headerSpacing),
-            gauge,
-          ],
+        return Align(
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
+              SizedBox(height: headerSpacing),
+              gauge,
+            ],
+          ),
         );
       },
     );

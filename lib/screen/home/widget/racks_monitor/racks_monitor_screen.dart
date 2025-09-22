@@ -249,7 +249,7 @@ class _RackInsightsColumn extends StatelessWidget {
         final canPairCharts = availableWidth >= 300;
         final double halfWidth =
             (((availableWidth - gap) / 2).clamp(0.0, availableWidth)).toDouble();
-        const double chartTileHeight = 184;
+        const double chartTileHeight = 232;
 
         Widget tile({
           required Widget child,

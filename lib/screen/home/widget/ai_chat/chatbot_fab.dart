@@ -9,6 +9,7 @@ class ChatbotFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(
+      heroTag: 'ai-chat-fab',
       onPressed: () => AiChatSheet.show(context, controller),
       icon: const Icon(Icons.smart_toy_outlined),
       label: const Text('Smart Chat'),
