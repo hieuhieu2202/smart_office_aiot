@@ -87,7 +87,7 @@ class YieldRateGauge extends StatelessWidget {
         final headerStyle = textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w800,
         );
-        final headerSpacing = (gaugeWidth * 0.07).clamp(6.0, 11.0).toDouble();
+        final headerSpacing = (gaugeWidth * 0.055).clamp(4.0, 9.0).toDouble();
 
         final content = Column(
           mainAxisSize: MainAxisSize.min,
@@ -102,7 +102,7 @@ class YieldRateGauge extends StatelessWidget {
         );
 
         return Align(
-          alignment: Alignment.center,
+          alignment: Alignment.topCenter,
           child: content,
         );
       },

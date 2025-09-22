@@ -49,6 +49,9 @@ class SlotStatusDonut extends StatelessWidget {
         final legendTopGap = canShowSideBySide
             ? (chartSize * 0.04).clamp(6.0, 10.0).toDouble()
             : (chartSize * 0.07).clamp(8.0, 12.0).toDouble();
+        final legendWrapTopInset = canShowSideBySide
+            ? (chartSize * 0.12).clamp(8.0, 16.0).toDouble()
+            : (chartSize * 0.06).clamp(4.0, 10.0).toDouble();
         final remainingWidth =
             canShowSideBySide ? math.max(0.0, rawWidth - chartSize - minLegendWidth) : 0.0;
         final legendSideGap = canShowSideBySide
@@ -147,13 +150,16 @@ class SlotStatusDonut extends StatelessWidget {
                     color: legendColor.withOpacity(0.75),
                   ),
                 )
-              : Wrap(
-                  spacing: canShowSideBySide ? 12 : 16,
-                  runSpacing: canShowSideBySide ? 6 : 8,
-                  alignment: canShowSideBySide
-                      ? WrapAlignment.start
-                      : WrapAlignment.center,
-                  children: legendChildren,
+              : Padding(
+                  padding: EdgeInsets.only(top: legendWrapTopInset),
+                  child: Wrap(
+                    spacing: canShowSideBySide ? 12 : 16,
+                    runSpacing: canShowSideBySide ? 6 : 8,
+                    alignment: canShowSideBySide
+                        ? WrapAlignment.start
+                        : WrapAlignment.center,
+                    children: legendChildren,
+                  ),
                 );
 
           final Widget legend = ConstrainedBox(
