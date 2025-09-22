@@ -5,14 +5,17 @@ class ChartCardFooter extends StatelessWidget {
     super.key,
     required this.label,
     required this.textStyle,
+    this.child,
   });
 
   final String label;
   final TextStyle textStyle;
+  final Widget? child;
 
   static const double verticalPadding = 8.0;
   static const double horizontalPadding = 12.0;
   static const double borderRadius = 12.0;
+  static const double childSpacing = 6.0;
 
   @override
   Widget build(BuildContext context) {
@@ -37,10 +40,20 @@ class ChartCardFooter extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: borderColor, width: 0.8),
       ),
-      child: Text(
-        label,
-        style: textStyle.copyWith(letterSpacing: 1.05),
-        textAlign: TextAlign.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: textStyle.copyWith(letterSpacing: 1.05),
+            textAlign: TextAlign.center,
+          ),
+          if (child != null) ...[
+            const SizedBox(height: childSpacing),
+            child!,
+          ],
+        ],
       ),
     );
   }
