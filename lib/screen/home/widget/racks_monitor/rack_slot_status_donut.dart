@@ -23,14 +23,14 @@ class SlotStatusDonut extends StatelessWidget {
             constraints.maxHeight.isFinite ? constraints.maxHeight : double.infinity;
         double chartCap = rawWidth;
         if (maxHeight.isFinite) {
-          chartCap = math.min(chartCap, math.max(82.0, maxHeight - 86));
+          chartCap = math.min(chartCap, math.max(70.0, maxHeight - 90));
         }
-        final chartSize = chartCap.clamp(82.0, 132.0).toDouble();
-        final sectionRadius = chartSize * 0.4;
-        final centerRadius = chartSize * 0.36;
-        final sectionSpacing = chartSize * 0.018;
-        final legendSpacing = chartSize < 120 ? 6.0 : 7.0;
-        final legendTopGap = chartSize < 120 ? 6.0 : 8.0;
+        final chartSize = chartCap.clamp(70.0, 116.0).toDouble();
+        final sectionRadius = chartSize * 0.36;
+        final centerRadius = chartSize * 0.32;
+        final sectionSpacing = chartSize * 0.02;
+        final legendSpacing = chartSize < 108 ? 4.0 : 6.0;
+        final legendTopGap = chartSize < 100 ? 4.0 : 6.0;
         final hasBoundedHeight =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0;
 
@@ -57,7 +57,7 @@ class SlotStatusDonut extends StatelessWidget {
                 color: legendColor,
               );
 
-          final totalFontSize = (chartSize * 0.2).clamp(14.0, 20.0).toDouble();
+          final totalFontSize = (chartSize * 0.19).clamp(13.0, 18.0).toDouble();
           final totalStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
                 fontSize: totalFontSize,

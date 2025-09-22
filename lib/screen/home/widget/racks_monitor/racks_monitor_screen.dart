@@ -249,7 +249,7 @@ class _RackInsightsColumn extends StatelessWidget {
         final canPairCharts = availableWidth >= 300;
         final double halfWidth =
             (((availableWidth - gap) / 2).clamp(0.0, availableWidth)).toDouble();
-        const double chartTileHeight = 200;
+        const double chartTileHeight = 184;
 
         Widget tile({
           required Widget child,
@@ -280,8 +280,7 @@ class _RackInsightsColumn extends StatelessWidget {
             Wrap(
               spacing: gap,
               runSpacing: gap,
-              alignment:
-                  allowGrid ? WrapAlignment.start : WrapAlignment.center,
+              alignment: WrapAlignment.center,
               children: [
                 tile(
                   span: 2,

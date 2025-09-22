@@ -28,20 +28,20 @@ class YieldRateGauge extends StatelessWidget {
 
         double widthCap = rawWidth;
         if (maxHeight.isFinite) {
-          widthCap = math.min(widthCap, math.max(110.0, maxHeight - 84));
+          widthCap = math.min(widthCap, math.max(98.0, maxHeight - 88));
         }
-        final gaugeWidth = widthCap.clamp(110.0, 168.0).toDouble();
+        final gaugeWidth = widthCap.clamp(98.0, 148.0).toDouble();
 
-        final baseGaugeHeight = (gaugeWidth * 0.6).clamp(82.0, 128.0).toDouble();
+        final baseGaugeHeight = (gaugeWidth * 0.58).clamp(74.0, 118.0).toDouble();
         final gaugeHeight = maxHeight.isFinite
-            ? math.min(baseGaugeHeight, math.max(80.0, maxHeight - 74))
+            ? math.min(baseGaugeHeight, math.max(72.0, maxHeight - 74))
             : baseGaugeHeight;
 
-        final thickness = (gaugeWidth * 0.085).clamp(6.5, 11.0).toDouble();
-        final sidePadding = (gaugeWidth * 0.075).clamp(6.0, 12.0).toDouble();
-        final labelFontSize = (gaugeWidth * 0.1).clamp(9.0, 12.0).toDouble();
+        final thickness = (gaugeWidth * 0.08).clamp(6.0, 9.5).toDouble();
+        final sidePadding = (gaugeWidth * 0.085).clamp(7.0, 13.0).toDouble();
+        final labelFontSize = (gaugeWidth * 0.095).clamp(8.5, 11.0).toDouble();
         final percentFontSize =
-            (gaugeWidth * 0.26).clamp(16.0, 22.0).toDouble();
+            (gaugeWidth * 0.25).clamp(15.0, 20.0).toDouble();
 
         final hasBoundedHeight =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0;
@@ -76,7 +76,7 @@ class YieldRateGauge extends StatelessWidget {
                 labelTextStyle: labelTextStyle,
               ),
               child: Align(
-                alignment: const Alignment(0, -0.18),
+                alignment: const Alignment(0, -0.12),
                 child: Text(
                   '${yr.toStringAsFixed(1)}%',
                   style: percentStyle,
