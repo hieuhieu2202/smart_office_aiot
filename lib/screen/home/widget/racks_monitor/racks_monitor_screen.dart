@@ -59,9 +59,9 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
           final m = controller.selModel.value;
           final parts = <String>[
             f,
-            if (fl != 'ALL') fl,
-            if (g != 'ALL') g,
-            if (m != 'ALL') m,
+            if (fl.isNotEmpty) fl,
+            if (g.isNotEmpty) g,
+            if (m.isNotEmpty) m,
           ];
           return Text(parts.isEmpty ? 'Rack Monitor' : parts.join('  ·  '));
         }),

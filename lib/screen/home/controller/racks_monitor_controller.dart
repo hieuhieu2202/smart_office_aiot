@@ -95,16 +95,18 @@ class GroupMonitorController extends GetxController {
   List<LocationEntry> _allLocs = const <LocationEntry>[];
 
   final factories = <String>['F16', 'F17'].obs;
-  final floors = <String>['ALL'].obs;
-  final rooms = <String>['ALL'].obs;
-  final groups = <String>['ALL'].obs;
-  final models = <String>['ALL'].obs;
+  final floors = <String>[].obs;
+  final rooms = <String>[].obs;
+  final groups = <String>[].obs;
+  final models = <String>[].obs;
 
   final selFactory = 'F16'.obs;
-  final selFloor = '3F'.obs;
-  final selRoom = 'ALL'.obs;
-  final selGroup = 'J_TAG'.obs;
-  final selModel = 'ALL'.obs;
+  final selFloor = ''.obs;
+  final selRoom = ''.obs;
+  final selGroup = ''.obs;
+  final selModel = ''.obs;
+
+  bool _isSyncingFilters = false;
 
   final showOfflineRack = true.obs;
   final showAnimation = false.obs;
@@ -128,27 +130,36 @@ class GroupMonitorController extends GetxController {
     _restartTimer();
 
     ever(selFactory, (_) {
-      selFloor.value = 'ALL';
-      selRoom.value = 'ALL';
-      selGroup.value = 'ALL';
-      selModel.value = 'ALL';
+      if (_isSyncingFilters) return;
+      _withFilterSync(() {
+        selFloor.value = '';
+        selRoom.value = '';
+        selGroup.value = '';
+        selModel.value = '';
+      });
       _rebuildDependentOptions();
       refresh();
     });
 
     ever(selFloor, (_) {
+      if (_isSyncingFilters) return;
       _rebuildDependentOptions();
       refresh();
     });
     ever(selRoom, (_) {
+      if (_isSyncingFilters) return;
       _rebuildDependentOptions();
       refresh();
     });
     ever(selGroup, (_) {
+      if (_isSyncingFilters) return;
       _rebuildDependentOptions();
       refresh();
     });
-    ever(selModel, (_) => refresh());
+    ever(selModel, (_) {
+      if (_isSyncingFilters) return;
+      refresh();
+    });
   }
 
   @override
@@ -192,16 +203,22 @@ class GroupMonitorController extends GetxController {
         ..addAll(['F16', 'F17']);
       floors
         ..clear()
-        ..addAll(['ALL', '3F']);
+        ..addAll(['3F']);
       rooms
         ..clear()
-        ..addAll(['ALL', 'ROOM1', 'ROOM2']);
+        ..addAll(['ROOM1', 'ROOM2']);
       groups
         ..clear()
-        ..addAll(['ALL', 'CTO', 'FT', 'J_TAG']);
+        ..addAll(['CTO', 'FT', 'J_TAG']);
       models
         ..clear()
-        ..addAll(['ALL', 'GB200', 'GB300']);
+        ..addAll(['GB200', 'GB300']);
+      _withFilterSync(() {
+        selFloor.value = floors.isNotEmpty ? floors.first : '';
+        selRoom.value = rooms.isNotEmpty ? rooms.first : '';
+        selGroup.value = groups.isNotEmpty ? groups.first : '';
+        selModel.value = models.isNotEmpty ? models.first : '';
+      });
     }
   }
 
@@ -213,60 +230,92 @@ class GroupMonitorController extends GetxController {
     }
     final list =
         s.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return ['ALL', ...list];
+    return list;
   }
 
   void _rebuildDependentOptions() {
     final fact = selFactory.value.trim();
-    final floor = selFloor.value.trim();
-    final room = selRoom.value.trim();
-    final group = selGroup.value.trim();
 
-    final newFloors = _mkOpts(
-      _allLocs.where((e) => e.factory == fact).map((e) => e.floor),
-    );
-    floors
-      ..clear()
-      ..addAll(newFloors);
-    if (!floors.contains(selFloor.value)) selFloor.value = 'ALL';
+    _withFilterSync(() {
+      final currentFloor = selFloor.value.trim();
+      final newFloors = _mkOpts(
+        _allLocs.where((e) => e.factory == fact).map((e) => e.floor),
+      );
+      floors
+        ..clear()
+        ..addAll(newFloors);
+      final nextFloor =
+          (currentFloor.isNotEmpty && newFloors.contains(currentFloor))
+              ? currentFloor
+              : (newFloors.isNotEmpty ? newFloors.first : '');
+      if (selFloor.value != nextFloor) selFloor.value = nextFloor;
+      final activeFloor = selFloor.value.trim();
 
-    Iterable<LocationEntry> qRoom = _allLocs.where((e) => e.factory == fact);
-    if (selFloor.value != 'ALL') qRoom = qRoom.where((e) => e.floor == floor);
-    final newRooms = _mkOpts(qRoom.map((e) => e.room));
-    rooms
-      ..clear()
-      ..addAll(newRooms);
-    if (!rooms.contains(selRoom.value)) selRoom.value = 'ALL';
+      Iterable<LocationEntry> qRoom =
+          _allLocs.where((e) => e.factory == fact);
+      if (activeFloor.isNotEmpty) {
+        qRoom = qRoom.where((e) => e.floor == activeFloor);
+      }
+      final currentRoom = selRoom.value.trim();
+      final newRooms = _mkOpts(qRoom.map((e) => e.room));
+      rooms
+        ..clear()
+        ..addAll(newRooms);
+      final nextRoom =
+          (currentRoom.isNotEmpty && newRooms.contains(currentRoom))
+              ? currentRoom
+              : (newRooms.isNotEmpty ? newRooms.first : '');
+      if (selRoom.value != nextRoom) selRoom.value = nextRoom;
+      final activeRoom = selRoom.value.trim();
 
-    Iterable<LocationEntry> qGroup = qRoom;
-    if (selRoom.value != 'ALL') qGroup = qGroup.where((e) => e.room == room);
-    final newGroups = _mkOpts(qGroup.map((e) => e.group));
-    groups
-      ..clear()
-      ..addAll(newGroups);
-    if (!groups.contains(selGroup.value)) selGroup.value = 'ALL';
+      Iterable<LocationEntry> qGroup = qRoom;
+      if (activeRoom.isNotEmpty) {
+        qGroup = qGroup.where((e) => e.room == activeRoom);
+      }
+      final currentGroup = selGroup.value.trim();
+      final newGroups = _mkOpts(qGroup.map((e) => e.group));
+      groups
+        ..clear()
+        ..addAll(newGroups);
+      final nextGroup =
+          (currentGroup.isNotEmpty && newGroups.contains(currentGroup))
+              ? currentGroup
+              : (newGroups.isNotEmpty ? newGroups.first : '');
+      if (selGroup.value != nextGroup) selGroup.value = nextGroup;
+      final activeGroup = selGroup.value.trim();
 
-    Iterable<LocationEntry> qModel = qGroup;
-    if (selGroup.value != 'ALL') qModel = qModel.where((e) => e.group == group);
-    final newModels = _mkOpts(qModel.map((e) => e.model));
-    models
-      ..clear()
-      ..addAll(newModels);
-    if (!models.contains(selModel.value)) selModel.value = 'ALL';
+      Iterable<LocationEntry> qModel = qGroup;
+      if (activeGroup.isNotEmpty) {
+        qModel = qModel.where((e) => e.group == activeGroup);
+      }
+      final currentModel = selModel.value.trim();
+      final newModels = _mkOpts(qModel.map((e) => e.model));
+      models
+        ..clear()
+        ..addAll(newModels);
+      final nextModel =
+          (currentModel.isNotEmpty && newModels.contains(currentModel))
+              ? currentModel
+              : (newModels.isNotEmpty ? newModels.first : '');
+      if (selModel.value != nextModel) selModel.value = nextModel;
 
-    vlog(
-      () =>
-          'FILTER OPTIONS REBUILD: '
-          'Factory=$fact, Floor=$floor, Room=$room, Group=$group\n'
-          'Floors=${floors.join(", ")}\n'
-          'Rooms=${rooms.join(", ")}\n'
-          'Groups=${groups.join(", ")}\n'
-          'Models=${models.join(", ")}',
-    );
+      vlog(
+        () =>
+            'FILTER OPTIONS REBUILD: '
+            'Factory=$fact, Floor=${selFloor.value}, Room=${selRoom.value}, Group=${selGroup.value}\n'
+            'Floors=${floors.join(", ")}\n'
+            'Rooms=${rooms.join(", ")}\n'
+            'Groups=${groups.join(", ")}\n'
+            'Models=${models.join(", ")}',
+      );
+    });
   }
 
   Map<String, dynamic> _buildBody({required bool isF17}) {
-    String? _nv(String s) => s == 'ALL' ? null : s;
+    String? _nv(String s) {
+      final trimmed = s.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
 
     if (isF17) {
       final Map<String, dynamic> b = {
@@ -319,11 +368,14 @@ class GroupMonitorController extends GetxController {
   }
 
   void clearFiltersKeepFactory() {
-    selFloor.value = 'ALL';
-    selRoom.value = 'ALL';
-    selGroup.value = 'ALL';
-    selModel.value = 'ALL';
+    _withFilterSync(() {
+      selFloor.value = '';
+      selRoom.value = '';
+      selGroup.value = '';
+      selModel.value = '';
+    });
     _rebuildDependentOptions();
+    refresh();
   }
 
   double get kpiUT => data.value?.quantitySummary.ut ?? 0.0;
@@ -407,7 +459,10 @@ class GroupMonitorController extends GetxController {
     vlog(() => '===== SNAPSHOT =====');
     vlog(
       () =>
-          'Factory=${selFactory.value}  Floor=${selFloor.value}  Room=${selRoom.value}  Group=${selGroup.value}  Model=${selModel.value}',
+          'Factory=${selFactory.value}  Floor=${selFloor.value.isEmpty ? "-" : selFloor.value}  '
+          'Room=${selRoom.value.isEmpty ? "-" : selRoom.value}  '
+          'Group=${selGroup.value.isEmpty ? "-" : selGroup.value}  '
+          'Model=${selModel.value.isEmpty ? "-" : selModel.value}',
     );
     vlog(
       () =>
@@ -448,5 +503,15 @@ class GroupMonitorController extends GetxController {
     final rs = racks;
     if (i < 0 || i >= rs.length) return const <SlotDetail>[];
     return rs[i].slotDetails;
+  }
+
+  void _withFilterSync(VoidCallback run) {
+    final prev = _isSyncingFilters;
+    _isSyncingFilters = true;
+    try {
+      run();
+    } finally {
+      _isSyncingFilters = prev;
+    }
   }
 }
