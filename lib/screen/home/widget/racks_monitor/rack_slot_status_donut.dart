@@ -18,14 +18,14 @@ class SlotStatusDonut extends StatelessWidget {
   final bool showHeader;
 
   static const double _minChartSize = 78.0;
-  static const double _maxChartSize = 116.0;
-  static const double _preferredScale = 0.54;
+  static const double _maxChartSize = 108.0;
+  static const double _preferredScale = 0.5;
   static const double _legendMinHeight = 24.0;
   static const double _legendMaxHeight = 88.0;
   static const double _legendMinSpacing = 12.0;
   static const double _legendMaxSpacing = 22.0;
-  static const double _legendHeaderSpacingMin = 10.0;
-  static const double _legendHeaderSpacingMax = 18.0;
+  static const double _legendHeaderSpacingMin = 14.0;
+  static const double _legendHeaderSpacingMax = 24.0;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -71,19 +71,19 @@ class SlotStatusDonut extends StatelessWidget {
 
   static double _topSpacingForChart(double chartSize) {
     if (chartSize <= 0) return 0;
-    return (chartSize * 0.085).clamp(10.0, 18.0);
+    return (chartSize * 0.12).clamp(14.0, 24.0);
   }
 
   static double _bottomSpacingForChart(double chartSize) {
     if (chartSize <= 0) return 0;
-    return (chartSize * 0.07).clamp(10.0, 20.0);
+    return (chartSize * 0.1).clamp(12.0, 22.0);
   }
 
   static double _legendSpacingWithHeader(double chartSize) {
     if (chartSize <= 0) {
       return _legendHeaderSpacingMin;
     }
-    return (chartSize * 0.09)
+    return (chartSize * 0.11)
         .clamp(_legendHeaderSpacingMin, _legendHeaderSpacingMax);
   }
 

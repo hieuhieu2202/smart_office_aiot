@@ -17,7 +17,7 @@ class YieldRateGauge extends StatelessWidget {
 
   static const double _minGaugeWidth = 94.0;
   static const double _maxGaugeWidth = 150.0;
-  static const double _heightFactor = 0.6;
+  static const double _heightFactor = 0.58;
   static const double _footerSpacingFactor = 0.9;
 
   static TextStyle headerTextStyle(ThemeData theme) {
@@ -54,7 +54,7 @@ class YieldRateGauge extends StatelessWidget {
 
   static double _spacingForWidth(double gaugeWidth) {
     if (gaugeWidth <= 0) return 0;
-    return (gaugeWidth * 0.075).clamp(10.0, 18.0);
+    return (gaugeWidth * 0.09).clamp(12.0, 22.0);
   }
 
   static double _solveGaugeWidth({
@@ -222,8 +222,7 @@ class YieldRateGauge extends StatelessWidget {
               sideLabelPadding: sidePadding,
               labelTextStyle: tickStyle,
             ),
-            child: Align(
-              alignment: const Alignment(0, -0.05),
+            child: Center(
               child: Text('${yr.toStringAsFixed(2)}%', style: percentStyle),
             ),
           ),
