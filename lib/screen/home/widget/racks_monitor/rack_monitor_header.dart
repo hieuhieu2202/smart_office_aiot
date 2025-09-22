@@ -1,0 +1,224 @@
+import 'package:flutter/material.dart';
+
+class RackHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const RackHeaderDelegate({
+    required this.height,
+    required this.child,
+  });
+
+  final double height;
+  final Widget child;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(covariant RackHeaderDelegate oldDelegate) {
+    return oldDelegate.height != height || oldDelegate.child != child;
+  }
+}
+
+class RackPinnedHeader extends StatelessWidget {
+  const RackPinnedHeader({
+    required this.controller,
+    required this.total,
+    required this.online,
+    required this.offline,
+    super.key,
+  });
+
+  final TabController controller;
+  final int total;
+  final int online;
+  final int offline;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: theme.colorScheme.surface,
+      elevation: isDark ? 4 : 2,
+      shadowColor: Colors.black.withOpacity(isDark ? 0.35 : 0.12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            RackTabSelector(
+              controller: controller,
+              total: total,
+              online: online,
+              offline: offline,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RackTabSelector extends StatelessWidget {
+  const RackTabSelector({
+    required this.controller,
+    required this.total,
+    required this.online,
+    required this.offline,
+    super.key,
+  });
+
+  final TabController controller;
+  final int total;
+  final int online;
+  final int offline;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final tabs = [
+      _RackTabData(
+        label: 'All',
+        count: total,
+        icon: Icons.apps_rounded,
+        color: isDark ? const Color(0xFF64B5F6) : const Color(0xFF1565C0),
+      ),
+      _RackTabData(
+        label: 'Online',
+        count: online,
+        icon: Icons.cloud_done_rounded,
+        color: const Color(0xFF20C25D),
+      ),
+      _RackTabData(
+        label: 'Offline',
+        count: offline,
+        icon: Icons.cloud_off_rounded,
+        color: const Color(0xFFE53935),
+      ),
+    ];
+
+    final activeIndex = controller.index;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F2233) : const Color(0xFFF1F4FA),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            for (var i = 0; i < tabs.length; i++)
+              _RackTabChip(
+                data: tabs[i],
+                selected: activeIndex == i,
+                onTap: () => controller.animateTo(i),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RackTabData {
+  const _RackTabData({
+    required this.label,
+    required this.count,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final int count;
+  final IconData icon;
+  final Color color;
+}
+
+class _RackTabChip extends StatelessWidget {
+  const _RackTabChip({
+    required this.data,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _RackTabData data;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent =
+        selected ? data.color : theme.colorScheme.onSurface.withOpacity(0.65);
+    final bgColor = selected
+        ? data.color.withOpacity(theme.brightness == Brightness.dark ? 0.3 : 0.16)
+        : Colors.transparent;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: selected ? null : onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: selected
+                  ? data.color.withOpacity(0.45)
+                  : theme.colorScheme.outline.withOpacity(0.2),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(data.icon, size: 16, color: accent),
+              const SizedBox(width: 6),
+              Text(
+                data.label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(selected ? 0.22 : 0.14),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${data.count}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                    color: accent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
