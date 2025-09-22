@@ -8,7 +8,110 @@ import '../../controller/racks_monitor_controller.dart';
 
 class SlotStatusDonut extends StatelessWidget {
   const SlotStatusDonut({super.key, required this.controller});
+
   final GroupMonitorController controller;
+
+  static const double _minChartSize = 112.0;
+  static const double _maxChartSize = 196.0;
+  static const double _preferredScale = 0.82;
+
+  static TextStyle headerTextStyle(ThemeData theme) {
+    final textTheme = theme.textTheme;
+    return textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800) ??
+        TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+          color: textTheme.labelLarge?.color ?? theme.colorScheme.onSurface,
+        );
+  }
+
+  static double estimateContentHeight({
+    required double width,
+    required ThemeData theme,
+  }) {
+    final headerStyle = headerTextStyle(theme);
+    final headerHeight = _headerHeight(headerStyle, theme.textTheme);
+    final geometry = _resolveGeometry(
+      width: width,
+      headerHeight: headerHeight,
+    );
+    return geometry.tileHeight;
+  }
+
+  static double _headerHeight(TextStyle headerStyle, TextTheme textTheme) {
+    final fontSize =
+        headerStyle.fontSize ?? textTheme.labelLarge?.fontSize ?? 14.0;
+    final lineHeight = headerStyle.height ?? textTheme.labelLarge?.height ?? 1.25;
+    return fontSize * lineHeight;
+  }
+
+  static double _spacingForChart(double chartSize) {
+    if (chartSize <= 0) return 0;
+    return (chartSize * 0.09).clamp(8.0, 14.0);
+  }
+
+  static double _solveChartSize({
+    required double headerHeight,
+    required double maxHeight,
+    required double maxChart,
+  }) {
+    if (maxHeight <= headerHeight) {
+      return 0;
+    }
+    var low = 0.0;
+    var high = maxChart;
+    var best = 0.0;
+    for (var i = 0; i < 24; i++) {
+      final mid = (low + high) / 2;
+      final spacing = _spacingForChart(mid);
+      final total = headerHeight + spacing + mid;
+      if (total <= maxHeight) {
+        best = mid;
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return best;
+  }
+
+  static _SlotStatusGeometry _resolveGeometry({
+    required double width,
+    required double headerHeight,
+    double? maxHeight,
+  }) {
+    final effectiveWidth = width.isFinite && width > 0
+        ? width
+        : _minChartSize;
+
+    final maxChart = math.min(effectiveWidth, _maxChartSize);
+    final minChart = math.min(math.max(_minChartSize, effectiveWidth * 0.68), maxChart);
+
+    var chartSize = (effectiveWidth * _preferredScale)
+        .clamp(minChart, maxChart);
+    chartSize = chartSize.clamp(0.0, maxChart);
+
+    var headerSpacing = _spacingForChart(chartSize);
+    var tileHeight = headerHeight + headerSpacing + chartSize;
+
+    final limit = maxHeight != null && maxHeight.isFinite ? maxHeight : null;
+    if (limit != null && limit > 0 && tileHeight > limit + 0.1) {
+      final solved = _solveChartSize(
+        headerHeight: headerHeight,
+        maxHeight: limit,
+        maxChart: maxChart,
+      );
+      chartSize = solved.clamp(0.0, maxChart);
+      headerSpacing = _spacingForChart(chartSize);
+      tileHeight = headerHeight + headerSpacing + chartSize;
+    }
+
+    return _SlotStatusGeometry(
+      chartSize: chartSize,
+      headerSpacing: headerSpacing,
+      tileHeight: limit == null ? tileHeight : math.min(tileHeight, limit),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,16 +119,8 @@ class SlotStatusDonut extends StatelessWidget {
     final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final headerStyle =
-        textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800) ??
-            TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: textTheme.labelLarge?.color ?? theme.colorScheme.onSurface,
-            );
-    final headerFontSize = headerStyle.fontSize ?? 14;
-    final headerLineHeight = headerStyle.height ?? textTheme.labelLarge?.height ?? 1.25;
-    final headerHeight = headerFontSize * headerLineHeight;
+    final headerStyle = headerTextStyle(theme);
+    final headerHeight = _headerHeight(headerStyle, textTheme);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -47,66 +142,53 @@ class SlotStatusDonut extends StatelessWidget {
             _Slice('Waiting', data['Waiting'] ?? 0, const Color(0xFFFFA726)),
             _Slice('NotUsed', data['NotUsed'] ?? 0, const Color(0xFF90A4AE)),
           ].where((slice) => slice.value > 0).toList();
-          const minChartSize = 120.0;
-          const maxChartSize = 220.0;
 
-          final minBound = maxWidth < minChartSize ? math.max(0.0, maxWidth) : minChartSize;
-          final maxBound = math.max(minBound, math.min(maxWidth, maxChartSize));
-
-          double chartSize = maxWidth <= 0
-              ? minChartSize
-              : math.min(math.max(maxWidth, minBound), maxBound);
-          double headerSpacing = (chartSize * 0.12).clamp(10.0, 18.0).toDouble();
-
-          if (maxHeight != null && maxHeight.isFinite) {
-            final available = maxHeight - headerHeight - headerSpacing;
-            if (available > 0) {
-              chartSize = math.min(chartSize, available);
-              headerSpacing = (chartSize * 0.12).clamp(8.0, 18.0).toDouble();
-            }
-          }
-
-          chartSize = chartSize.clamp(0.0, maxBound);
-          if (maxWidth > 0) {
-            chartSize = math.min(chartSize, maxWidth);
-          }
+          final geometry = _resolveGeometry(
+            width: maxWidth,
+            headerHeight: headerHeight,
+            maxHeight: maxHeight,
+          );
+          final chartSize = geometry.chartSize;
+          final headerSpacing = geometry.headerSpacing;
 
           final totalStyle = textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
-                fontSize: (chartSize * 0.22).clamp(18.0, 26.0),
+                fontSize: (chartSize * 0.24).clamp(18.0, 26.0),
                 color: isDark ? Colors.white : theme.colorScheme.onSurface,
               ) ??
               TextStyle(
                 fontWeight: FontWeight.w800,
-                fontSize: (chartSize * 0.22).clamp(18.0, 26.0),
+                fontSize: (chartSize * 0.24).clamp(18.0, 26.0),
                 color: isDark ? Colors.white : theme.colorScheme.onSurface,
               );
 
           final slotLabel = '$total slot';
 
           final sectionTitleStyle = textTheme.bodyMedium?.copyWith(
-                fontSize: (chartSize * 0.11).clamp(11.0, 14.0),
+                fontSize: (chartSize * 0.115).clamp(11.0, 14.0),
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
               ) ??
               TextStyle(
-                fontSize: (chartSize * 0.11).clamp(11.0, 14.0),
+                fontSize: (chartSize * 0.115).clamp(11.0, 14.0),
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
               );
 
+          final visualSize = chartSize > 0 ? chartSize : math.min(maxWidth, _minChartSize);
+
           Widget chart;
           if (total == 0) {
             chart = Container(
-              width: chartSize,
-              height: chartSize,
+              width: visualSize,
+              height: visualSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: theme.colorScheme.onSurface.withOpacity(0.12),
-                  width: 10,
+                  width: 9,
                 ),
               ),
               alignment: Alignment.center,
@@ -122,25 +204,25 @@ class SlotStatusDonut extends StatelessWidget {
             );
           } else {
             chart = SizedBox(
-              width: chartSize,
-              height: chartSize,
+              width: visualSize,
+              height: visualSize,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   PieChart(
                     PieChartData(
-                      sectionsSpace: chartSize * 0.015,
-                      centerSpaceRadius: chartSize * 0.38,
+                      sectionsSpace: visualSize * 0.012,
+                      centerSpaceRadius: visualSize * 0.35,
                       startDegreeOffset: -90,
                       sections: [
                         for (final slice in slices)
                           PieChartSectionData(
                             value: slice.value.toDouble(),
                             color: slice.color,
-                            radius: chartSize * 0.5,
+                            radius: visualSize * 0.48,
                             title: _titleForSlice(slice, total),
                             titleStyle: sectionTitleStyle,
-                            titlePositionPercentageOffset: 0.7,
+                            titlePositionPercentageOffset: 0.72,
                           ),
                       ],
                     ),
@@ -170,6 +252,18 @@ class SlotStatusDonut extends StatelessWidget {
       },
     );
   }
+}
+
+class _SlotStatusGeometry {
+  const _SlotStatusGeometry({
+    required this.chartSize,
+    required this.headerSpacing,
+    required this.tileHeight,
+  });
+
+  final double chartSize;
+  final double headerSpacing;
+  final double tileHeight;
 }
 
 class _Slice {

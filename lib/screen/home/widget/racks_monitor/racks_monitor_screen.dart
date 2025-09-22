@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -240,6 +242,7 @@ class _RackInsightsColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final theme = Theme.of(context);
         const gap = 12.0;
         final availableWidth =
             constraints.maxWidth.isFinite && constraints.maxWidth > 0
@@ -249,7 +252,18 @@ class _RackInsightsColumn extends StatelessWidget {
         final canPairCharts = availableWidth >= 300;
         final double halfWidth =
             (((availableWidth - gap) / 2).clamp(0.0, availableWidth)).toDouble();
-        const double chartTileHeight = 232;
+        final slotChartWidth =
+            (allowGrid || canPairCharts) ? halfWidth : availableWidth;
+        final gaugeChartWidth = slotChartWidth;
+        final slotChartHeight = SlotStatusDonut.estimateContentHeight(
+          width: slotChartWidth,
+          theme: theme,
+        );
+        final gaugeChartHeight = YieldRateGauge.estimateContentHeight(
+          width: gaugeChartWidth,
+          theme: theme,
+        );
+        final double chartTileHeight = math.max(slotChartHeight, gaugeChartHeight);
 
         Widget tile({
           required Widget child,

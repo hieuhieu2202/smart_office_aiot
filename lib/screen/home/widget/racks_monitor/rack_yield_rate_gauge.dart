@@ -6,27 +6,122 @@ import '../../controller/racks_monitor_controller.dart';
 
 class YieldRateGauge extends StatelessWidget {
   const YieldRateGauge({super.key, required this.controller});
+
   final GroupMonitorController controller;
+
+  static const double _minGaugeWidth = 128.0;
+  static const double _maxGaugeWidth = 204.0;
+  static const double _heightFactor = 0.74;
+
+  static TextStyle headerTextStyle(ThemeData theme) {
+    final textTheme = theme.textTheme;
+    return textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800) ??
+        TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+          color: textTheme.labelLarge?.color ?? theme.colorScheme.onSurface,
+        );
+  }
+
+  static double estimateContentHeight({
+    required double width,
+    required ThemeData theme,
+  }) {
+    final headerStyle = headerTextStyle(theme);
+    final headerHeight = _headerHeight(headerStyle, theme.textTheme);
+    final geometry = _resolveGeometry(
+      width: width,
+      headerHeight: headerHeight,
+    );
+    return geometry.tileHeight;
+  }
+
+  static double _headerHeight(TextStyle headerStyle, TextTheme textTheme) {
+    final fontSize =
+        headerStyle.fontSize ?? textTheme.labelLarge?.fontSize ?? 14.0;
+    final lineHeight = headerStyle.height ?? textTheme.labelLarge?.height ?? 1.25;
+    return fontSize * lineHeight;
+  }
+
+  static double _spacingForWidth(double gaugeWidth) {
+    if (gaugeWidth <= 0) return 0;
+    return (gaugeWidth * 0.075).clamp(8.0, 14.0);
+  }
+
+  static double _solveGaugeWidth({
+    required double headerHeight,
+    required double maxHeight,
+    required double maxGauge,
+  }) {
+    if (maxHeight <= headerHeight) {
+      return 0;
+    }
+    var low = 0.0;
+    var high = maxGauge;
+    var best = 0.0;
+    for (var i = 0; i < 24; i++) {
+      final mid = (low + high) / 2;
+      final spacing = _spacingForWidth(mid);
+      final total = headerHeight + spacing + mid * _heightFactor;
+      if (total <= maxHeight) {
+        best = mid;
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return best;
+  }
+
+  static _GaugeGeometry _resolveGeometry({
+    required double width,
+    required double headerHeight,
+    double? maxHeight,
+  }) {
+    final effectiveWidth = width.isFinite && width > 0
+        ? width
+        : _minGaugeWidth;
+
+    final maxGauge = math.min(effectiveWidth, _maxGaugeWidth);
+    final minGauge = math.min(_minGaugeWidth, maxGauge);
+    var gaugeWidth = math.min(maxGauge, effectiveWidth * 0.92)
+        .clamp(minGauge, maxGauge);
+
+    var headerSpacing = _spacingForWidth(gaugeWidth);
+    var gaugeHeight = gaugeWidth * _heightFactor;
+    var tileHeight = headerHeight + headerSpacing + gaugeHeight;
+
+    final limit = maxHeight != null && maxHeight.isFinite ? maxHeight : null;
+    if (limit != null && limit > 0 && tileHeight > limit + 0.1) {
+      final solved = _solveGaugeWidth(
+        headerHeight: headerHeight,
+        maxHeight: limit,
+        maxGauge: maxGauge,
+      );
+      gaugeWidth = solved.clamp(0.0, maxGauge);
+      headerSpacing = _spacingForWidth(gaugeWidth);
+      gaugeHeight = gaugeWidth * _heightFactor;
+      tileHeight = headerHeight + headerSpacing + gaugeHeight;
+    }
+
+    return _GaugeGeometry(
+      gaugeWidth: gaugeWidth,
+      gaugeHeight: gaugeHeight,
+      headerSpacing: headerSpacing,
+      tileHeight: limit == null ? tileHeight : math.min(tileHeight, limit),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
-    final yr = controller.kpiYr.clamp(0, 100).toDouble();
 
-    final headerStyle = textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w800,
-        ) ??
-        TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-          color: textTheme.labelLarge?.color ??
-              (isDark ? Colors.white : theme.colorScheme.onSurface),
-        );
-    final headerFontSize = headerStyle.fontSize ?? 14;
-    final headerLineHeight = headerStyle.height ?? textTheme.labelLarge?.height ?? 1.25;
-    final headerHeight = headerFontSize * headerLineHeight;
+    final headerStyle = headerTextStyle(theme);
+    final headerHeight = _headerHeight(headerStyle, textTheme);
+
+    final yr = controller.kpiYr.clamp(0, 100).toDouble();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -37,61 +132,40 @@ class YieldRateGauge extends StatelessWidget {
             ? constraints.maxHeight
             : null;
 
-        const minGaugeWidth = 140.0;
-        const maxGaugeWidth = 220.0;
+        final geometry = _resolveGeometry(
+          width: maxWidth,
+          headerHeight: headerHeight,
+          maxHeight: maxHeight,
+        );
+        final gaugeWidth = geometry.gaugeWidth;
+        final gaugeHeight = geometry.gaugeHeight;
+        final headerSpacing = geometry.headerSpacing;
 
-        final minBound = maxWidth < minGaugeWidth ? math.max(0.0, maxWidth) : minGaugeWidth;
-        final maxBound = math.max(minBound, math.min(maxWidth, maxGaugeWidth));
-
-        double gaugeWidth = maxWidth <= 0
-            ? minGaugeWidth
-            : math.min(math.max(maxWidth, minBound), maxBound);
-        double headerSpacing = (gaugeWidth * 0.08).clamp(10.0, 16.0).toDouble();
-
-        if (maxHeight != null && maxHeight.isFinite) {
-          final available = maxHeight - headerHeight - headerSpacing;
-          if (available > 0) {
-            final widthFromHeight = available / 0.65;
-            if (widthFromHeight.isFinite && widthFromHeight > 0) {
-              gaugeWidth = math.min(gaugeWidth, math.min(widthFromHeight, maxBound));
-              headerSpacing = (gaugeWidth * 0.08).clamp(8.0, 16.0).toDouble();
-            }
-          }
-        }
-
-        gaugeWidth = gaugeWidth.clamp(0.0, maxBound);
-        if (maxWidth > 0) {
-          gaugeWidth = math.min(gaugeWidth, maxWidth);
-        }
-
-        final gaugeHeight = (gaugeWidth * 0.65).toDouble();
-        final labelFontSize = (gaugeWidth * 0.1).clamp(10.0, 13.0).toDouble();
-        final percentFontSize = (gaugeWidth * 0.24).clamp(20.0, 30.0).toDouble();
-        final thickness = (gaugeWidth * 0.12).clamp(12.0, 18.0).toDouble();
-        final sidePadding = (gaugeWidth * 0.14).clamp(16.0, 26.0).toDouble();
-
-        final labelColor =
-            textTheme.bodyMedium?.color ?? (isDark ? Colors.white70 : Colors.black87);
+        final labelColor = textTheme.bodyMedium?.color ??
+            (isDark ? Colors.white70 : Colors.black87);
         final tickStyle = TextStyle(
-          fontSize: labelFontSize,
+          fontSize: (gaugeWidth * 0.1).clamp(10.0, 13.0),
           fontWeight: FontWeight.w600,
           color: labelColor.withOpacity(isDark ? 0.9 : 0.75),
         );
         final percentColor = isDark ? Colors.white : theme.colorScheme.onSurface;
         final percentStyle = textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
-              fontSize: percentFontSize,
+              fontSize: (gaugeWidth * 0.24).clamp(20.0, 30.0),
               color: percentColor,
               shadows:
                   isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             ) ??
             TextStyle(
               fontWeight: FontWeight.w900,
-              fontSize: percentFontSize,
+              fontSize: (gaugeWidth * 0.24).clamp(20.0, 30.0),
               color: percentColor,
               shadows:
                   isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             );
+
+        final thickness = (gaugeWidth * 0.11).clamp(12.0, 18.0);
+        final sidePadding = (gaugeWidth * 0.13).clamp(14.0, 26.0);
 
         final gauge = SizedBox(
           width: gaugeWidth,
@@ -108,7 +182,7 @@ class YieldRateGauge extends StatelessWidget {
               labelTextStyle: tickStyle,
             ),
             child: Align(
-              alignment: const Alignment(0, -0.15),
+              alignment: const Alignment(0, -0.12),
               child: Text('${yr.toStringAsFixed(2)}%', style: percentStyle),
             ),
           ),
@@ -130,8 +204,22 @@ class YieldRateGauge extends StatelessWidget {
   }
 }
 
+class _GaugeGeometry {
+  const _GaugeGeometry({
+    required this.gaugeWidth,
+    required this.gaugeHeight,
+    required this.headerSpacing,
+    required this.tileHeight,
+  });
+
+  final double gaugeWidth;
+  final double gaugeHeight;
+  final double headerSpacing;
+  final double tileHeight;
+}
+
 class _GaugePainter extends CustomPainter {
-  final double value;      // 0..100
+  final double value; // 0..100
   final Color baseColor;
   final Color activeColor;
   final double thickness;
@@ -183,10 +271,8 @@ class _GaugePainter extends CustomPainter {
 
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // nền 180°
     canvas.drawArc(rect, math.pi, math.pi, false, base);
 
-    // phần active theo %
     final sweep = (value.clamp(0, 100) / 100) * math.pi;
     canvas.drawArc(rect, math.pi, sweep, false, active);
 
@@ -199,12 +285,12 @@ class _GaugePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _GaugePainter old) {
-    return old.value != value ||
-        old.baseColor != baseColor ||
-        old.activeColor != activeColor ||
-        old.thickness != thickness ||
-        old.sideLabelPadding != sideLabelPadding ||
-        old.labelTextStyle != labelTextStyle;
+  bool shouldRepaint(covariant _GaugePainter oldDelegate) {
+    return oldDelegate.value != value ||
+        oldDelegate.baseColor != baseColor ||
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.thickness != thickness ||
+        oldDelegate.sideLabelPadding != sideLabelPadding ||
+        oldDelegate.labelTextStyle != labelTextStyle;
   }
 }
