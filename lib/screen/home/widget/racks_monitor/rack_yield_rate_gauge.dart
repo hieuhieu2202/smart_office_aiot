@@ -67,9 +67,9 @@ class YieldRateGauge extends StatelessWidget {
               ),
               child: LayoutBuilder(
                 builder: (context, _) => Padding(
-                  padding: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.only(top: 4),
                   child: Align(
-                    alignment: const Alignment(0, -0.05),
+                    alignment: const Alignment(0, -0.2),
                     child: Text(
                       '${yr.toStringAsFixed(1)}%',
                       style: theme.textTheme.titleLarge?.copyWith(
@@ -106,8 +106,16 @@ class _GaugePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.95);
-    final radius = math.min(size.width / 2 - 8, size.height - 16);
+    const double horizontalInset = 18;
+    const double topInset = 16;
+    const double bottomInset = 24;
+
+    final center = Offset(size.width / 2, size.height - bottomInset);
+    final maxRadius = math.max(0.0, center.dy - topInset);
+    final radius = math.max(
+      0.0,
+      math.min(size.width / 2 - horizontalInset, maxRadius),
+    );
 
     final base = Paint()
       ..style = PaintingStyle.stroke
@@ -152,7 +160,8 @@ class _GaugePainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout();
 
-    final y = center.dy + thickness / 2 + sideLabelPadding;
+    final baseline = center.dy + thickness / 2 + sideLabelPadding;
+    final y = math.min(baseline, size.height - tp0.height / 2);
     final left = Offset(rect.left + sideLabelPadding, y - tp0.height / 2);
     final right =
         Offset(rect.right - sideLabelPadding - tp100.width, y - tp100.height / 2);
