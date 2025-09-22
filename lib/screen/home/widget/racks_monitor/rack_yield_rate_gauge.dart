@@ -42,6 +42,15 @@ class YieldRateGauge extends StatelessWidget {
     final labelColor = theme.textTheme.bodyMedium?.color ??
         (isDark ? Colors.white : Colors.black87);
 
+    final valueLabel = '${yr.toStringAsFixed(1)}%';
+    final baseValueStyle = theme.textTheme.titleLarge ??
+        theme.textTheme.headlineSmall ??
+        const TextStyle(fontSize: 24);
+    final valueStyle = baseValueStyle.copyWith(
+      fontWeight: FontWeight.w900,
+      color: labelColor,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -53,30 +62,21 @@ class YieldRateGauge extends StatelessWidget {
         ),
         const SizedBox(height: _headerSpacing),
         Center(
-          child: SizedBox(
-            width: 240,
-            height: _gaugeHeight,
-            child: CustomPaint(
-              painter: _GaugePainter(
-                value: yr,
-                baseColor: baseColor,
-                activeColor: activeColor,
-                labelColor: labelColor,
-                thickness: 14,
-                sideLabelPadding: 8,
-              ),
-              child: LayoutBuilder(
-                builder: (context, _) => Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Align(
-                    alignment: const Alignment(0, -0.2),
-                    child: Text(
-                      '${yr.toStringAsFixed(1)}%',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                  ),
+          child: Semantics(
+            label: 'Yield rate $valueLabel',
+            child: SizedBox(
+              width: 240,
+              height: _gaugeHeight,
+              child: CustomPaint(
+                painter: _GaugePainter(
+                  value: yr,
+                  baseColor: baseColor,
+                  activeColor: activeColor,
+                  labelColor: labelColor,
+                  valueLabel: valueLabel,
+                  valueStyle: valueStyle,
+                  thickness: 14,
+                  sideLabelPadding: 8,
                 ),
               ),
             ),
@@ -93,6 +93,8 @@ class _GaugePainter extends CustomPainter {
     required this.baseColor,
     required this.activeColor,
     required this.labelColor,
+    required this.valueLabel,
+    required this.valueStyle,
     this.thickness = 14,
     this.sideLabelPadding = 8,
   });
@@ -101,6 +103,8 @@ class _GaugePainter extends CustomPainter {
   final Color baseColor;
   final Color activeColor;
   final Color labelColor;
+  final String valueLabel;
+  final TextStyle valueStyle;
   final double thickness;
   final double sideLabelPadding;
 
@@ -135,6 +139,20 @@ class _GaugePainter extends CustomPainter {
 
     final sweep = (value.clamp(0, 100) / 100) * math.pi;
     canvas.drawArc(rect, math.pi, sweep, false, active);
+
+    final innerRadius = math.max(0.0, radius - thickness - 4);
+    final labelPainter = TextPainter(
+      text: TextSpan(text: valueLabel, style: valueStyle),
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: size.width - horizontalInset * 2);
+
+    final labelCenterY = center.dy - innerRadius / 2;
+    final labelOffset = Offset(
+      center.dx - labelPainter.width / 2,
+      labelCenterY - labelPainter.height / 2,
+    );
+    labelPainter.paint(canvas, labelOffset);
 
     final tp0 = TextPainter(
       text: TextSpan(
@@ -176,6 +194,8 @@ class _GaugePainter extends CustomPainter {
         old.baseColor != baseColor ||
         old.activeColor != activeColor ||
         old.labelColor != labelColor ||
+        old.valueLabel != valueLabel ||
+        old.valueStyle != valueStyle ||
         old.thickness != thickness ||
         old.sideLabelPadding != sideLabelPadding;
   }
