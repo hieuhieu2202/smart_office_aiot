@@ -34,6 +34,20 @@ class YieldRateGauge extends StatelessWidget {
         );
   }
 
+  static TextStyle footerTextStyle(ThemeData theme) {
+    final textTheme = theme.textTheme;
+    final accent = theme.colorScheme.primary;
+    return textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: accent,
+        ) ??
+        TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: accent,
+        );
+  }
+
   static double estimateContentHeight({
     required double width,
     ThemeData? theme,
@@ -41,13 +55,18 @@ class YieldRateGauge extends StatelessWidget {
   }) {
     final themeData = theme ?? ThemeData.fallback();
     final headerStyle = headerTextStyle(themeData);
-    final headerHeight = includeHeader
-        ? _headerHeight(headerStyle, themeData.textTheme)
+    final footerStyle = footerTextStyle(themeData);
+    final topHeaderHeight = includeHeader
+        ? _headerBandHeight(headerStyle, themeData.textTheme)
+        : 0.0;
+    final footerHeight = includeHeader
+        ? _footerHeight(footerStyle, themeData.textTheme)
         : 0.0;
     final geometry = _resolveGeometry(
       width: width,
       includeHeader: includeHeader,
-      headerHeight: headerHeight,
+      topHeaderHeight: topHeaderHeight,
+      footerHeight: footerHeight,
     );
     return geometry.tileHeight;
   }
@@ -61,7 +80,8 @@ class YieldRateGauge extends StatelessWidget {
     required double maxHeight,
     required double maxGauge,
     bool includeHeader = true,
-    double headerHeight = 0.0,
+    double topHeaderHeight = 0.0,
+    double footerHeight = 0.0,
   }) {
     if (maxHeight <= 0) {
       return 0;
@@ -72,13 +92,13 @@ class YieldRateGauge extends StatelessWidget {
     for (var i = 0; i < 24; i++) {
       final mid = (low + high) / 2;
       final spacing = includeHeader ? _spacingForWidth(mid) : 0.0;
-      final inset = includeHeader ? math.max(6.0, spacing * 0.3) : 0.0;
-      final footerSpacing = includeHeader
+      final topSpacing = includeHeader ? math.max(6.0, spacing * 0.3) : 0.0;
+      final bottomSpacing = includeHeader
           ? math.max(8.0, spacing * _footerSpacingFactor)
           : 0.0;
-      var total = mid * _heightFactor + inset;
+      var total = mid * _heightFactor + topSpacing + bottomSpacing;
       if (includeHeader) {
-        total += footerSpacing + headerHeight;
+        total += topHeaderHeight + footerHeight;
       }
       if (total <= maxHeight) {
         best = mid;
@@ -93,7 +113,8 @@ class YieldRateGauge extends StatelessWidget {
   static _GaugeGeometry _resolveGeometry({
     required double width,
     double? maxHeight,
-    required double headerHeight,
+    required double topHeaderHeight,
+    required double footerHeight,
     bool includeHeader = true,
   }) {
     final effectiveWidth = width.isFinite && width > 0
@@ -107,13 +128,13 @@ class YieldRateGauge extends StatelessWidget {
 
     var gaugeHeight = gaugeWidth * _heightFactor;
     var spacing = includeHeader ? _spacingForWidth(gaugeWidth) : 0.0;
-    var topInset = includeHeader ? math.max(6.0, spacing * 0.3) : 0.0;
-    var footerSpacing = includeHeader
+    var topSpacing = includeHeader ? math.max(6.0, spacing * 0.3) : 0.0;
+    var bottomSpacing = includeHeader
         ? math.max(8.0, spacing * _footerSpacingFactor)
         : 0.0;
-    var tileHeight = gaugeHeight + topInset;
+    var tileHeight = gaugeHeight + topSpacing + bottomSpacing;
     if (includeHeader) {
-      tileHeight += footerSpacing + headerHeight;
+      tileHeight += topHeaderHeight + footerHeight;
     }
 
     final limit = maxHeight != null && maxHeight.isFinite ? maxHeight : null;
@@ -122,36 +143,37 @@ class YieldRateGauge extends StatelessWidget {
         maxHeight: limit,
         maxGauge: maxGauge,
         includeHeader: includeHeader,
-        headerHeight: headerHeight,
+        topHeaderHeight: topHeaderHeight,
+        footerHeight: footerHeight,
       );
       gaugeWidth = solved.clamp(0.0, maxGauge);
       gaugeHeight = gaugeWidth * _heightFactor;
       spacing = includeHeader ? _spacingForWidth(gaugeWidth) : 0.0;
-      topInset = includeHeader ? math.max(6.0, spacing * 0.3) : 0.0;
-      footerSpacing = includeHeader
+      topSpacing = includeHeader ? math.max(6.0, spacing * 0.3) : 0.0;
+      bottomSpacing = includeHeader
           ? math.max(8.0, spacing * _footerSpacingFactor)
           : 0.0;
-      tileHeight = gaugeHeight + topInset;
+      tileHeight = gaugeHeight + topSpacing + bottomSpacing;
       if (includeHeader) {
-        tileHeight += footerSpacing + headerHeight;
+        tileHeight += topHeaderHeight + footerHeight;
       }
     }
 
     return _GaugeGeometry(
       gaugeWidth: gaugeWidth,
       gaugeHeight: gaugeHeight,
-      topInset: includeHeader ? topInset : 0.0,
-      footerSpacing: includeHeader ? footerSpacing : 0.0,
+      topSpacing: includeHeader ? topSpacing : 0.0,
+      bottomSpacing: includeHeader ? bottomSpacing : 0.0,
       tileHeight: limit == null ? tileHeight : math.min(tileHeight, limit),
     );
   }
 
-  static double _headerHeight(TextStyle headerStyle, TextTheme textTheme) {
-    final fontSize =
-        headerStyle.fontSize ?? textTheme.labelLarge?.fontSize ?? 14.0;
-    final lineHeight = headerStyle.height ?? textTheme.labelLarge?.height ?? 1.25;
-    final textHeight = fontSize * lineHeight;
-    return textHeight + ChartCardFooter.verticalPadding * 2;
+  static double _headerBandHeight(TextStyle headerStyle, TextTheme textTheme) {
+    return ChartCardHeader.heightForStyle(headerStyle, textTheme);
+  }
+
+  static double _footerHeight(TextStyle footerStyle, TextTheme textTheme) {
+    return ChartCardFooter.heightForStyle(footerStyle, textTheme);
   }
 
   @override
@@ -161,8 +183,11 @@ class YieldRateGauge extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final headerStyle = headerTextStyle(theme);
-    final headerHeight =
-        showHeader ? _headerHeight(headerStyle, theme.textTheme) : 0.0;
+    final footerStyle = footerTextStyle(theme);
+    final topHeaderHeight =
+        showHeader ? _headerBandHeight(headerStyle, theme.textTheme) : 0.0;
+    final footerHeight =
+        showHeader ? _footerHeight(footerStyle, theme.textTheme) : 0.0;
 
     final yr = controller.kpiYr.clamp(0, 100).toDouble();
 
@@ -178,13 +203,14 @@ class YieldRateGauge extends StatelessWidget {
         final geometry = _resolveGeometry(
           width: maxWidth,
           maxHeight: maxHeight,
-          headerHeight: headerHeight,
+          topHeaderHeight: topHeaderHeight,
+          footerHeight: footerHeight,
           includeHeader: showHeader,
         );
         final gaugeWidth = geometry.gaugeWidth;
         final gaugeHeight = geometry.gaugeHeight;
-        final topInset = geometry.topInset;
-        final footerSpacing = geometry.footerSpacing;
+        final topSpacing = geometry.topSpacing;
+        final bottomSpacing = geometry.bottomSpacing;
 
         final labelColor = textTheme.bodyMedium?.color ??
             (isDark ? Colors.white70 : Colors.black87);
@@ -233,17 +259,69 @@ class YieldRateGauge extends StatelessWidget {
           ),
         );
 
+        final detailStyle = textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: labelColor.withOpacity(isDark ? 0.9 : 0.75),
+            ) ??
+            TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: labelColor.withOpacity(isDark ? 0.9 : 0.75),
+            );
+        final valueStyle = detailStyle.copyWith(
+          fontWeight: FontWeight.w700,
+          color: theme.colorScheme.primary,
+        );
+
+        Widget statText(String label, String value) {
+          return Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: '$label ', style: detailStyle),
+                TextSpan(text: value, style: valueStyle),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          );
+        }
+
+        final input = controller.kpiInput;
+        final pass = controller.kpiPass;
+        final rePass = controller.kpiRePass;
+        final fail = controller.kpiFail;
+        final hasStats = input != 0 || pass != 0 || rePass != 0 || fail != 0;
+        final detailChild = hasStats
+            ? Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 14,
+                runSpacing: 8,
+                children: [
+                  statText('Input', input.toString()),
+                  statText('Pass', pass.toString()),
+                  if (rePass > 0) statText('Re-pass', rePass.toString()),
+                  statText('Fail', fail.toString()),
+                ],
+              )
+            : Text(
+                'No yield data',
+                style: detailStyle,
+                textAlign: TextAlign.center,
+              );
+
         final footer = showHeader
             ? ChartCardFooter(
+                label: 'Yield rate detail',
+                textStyle: footerStyle,
+                child: detailChild,
+              )
+            : null;
+
+        final headerWidget = showHeader
+            ? ChartCardHeader(
                 label: 'YIELD RATE',
                 textStyle: headerStyle,
               )
             : null;
-
-        final gaugeContent = Padding(
-          padding: EdgeInsets.only(top: showHeader ? topInset : 0.0),
-          child: gauge,
-        );
 
         if (constraints.maxHeight.isFinite && constraints.maxHeight > 0) {
           return SizedBox(
@@ -251,11 +329,14 @@ class YieldRateGauge extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (headerWidget != null) headerWidget,
+                if (headerWidget != null && topSpacing > 0)
+                  SizedBox(height: topSpacing),
                 Expanded(
-                  child: Center(child: gaugeContent),
+                  child: Center(child: gauge),
                 ),
                 if (footer != null) ...[
-                  SizedBox(height: footerSpacing),
+                  if (bottomSpacing > 0) SizedBox(height: bottomSpacing),
                   footer,
                 ],
               ],
@@ -267,9 +348,12 @@ class YieldRateGauge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: gaugeContent),
+            if (headerWidget != null) headerWidget,
+            if (headerWidget != null && topSpacing > 0)
+              SizedBox(height: topSpacing),
+            Center(child: gauge),
             if (footer != null) ...[
-              SizedBox(height: footerSpacing),
+              if (bottomSpacing > 0) SizedBox(height: bottomSpacing),
               footer,
             ],
           ],
@@ -283,15 +367,15 @@ class _GaugeGeometry {
   const _GaugeGeometry({
     required this.gaugeWidth,
     required this.gaugeHeight,
-    required this.topInset,
-    required this.footerSpacing,
+    required this.topSpacing,
+    required this.bottomSpacing,
     required this.tileHeight,
   });
 
   final double gaugeWidth;
   final double gaugeHeight;
-  final double topInset;
-  final double footerSpacing;
+  final double topSpacing;
+  final double bottomSpacing;
   final double tileHeight;
 }
 
