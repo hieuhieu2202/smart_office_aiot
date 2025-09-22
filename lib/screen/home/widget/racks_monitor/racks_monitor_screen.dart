@@ -369,7 +369,6 @@ class _RackInsightsColumn extends StatelessWidget {
                   fixedHeight: chartTileHeight,
                   child: YieldRateGauge(
                     controller: controller,
-                    showHeader: true,
                   ),
                 ),
                 tile(
