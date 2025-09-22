@@ -37,37 +37,38 @@ class YieldRateGauge extends StatelessWidget {
             ? constraints.maxHeight
             : null;
 
-        const minGaugeWidth = 104.0;
-        const maxGaugeWidth = 156.0;
+        const minGaugeWidth = 140.0;
+        const maxGaugeWidth = 220.0;
 
-        double gaugeWidth;
-        if (maxWidth < minGaugeWidth) {
-          gaugeWidth = maxWidth;
-        } else {
-          final preferred = (maxWidth * 0.82).clamp(minGaugeWidth, maxGaugeWidth);
-          gaugeWidth = preferred.toDouble();
-        }
-        double headerSpacing = (gaugeWidth * 0.07).clamp(6.0, 12.0).toDouble();
+        final minBound = maxWidth < minGaugeWidth ? math.max(0.0, maxWidth) : minGaugeWidth;
+        final maxBound = math.max(minBound, math.min(maxWidth, maxGaugeWidth));
 
-        if (maxHeight != null) {
-          final availableForGauge = maxHeight - headerHeight - headerSpacing;
-          if (availableForGauge.isFinite && availableForGauge > 0) {
-            final widthFromHeight = availableForGauge / 0.68;
+        double gaugeWidth = maxWidth <= 0
+            ? minGaugeWidth
+            : math.min(math.max(maxWidth, minBound), maxBound);
+        double headerSpacing = (gaugeWidth * 0.08).clamp(10.0, 16.0).toDouble();
+
+        if (maxHeight != null && maxHeight.isFinite) {
+          final available = maxHeight - headerHeight - headerSpacing;
+          if (available > 0) {
+            final widthFromHeight = available / 0.65;
             if (widthFromHeight.isFinite && widthFromHeight > 0) {
-              final targetWidth = widthFromHeight.clamp(minGaugeWidth, maxGaugeWidth);
-              gaugeWidth = math.min(gaugeWidth, targetWidth);
-              headerSpacing = (gaugeWidth * 0.07).clamp(6.0, 12.0).toDouble();
+              gaugeWidth = math.min(gaugeWidth, math.min(widthFromHeight, maxBound));
+              headerSpacing = (gaugeWidth * 0.08).clamp(8.0, 16.0).toDouble();
             }
           }
         }
 
-        gaugeWidth = math.min(gaugeWidth, maxWidth);
+        gaugeWidth = gaugeWidth.clamp(0.0, maxBound);
+        if (maxWidth > 0) {
+          gaugeWidth = math.min(gaugeWidth, maxWidth);
+        }
 
-        final gaugeHeight = (gaugeWidth * 0.68).toDouble();
-        final labelFontSize = (gaugeWidth * 0.1).clamp(9.5, 12.0).toDouble();
-        final percentFontSize = (gaugeWidth * 0.24).clamp(18.0, 25.0).toDouble();
-        final thickness = (gaugeWidth * 0.115).clamp(9.0, 13.0).toDouble();
-        final sidePadding = (gaugeWidth * 0.16).clamp(14.0, 22.0).toDouble();
+        final gaugeHeight = (gaugeWidth * 0.65).toDouble();
+        final labelFontSize = (gaugeWidth * 0.1).clamp(10.0, 13.0).toDouble();
+        final percentFontSize = (gaugeWidth * 0.24).clamp(20.0, 30.0).toDouble();
+        final thickness = (gaugeWidth * 0.12).clamp(12.0, 18.0).toDouble();
+        final sidePadding = (gaugeWidth * 0.14).clamp(16.0, 26.0).toDouble();
 
         final labelColor =
             textTheme.bodyMedium?.color ?? (isDark ? Colors.white70 : Colors.black87);
@@ -76,15 +77,20 @@ class YieldRateGauge extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: labelColor.withOpacity(isDark ? 0.9 : 0.75),
         );
+        final percentColor = isDark ? Colors.white : theme.colorScheme.onSurface;
         final percentStyle = textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
               fontSize: percentFontSize,
-              color: labelColor,
+              color: percentColor,
+              shadows:
+                  isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             ) ??
             TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: percentFontSize,
-              color: labelColor,
+              color: percentColor,
+              shadows:
+                  isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             );
 
         final gauge = SizedBox(
@@ -93,29 +99,29 @@ class YieldRateGauge extends StatelessWidget {
           child: CustomPaint(
             painter: _GaugePainter(
               value: yr,
-              baseColor:
-                  isDark ? Colors.white.withOpacity(0.22) : Colors.grey.withOpacity(0.35),
-              activeColor: isDark ? const Color(0xFF4FD67F) : const Color(0xFF2E7D32),
+              baseColor: isDark
+                  ? Colors.white.withOpacity(0.18)
+                  : theme.colorScheme.onSurface.withOpacity(0.12),
+              activeColor: const Color(0xFF00E676),
               thickness: thickness,
               sideLabelPadding: sidePadding,
               labelTextStyle: tickStyle,
             ),
             child: Align(
-              alignment: const Alignment(0, -0.1),
-              child: Text('${yr.toStringAsFixed(1)}%', style: percentStyle),
+              alignment: const Alignment(0, -0.15),
+              child: Text('${yr.toStringAsFixed(2)}%', style: percentStyle),
             ),
           ),
         );
 
         return SizedBox.expand(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
               SizedBox(height: headerSpacing),
-              Expanded(
-                child: Center(child: gauge),
-              ),
+              gauge,
             ],
           ),
         );
@@ -186,8 +192,7 @@ class _GaugePainter extends CustomPainter {
 
     final labelTop = arcBottom + sideLabelPadding;
     final left = Offset(rect.left + sideLabelPadding, labelTop);
-    final right =
-        Offset(rect.right - sideLabelPadding - tp100.width, labelTop);
+    final right = Offset(rect.right - sideLabelPadding - tp100.width, labelTop);
 
     tp0.paint(canvas, left);
     tp100.paint(canvas, right);

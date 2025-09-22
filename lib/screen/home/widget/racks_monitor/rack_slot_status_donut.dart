@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,16 +16,16 @@ class SlotStatusDonut extends StatelessWidget {
     final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final baseHeaderStyle =
-        textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700) ??
+    final headerStyle =
+        textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800) ??
             TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               color: textTheme.labelLarge?.color ?? theme.colorScheme.onSurface,
             );
-    final headerFontSize = baseHeaderStyle.fontSize ?? 14;
-    final headerHeight =
-        headerFontSize * (baseHeaderStyle.height ?? textTheme.labelLarge?.height ?? 1.25);
+    final headerFontSize = headerStyle.fontSize ?? 14;
+    final headerLineHeight = headerStyle.height ?? textTheme.labelLarge?.height ?? 1.25;
+    final headerHeight = headerFontSize * headerLineHeight;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -33,20 +35,6 @@ class SlotStatusDonut extends StatelessWidget {
         final maxHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
             ? constraints.maxHeight
             : null;
-
-        final legendBaseStyle = textTheme.bodySmall?.copyWith(
-              fontSize: 11,
-              height: 1.2,
-              color: (textTheme.bodySmall?.color ?? theme.colorScheme.onSurface)
-                  .withOpacity(isDark ? 0.9 : 0.8),
-            ) ??
-            TextStyle(
-              fontSize: 11,
-              height: 1.2,
-              color: theme.colorScheme.onSurface.withOpacity(isDark ? 0.9 : 0.8),
-            );
-
-        final totalColor = isDark ? Colors.white : Colors.black;
 
         return Obx(() {
           final data = controller.slotStatusCount;
@@ -59,158 +47,122 @@ class SlotStatusDonut extends StatelessWidget {
             _Slice('Waiting', data['Waiting'] ?? 0, const Color(0xFFFFA726)),
             _Slice('NotUsed', data['NotUsed'] ?? 0, const Color(0xFF90A4AE)),
           ].where((slice) => slice.value > 0).toList();
+          const minChartSize = 120.0;
+          const maxChartSize = 220.0;
 
-          int columnsForWidth(double width, int itemCount) {
-            if (itemCount <= 1) return 1;
-            if (width >= 280 && itemCount >= 3) return 3;
-            if (width >= 110 && itemCount >= 2) return 2;
-            return 1;
+          final minBound = maxWidth < minChartSize ? math.max(0.0, maxWidth) : minChartSize;
+          final maxBound = math.max(minBound, math.min(maxWidth, maxChartSize));
+
+          double chartSize = maxWidth <= 0
+              ? minChartSize
+              : math.min(math.max(maxWidth, minBound), maxBound);
+          double headerSpacing = (chartSize * 0.12).clamp(10.0, 18.0).toDouble();
+
+          if (maxHeight != null && maxHeight.isFinite) {
+            final available = maxHeight - headerHeight - headerSpacing;
+            if (available > 0) {
+              chartSize = math.min(chartSize, available);
+              headerSpacing = (chartSize * 0.12).clamp(8.0, 18.0).toDouble();
+            }
           }
 
-          final legendColumns = columnsForWidth(maxWidth, slices.length);
-          final legendRows = slices.isEmpty
-              ? 1
-              : ((slices.length + legendColumns - 1) ~/ legendColumns);
-
-          const minChartSize = 70.0;
-          final maxChartByWidth =
-              (maxWidth * 0.56).clamp(minChartSize, 92.0).toDouble();
-          double chartSize = maxChartByWidth;
-          double titleSpacing = (chartSize * 0.08).clamp(8.0, 12.0).toDouble();
-          double legendSpacing = (chartSize * 0.15).clamp(12.0, 18.0).toDouble();
-
-          if (maxHeight != null) {
-            final baseLineHeight =
-                (legendBaseStyle.fontSize ?? 11) * (legendBaseStyle.height ?? 1.2);
-            final rowHeight = baseLineHeight + 10;
-            final legendHeightEstimate = legendRows <= 0
-                ? 0
-                : (legendRows * rowHeight) + ((legendRows - 1) * 8);
-            final reservedHeight = headerHeight +
-                titleSpacing +
-                legendSpacing +
-                legendHeightEstimate;
-            final availableForChart = maxHeight - reservedHeight;
-            chartSize = availableForChart.clamp(minChartSize, maxChartByWidth);
-            titleSpacing = (chartSize * 0.08).clamp(8.0, 12.0).toDouble();
-            legendSpacing = (chartSize * 0.15).clamp(12.0, 18.0).toDouble();
+          chartSize = chartSize.clamp(0.0, maxBound);
+          if (maxWidth > 0) {
+            chartSize = math.min(chartSize, maxWidth);
           }
 
-          legendSpacing = legendSpacing.clamp(10.0, 22.0).toDouble();
-
-          final totalFontSize = (chartSize * 0.2).clamp(13.0, 18.0).toDouble();
-          final totalStyle = textTheme.titleMedium?.copyWith(
+          final totalStyle = textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
-                fontSize: totalFontSize,
-                color: totalColor,
+                fontSize: (chartSize * 0.22).clamp(18.0, 26.0),
+                color: isDark ? Colors.white : theme.colorScheme.onSurface,
               ) ??
               TextStyle(
                 fontWeight: FontWeight.w800,
-                fontSize: totalFontSize,
-                color: totalColor,
+                fontSize: (chartSize * 0.22).clamp(18.0, 26.0),
+                color: isDark ? Colors.white : theme.colorScheme.onSurface,
               );
 
-          final chart = SizedBox(
-            width: chartSize,
-            height: chartSize,
-            child: Stack(
+          final slotLabel = '$total slot';
+
+          final sectionTitleStyle = textTheme.bodyMedium?.copyWith(
+                fontSize: (chartSize * 0.11).clamp(11.0, 14.0),
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
+              ) ??
+              TextStyle(
+                fontSize: (chartSize * 0.11).clamp(11.0, 14.0),
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
+              );
+
+          Widget chart;
+          if (total == 0) {
+            chart = Container(
+              width: chartSize,
+              height: chartSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: theme.colorScheme.onSurface.withOpacity(0.12),
+                  width: 10,
+                ),
+              ),
               alignment: Alignment.center,
-              children: [
-                PieChart(
-                  PieChartData(
-                    sectionsSpace: chartSize * 0.04,
-                    centerSpaceRadius: chartSize * 0.4,
-                    startDegreeOffset: -90,
-                    sections: slices.isEmpty
-                        ? [
-                            PieChartSectionData(
-                              value: 1,
-                              color: theme.colorScheme.onSurface.withOpacity(0.08),
-                              radius: chartSize * 0.44,
-                              title: '',
-                            ),
-                          ]
-                        : slices
-                            .map(
-                              (slice) => PieChartSectionData(
-                                value: slice.value.toDouble(),
-                                title: '',
-                                color: slice.color,
-                                radius: chartSize * 0.44,
-                              ),
-                            )
-                            .toList(),
-                  ),
-                ),
-                Text(
-                  total == 1 ? '1 slot' : '$total slots',
-                  style: totalStyle,
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-
-          final legend = slices.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    'No slot activity recorded',
-                    textAlign: TextAlign.center,
-                    style: legendBaseStyle.copyWith(
-                      color: legendBaseStyle.color?.withOpacity(0.7),
+              child: Text(
+                'No data',
+                style: textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ) ??
+                    TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
-                  ),
-                )
-              : LayoutBuilder(
-                  builder: (context, legendConstraints) {
-                    final width = legendConstraints.maxWidth.isFinite &&
-                            legendConstraints.maxWidth > 0
-                        ? legendConstraints.maxWidth
-                        : maxWidth;
-                    final columns = columnsForWidth(width, slices.length);
-                    const spacing = 12.0;
-                    const runSpacing = 10.0;
-                    final itemWidth = columns <= 1
-                        ? width
-                        : (width - ((columns - 1) * spacing)) / columns;
-
-                    return Wrap(
-                      spacing: spacing,
-                      runSpacing: runSpacing,
-                      alignment: WrapAlignment.center,
-                      runAlignment: WrapAlignment.center,
-                      children: [
+              ),
+            );
+          } else {
+            chart = SizedBox(
+              width: chartSize,
+              height: chartSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      sectionsSpace: chartSize * 0.015,
+                      centerSpaceRadius: chartSize * 0.38,
+                      startDegreeOffset: -90,
+                      sections: [
                         for (final slice in slices)
-                          SizedBox(
-                            width: itemWidth,
-                            child: _LegendChip(
-                              color: slice.color,
-                              label: slice.label,
-                              value: slice.value,
-                              textStyle: legendBaseStyle,
-                            ),
+                          PieChartSectionData(
+                            value: slice.value.toDouble(),
+                            color: slice.color,
+                            radius: chartSize * 0.5,
+                            title: _titleForSlice(slice, total),
+                            titleStyle: sectionTitleStyle,
+                            titlePositionPercentageOffset: 0.7,
                           ),
                       ],
-                    );
-                  },
-                );
+                    ),
+                  ),
+                  Text(
+                    slotLabel,
+                    style: totalStyle,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
 
           return SizedBox.expand(
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  'SLOT STATUS',
-                  style: baseHeaderStyle,
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: titleSpacing),
-                Expanded(
-                  child: Center(child: chart),
-                ),
-                SizedBox(height: legendSpacing),
-                legend,
+                Text('SLOT STATUS', style: headerStyle, textAlign: TextAlign.center),
+                SizedBox(height: headerSpacing),
+                chart,
               ],
             ),
           );
@@ -228,60 +180,11 @@ class _Slice {
   _Slice(this.label, this.value, this.color);
 }
 
-class _LegendChip extends StatelessWidget {
-  const _LegendChip({
-    required this.color,
-    required this.label,
-    required this.value,
-    required this.textStyle,
-  });
-
-  final Color color;
-  final String label;
-  final int value;
-  final TextStyle textStyle;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = color.withOpacity(isDark ? 0.55 : 0.4);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.12 : 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor, width: 0.8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.max,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            margin: const EdgeInsets.only(right: 6),
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              label,
-              style: textStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '$value',
-            style: textStyle.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
+String _titleForSlice(_Slice slice, int total) {
+  if (total <= 0) return '';
+  final percent = slice.value / total;
+  if (percent < 0.06 && slice.value < 5) {
+    return '';
   }
+  return '${slice.label}: ${slice.value}';
 }
