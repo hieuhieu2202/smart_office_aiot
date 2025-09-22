@@ -12,10 +12,10 @@ class SlotStatusDonut extends StatelessWidget {
   final GroupMonitorController controller;
 
   static const double _minChartSize = 64.0;
-  static const double _maxChartSize = 140.0;
-  static const double _preferredScale = 0.48;
-  static const double _legendMinHeight = 36.0;
-  static const double _legendMaxHeight = 72.0;
+  static const double _maxChartSize = 120.0;
+  static const double _preferredScale = 0.44;
+  static const double _legendMinHeight = 22.0;
+  static const double _legendMaxHeight = 48.0;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -49,7 +49,7 @@ class SlotStatusDonut extends StatelessWidget {
 
   static double _spacingForChart(double chartSize) {
     if (chartSize <= 0) return 0;
-    return (chartSize * 0.1).clamp(8.0, 14.0);
+    return (chartSize * 0.08).clamp(6.0, 12.0);
   }
 
   static _SlotStatusGeometry _resolveGeometry({
@@ -226,7 +226,7 @@ class SlotStatusDonut extends StatelessWidget {
           }
 
           final legendSpacing = slices.isNotEmpty
-              ? (visualSize * 0.16).clamp(10.0, 18.0)
+              ? (visualSize * 0.12).clamp(8.0, 16.0)
               : 0.0;
 
           return Center(
@@ -265,7 +265,7 @@ double _legendHeightEstimate(double chartSize) {
   if (chartSize <= 0) {
     return 0;
   }
-  return (chartSize * 0.32).clamp(
+  return (chartSize * 0.22).clamp(
     SlotStatusDonut._legendMinHeight,
     SlotStatusDonut._legendMaxHeight,
   );
@@ -316,65 +316,69 @@ class _SlotStatusLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final baseColor = isDark
-        ? Colors.white.withOpacity(0.12)
-        : theme.colorScheme.primary.withOpacity(0.08);
+    final baseStyle = textStyle.copyWith(
+      color: textStyle.color?.withOpacity(isDark ? 0.88 : 0.9),
+    );
 
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        for (final slice in slices)
-          _LegendTile(
-            slice: slice,
-            label: _shortLabel(slice.label),
-            textStyle: textStyle,
-            backgroundColor: baseColor,
-          ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spacing = constraints.maxWidth.isFinite && constraints.maxWidth < 160
+            ? 12.0
+            : 18.0;
+        return Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: spacing,
+          runSpacing: 6,
+          children: [
+            for (final slice in slices)
+              _LegendEntry(
+                slice: slice,
+                label: _shortLabel(slice.label),
+                textStyle: baseStyle,
+              ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _LegendTile extends StatelessWidget {
-  const _LegendTile({
+class _LegendEntry extends StatelessWidget {
+  const _LegendEntry({
     required this.slice,
     required this.label,
     required this.textStyle,
-    required this.backgroundColor,
   });
 
   final _Slice slice;
   final String label;
   final TextStyle textStyle;
-  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: slice.color.withOpacity(0.4), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: slice.color,
-              shape: BoxShape.circle,
-            ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: slice.color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: slice.color.withOpacity(0.32),
+                blurRadius: 4,
+                spreadRadius: 1,
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          Text('$label ${slice.value}', style: textStyle),
-        ],
-      ),
+        ),
+        const SizedBox(width: 6),
+        Text('$label ${slice.value}', style: textStyle),
+      ],
     );
   }
 }
