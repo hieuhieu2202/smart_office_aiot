@@ -21,16 +21,23 @@ class SlotStatusDonut extends StatelessWidget {
             : MediaQuery.of(context).size.width;
         final maxHeight =
             constraints.maxHeight.isFinite ? constraints.maxHeight : double.infinity;
-        double chartCap = rawWidth;
+
+        final canShowSideBySide = rawWidth >= 210;
+
+        double chartCap = canShowSideBySide ? rawWidth * 0.58 : rawWidth;
         if (maxHeight.isFinite) {
-          chartCap = math.min(chartCap, math.max(70.0, maxHeight - 90));
+          final heightAllowance =
+              canShowSideBySide ? math.max(64.0, maxHeight - 48) : math.max(70.0, maxHeight - 92);
+          chartCap = math.min(chartCap, heightAllowance);
         }
-        final chartSize = chartCap.clamp(70.0, 116.0).toDouble();
-        final sectionRadius = chartSize * 0.36;
-        final centerRadius = chartSize * 0.32;
-        final sectionSpacing = chartSize * 0.02;
-        final legendSpacing = chartSize < 108 ? 12.0 : 14.0;
-        final legendTopGap = chartSize < 100 ? 6.0 : 8.0;
+        final chartSize = chartCap.clamp(66.0, canShowSideBySide ? 104.0 : 112.0).toDouble();
+        final sectionRadius = chartSize * 0.46;
+        final centerRadius = sectionRadius * 0.58;
+        final sectionSpacing = chartSize * 0.024;
+        final legendTopGap = canShowSideBySide
+            ? (chartSize * 0.04).clamp(4.0, 6.0).toDouble()
+            : (chartSize * 0.07).clamp(6.0, 10.0).toDouble();
+        final legendSideGap = (chartSize * 0.18).clamp(12.0, 18.0).toDouble();
         final titleSpacing = (chartSize * 0.07).clamp(6.0, 11.0).toDouble();
         final hasBoundedHeight =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0;
@@ -70,77 +77,79 @@ class SlotStatusDonut extends StatelessWidget {
                 color: isDark ? Colors.white : Colors.black,
               );
 
-          final chart = Center(
-            child: SizedBox(
-              width: chartSize,
-              height: chartSize,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  PieChart(
-                    PieChartData(
-                      sectionsSpace: sectionSpacing,
-                      centerSpaceRadius: centerRadius,
-                      startDegreeOffset: -90,
-                      sections: slices.isEmpty
-                          ? [
-                              PieChartSectionData(
-                                value: 1,
-                                color: isDark ? Colors.white10 : Colors.black12,
-                                radius: sectionRadius,
-                              ),
-                            ]
-                          : slices
-                              .map((e) => PieChartSectionData(
-                                    value: e.value.toDouble(),
-                                    title: '',
-                                    color: e.color,
-                                    radius: sectionRadius,
-                                  ))
-                              .toList(),
-                    ),
+          final chart = SizedBox(
+            width: chartSize,
+            height: chartSize,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PieChart(
+                  PieChartData(
+                    sectionsSpace: sectionSpacing,
+                    centerSpaceRadius: centerRadius,
+                    startDegreeOffset: -90,
+                    sections: slices.isEmpty
+                        ? [
+                            PieChartSectionData(
+                              value: 1,
+                              color: isDark ? Colors.white10 : Colors.black12,
+                              radius: sectionRadius,
+                            ),
+                          ]
+                        : slices
+                            .map((e) => PieChartSectionData(
+                                  value: e.value.toDouble(),
+                                  title: '',
+                                  color: e.color,
+                                  radius: sectionRadius,
+                                ))
+                            .toList(),
                   ),
-                  Text('$total slot', style: totalStyle),
-                ],
-              ),
+                ),
+                Text('$total slot', style: totalStyle),
+              ],
             ),
           );
 
+          final legendChildren = slices
+              .map(
+                (e) => _LegendEntry(
+                  color: e.color,
+                  label: e.label,
+                  value: e.value,
+                  textStyle: legendStyle,
+                  center: !canShowSideBySide,
+                ),
+              )
+              .toList();
+
           final Widget legend = slices.isEmpty
               ? Align(
-                  alignment: Alignment.center,
+                  alignment:
+                      canShowSideBySide ? Alignment.centerLeft : Alignment.center,
                   child: Text(
                     'No slot activity recorded',
-                    textAlign: TextAlign.center,
+                    textAlign: canShowSideBySide ? TextAlign.left : TextAlign.center,
                     style: legendStyle.copyWith(
                       color: legendColor.withOpacity(0.75),
                     ),
                   ),
                 )
               : Align(
-                  alignment: Alignment.center,
-                  child: Wrap(
-                    spacing: legendSpacing,
-                    runSpacing: 6,
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: slices.map((e) {
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            margin: const EdgeInsets.only(right: 4),
-                            decoration: BoxDecoration(
-                              color: e.color,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          Text('${e.label}: ${e.value}', style: legendStyle),
-                        ],
-                      );
-                    }).toList(),
+                  alignment:
+                      canShowSideBySide ? Alignment.centerLeft : Alignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: canShowSideBySide
+                        ? CrossAxisAlignment.start
+                        : CrossAxisAlignment.center,
+                    children: [
+                      for (int i = 0; i < legendChildren.length; i++) ...[
+                        legendChildren[i],
+                        if (i != legendChildren.length - 1)
+                          SizedBox(height: canShowSideBySide ? 4 : 6),
+                      ],
+                    ],
                   ),
                 );
 
@@ -155,25 +164,34 @@ class SlotStatusDonut extends StatelessWidget {
             ),
           ];
 
-          if (hasBoundedHeight) {
-            children.add(
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    chart,
-                    SizedBox(height: legendTopGap),
-                    legend,
-                  ],
-                ),
-              ),
+          Widget body;
+          if (canShowSideBySide) {
+            body = Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                chart,
+                SizedBox(width: legendSideGap),
+                Flexible(child: legend),
+              ],
             );
           } else {
-            children
-              ..add(chart)
-              ..add(SizedBox(height: legendTopGap))
-              ..add(legend);
+            body = Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Center(child: chart),
+                SizedBox(height: legendTopGap),
+                legend,
+              ],
+            );
+          }
+
+          if (hasBoundedHeight) {
+            children.add(Expanded(child: body));
+          } else {
+            children.add(body);
           }
 
           return Column(
@@ -193,4 +211,42 @@ class _Slice {
   final Color color;
 
   _Slice(this.label, this.value, this.color);
+}
+
+class _LegendEntry extends StatelessWidget {
+  const _LegendEntry({
+    required this.color,
+    required this.label,
+    required this.value,
+    required this.textStyle,
+    this.center = false,
+  });
+
+  final Color color;
+  final String label;
+  final int value;
+  final TextStyle textStyle;
+  final bool center;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment:
+          center ? MainAxisAlignment.center : MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          margin: const EdgeInsets.only(right: 6),
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        Text('$label: $value', style: textStyle),
+      ],
+    );
+  }
 }
