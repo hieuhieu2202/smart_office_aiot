@@ -11,9 +11,9 @@ class SlotStatusDonut extends StatelessWidget {
 
   final GroupMonitorController controller;
 
-  static const double _minChartSize = 72.0;
-  static const double _maxChartSize = 168.0;
-  static const double _preferredScale = 0.58;
+  static const double _minChartSize = 64.0;
+  static const double _maxChartSize = 140.0;
+  static const double _preferredScale = 0.48;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -47,7 +47,7 @@ class SlotStatusDonut extends StatelessWidget {
 
   static double _spacingForChart(double chartSize) {
     if (chartSize <= 0) return 0;
-    return (chartSize * 0.12).clamp(10.0, 18.0);
+    return (chartSize * 0.1).clamp(8.0, 14.0);
   }
 
   static double _solveChartSize({
@@ -86,7 +86,7 @@ class SlotStatusDonut extends StatelessWidget {
 
     final maxChart = math.min(effectiveWidth, _maxChartSize);
     final minChart = math.min(
-      math.max(_minChartSize, effectiveWidth * 0.52),
+      math.max(_minChartSize, effectiveWidth * 0.44),
       maxChart,
     );
 
@@ -154,34 +154,34 @@ class SlotStatusDonut extends StatelessWidget {
           final chartSize = geometry.chartSize;
           final headerSpacing = geometry.headerSpacing;
 
+          final visualSize =
+              chartSize > 0 ? chartSize * 0.88 : math.min(maxWidth, _minChartSize);
+
           final totalStyle = textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
-                fontSize: (chartSize * 0.22).clamp(16.0, 24.0),
+                fontSize: (visualSize * 0.24).clamp(16.0, 22.0),
                 color: isDark ? Colors.white : theme.colorScheme.onSurface,
               ) ??
               TextStyle(
                 fontWeight: FontWeight.w800,
-                fontSize: (chartSize * 0.24).clamp(18.0, 26.0),
+                fontSize: (visualSize * 0.26).clamp(18.0, 24.0),
                 color: isDark ? Colors.white : theme.colorScheme.onSurface,
               );
 
           final slotLabel = '$total slot';
 
           final sectionTitleStyle = textTheme.bodyMedium?.copyWith(
-                fontSize: (chartSize * 0.1).clamp(10.0, 13.0),
+                fontSize: (visualSize * 0.11).clamp(9.5, 12.0),
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
               ) ??
               TextStyle(
-                fontSize: (chartSize * 0.115).clamp(11.0, 14.0),
+                fontSize: (visualSize * 0.125).clamp(10.0, 13.0),
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
               );
-
-          final visualSize =
-              chartSize > 0 ? chartSize : math.min(maxWidth, _minChartSize);
 
           Widget chart;
           if (total == 0) {
@@ -216,17 +216,17 @@ class SlotStatusDonut extends StatelessWidget {
                   PieChart(
                     PieChartData(
                       sectionsSpace: visualSize * 0.02,
-                      centerSpaceRadius: visualSize * 0.32,
+                      centerSpaceRadius: visualSize * 0.36,
                       startDegreeOffset: -90,
                       sections: [
                         for (final slice in slices)
                           PieChartSectionData(
                             value: slice.value.toDouble(),
                             color: slice.color,
-                            radius: visualSize * 0.4,
+                            radius: visualSize * 0.44,
                             title: _titleForSlice(slice, total),
                             titleStyle: sectionTitleStyle,
-                            titlePositionPercentageOffset: 0.6,
+                            titlePositionPercentageOffset: 0.55,
                           ),
                       ],
                     ),
@@ -241,12 +241,19 @@ class SlotStatusDonut extends StatelessWidget {
             );
           }
 
-          return SizedBox.expand(
+          return Center(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text('SLOT STATUS', style: headerStyle, textAlign: TextAlign.center),
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    'SLOT STATUS',
+                    style: headerStyle,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
                 SizedBox(height: headerSpacing),
                 chart,
               ],
