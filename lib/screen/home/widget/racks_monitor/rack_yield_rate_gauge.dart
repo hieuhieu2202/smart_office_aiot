@@ -28,20 +28,21 @@ class YieldRateGauge extends StatelessWidget {
 
         double widthCap = rawWidth;
         if (maxHeight.isFinite) {
-          widthCap = math.min(widthCap, math.max(110.0, maxHeight - 82));
+          widthCap = math.min(widthCap, math.max(108.0, maxHeight - 82));
         }
-        final gaugeWidth = widthCap.clamp(108.0, 168.0).toDouble();
+        final targetWidth = (rawWidth * 0.78).clamp(108.0, 152.0);
+        final gaugeWidth = math.min(widthCap, targetWidth);
 
-        final baseGaugeHeight = (gaugeWidth * 0.6).clamp(78.0, 128.0).toDouble();
+        final baseGaugeHeight = (gaugeWidth * 0.6).clamp(76.0, 120.0).toDouble();
         final gaugeHeight = maxHeight.isFinite
             ? math.min(baseGaugeHeight, math.max(72.0, maxHeight - 74))
             : baseGaugeHeight;
 
-        final thickness = (gaugeWidth * 0.085).clamp(6.5, 10.5).toDouble();
-        final sidePadding = (gaugeWidth * 0.08).clamp(7.0, 15.0).toDouble();
-        final labelFontSize = (gaugeWidth * 0.09).clamp(8.5, 12.0).toDouble();
+        final thickness = (gaugeWidth * 0.08).clamp(6.0, 9.5).toDouble();
+        final sidePadding = (gaugeWidth * 0.09).clamp(8.0, 16.0).toDouble();
+        final labelFontSize = (gaugeWidth * 0.088).clamp(8.5, 11.5).toDouble();
         final percentFontSize =
-            (gaugeWidth * 0.24).clamp(16.0, 22.0).toDouble();
+            (gaugeWidth * 0.22).clamp(15.0, 20.0).toDouble();
 
         final labelTextStyle = TextStyle(
           color: labelColor,

@@ -22,9 +22,9 @@ class SlotStatusDonut extends StatelessWidget {
         final maxHeight =
             constraints.maxHeight.isFinite ? constraints.maxHeight : double.infinity;
 
-        const minChartSize = 72.0;
-        const minLegendWidth = 96.0;
-        const minSideGap = 12.0;
+        const minChartSize = 68.0;
+        const minLegendWidth = 120.0;
+        const minSideGap = 16.0;
 
         final canShowSideBySide =
             rawWidth >= (minChartSize + minLegendWidth + minSideGap);
@@ -33,25 +33,26 @@ class SlotStatusDonut extends StatelessWidget {
             ? math.max(0.0, rawWidth - (minLegendWidth + minSideGap))
             : rawWidth;
 
-        double chartCap =
-            canShowSideBySide ? math.min(rawWidth * 0.55, chartWidthAllowance) : rawWidth;
+        double chartCap = canShowSideBySide
+            ? math.min(rawWidth * 0.5, chartWidthAllowance)
+            : rawWidth;
         if (maxHeight.isFinite) {
           final heightAllowance =
               canShowSideBySide ? math.max(64.0, maxHeight - 48) : math.max(70.0, maxHeight - 92);
           chartCap = math.min(chartCap, heightAllowance);
         }
         final chartSize =
-            chartCap.clamp(minChartSize, canShowSideBySide ? 98.0 : 112.0).toDouble();
+            chartCap.clamp(minChartSize, canShowSideBySide ? 90.0 : 108.0).toDouble();
         final sectionRadius = chartSize * 0.46;
         final centerRadius = sectionRadius * 0.58;
         final sectionSpacing = chartSize * 0.024;
         final legendTopGap = canShowSideBySide
-            ? (chartSize * 0.04).clamp(4.0, 6.0).toDouble()
-            : (chartSize * 0.07).clamp(6.0, 10.0).toDouble();
+            ? (chartSize * 0.04).clamp(6.0, 10.0).toDouble()
+            : (chartSize * 0.07).clamp(8.0, 12.0).toDouble();
         final remainingWidth =
             canShowSideBySide ? math.max(0.0, rawWidth - chartSize - minLegendWidth) : 0.0;
         final legendSideGap = canShowSideBySide
-            ? math.max(minSideGap, math.min(remainingWidth, 18.0))
+            ? math.max(minSideGap, math.min(remainingWidth, 22.0))
             : 0.0;
         final titleSpacing = (chartSize * 0.07).clamp(6.0, 11.0).toDouble();
         final hasBoundedHeight =
@@ -146,18 +147,13 @@ class SlotStatusDonut extends StatelessWidget {
                     color: legendColor.withOpacity(0.75),
                   ),
                 )
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: canShowSideBySide
-                      ? CrossAxisAlignment.start
-                      : CrossAxisAlignment.center,
-                  children: [
-                    for (int i = 0; i < legendChildren.length; i++) ...[
-                      legendChildren[i],
-                      if (i != legendChildren.length - 1)
-                        SizedBox(height: canShowSideBySide ? 4 : 6),
-                    ],
-                  ],
+              : Wrap(
+                  spacing: canShowSideBySide ? 12 : 16,
+                  runSpacing: canShowSideBySide ? 6 : 8,
+                  alignment: canShowSideBySide
+                      ? WrapAlignment.start
+                      : WrapAlignment.center,
+                  children: legendChildren,
                 );
 
           final Widget legend = ConstrainedBox(
