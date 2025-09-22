@@ -14,6 +14,8 @@ class SlotStatusDonut extends StatelessWidget {
   static const double _minChartSize = 64.0;
   static const double _maxChartSize = 140.0;
   static const double _preferredScale = 0.48;
+  static const double _legendMinHeight = 36.0;
+  static const double _legendMaxHeight = 72.0;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -50,31 +52,6 @@ class SlotStatusDonut extends StatelessWidget {
     return (chartSize * 0.1).clamp(8.0, 14.0);
   }
 
-  static double _solveChartSize({
-    required double headerHeight,
-    required double maxHeight,
-    required double maxChart,
-  }) {
-    if (maxHeight <= headerHeight) {
-      return 0;
-    }
-    var low = 0.0;
-    var high = maxChart;
-    var best = 0.0;
-    for (var i = 0; i < 24; i++) {
-      final mid = (low + high) / 2;
-      final spacing = _spacingForChart(mid);
-      final total = headerHeight + spacing + mid;
-      if (total <= maxHeight) {
-        best = mid;
-        low = mid;
-      } else {
-        high = mid;
-      }
-    }
-    return best;
-  }
-
   static _SlotStatusGeometry _resolveGeometry({
     required double width,
     required double headerHeight,
@@ -95,18 +72,30 @@ class SlotStatusDonut extends StatelessWidget {
     chartSize = chartSize.clamp(0.0, maxChart);
 
     var headerSpacing = _spacingForChart(chartSize);
-    var tileHeight = headerHeight + headerSpacing + chartSize;
+    var legendHeight = _legendHeightEstimate(chartSize);
+    var tileHeight = headerHeight + headerSpacing + chartSize + legendHeight;
 
     final limit = maxHeight != null && maxHeight.isFinite ? maxHeight : null;
     if (limit != null && limit > 0 && tileHeight > limit + 0.1) {
-      final solved = _solveChartSize(
-        headerHeight: headerHeight,
-        maxHeight: limit,
-        maxChart: maxChart,
-      );
-      chartSize = solved.clamp(0.0, maxChart);
+      var low = 0.0;
+      var high = maxChart;
+      var best = 0.0;
+      for (var i = 0; i < 24; i++) {
+        final mid = (low + high) / 2;
+        final spacing = _spacingForChart(mid);
+        final legend = _legendHeightEstimate(mid);
+        final total = headerHeight + spacing + mid + legend;
+        if (total <= limit) {
+          best = mid;
+          low = mid;
+        } else {
+          high = mid;
+        }
+      }
+      chartSize = best.clamp(0.0, maxChart);
       headerSpacing = _spacingForChart(chartSize);
-      tileHeight = headerHeight + headerSpacing + chartSize;
+      legendHeight = _legendHeightEstimate(chartSize);
+      tileHeight = headerHeight + headerSpacing + chartSize + legendHeight;
     }
 
     return _SlotStatusGeometry(
@@ -170,17 +159,14 @@ class SlotStatusDonut extends StatelessWidget {
 
           final slotLabel = '$total slot';
 
-          final sectionTitleStyle = textTheme.bodyMedium?.copyWith(
-                fontSize: (visualSize * 0.11).clamp(9.5, 12.0),
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
+          final legendStyle = textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
               ) ??
               TextStyle(
-                fontSize: (visualSize * 0.125).clamp(10.0, 13.0),
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
               );
 
           Widget chart;
@@ -224,9 +210,7 @@ class SlotStatusDonut extends StatelessWidget {
                             value: slice.value.toDouble(),
                             color: slice.color,
                             radius: visualSize * 0.44,
-                            title: _titleForSlice(slice, total),
-                            titleStyle: sectionTitleStyle,
-                            titlePositionPercentageOffset: 0.55,
+                            title: '',
                           ),
                       ],
                     ),
@@ -240,6 +224,10 @@ class SlotStatusDonut extends StatelessWidget {
               ),
             );
           }
+
+          final legendSpacing = slices.isNotEmpty
+              ? (visualSize * 0.16).clamp(10.0, 18.0)
+              : 0.0;
 
           return Center(
             child: Column(
@@ -256,6 +244,14 @@ class SlotStatusDonut extends StatelessWidget {
                 ),
                 SizedBox(height: headerSpacing),
                 chart,
+                if (slices.isNotEmpty) ...[
+                  SizedBox(height: legendSpacing),
+                  _SlotStatusLegend(
+                    slices: slices,
+                    textStyle: legendStyle,
+                    isDark: isDark,
+                  ),
+                ],
               ],
             ),
           );
@@ -263,6 +259,16 @@ class SlotStatusDonut extends StatelessWidget {
       },
     );
   }
+}
+
+double _legendHeightEstimate(double chartSize) {
+  if (chartSize <= 0) {
+    return 0;
+  }
+  return (chartSize * 0.32).clamp(
+    SlotStatusDonut._legendMinHeight,
+    SlotStatusDonut._legendMaxHeight,
+  );
 }
 
 class _SlotStatusGeometry {
@@ -284,17 +290,6 @@ class _Slice {
 
   _Slice(this.label, this.value, this.color);
 }
-
-String _titleForSlice(_Slice slice, int total) {
-  if (total <= 0) return '';
-  final percent = slice.value / total;
-  if (percent < 0.07 && slice.value < 5) {
-    return '';
-  }
-  final label = _shortLabel(slice.label);
-  return '$label ${slice.value}';
-}
-
 String _shortLabel(String label) {
   switch (label) {
     case 'Testing':
@@ -305,5 +300,81 @@ String _shortLabel(String label) {
       return 'Idle';
     default:
       return label;
+  }
+}
+
+class _SlotStatusLegend extends StatelessWidget {
+  const _SlotStatusLegend({
+    required this.slices,
+    required this.textStyle,
+    required this.isDark,
+  });
+
+  final List<_Slice> slices;
+  final TextStyle textStyle;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final baseColor = isDark
+        ? Colors.white.withOpacity(0.12)
+        : theme.colorScheme.primary.withOpacity(0.08);
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
+      children: [
+        for (final slice in slices)
+          _LegendTile(
+            slice: slice,
+            label: _shortLabel(slice.label),
+            textStyle: textStyle,
+            backgroundColor: baseColor,
+          ),
+      ],
+    );
+  }
+}
+
+class _LegendTile extends StatelessWidget {
+  const _LegendTile({
+    required this.slice,
+    required this.label,
+    required this.textStyle,
+    required this.backgroundColor,
+  });
+
+  final _Slice slice;
+  final String label;
+  final TextStyle textStyle;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: slice.color.withOpacity(0.4), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: slice.color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text('$label ${slice.value}', style: textStyle),
+        ],
+      ),
+    );
   }
 }
