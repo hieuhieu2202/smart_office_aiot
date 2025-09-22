@@ -5,9 +5,14 @@ import 'package:flutter/material.dart';
 import '../../controller/racks_monitor_controller.dart';
 
 class YieldRateGauge extends StatelessWidget {
-  const YieldRateGauge({super.key, required this.controller});
+  const YieldRateGauge({
+    super.key,
+    required this.controller,
+    this.showHeader = true,
+  });
 
   final GroupMonitorController controller;
+  final bool showHeader;
 
   static const double _minGaugeWidth = 86.0;
   static const double _maxGaugeWidth = 168.0;
@@ -26,12 +31,16 @@ class YieldRateGauge extends StatelessWidget {
   static double estimateContentHeight({
     required double width,
     required ThemeData theme,
+    bool includeHeader = true,
   }) {
     final headerStyle = headerTextStyle(theme);
-    final headerHeight = _headerHeight(headerStyle, theme.textTheme);
+    final headerHeight = includeHeader
+        ? _headerHeight(headerStyle, theme.textTheme)
+        : 0.0;
     final geometry = _resolveGeometry(
       width: width,
       headerHeight: headerHeight,
+      includeHeader: includeHeader,
     );
     return geometry.tileHeight;
   }
@@ -77,6 +86,7 @@ class YieldRateGauge extends StatelessWidget {
     required double width,
     required double headerHeight,
     double? maxHeight,
+    bool includeHeader = true,
   }) {
     final effectiveWidth = width.isFinite && width > 0
         ? width
@@ -87,9 +97,9 @@ class YieldRateGauge extends StatelessWidget {
     var gaugeWidth =
         math.min(maxGauge, effectiveWidth * 0.62).clamp(minGauge, maxGauge);
 
-    var headerSpacing = _spacingForWidth(gaugeWidth);
+    var headerSpacing = includeHeader ? _spacingForWidth(gaugeWidth) : 0.0;
     var gaugeHeight = gaugeWidth * _heightFactor;
-    var tileHeight = headerHeight + headerSpacing + gaugeHeight;
+    var tileHeight = gaugeHeight + (includeHeader ? headerHeight + headerSpacing : 0.0);
 
     final limit = maxHeight != null && maxHeight.isFinite ? maxHeight : null;
     if (limit != null && limit > 0 && tileHeight > limit + 0.1) {
@@ -99,15 +109,15 @@ class YieldRateGauge extends StatelessWidget {
         maxGauge: maxGauge,
       );
       gaugeWidth = solved.clamp(0.0, maxGauge);
-      headerSpacing = _spacingForWidth(gaugeWidth);
+      headerSpacing = includeHeader ? _spacingForWidth(gaugeWidth) : 0.0;
       gaugeHeight = gaugeWidth * _heightFactor;
-      tileHeight = headerHeight + headerSpacing + gaugeHeight;
+      tileHeight = gaugeHeight + (includeHeader ? headerHeight + headerSpacing : 0.0);
     }
 
     return _GaugeGeometry(
       gaugeWidth: gaugeWidth,
       gaugeHeight: gaugeHeight,
-      headerSpacing: headerSpacing,
+      headerSpacing: includeHeader ? headerSpacing : 0.0,
       tileHeight: limit == null ? tileHeight : math.min(tileHeight, limit),
     );
   }
@@ -119,7 +129,9 @@ class YieldRateGauge extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final headerStyle = headerTextStyle(theme);
-    final headerHeight = _headerHeight(headerStyle, textTheme);
+    final headerHeight = showHeader
+        ? _headerHeight(headerStyle, textTheme)
+        : 0.0;
 
     final yr = controller.kpiYr.clamp(0, 100).toDouble();
 
@@ -136,6 +148,7 @@ class YieldRateGauge extends StatelessWidget {
           width: maxWidth,
           headerHeight: headerHeight,
           maxHeight: maxHeight,
+          includeHeader: showHeader,
         );
         final gaugeWidth = geometry.gaugeWidth;
         final gaugeHeight = geometry.gaugeHeight;
@@ -193,15 +206,17 @@ class YieldRateGauge extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(
-                width: double.infinity,
-                child: Text(
-                  'YIELD RATE',
-                  style: headerStyle,
-                  textAlign: TextAlign.center,
+              if (showHeader) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    'YIELD RATE',
+                    style: headerStyle,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-              SizedBox(height: headerSpacing),
+                SizedBox(height: headerSpacing),
+              ],
               gauge,
             ],
           ),

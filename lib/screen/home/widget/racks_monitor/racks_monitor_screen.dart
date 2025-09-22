@@ -261,21 +261,32 @@ class _RackInsightsColumn extends StatelessWidget {
         final slotCounts = controller.slotStatusCount;
         final hasSlotLegend =
             slotCounts.values.any((value) => value > 0);
+        final slotLegendCount =
+            slotCounts.values.where((value) => value > 0).length;
+
+        const double donutExtraSpace = 14.0;
+        const double gaugeExtraSpace = 10.0;
 
         final slotChartHeight = chartContentWidth <= 0
             ? 0.0
             : SlotStatusDonut.estimateContentHeight(
-                width: chartContentWidth,
-                theme: theme,
-                includeLegend: hasSlotLegend,
-              );
+                  width: chartContentWidth,
+                  theme: theme,
+                  includeLegend: hasSlotLegend,
+                  includeHeader: false,
+                  legendItemCount: slotLegendCount,
+                ) + donutExtraSpace;
         final gaugeChartHeight = chartContentWidth <= 0
             ? 0.0
             : YieldRateGauge.estimateContentHeight(
-                width: chartContentWidth,
-                theme: theme,
-              );
-        final double chartTileHeight = math.max(slotChartHeight, gaugeChartHeight);
+                  width: chartContentWidth,
+                  theme: theme,
+                  includeHeader: false,
+                ) + gaugeExtraSpace;
+        final double chartTileHeight =
+            math.max(slotChartHeight, gaugeChartHeight);
+
+        final chartHeaderStyle = SlotStatusDonut.headerTextStyle(theme);
 
         Widget tile({
           required Widget child,
@@ -294,6 +305,39 @@ class _RackInsightsColumn extends StatelessWidget {
             child: _PanelCard(
               margin: EdgeInsets.zero,
               child: cardChild,
+            ),
+          );
+        }
+
+        Widget chartTile({
+          required String title,
+          required Widget child,
+          double? fixedHeight,
+        }) {
+          final useHalfWidth = allowGrid || canPairCharts;
+          final width = useHalfWidth ? halfWidth : availableWidth;
+          final Widget cardChild = fixedHeight != null
+              ? SizedBox(height: fixedHeight, child: child)
+              : child;
+          return SizedBox(
+            width: width,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.only(left: 4, right: 4, bottom: 8),
+                  child: Text(
+                    title,
+                    style: chartHeaderStyle,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                _PanelCard(
+                  margin: EdgeInsets.zero,
+                  child: cardChild,
+                ),
+              ],
             ),
           );
         }
@@ -321,15 +365,21 @@ class _RackInsightsColumn extends StatelessWidget {
                   span: 2,
                   child: PassByModelBar(controller: controller),
                 ),
-                tile(
-                  child: SlotStatusDonut(controller: controller),
-                  forceHalf: true,
+                chartTile(
+                  title: 'SLOT STATUS',
                   fixedHeight: chartTileHeight,
+                  child: SlotStatusDonut(
+                    controller: controller,
+                    showHeader: false,
+                  ),
                 ),
-                tile(
-                  child: YieldRateGauge(controller: controller),
-                  forceHalf: true,
+                chartTile(
+                  title: 'YIELD RATE',
                   fixedHeight: chartTileHeight,
+                  child: YieldRateGauge(
+                    controller: controller,
+                    showHeader: false,
+                  ),
                 ),
                 tile(
                   span: 2,
