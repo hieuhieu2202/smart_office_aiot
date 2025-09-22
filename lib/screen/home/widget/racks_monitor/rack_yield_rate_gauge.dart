@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import '../../controller/racks_monitor_controller.dart';
 
 class YieldRateGauge extends StatelessWidget {
@@ -8,48 +10,33 @@ class YieldRateGauge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final isDark = theme.brightness == Brightness.dark;
     final yr = controller.kpiYr.clamp(0, 100).toDouble();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // màu theo theme
-    final baseColor   = isDark ? const Color(0xFF233140) : Colors.grey.shade300;
-    final activeColor = isDark ? const Color(0xFF46B85F) : const Color(0xFF4CAF50);
-    final textTheme = Theme.of(context).textTheme;
-    final labelColor =
-        textTheme.bodyMedium?.color ?? (isDark ? Colors.white70 : Colors.black87);
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final rawWidth = constraints.maxWidth.isFinite
+        final maxWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : MediaQuery.of(context).size.width;
-        final maxHeight =
-            constraints.maxHeight.isFinite ? constraints.maxHeight : double.infinity;
 
-        double widthCap = rawWidth;
-        if (maxHeight.isFinite) {
-          widthCap = math.min(widthCap, math.max(108.0, maxHeight - 82));
-        }
-        final targetWidth = (rawWidth * 0.78).clamp(108.0, 152.0);
-        final gaugeWidth = math.min(widthCap, targetWidth);
+        final gaugeWidth = maxWidth.clamp(120.0, 160.0).toDouble();
+        final gaugeHeight = (gaugeWidth * 0.68).toDouble();
+        final headerSpacing = (gaugeWidth * 0.08).clamp(8.0, 14.0).toDouble();
+        final labelFontSize = (gaugeWidth * 0.1).clamp(9.5, 12.5).toDouble();
+        final percentFontSize = (gaugeWidth * 0.25).clamp(18.0, 26.0).toDouble();
+        final thickness = (gaugeWidth * 0.12).clamp(10.0, 14.0).toDouble();
+        final sidePadding = (gaugeWidth * 0.14).clamp(12.0, 18.0).toDouble();
 
-        final baseGaugeHeight = (gaugeWidth * 0.6).clamp(76.0, 120.0).toDouble();
-        final gaugeHeight = maxHeight.isFinite
-            ? math.min(baseGaugeHeight, math.max(72.0, maxHeight - 74))
-            : baseGaugeHeight;
-
-        final thickness = (gaugeWidth * 0.08).clamp(6.0, 9.5).toDouble();
-        final sidePadding = (gaugeWidth * 0.09).clamp(8.0, 16.0).toDouble();
-        final labelFontSize = (gaugeWidth * 0.088).clamp(8.5, 11.5).toDouble();
-        final percentFontSize =
-            (gaugeWidth * 0.22).clamp(15.0, 20.0).toDouble();
-
-        final labelTextStyle = TextStyle(
-          color: labelColor,
-          fontWeight: FontWeight.w700,
+        final labelColor =
+            textTheme.bodyMedium?.color ?? (isDark ? Colors.white70 : Colors.black87);
+        final tickStyle = TextStyle(
           fontSize: labelFontSize,
+          fontWeight: FontWeight.w600,
+          color: labelColor.withOpacity(isDark ? 0.9 : 0.75),
         );
-        final percentStyle = textTheme.titleLarge?.copyWith(
+        final percentStyle = textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
               fontSize: percentFontSize,
               color: labelColor,
@@ -59,51 +46,43 @@ class YieldRateGauge extends StatelessWidget {
               fontSize: percentFontSize,
               color: labelColor,
             );
+        final headerStyle = textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ) ??
+            TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: labelColor,
+            );
 
-        final gauge = Center(
-          child: SizedBox(
-            width: gaugeWidth,
-            height: gaugeHeight,
-            child: CustomPaint(
-              painter: _GaugePainter(
-                value: yr,
-                baseColor: baseColor,
-                activeColor: activeColor,
-                thickness: thickness,
-                sideLabelPadding: sidePadding,
-                labelTextStyle: labelTextStyle,
-              ),
-              child: Align(
-                alignment: const Alignment(0, -0.12),
-                child: Text(
-                  '${yr.toStringAsFixed(1)}%',
-                  style: percentStyle,
-                ),
-              ),
+        final gauge = SizedBox(
+          width: gaugeWidth,
+          height: gaugeHeight,
+          child: CustomPaint(
+            painter: _GaugePainter(
+              value: yr,
+              baseColor:
+                  isDark ? Colors.white.withOpacity(0.22) : Colors.grey.withOpacity(0.35),
+              activeColor: isDark ? const Color(0xFF4FD67F) : const Color(0xFF2E7D32),
+              thickness: thickness,
+              sideLabelPadding: sidePadding,
+              labelTextStyle: tickStyle,
+            ),
+            child: Align(
+              alignment: const Alignment(0, -0.1),
+              child: Text('${yr.toStringAsFixed(1)}%', style: percentStyle),
             ),
           ),
         );
 
-        final headerStyle = textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w800,
-        );
-        final headerSpacing = (gaugeWidth * 0.055).clamp(4.0, 9.0).toDouble();
-
-        final content = Column(
+        return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Padding(
-              padding: EdgeInsets.only(bottom: headerSpacing),
-              child: Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
-            ),
+            Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
+            SizedBox(height: headerSpacing),
             gauge,
           ],
-        );
-
-        return Align(
-          alignment: Alignment.topCenter,
-          child: content,
         );
       },
     );
