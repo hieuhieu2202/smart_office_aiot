@@ -4,7 +4,6 @@ import 'dart:ui' show BlurStyle, MaskFilter;
 import 'package:flutter/material.dart';
 
 import '../../controller/racks_monitor_controller.dart';
-import 'rack_chart_footer.dart';
 
 class YieldRateGauge extends StatelessWidget {
   const YieldRateGauge({
@@ -17,25 +16,27 @@ class YieldRateGauge extends StatelessWidget {
   final bool showHeader;
 
   static const double _minGaugeWidth = 108.0;
-  static const double _maxGaugeWidth = 172.0;
-  static const double _heightFactor = 0.52;
+  static const double _maxGaugeWidth = 180.0;
+  static const double _heightFactor = 0.64;
+  static const double _headerTopPadding = 8.0;
+  static const double _headerBottomPadding = 12.0;
   static const Color _activeArcColor = Color(0xFF17FF92);
   static const double _pointerSweepPortion = 0.1;
-  static const Color _headerBackgroundDark = Color(0xFF4E4FAF);
-  static const Color _headerBorderDark = Color(0xFF6F73D8);
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
     final accent = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
-    final headerColor = isDark ? const Color(0xFFE8ECFF) : accent;
-    return textTheme.labelLarge?.copyWith(
+    final headerColor = isDark ? const Color(0xFFF4F8FF) : accent;
+    return textTheme.titleSmall?.copyWith(
           fontWeight: FontWeight.w800,
+          letterSpacing: 0.8,
           color: headerColor,
         ) ??
         TextStyle(
-          fontSize: 14,
+          fontSize: 15,
           fontWeight: FontWeight.w800,
+          letterSpacing: 0.8,
           color: headerColor,
         );
   }
@@ -59,13 +60,15 @@ class YieldRateGauge extends StatelessWidget {
   }
 
   static double _topSpacingFor(double gaugeWidth, bool includeHeader) {
-    if (!includeHeader || gaugeWidth <= 0) return 0;
-    return math.max(8.0, gaugeWidth * 0.06);
+    if (gaugeWidth <= 0) return 0;
+    if (includeHeader) return 0;
+    return math.max(8.0, gaugeWidth * 0.05);
   }
 
   static double _bottomSpacingFor(double gaugeWidth, bool includeHeader) {
-    if (!includeHeader || gaugeWidth <= 0) return 0;
-    return math.max(10.0, gaugeWidth * 0.12);
+    if (gaugeWidth <= 0) return 0;
+    final base = includeHeader ? 18.0 : 12.0;
+    return math.max(base, gaugeWidth * 0.18);
   }
 
   static double _solveGaugeWidth({
@@ -149,7 +152,13 @@ class YieldRateGauge extends StatelessWidget {
   }
 
   static double _headerBandHeight(TextStyle headerStyle, TextTheme textTheme) {
-    return ChartCardHeader.heightForStyle(headerStyle, textTheme);
+    final fallbackFontSize = textTheme.titleSmall?.fontSize ?? 15.0;
+    final fallbackHeight = textTheme.titleSmall?.height ?? 1.2;
+    final fontSize = headerStyle.fontSize ?? fallbackFontSize;
+    final lineHeight = headerStyle.height ?? fallbackHeight;
+    return fontSize * lineHeight +
+        _headerTopPadding +
+        _headerBottomPadding;
   }
 
   @override
@@ -190,43 +199,30 @@ class YieldRateGauge extends StatelessWidget {
             ? const Color(0xFF9FB5D4)
             : labelColor.withOpacity(0.75);
         final tickStyle = TextStyle(
-          fontSize: (gaugeWidth * 0.065).clamp(8.0, 11.0),
+          fontSize: (gaugeWidth * 0.072).clamp(8.0, 12.0),
           fontWeight: FontWeight.w600,
           color: tickColor,
         );
-        final percentColor = isDark ? Colors.white : theme.colorScheme.onSurface;
+        final percentColor =
+            isDark ? const Color(0xFFF6FBFF) : theme.colorScheme.onSurface;
         final percentStyle = textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
-              fontSize: (gaugeWidth * 0.24).clamp(20.0, 30.0),
+              fontSize: (gaugeWidth * 0.26).clamp(22.0, 34.0),
               color: percentColor,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withOpacity(isDark ? 0.35 : 0.1),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ) ??
             TextStyle(
               fontWeight: FontWeight.w900,
-              fontSize: (gaugeWidth * 0.24).clamp(20.0, 30.0),
+              fontSize: (gaugeWidth * 0.26).clamp(22.0, 34.0),
               color: percentColor,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withOpacity(isDark ? 0.35 : 0.1),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             );
 
-        final thickness = (gaugeWidth * 0.2).clamp(12.0, 22.0);
-        final sidePadding = (gaugeWidth * 0.06).clamp(6.0, 12.0);
+        final thickness = (gaugeWidth * 0.26).clamp(14.0, 30.0);
+        final sidePadding = (gaugeWidth * 0.08).clamp(8.0, 16.0);
         final percentageLabel = '${yr.toStringAsFixed(2)}%';
 
         final baseArcColor = isDark
-            ? const Color(0xFF12314B)
-            : theme.colorScheme.onSurface.withOpacity(0.1);
+            ? const Color(0xFF102840)
+            : theme.colorScheme.onSurface.withOpacity(0.12);
 
         final gauge = SizedBox(
           width: gaugeWidth,
@@ -247,30 +243,31 @@ class YieldRateGauge extends StatelessWidget {
         );
 
         final headerWidth = math.min(
-          gaugeWidth + sidePadding * 2,
-          maxWidth.isFinite ? maxWidth : gaugeWidth + sidePadding * 2,
+          gaugeWidth,
+          maxWidth.isFinite ? maxWidth : gaugeWidth,
         );
 
         final headerWidget = showHeader
             ? SizedBox(
                 width: headerWidth,
-                child: ChartCardHeader(
-                  label: 'YIELD RATE',
-                  textStyle: headerStyle,
-                  backgroundColor: isDark
-                      ? _headerBackgroundDark
-                      : theme.colorScheme.primary.withOpacity(0.12),
-                  borderColor: isDark
-                      ? _headerBorderDark.withOpacity(0.85)
-                      : theme.colorScheme.primary.withOpacity(0.3),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: _headerTopPadding),
+                    Text(
+                      'YIELD RATE',
+                      style: headerStyle,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: _headerBottomPadding),
+                  ],
                 ),
               )
             : null;
 
         final children = <Widget>[
           if (headerWidget != null) headerWidget,
-          if (headerWidget != null && topSpacing > 0)
-            SizedBox(height: topSpacing),
+          if (topSpacing > 0) SizedBox(height: topSpacing),
           gauge,
           if (bottomSpacing > 0) SizedBox(height: bottomSpacing),
         ];
@@ -376,10 +373,10 @@ class _GaugePainter extends CustomPainter {
     if (sweep > 0) {
       final glowPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = thickness * 1.2
+        ..strokeWidth = thickness * 1.18
         ..strokeCap = StrokeCap.round
-        ..color = activeColor.withOpacity(0.22)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, thickness * 0.7);
+        ..color = activeColor.withOpacity(0.28)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, thickness * 0.55);
       canvas.drawArc(rect, math.pi, sweep, false, glowPaint);
 
       canvas.drawArc(rect, math.pi, sweep, false, active);
@@ -391,10 +388,10 @@ class _GaugePainter extends CustomPainter {
       if (pointerSweep > 0.0001) {
         final pointerPaint = Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = thickness * 0.98
+          ..strokeWidth = thickness * 0.94
           ..strokeCap = StrokeCap.round
-          ..color = Colors.white
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, thickness * 0.3);
+          ..color = Colors.white.withOpacity(0.96)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, thickness * 0.22);
         final pointerStart = math.pi + sweep - pointerSweep;
         canvas.drawArc(rect, pointerStart, pointerSweep, false, pointerPaint);
       }
