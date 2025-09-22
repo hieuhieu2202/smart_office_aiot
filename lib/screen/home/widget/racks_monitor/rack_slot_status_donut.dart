@@ -22,22 +22,37 @@ class SlotStatusDonut extends StatelessWidget {
         final maxHeight =
             constraints.maxHeight.isFinite ? constraints.maxHeight : double.infinity;
 
-        final canShowSideBySide = rawWidth >= 210;
+        const minChartSize = 72.0;
+        const minLegendWidth = 96.0;
+        const minSideGap = 12.0;
 
-        double chartCap = canShowSideBySide ? rawWidth * 0.58 : rawWidth;
+        final canShowSideBySide =
+            rawWidth >= (minChartSize + minLegendWidth + minSideGap);
+
+        final chartWidthAllowance = canShowSideBySide
+            ? math.max(0.0, rawWidth - (minLegendWidth + minSideGap))
+            : rawWidth;
+
+        double chartCap =
+            canShowSideBySide ? math.min(rawWidth * 0.55, chartWidthAllowance) : rawWidth;
         if (maxHeight.isFinite) {
           final heightAllowance =
               canShowSideBySide ? math.max(64.0, maxHeight - 48) : math.max(70.0, maxHeight - 92);
           chartCap = math.min(chartCap, heightAllowance);
         }
-        final chartSize = chartCap.clamp(66.0, canShowSideBySide ? 104.0 : 112.0).toDouble();
+        final chartSize =
+            chartCap.clamp(minChartSize, canShowSideBySide ? 98.0 : 112.0).toDouble();
         final sectionRadius = chartSize * 0.46;
         final centerRadius = sectionRadius * 0.58;
         final sectionSpacing = chartSize * 0.024;
         final legendTopGap = canShowSideBySide
             ? (chartSize * 0.04).clamp(4.0, 6.0).toDouble()
             : (chartSize * 0.07).clamp(6.0, 10.0).toDouble();
-        final legendSideGap = (chartSize * 0.18).clamp(12.0, 18.0).toDouble();
+        final remainingWidth =
+            canShowSideBySide ? math.max(0.0, rawWidth - chartSize - minLegendWidth) : 0.0;
+        final legendSideGap = canShowSideBySide
+            ? math.max(minSideGap, math.min(remainingWidth, 18.0))
+            : 0.0;
         final titleSpacing = (chartSize * 0.07).clamp(6.0, 11.0).toDouble();
         final hasBoundedHeight =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0;
@@ -123,35 +138,37 @@ class SlotStatusDonut extends StatelessWidget {
               )
               .toList();
 
-          final Widget legend = slices.isEmpty
-              ? Align(
-                  alignment:
-                      canShowSideBySide ? Alignment.centerLeft : Alignment.center,
-                  child: Text(
-                    'No slot activity recorded',
-                    textAlign: canShowSideBySide ? TextAlign.left : TextAlign.center,
-                    style: legendStyle.copyWith(
-                      color: legendColor.withOpacity(0.75),
-                    ),
+          final legendBody = slices.isEmpty
+              ? Text(
+                  'No slot activity recorded',
+                  textAlign: canShowSideBySide ? TextAlign.left : TextAlign.center,
+                  style: legendStyle.copyWith(
+                    color: legendColor.withOpacity(0.75),
                   ),
                 )
-              : Align(
-                  alignment:
-                      canShowSideBySide ? Alignment.centerLeft : Alignment.center,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: canShowSideBySide
-                        ? CrossAxisAlignment.start
-                        : CrossAxisAlignment.center,
-                    children: [
-                      for (int i = 0; i < legendChildren.length; i++) ...[
-                        legendChildren[i],
-                        if (i != legendChildren.length - 1)
-                          SizedBox(height: canShowSideBySide ? 4 : 6),
-                      ],
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: canShowSideBySide
+                      ? CrossAxisAlignment.start
+                      : CrossAxisAlignment.center,
+                  children: [
+                    for (int i = 0; i < legendChildren.length; i++) ...[
+                      legendChildren[i],
+                      if (i != legendChildren.length - 1)
+                        SizedBox(height: canShowSideBySide ? 4 : 6),
                     ],
-                  ),
+                  ],
                 );
+
+          final Widget legend = ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: canShowSideBySide ? minLegendWidth : 0.0,
+            ),
+            child: Align(
+              alignment: canShowSideBySide ? Alignment.centerLeft : Alignment.center,
+              child: legendBody,
+            ),
+          );
 
           final titleStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.w700,
