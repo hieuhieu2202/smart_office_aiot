@@ -5,10 +5,14 @@ class ChartCardHeader extends StatelessWidget {
     super.key,
     required this.label,
     required this.textStyle,
+    this.backgroundColor,
+    this.borderColor,
   });
 
   final String label;
   final TextStyle textStyle;
+  final Color? backgroundColor;
+  final Color? borderColor;
 
   static const double verticalPadding = 6.0;
   static const double horizontalPadding = 12.0;
@@ -27,12 +31,10 @@ class ChartCardHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
-    final background = isDark
-        ? primary.withOpacity(0.18)
-        : primary.withOpacity(0.12);
-    final borderColor = isDark
-        ? Colors.white.withOpacity(0.25)
-        : primary.withOpacity(0.35);
+    final background = backgroundColor ??
+        (isDark ? primary.withOpacity(0.18) : primary.withOpacity(0.12));
+    final border = borderColor ??
+        (isDark ? Colors.white.withOpacity(0.25) : primary.withOpacity(0.35));
 
     return Container(
       width: double.infinity,
@@ -43,7 +45,7 @@ class ChartCardHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: borderColor, width: 0.8),
+        border: Border.all(color: border, width: 0.8),
       ),
       alignment: Alignment.center,
       child: Text(
