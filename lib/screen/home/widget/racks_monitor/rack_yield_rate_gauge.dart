@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show BlurStyle, MaskFilter;
 
 import 'package:flutter/material.dart';
 
@@ -15,23 +16,26 @@ class YieldRateGauge extends StatelessWidget {
   final GroupMonitorController controller;
   final bool showHeader;
 
-  static const double _minGaugeWidth = 94.0;
-  static const double _maxGaugeWidth = 160.0;
-  static const double _heightFactor = 0.64;
-  static const double _footerSpacingFactor = 0.9;
-  static const Color _activeArcColor = Color(0xFF00FF76);
+  static const double _minGaugeWidth = 96.0;
+  static const double _maxGaugeWidth = 168.0;
+  static const double _heightFactor = 0.62;
+  static const double _footerSpacingFactor = 0.86;
+  static const Color _activeArcColor = Color(0xFF09FF77);
+  static const double _pointerSweepPortion = 0.08;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
     final accent = theme.colorScheme.primary;
+    final isDark = theme.brightness == Brightness.dark;
+    final headerColor = isDark ? const Color(0xFFB9ADFF) : accent;
     return textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w800,
-          color: accent,
+          color: headerColor,
         ) ??
         TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w800,
-          color: accent,
+          color: headerColor,
         );
   }
 
@@ -186,9 +190,10 @@ class YieldRateGauge extends StatelessWidget {
         final labelColor = textTheme.bodyMedium?.color ??
             (isDark ? Colors.white70 : Colors.black87);
         final tickStyle = TextStyle(
-          fontSize: (gaugeWidth * 0.08).clamp(9.0, 12.0),
+          fontSize: (gaugeWidth * 0.078).clamp(9.0, 12.0),
           fontWeight: FontWeight.w600,
-          color: labelColor.withOpacity(isDark ? 0.9 : 0.75),
+          color: (isDark ? Colors.white : labelColor)
+              .withOpacity(isDark ? 0.9 : 0.75),
         );
         final percentColor = isDark ? Colors.white : theme.colorScheme.onSurface;
         final percentStyle = textTheme.headlineSmall?.copyWith(
@@ -206,11 +211,9 @@ class YieldRateGauge extends StatelessWidget {
                   isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             );
 
-        final thickness = (gaugeWidth * 0.14).clamp(11.0, 18.0);
-        final sidePadding = (gaugeWidth * 0.08).clamp(8.0, 16.0);
-        final isWholePercent = (yr - yr.roundToDouble()).abs() < 0.005;
-        final percentageLabel =
-            '${yr.toStringAsFixed(isWholePercent ? 0 : 2)}%';
+        final thickness = (gaugeWidth * 0.19).clamp(13.0, 22.0);
+        final sidePadding = (gaugeWidth * 0.075).clamp(7.5, 16.0);
+        final percentageLabel = '${yr.toStringAsFixed(2)}%';
 
         final gauge = SizedBox(
           width: gaugeWidth,
@@ -219,8 +222,8 @@ class YieldRateGauge extends StatelessWidget {
             painter: _GaugePainter(
               value: yr,
               baseColor: isDark
-                  ? Colors.white.withOpacity(0.18)
-                  : theme.colorScheme.onSurface.withOpacity(0.12),
+                  ? Colors.white.withOpacity(0.08)
+                  : theme.colorScheme.onSurface.withOpacity(0.08),
               activeColor: _activeArcColor,
               thickness: thickness,
               sideLabelPadding: sidePadding,
@@ -342,10 +345,29 @@ class _GaugePainter extends CustomPainter {
 
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    canvas.drawArc(rect, math.pi, math.pi, false, base);
+    if (baseColor.opacity > 0) {
+      canvas.drawArc(rect, math.pi, math.pi, false, base);
+    }
 
     final sweep = (value.clamp(0, 100) / 100) * math.pi;
-    canvas.drawArc(rect, math.pi, sweep, false, active);
+    if (sweep > 0) {
+      canvas.drawArc(rect, math.pi, sweep, false, active);
+
+      final pointerSweep = math.min(
+        sweep,
+        math.pi * YieldRateGauge._pointerSweepPortion,
+      );
+      if (pointerSweep > 0.0001) {
+        final pointerPaint = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = thickness * 1.02
+          ..strokeCap = StrokeCap.round
+          ..color = Colors.white
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, thickness * 0.14);
+        final pointerStart = math.pi + sweep - pointerSweep;
+        canvas.drawArc(rect, pointerStart, pointerSweep, false, pointerPaint);
+      }
+    }
 
     final labelTop = arcBottom + sideLabelPadding;
     final left = Offset(rect.left + sideLabelPadding, labelTop);
