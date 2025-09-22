@@ -72,11 +72,12 @@ class SlotStatusDonut extends StatelessWidget {
               ? 1
               : ((slices.length + legendColumns - 1) ~/ legendColumns);
 
-          const minChartSize = 78.0;
-          final maxChartByWidth = maxWidth.clamp(84.0, 114.0).toDouble();
+          const minChartSize = 70.0;
+          final maxChartByWidth =
+              (maxWidth * 0.62).clamp(minChartSize, 96.0).toDouble();
           double chartSize = maxChartByWidth;
-          double titleSpacing = (chartSize * 0.06).clamp(6.0, 10.0).toDouble();
-          double legendSpacing = (chartSize * 0.08).clamp(6.0, 12.0).toDouble();
+          double titleSpacing = (chartSize * 0.08).clamp(8.0, 12.0).toDouble();
+          double legendSpacing = (chartSize * 0.12).clamp(10.0, 16.0).toDouble();
 
           if (maxHeight != null) {
             final baseLineHeight =
@@ -85,15 +86,17 @@ class SlotStatusDonut extends StatelessWidget {
             final legendHeightEstimate = legendRows <= 0
                 ? 0
                 : (legendRows * rowHeight) + ((legendRows - 1) * 8);
-            final reservedHeight =
-                headerHeight + titleSpacing + legendSpacing + legendHeightEstimate;
+            final reservedHeight = headerHeight +
+                titleSpacing +
+                legendSpacing +
+                legendHeightEstimate;
             final availableForChart = maxHeight - reservedHeight;
             chartSize = availableForChart.clamp(minChartSize, maxChartByWidth);
-            titleSpacing = (chartSize * 0.06).clamp(6.0, 10.0).toDouble();
-            legendSpacing = (chartSize * 0.08).clamp(6.0, 12.0).toDouble();
+            titleSpacing = (chartSize * 0.08).clamp(8.0, 12.0).toDouble();
+            legendSpacing = (chartSize * 0.12).clamp(10.0, 16.0).toDouble();
           }
 
-          final totalFontSize = (chartSize * 0.19).clamp(14.0, 20.0).toDouble();
+          final totalFontSize = (chartSize * 0.2).clamp(13.0, 18.0).toDouble();
           final totalStyle = textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
                 fontSize: totalFontSize,
@@ -113,15 +116,15 @@ class SlotStatusDonut extends StatelessWidget {
               children: [
                 PieChart(
                   PieChartData(
-                    sectionsSpace: chartSize * 0.04,
-                    centerSpaceRadius: chartSize * 0.36,
+                    sectionsSpace: chartSize * 0.035,
+                    centerSpaceRadius: chartSize * 0.38,
                     startDegreeOffset: -90,
                     sections: slices.isEmpty
                         ? [
                             PieChartSectionData(
                               value: 1,
                               color: theme.colorScheme.onSurface.withOpacity(0.08),
-                              radius: chartSize * 0.48,
+                              radius: chartSize * 0.46,
                               title: '',
                             ),
                           ]
@@ -131,7 +134,7 @@ class SlotStatusDonut extends StatelessWidget {
                                 value: slice.value.toDouble(),
                                 title: '',
                                 color: slice.color,
-                                radius: chartSize * 0.48,
+                                radius: chartSize * 0.46,
                               ),
                             )
                             .toList(),
@@ -239,23 +242,23 @@ class _LegendChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background = color.withOpacity(isDark ? 0.22 : 0.12);
+    final borderColor = color.withOpacity(isDark ? 0.55 : 0.4);
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: background,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: borderColor, width: 0.8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 7,
-            height: 7,
+            width: 6,
+            height: 6,
             margin: const EdgeInsets.only(right: 6),
             decoration: BoxDecoration(
               color: color,

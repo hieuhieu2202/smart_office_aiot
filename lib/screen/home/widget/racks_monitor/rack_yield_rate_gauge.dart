@@ -103,13 +103,13 @@ class YieldRateGauge extends StatelessWidget {
 
         return SizedBox.expand(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
             children: [
               Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
               SizedBox(height: headerSpacing),
-              gauge,
+              Expanded(
+                child: Center(child: gauge),
+              ),
             ],
           ),
         );
