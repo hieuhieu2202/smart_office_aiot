@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../controller/racks_monitor_controller.dart';
+import 'rack_chart_footer.dart';
 
 class SlotStatusDonut extends StatelessWidget {
   const SlotStatusDonut({
@@ -17,8 +18,8 @@ class SlotStatusDonut extends StatelessWidget {
   final bool showHeader;
 
   static const double _minChartSize = 78.0;
-  static const double _maxChartSize = 128.0;
-  static const double _preferredScale = 0.58;
+  static const double _maxChartSize = 116.0;
+  static const double _preferredScale = 0.54;
   static const double _legendMinHeight = 24.0;
   static const double _legendMaxHeight = 88.0;
   static const double _legendMinSpacing = 12.0;
@@ -26,11 +27,15 @@ class SlotStatusDonut extends StatelessWidget {
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
-    return textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800) ??
+    final accent = theme.colorScheme.primary;
+    return textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: accent,
+        ) ??
         TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w800,
-          color: textTheme.labelLarge?.color ?? theme.colorScheme.onSurface,
+          color: accent,
         );
   }
 
@@ -59,7 +64,8 @@ class SlotStatusDonut extends StatelessWidget {
     final fontSize =
         headerStyle.fontSize ?? textTheme.labelLarge?.fontSize ?? 14.0;
     final lineHeight = headerStyle.height ?? textTheme.labelLarge?.height ?? 1.25;
-    return fontSize * lineHeight;
+    final textHeight = fontSize * lineHeight;
+    return textHeight + ChartCardFooter.verticalPadding * 2;
   }
 
   static double _spacingForChart(double chartSize) {
@@ -90,7 +96,7 @@ class SlotStatusDonut extends StatelessWidget {
 
     var headerSpacing = includeHeader ? _spacingForChart(chartSize) : 0.0;
     var legendSpacing = hasLegend
-        ? math.max(_legendSpacingEstimate(chartSize), 12.0)
+        ? math.max(_legendSpacingEstimate(chartSize), 14.0)
         : 0.0;
     var legendHeight = hasLegend
         ? _legendHeightEstimate(chartSize, legendItemCount)
@@ -109,7 +115,7 @@ class SlotStatusDonut extends StatelessWidget {
         final mid = (low + high) / 2;
         final spacing = includeHeader ? _spacingForChart(mid) : 0.0;
         final legendSpace = hasLegend
-            ? math.max(_legendSpacingEstimate(mid), 12.0)
+            ? math.max(_legendSpacingEstimate(mid), 14.0)
             : 0.0;
         final legend = hasLegend
             ? _legendHeightEstimate(mid, legendItemCount)
@@ -128,7 +134,7 @@ class SlotStatusDonut extends StatelessWidget {
       chartSize = best.clamp(0.0, maxChart);
       headerSpacing = includeHeader ? _spacingForChart(chartSize) : 0.0;
       legendSpacing = hasLegend
-          ? math.max(_legendSpacingEstimate(chartSize), 12.0)
+          ? math.max(_legendSpacingEstimate(chartSize), 14.0)
           : 0.0;
       legendHeight = hasLegend
           ? _legendHeightEstimate(chartSize, legendItemCount)
@@ -275,36 +281,60 @@ class SlotStatusDonut extends StatelessWidget {
           }
 
           final legendSpacing = hasLegend
-              ? math.max(_legendSpacingEstimate(chartSize), 12.0)
+              ? math.max(_legendSpacingEstimate(chartSize), 14.0)
               : 0.0;
 
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (showHeader) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: Text(
-                      'SLOT STATUS',
-                      style: headerStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  SizedBox(height: headerSpacing),
-                ],
-                chart,
-                if (slices.isNotEmpty) ...[
-                  SizedBox(height: legendSpacing),
-                  _SlotStatusLegend(
-                    slices: slices,
-                    textStyle: legendStyle,
-                    isDark: isDark,
-                  ),
-                ],
+          final footer = showHeader
+              ? ChartCardFooter(
+                  label: 'SLOT STATUS',
+                  textStyle: headerStyle,
+                )
+              : null;
+
+          final chartStack = Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              chart,
+              if (slices.isNotEmpty) ...[
+                SizedBox(height: legendSpacing),
+                _SlotStatusLegend(
+                  slices: slices,
+                  textStyle: legendStyle,
+                  isDark: isDark,
+                ),
               ],
-            ),
+            ],
+          );
+
+          if (constraints.maxHeight.isFinite && constraints.maxHeight > 0) {
+            return SizedBox(
+              height: constraints.maxHeight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Center(child: chartStack),
+                  ),
+                  if (footer != null) ...[
+                    SizedBox(height: headerSpacing),
+                    footer,
+                  ],
+                ],
+              ),
+            );
+          }
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(child: chartStack),
+              if (footer != null) ...[
+                SizedBox(height: headerSpacing),
+                footer,
+              ],
+            ],
           );
         });
       },
@@ -453,3 +483,4 @@ class _LegendEntry extends StatelessWidget {
     );
   }
 }
+

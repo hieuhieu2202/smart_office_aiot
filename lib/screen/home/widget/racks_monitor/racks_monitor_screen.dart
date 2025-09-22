@@ -287,6 +287,7 @@ class _RackInsightsColumn extends StatelessWidget {
             ? 0.0
             : YieldRateGauge.estimateContentHeight(
                   width: chartContentWidth,
+                  theme: theme,
                   includeHeader: true,
                 ) + gaugeExtraSpace;
         final double chartTileHeight = math.max(
