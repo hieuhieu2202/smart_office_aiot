@@ -28,20 +28,20 @@ class YieldRateGauge extends StatelessWidget {
 
         double widthCap = rawWidth;
         if (maxHeight.isFinite) {
-          widthCap = math.min(widthCap, math.max(120.0, maxHeight - 72));
+          widthCap = math.min(widthCap, math.max(110.0, maxHeight - 84));
         }
-        final gaugeWidth = widthCap.clamp(120.0, 190.0).toDouble();
+        final gaugeWidth = widthCap.clamp(110.0, 168.0).toDouble();
 
-        final baseGaugeHeight = (gaugeWidth * 0.62).clamp(90.0, 140.0).toDouble();
+        final baseGaugeHeight = (gaugeWidth * 0.6).clamp(82.0, 128.0).toDouble();
         final gaugeHeight = maxHeight.isFinite
-            ? math.min(baseGaugeHeight, math.max(86.0, maxHeight - 68))
+            ? math.min(baseGaugeHeight, math.max(80.0, maxHeight - 74))
             : baseGaugeHeight;
 
-        final thickness = (gaugeWidth * 0.085).clamp(7.0, 12.0).toDouble();
-        final sidePadding = (gaugeWidth * 0.07).clamp(6.0, 14.0).toDouble();
-        final labelFontSize = (gaugeWidth * 0.11).clamp(10.0, 13.0).toDouble();
+        final thickness = (gaugeWidth * 0.085).clamp(6.5, 11.0).toDouble();
+        final sidePadding = (gaugeWidth * 0.075).clamp(6.0, 12.0).toDouble();
+        final labelFontSize = (gaugeWidth * 0.1).clamp(9.0, 12.0).toDouble();
         final percentFontSize =
-            (gaugeWidth * 0.26).clamp(18.0, 24.0).toDouble();
+            (gaugeWidth * 0.26).clamp(16.0, 22.0).toDouble();
 
         final hasBoundedHeight =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0;
@@ -91,8 +91,8 @@ class YieldRateGauge extends StatelessWidget {
         );
 
         final children = <Widget>[
-          Text('YIELD RATE', style: headerStyle),
-          const SizedBox(height: 6),
+          Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
         ];
 
         if (hasBoundedHeight) {
@@ -102,7 +102,8 @@ class YieldRateGauge extends StatelessWidget {
         }
 
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: children,
         );
       },

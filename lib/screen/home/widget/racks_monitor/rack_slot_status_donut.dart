@@ -23,14 +23,14 @@ class SlotStatusDonut extends StatelessWidget {
             constraints.maxHeight.isFinite ? constraints.maxHeight : double.infinity;
         double chartCap = rawWidth;
         if (maxHeight.isFinite) {
-          chartCap = math.min(chartCap, math.max(88.0, maxHeight - 74));
+          chartCap = math.min(chartCap, math.max(82.0, maxHeight - 86));
         }
-        final chartSize = chartCap.clamp(88.0, 150.0).toDouble();
-        final sectionRadius = chartSize * 0.38;
-        final centerRadius = chartSize * 0.33;
-        final sectionSpacing = chartSize * 0.02;
-        final legendSpacing = chartSize < 130 ? 6.0 : 8.0;
-        final legendTopGap = chartSize < 130 ? 6.0 : 8.0;
+        final chartSize = chartCap.clamp(82.0, 132.0).toDouble();
+        final sectionRadius = chartSize * 0.4;
+        final centerRadius = chartSize * 0.36;
+        final sectionSpacing = chartSize * 0.018;
+        final legendSpacing = chartSize < 120 ? 6.0 : 7.0;
+        final legendTopGap = chartSize < 120 ? 6.0 : 8.0;
         final hasBoundedHeight =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0;
 
@@ -69,8 +69,7 @@ class SlotStatusDonut extends StatelessWidget {
                 color: isDark ? Colors.white : Colors.black,
               );
 
-          final chart = Align(
-            alignment: Alignment.topCenter,
+          final chart = Center(
             child: SizedBox(
               width: chartSize,
               height: chartSize,
@@ -149,8 +148,8 @@ class SlotStatusDonut extends StatelessWidget {
               );
 
           final children = <Widget>[
-            Text('SLOT STATUS', style: titleStyle),
-            const SizedBox(height: 6),
+            Text('SLOT STATUS', style: titleStyle, textAlign: TextAlign.center),
+            const SizedBox(height: 8),
           ];
 
           if (hasBoundedHeight) {
@@ -158,6 +157,7 @@ class SlotStatusDonut extends StatelessWidget {
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     chart,
                     SizedBox(height: legendTopGap),
@@ -174,7 +174,8 @@ class SlotStatusDonut extends StatelessWidget {
           }
 
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: children,
           );
         });
