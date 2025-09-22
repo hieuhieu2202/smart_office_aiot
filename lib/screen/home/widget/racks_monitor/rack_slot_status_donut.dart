@@ -31,6 +31,7 @@ class SlotStatusDonut extends StatelessWidget {
         final sectionSpacing = chartSize * 0.02;
         final legendSpacing = chartSize < 108 ? 4.0 : 6.0;
         final legendTopGap = chartSize < 100 ? 4.0 : 6.0;
+        final titleSpacing = (chartSize * 0.07).clamp(6.0, 11.0).toDouble();
         final hasBoundedHeight =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0;
 
@@ -148,8 +149,10 @@ class SlotStatusDonut extends StatelessWidget {
               );
 
           final children = <Widget>[
-            Text('SLOT STATUS', style: titleStyle, textAlign: TextAlign.center),
-            const SizedBox(height: 8),
+            Padding(
+              padding: EdgeInsets.only(bottom: titleSpacing),
+              child: Text('SLOT STATUS', style: titleStyle, textAlign: TextAlign.center),
+            ),
           ];
 
           if (hasBoundedHeight) {

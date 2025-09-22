@@ -28,20 +28,20 @@ class YieldRateGauge extends StatelessWidget {
 
         double widthCap = rawWidth;
         if (maxHeight.isFinite) {
-          widthCap = math.min(widthCap, math.max(98.0, maxHeight - 88));
+          widthCap = math.min(widthCap, math.max(110.0, maxHeight - 82));
         }
-        final gaugeWidth = widthCap.clamp(98.0, 148.0).toDouble();
+        final gaugeWidth = widthCap.clamp(108.0, 168.0).toDouble();
 
-        final baseGaugeHeight = (gaugeWidth * 0.58).clamp(74.0, 118.0).toDouble();
+        final baseGaugeHeight = (gaugeWidth * 0.6).clamp(78.0, 128.0).toDouble();
         final gaugeHeight = maxHeight.isFinite
             ? math.min(baseGaugeHeight, math.max(72.0, maxHeight - 74))
             : baseGaugeHeight;
 
-        final thickness = (gaugeWidth * 0.08).clamp(6.0, 9.5).toDouble();
-        final sidePadding = (gaugeWidth * 0.085).clamp(7.0, 13.0).toDouble();
-        final labelFontSize = (gaugeWidth * 0.095).clamp(8.5, 11.0).toDouble();
+        final thickness = (gaugeWidth * 0.085).clamp(6.5, 10.5).toDouble();
+        final sidePadding = (gaugeWidth * 0.08).clamp(7.0, 15.0).toDouble();
+        final labelFontSize = (gaugeWidth * 0.09).clamp(8.5, 12.0).toDouble();
         final percentFontSize =
-            (gaugeWidth * 0.25).clamp(15.0, 20.0).toDouble();
+            (gaugeWidth * 0.24).clamp(16.0, 22.0).toDouble();
 
         final hasBoundedHeight =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0;
@@ -89,10 +89,13 @@ class YieldRateGauge extends StatelessWidget {
         final headerStyle = textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w800,
         );
+        final headerSpacing = (gaugeWidth * 0.07).clamp(6.0, 11.0).toDouble();
 
         final children = <Widget>[
-          Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
-          const SizedBox(height: 8),
+          Padding(
+            padding: EdgeInsets.only(bottom: headerSpacing),
+            child: Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
+          ),
         ];
 
         if (hasBoundedHeight) {
