@@ -258,11 +258,16 @@ class _RackInsightsColumn extends StatelessWidget {
           0.0,
           slotCardWidth - _PanelCard.horizontalPadding,
         );
+        final slotCounts = controller.slotStatusCount;
+        final hasSlotLegend =
+            slotCounts.values.any((value) => value > 0);
+
         final slotChartHeight = chartContentWidth <= 0
             ? 0.0
             : SlotStatusDonut.estimateContentHeight(
                 width: chartContentWidth,
                 theme: theme,
+                includeLegend: hasSlotLegend,
               );
         final gaugeChartHeight = chartContentWidth <= 0
             ? 0.0

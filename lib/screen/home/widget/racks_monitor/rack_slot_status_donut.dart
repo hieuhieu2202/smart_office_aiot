@@ -15,7 +15,9 @@ class SlotStatusDonut extends StatelessWidget {
   static const double _maxChartSize = 120.0;
   static const double _preferredScale = 0.44;
   static const double _legendMinHeight = 22.0;
-  static const double _legendMaxHeight = 48.0;
+  static const double _legendMaxHeight = 60.0;
+  static const double _legendMinSpacing = 8.0;
+  static const double _legendMaxSpacing = 16.0;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -30,12 +32,14 @@ class SlotStatusDonut extends StatelessWidget {
   static double estimateContentHeight({
     required double width,
     required ThemeData theme,
+    bool includeLegend = true,
   }) {
     final headerStyle = headerTextStyle(theme);
     final headerHeight = _headerHeight(headerStyle, theme.textTheme);
     final geometry = _resolveGeometry(
       width: width,
       headerHeight: headerHeight,
+      includeLegend: includeLegend,
     );
     return geometry.tileHeight;
   }
@@ -56,6 +60,7 @@ class SlotStatusDonut extends StatelessWidget {
     required double width,
     required double headerHeight,
     double? maxHeight,
+    bool includeLegend = true,
   }) {
     final effectiveWidth = width.isFinite && width > 0
         ? width
@@ -72,8 +77,12 @@ class SlotStatusDonut extends StatelessWidget {
     chartSize = chartSize.clamp(0.0, maxChart);
 
     var headerSpacing = _spacingForChart(chartSize);
-    var legendHeight = _legendHeightEstimate(chartSize);
-    var tileHeight = headerHeight + headerSpacing + chartSize + legendHeight;
+    var legendSpacing =
+        includeLegend ? _legendSpacingEstimate(chartSize) : 0.0;
+    var legendHeight =
+        includeLegend ? _legendHeightEstimate(chartSize) : 0.0;
+    var tileHeight =
+        headerHeight + headerSpacing + legendSpacing + chartSize + legendHeight;
 
     final limit = maxHeight != null && maxHeight.isFinite ? maxHeight : null;
     if (limit != null && limit > 0 && tileHeight > limit + 0.1) {
@@ -83,8 +92,10 @@ class SlotStatusDonut extends StatelessWidget {
       for (var i = 0; i < 24; i++) {
         final mid = (low + high) / 2;
         final spacing = _spacingForChart(mid);
-        final legend = _legendHeightEstimate(mid);
-        final total = headerHeight + spacing + mid + legend;
+        final legendSpace =
+            includeLegend ? _legendSpacingEstimate(mid) : 0.0;
+        final legend = includeLegend ? _legendHeightEstimate(mid) : 0.0;
+        final total = headerHeight + spacing + legendSpace + mid + legend;
         if (total <= limit) {
           best = mid;
           low = mid;
@@ -94,8 +105,10 @@ class SlotStatusDonut extends StatelessWidget {
       }
       chartSize = best.clamp(0.0, maxChart);
       headerSpacing = _spacingForChart(chartSize);
-      legendHeight = _legendHeightEstimate(chartSize);
-      tileHeight = headerHeight + headerSpacing + chartSize + legendHeight;
+      legendSpacing = includeLegend ? _legendSpacingEstimate(chartSize) : 0.0;
+      legendHeight = includeLegend ? _legendHeightEstimate(chartSize) : 0.0;
+      tileHeight =
+          headerHeight + headerSpacing + legendSpacing + chartSize + legendHeight;
     }
 
     return _SlotStatusGeometry(
@@ -135,10 +148,12 @@ class SlotStatusDonut extends StatelessWidget {
             _Slice('NotUsed', data['NotUsed'] ?? 0, const Color(0xFF90A4AE)),
           ].where((slice) => slice.value > 0).toList();
 
+          final hasLegend = slices.isNotEmpty;
           final geometry = _resolveGeometry(
             width: maxWidth,
             headerHeight: headerHeight,
             maxHeight: maxHeight,
+            includeLegend: hasLegend,
           );
           final chartSize = geometry.chartSize;
           final headerSpacing = geometry.headerSpacing;
@@ -225,8 +240,8 @@ class SlotStatusDonut extends StatelessWidget {
             );
           }
 
-          final legendSpacing = slices.isNotEmpty
-              ? (visualSize * 0.12).clamp(8.0, 16.0)
+          final legendSpacing = hasLegend
+              ? _legendSpacingEstimate(chartSize)
               : 0.0;
 
           return Center(
@@ -268,6 +283,16 @@ double _legendHeightEstimate(double chartSize) {
   return (chartSize * 0.22).clamp(
     SlotStatusDonut._legendMinHeight,
     SlotStatusDonut._legendMaxHeight,
+  );
+}
+
+double _legendSpacingEstimate(double chartSize) {
+  if (chartSize <= 0) {
+    return 0;
+  }
+  return (chartSize * 0.12).clamp(
+    SlotStatusDonut._legendMinSpacing,
+    SlotStatusDonut._legendMaxSpacing,
   );
 }
 
