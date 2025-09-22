@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../controller/racks_monitor_controller.dart';
-import 'rack_chart_footer.dart';
 
 class SlotStatusDonut extends StatelessWidget {
   const SlotStatusDonut({
@@ -29,16 +28,19 @@ class SlotStatusDonut extends StatelessWidget {
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
-    final accent = theme.colorScheme.primary;
-    return textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w800,
-          color: accent,
-        ) ??
-        TextStyle(
+    final baseStyle = textTheme.labelLarge ??
+        const TextStyle(
           fontSize: 14,
-          fontWeight: FontWeight.w800,
-          color: accent,
+          height: 1.2,
         );
+    final defaultColor = baseStyle.color ??
+        (theme.brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black87);
+    return baseStyle.copyWith(
+      fontWeight: FontWeight.w800,
+      color: defaultColor,
+    );
   }
 
   static double estimateContentHeight({
@@ -66,7 +68,11 @@ class SlotStatusDonut extends StatelessWidget {
     TextStyle headerStyle,
     TextTheme textTheme,
   ) {
-    return ChartCardHeader.heightForStyle(headerStyle, textTheme);
+    final fallbackFontSize = textTheme.labelLarge?.fontSize ?? 14.0;
+    final fallbackHeight = textTheme.labelLarge?.height ?? 1.2;
+    final fontSize = headerStyle.fontSize ?? fallbackFontSize;
+    final lineHeight = headerStyle.height ?? fallbackHeight;
+    return fontSize * lineHeight;
   }
 
   static double _topSpacingForChart(double chartSize) {
@@ -354,9 +360,12 @@ class SlotStatusDonut extends StatelessWidget {
               : null;
 
           final headerWidget = showHeader
-              ? ChartCardHeader(
-                  label: 'SLOT STATUS',
-                  textStyle: headerStyle,
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'SLOT STATUS',
+                    style: headerStyle,
+                  ),
                 )
               : null;
 
