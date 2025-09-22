@@ -187,13 +187,23 @@ class SlotStatusDonut extends StatelessWidget {
           final data = controller.slotStatusCount;
           final total = data.values.fold<int>(0, (sum, v) => sum + v);
 
-          final slices = <_Slice>[
-            _Slice('Testing', data['Testing'] ?? 0, const Color(0xFF42A5F5)),
-            _Slice('Pass', data['Pass'] ?? 0, const Color(0xFF4CAF50)),
-            _Slice('Fail', data['Fail'] ?? 0, const Color(0xFFE53935)),
-            _Slice('Waiting', data['Waiting'] ?? 0, const Color(0xFFFFA726)),
-            _Slice('NotUsed', data['NotUsed'] ?? 0, const Color(0xFF90A4AE)),
-          ].where((slice) => slice.value > 0).toList();
+          final rawSlices = <MapEntry<String, int>>[
+            MapEntry('Testing', data['Testing'] ?? 0),
+            MapEntry('Pass', data['Pass'] ?? 0),
+            MapEntry('Fail', data['Fail'] ?? 0),
+            MapEntry('Waiting', data['Waiting'] ?? 0),
+            MapEntry('NotUsed', data['NotUsed'] ?? 0),
+          ].where((entry) => entry.value > 0).toList();
+
+          final slices = [
+            for (final entry in rawSlices)
+              _Slice(
+                entry.key,
+                entry.value,
+                total == 0 ? 0 : (entry.value / total) * 100,
+                _sliceColor(entry.key, theme),
+              ),
+          ];
 
           final hasLegend = slices.isNotEmpty;
           final geometry = _resolveGeometry(
@@ -232,6 +242,11 @@ class SlotStatusDonut extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface,
               );
+          final sliceLabelStyle = TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: (visualSize * 0.14).clamp(10.0, 14.0),
+            letterSpacing: -0.2,
+          );
 
           Widget chart;
           if (total == 0) {
@@ -271,13 +286,38 @@ class SlotStatusDonut extends StatelessWidget {
                       startDegreeOffset: -90,
                       sections: [
                         for (final slice in slices)
-                          PieChartSectionData(
-                            value: slice.value.toDouble(),
-                            color: slice.color,
-                            radius:
-                                math.max(visualSize * 0.46, visualSize / 2 - 4),
-                            title: '',
-                          ),
+                          () {
+                            final showTitle = slice.percentage >= 3.5;
+                            final label = showTitle ? slice.percentageLabel : '';
+                            final useDarkText = slice.color.computeLuminance() > 0.6;
+                            final titleColor = useDarkText
+                                ? Colors.black.withOpacity(0.78)
+                                : Colors.white;
+                            final shadowColor = useDarkText
+                                ? Colors.white.withOpacity(0.55)
+                                : Colors.black.withOpacity(0.45);
+                            final positionOffset = slice.percentage >= 25
+                                ? 0.52
+                                : slice.percentage >= 12
+                                    ? 0.62
+                                    : 0.74;
+                            return PieChartSectionData(
+                              value: slice.value.toDouble(),
+                              color: slice.color,
+                              radius: math.max(
+                                visualSize * 0.46,
+                                visualSize / 2 - 4,
+                              ),
+                              title: label,
+                              titleStyle: sliceLabelStyle.copyWith(
+                                color: titleColor,
+                                shadows: [
+                                  Shadow(color: shadowColor, blurRadius: 6),
+                                ],
+                              ),
+                              titlePositionPercentageOffset: positionOffset,
+                            );
+                          }(),
                       ],
                     ),
                   ),
@@ -404,9 +444,20 @@ class _SlotStatusGeometry {
 class _Slice {
   final String label;
   final int value;
+  final double percentage;
   final Color color;
 
-  _Slice(this.label, this.value, this.color);
+  _Slice(this.label, this.value, this.percentage, this.color);
+
+  String get percentageLabel {
+    if (percentage <= 0) {
+      return '0%';
+    }
+    final display = percentage >= 10
+        ? percentage.round().toString()
+        : percentage.toStringAsFixed(1);
+    return '$display%';
+  }
 }
 String _shortLabel(String label) {
   switch (label) {
@@ -418,6 +469,23 @@ String _shortLabel(String label) {
       return 'Idle';
     default:
       return label;
+  }
+}
+
+Color _sliceColor(String label, ThemeData theme) {
+  switch (label) {
+    case 'Testing':
+      return const Color(0xFF42A5F5);
+    case 'Pass':
+      return const Color(0xFF4CAF50);
+    case 'Fail':
+      return const Color(0xFFE53935);
+    case 'Waiting':
+      return const Color(0xFFFFA726);
+    case 'NotUsed':
+      return const Color(0xFF90A4AE);
+    default:
+      return theme.colorScheme.primary;
   }
 }
 
@@ -447,7 +515,7 @@ class _SlotStatusLegend extends StatelessWidget {
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: spacing,
-          runSpacing: 8,
+          runSpacing: 10,
           children: [
             for (final slice in slices)
               _LegendEntry(
@@ -495,7 +563,8 @@ class _LegendEntry extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 5),
-        Text('$label ${slice.value}', style: textStyle),
+        Text('$label ${slice.value} (${slice.percentageLabel})',
+            style: textStyle),
       ],
     );
   }
