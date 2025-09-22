@@ -252,17 +252,24 @@ class _RackInsightsColumn extends StatelessWidget {
         final canPairCharts = availableWidth >= 300;
         final double halfWidth =
             (((availableWidth - gap) / 2).clamp(0.0, availableWidth)).toDouble();
-        final slotChartWidth =
+        final slotCardWidth =
             (allowGrid || canPairCharts) ? halfWidth : availableWidth;
-        final gaugeChartWidth = slotChartWidth;
-        final slotChartHeight = SlotStatusDonut.estimateContentHeight(
-          width: slotChartWidth,
-          theme: theme,
+        final chartContentWidth = math.max(
+          0.0,
+          slotCardWidth - _PanelCard.horizontalPadding,
         );
-        final gaugeChartHeight = YieldRateGauge.estimateContentHeight(
-          width: gaugeChartWidth,
-          theme: theme,
-        );
+        final slotChartHeight = chartContentWidth <= 0
+            ? 0.0
+            : SlotStatusDonut.estimateContentHeight(
+                width: chartContentWidth,
+                theme: theme,
+              );
+        final gaugeChartHeight = chartContentWidth <= 0
+            ? 0.0
+            : YieldRateGauge.estimateContentHeight(
+                width: chartContentWidth,
+                theme: theme,
+              );
         final double chartTileHeight = math.max(slotChartHeight, gaugeChartHeight);
 
         Widget tile({
@@ -929,6 +936,11 @@ class _PanelCard extends StatelessWidget {
     this.margin,
   });
 
+  static const EdgeInsets contentPadding =
+      EdgeInsets.symmetric(horizontal: 16, vertical: 14);
+
+  static double get horizontalPadding => contentPadding.horizontal;
+
   final Widget child;
   final EdgeInsetsGeometry? margin;
 
@@ -937,7 +949,7 @@ class _PanelCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: margin ?? EdgeInsets.zero,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: contentPadding,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0B1E30) : Colors.white,
         borderRadius: BorderRadius.circular(20),

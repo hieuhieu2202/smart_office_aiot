@@ -9,9 +9,9 @@ class YieldRateGauge extends StatelessWidget {
 
   final GroupMonitorController controller;
 
-  static const double _minGaugeWidth = 128.0;
+  static const double _minGaugeWidth = 96.0;
   static const double _maxGaugeWidth = 204.0;
-  static const double _heightFactor = 0.74;
+  static const double _heightFactor = 0.72;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -84,8 +84,8 @@ class YieldRateGauge extends StatelessWidget {
 
     final maxGauge = math.min(effectiveWidth, _maxGaugeWidth);
     final minGauge = math.min(_minGaugeWidth, maxGauge);
-    var gaugeWidth = math.min(maxGauge, effectiveWidth * 0.92)
-        .clamp(minGauge, maxGauge);
+    var gaugeWidth =
+        math.min(maxGauge, effectiveWidth * 0.9).clamp(minGauge, maxGauge);
 
     var headerSpacing = _spacingForWidth(gaugeWidth);
     var gaugeHeight = gaugeWidth * _heightFactor;
@@ -164,8 +164,8 @@ class YieldRateGauge extends StatelessWidget {
                   isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             );
 
-        final thickness = (gaugeWidth * 0.11).clamp(12.0, 18.0);
-        final sidePadding = (gaugeWidth * 0.13).clamp(14.0, 26.0);
+        final thickness = (gaugeWidth * 0.11).clamp(11.0, 18.0);
+        final sidePadding = (gaugeWidth * 0.12).clamp(12.0, 24.0);
 
         final gauge = SizedBox(
           width: gaugeWidth,

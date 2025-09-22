@@ -11,9 +11,9 @@ class SlotStatusDonut extends StatelessWidget {
 
   final GroupMonitorController controller;
 
-  static const double _minChartSize = 112.0;
+  static const double _minChartSize = 84.0;
   static const double _maxChartSize = 196.0;
-  static const double _preferredScale = 0.82;
+  static const double _preferredScale = 0.78;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -85,10 +85,13 @@ class SlotStatusDonut extends StatelessWidget {
         : _minChartSize;
 
     final maxChart = math.min(effectiveWidth, _maxChartSize);
-    final minChart = math.min(math.max(_minChartSize, effectiveWidth * 0.68), maxChart);
+    final minChart = math.min(
+      math.max(_minChartSize, effectiveWidth * 0.62),
+      maxChart,
+    );
 
-    var chartSize = (effectiveWidth * _preferredScale)
-        .clamp(minChart, maxChart);
+    var chartSize =
+        (effectiveWidth * _preferredScale).clamp(minChart, maxChart);
     chartSize = chartSize.clamp(0.0, maxChart);
 
     var headerSpacing = _spacingForChart(chartSize);
@@ -177,7 +180,8 @@ class SlotStatusDonut extends StatelessWidget {
                 shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
               );
 
-          final visualSize = chartSize > 0 ? chartSize : math.min(maxWidth, _minChartSize);
+          final visualSize =
+              chartSize > 0 ? chartSize : math.min(maxWidth, _minChartSize);
 
           Widget chart;
           if (total == 0) {
@@ -211,18 +215,18 @@ class SlotStatusDonut extends StatelessWidget {
                 children: [
                   PieChart(
                     PieChartData(
-                      sectionsSpace: visualSize * 0.012,
-                      centerSpaceRadius: visualSize * 0.35,
+                      sectionsSpace: visualSize * 0.014,
+                      centerSpaceRadius: visualSize * 0.36,
                       startDegreeOffset: -90,
                       sections: [
                         for (final slice in slices)
                           PieChartSectionData(
                             value: slice.value.toDouble(),
                             color: slice.color,
-                            radius: visualSize * 0.48,
+                            radius: visualSize * 0.46,
                             title: _titleForSlice(slice, total),
                             titleStyle: sectionTitleStyle,
-                            titlePositionPercentageOffset: 0.72,
+                            titlePositionPercentageOffset: 0.7,
                           ),
                       ],
                     ),
