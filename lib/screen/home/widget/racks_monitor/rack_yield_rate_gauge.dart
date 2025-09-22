@@ -38,11 +38,15 @@ class YieldRateGauge extends StatelessWidget {
             : null;
 
         const minGaugeWidth = 104.0;
-        const maxGaugeWidth = 168.0;
+        const maxGaugeWidth = 156.0;
 
-        double gaugeWidth = maxWidth < minGaugeWidth
-            ? maxWidth
-            : maxWidth.clamp(minGaugeWidth, maxGaugeWidth).toDouble();
+        double gaugeWidth;
+        if (maxWidth < minGaugeWidth) {
+          gaugeWidth = maxWidth;
+        } else {
+          final preferred = (maxWidth * 0.82).clamp(minGaugeWidth, maxGaugeWidth);
+          gaugeWidth = preferred.toDouble();
+        }
         double headerSpacing = (gaugeWidth * 0.07).clamp(6.0, 12.0).toDouble();
 
         if (maxHeight != null) {
@@ -51,17 +55,19 @@ class YieldRateGauge extends StatelessWidget {
             final widthFromHeight = availableForGauge / 0.68;
             if (widthFromHeight.isFinite && widthFromHeight > 0) {
               final targetWidth = widthFromHeight.clamp(minGaugeWidth, maxGaugeWidth);
-              gaugeWidth = math.min(targetWidth, maxWidth);
+              gaugeWidth = math.min(gaugeWidth, targetWidth);
               headerSpacing = (gaugeWidth * 0.07).clamp(6.0, 12.0).toDouble();
             }
           }
         }
 
+        gaugeWidth = math.min(gaugeWidth, maxWidth);
+
         final gaugeHeight = (gaugeWidth * 0.68).toDouble();
         final labelFontSize = (gaugeWidth * 0.1).clamp(9.5, 12.0).toDouble();
         final percentFontSize = (gaugeWidth * 0.24).clamp(18.0, 25.0).toDouble();
         final thickness = (gaugeWidth * 0.115).clamp(9.0, 13.0).toDouble();
-        final sidePadding = (gaugeWidth * 0.135).clamp(12.0, 18.0).toDouble();
+        final sidePadding = (gaugeWidth * 0.16).clamp(14.0, 22.0).toDouble();
 
         final labelColor =
             textTheme.bodyMedium?.color ?? (isDark ? Colors.white70 : Colors.black87);

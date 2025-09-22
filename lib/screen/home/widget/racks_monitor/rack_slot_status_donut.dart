@@ -74,10 +74,10 @@ class SlotStatusDonut extends StatelessWidget {
 
           const minChartSize = 70.0;
           final maxChartByWidth =
-              (maxWidth * 0.62).clamp(minChartSize, 96.0).toDouble();
+              (maxWidth * 0.56).clamp(minChartSize, 92.0).toDouble();
           double chartSize = maxChartByWidth;
           double titleSpacing = (chartSize * 0.08).clamp(8.0, 12.0).toDouble();
-          double legendSpacing = (chartSize * 0.12).clamp(10.0, 16.0).toDouble();
+          double legendSpacing = (chartSize * 0.15).clamp(12.0, 18.0).toDouble();
 
           if (maxHeight != null) {
             final baseLineHeight =
@@ -93,8 +93,10 @@ class SlotStatusDonut extends StatelessWidget {
             final availableForChart = maxHeight - reservedHeight;
             chartSize = availableForChart.clamp(minChartSize, maxChartByWidth);
             titleSpacing = (chartSize * 0.08).clamp(8.0, 12.0).toDouble();
-            legendSpacing = (chartSize * 0.12).clamp(10.0, 16.0).toDouble();
+            legendSpacing = (chartSize * 0.15).clamp(12.0, 18.0).toDouble();
           }
+
+          legendSpacing = legendSpacing.clamp(10.0, 22.0).toDouble();
 
           final totalFontSize = (chartSize * 0.2).clamp(13.0, 18.0).toDouble();
           final totalStyle = textTheme.titleMedium?.copyWith(
@@ -116,15 +118,15 @@ class SlotStatusDonut extends StatelessWidget {
               children: [
                 PieChart(
                   PieChartData(
-                    sectionsSpace: chartSize * 0.035,
-                    centerSpaceRadius: chartSize * 0.38,
+                    sectionsSpace: chartSize * 0.04,
+                    centerSpaceRadius: chartSize * 0.4,
                     startDegreeOffset: -90,
                     sections: slices.isEmpty
                         ? [
                             PieChartSectionData(
                               value: 1,
                               color: theme.colorScheme.onSurface.withOpacity(0.08),
-                              radius: chartSize * 0.46,
+                              radius: chartSize * 0.44,
                               title: '',
                             ),
                           ]
@@ -134,7 +136,7 @@ class SlotStatusDonut extends StatelessWidget {
                                 value: slice.value.toDouble(),
                                 title: '',
                                 color: slice.color,
-                                radius: chartSize * 0.46,
+                                radius: chartSize * 0.44,
                               ),
                             )
                             .toList(),
@@ -143,6 +145,7 @@ class SlotStatusDonut extends StatelessWidget {
                 Text(
                   total == 1 ? '1 slot' : '$total slots',
                   style: totalStyle,
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -166,8 +169,8 @@ class SlotStatusDonut extends StatelessWidget {
                         ? legendConstraints.maxWidth
                         : maxWidth;
                     final columns = columnsForWidth(width, slices.length);
-                    const spacing = 10.0;
-                    const runSpacing = 8.0;
+                    const spacing = 12.0;
+                    const runSpacing = 10.0;
                     final itemWidth = columns <= 1
                         ? width
                         : (width - ((columns - 1) * spacing)) / columns;
@@ -175,8 +178,7 @@ class SlotStatusDonut extends StatelessWidget {
                     return Wrap(
                       spacing: spacing,
                       runSpacing: runSpacing,
-                      alignment:
-                          columns <= 1 ? WrapAlignment.center : WrapAlignment.start,
+                      alignment: WrapAlignment.center,
                       runAlignment: WrapAlignment.center,
                       children: [
                         for (final slice in slices)
@@ -196,9 +198,7 @@ class SlotStatusDonut extends StatelessWidget {
 
           return SizedBox.expand(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.max,
               children: [
                 Text(
                   'SLOT STATUS',
@@ -206,7 +206,9 @@ class SlotStatusDonut extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: titleSpacing),
-                chart,
+                Expanded(
+                  child: Center(child: chart),
+                ),
                 SizedBox(height: legendSpacing),
                 legend,
               ],
@@ -246,9 +248,9 @@ class _LegendChip extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.transparent,
+        color: color.withOpacity(isDark ? 0.12 : 0.08),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: borderColor, width: 0.8),
       ),
