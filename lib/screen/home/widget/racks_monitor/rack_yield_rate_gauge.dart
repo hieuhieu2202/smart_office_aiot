@@ -14,9 +14,9 @@ class YieldRateGauge extends StatelessWidget {
   final GroupMonitorController controller;
   final bool showHeader;
 
-  static const double _minGaugeWidth = 86.0;
+  static const double _minGaugeWidth = 96.0;
   static const double _maxGaugeWidth = 168.0;
-  static const double _heightFactor = 0.58;
+  static const double _heightFactor = 0.64;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -54,7 +54,7 @@ class YieldRateGauge extends StatelessWidget {
 
   static double _spacingForWidth(double gaugeWidth) {
     if (gaugeWidth <= 0) return 0;
-    return (gaugeWidth * 0.075).clamp(8.0, 14.0);
+    return (gaugeWidth * 0.08).clamp(8.0, 16.0);
   }
 
   static double _solveGaugeWidth({
@@ -95,7 +95,7 @@ class YieldRateGauge extends StatelessWidget {
     final maxGauge = math.min(effectiveWidth, _maxGaugeWidth);
     final minGauge = math.min(_minGaugeWidth, maxGauge);
     var gaugeWidth =
-        math.min(maxGauge, effectiveWidth * 0.62).clamp(minGauge, maxGauge);
+        math.min(maxGauge, effectiveWidth * 0.78).clamp(minGauge, maxGauge);
 
     var headerSpacing = includeHeader ? _spacingForWidth(gaugeWidth) : 0.0;
     var gaugeHeight = gaugeWidth * _heightFactor;
@@ -157,14 +157,14 @@ class YieldRateGauge extends StatelessWidget {
         final labelColor = textTheme.bodyMedium?.color ??
             (isDark ? Colors.white70 : Colors.black87);
         final tickStyle = TextStyle(
-          fontSize: (gaugeWidth * 0.09).clamp(9.0, 12.0),
+          fontSize: (gaugeWidth * 0.09).clamp(9.0, 13.0),
           fontWeight: FontWeight.w600,
           color: labelColor.withOpacity(isDark ? 0.9 : 0.75),
         );
         final percentColor = isDark ? Colors.white : theme.colorScheme.onSurface;
         final percentStyle = textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
-              fontSize: (gaugeWidth * 0.22).clamp(18.0, 28.0),
+              fontSize: (gaugeWidth * 0.23).clamp(18.0, 30.0),
               color: percentColor,
               shadows:
                   isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
@@ -177,8 +177,8 @@ class YieldRateGauge extends StatelessWidget {
                   isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             );
 
-        final thickness = (gaugeWidth * 0.095).clamp(8.0, 14.0);
-        final sidePadding = (gaugeWidth * 0.12).clamp(10.0, 22.0);
+        final thickness = (gaugeWidth * 0.1).clamp(8.0, 16.0);
+        final sidePadding = (gaugeWidth * 0.1).clamp(10.0, 22.0);
 
         final gauge = SizedBox(
           width: gaugeWidth,

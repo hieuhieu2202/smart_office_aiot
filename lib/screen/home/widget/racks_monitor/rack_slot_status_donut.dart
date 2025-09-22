@@ -16,13 +16,13 @@ class SlotStatusDonut extends StatelessWidget {
   final GroupMonitorController controller;
   final bool showHeader;
 
-  static const double _minChartSize = 64.0;
-  static const double _maxChartSize = 120.0;
-  static const double _preferredScale = 0.44;
+  static const double _minChartSize = 86.0;
+  static const double _maxChartSize = 140.0;
+  static const double _preferredScale = 0.7;
   static const double _legendMinHeight = 28.0;
-  static const double _legendMaxHeight = 88.0;
+  static const double _legendMaxHeight = 96.0;
   static const double _legendMinSpacing = 10.0;
-  static const double _legendMaxSpacing = 18.0;
+  static const double _legendMaxSpacing = 20.0;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -64,7 +64,7 @@ class SlotStatusDonut extends StatelessWidget {
 
   static double _spacingForChart(double chartSize) {
     if (chartSize <= 0) return 0;
-    return (chartSize * 0.08).clamp(6.0, 12.0);
+    return (chartSize * 0.09).clamp(6.0, 14.0);
   }
 
   static _SlotStatusGeometry _resolveGeometry({
@@ -80,10 +80,7 @@ class SlotStatusDonut extends StatelessWidget {
         : _minChartSize;
 
     final maxChart = math.min(effectiveWidth, _maxChartSize);
-    final minChart = math.min(
-      math.max(_minChartSize, effectiveWidth * 0.44),
-      maxChart,
-    );
+    final minChart = math.min(_minChartSize, maxChart);
 
     var chartSize =
         (effectiveWidth * _preferredScale).clamp(minChart, maxChart);
@@ -190,16 +187,16 @@ class SlotStatusDonut extends StatelessWidget {
           final headerSpacing = geometry.headerSpacing;
 
           final visualSize =
-              chartSize > 0 ? chartSize * 0.88 : math.min(maxWidth, _minChartSize);
+              chartSize > 0 ? chartSize : math.min(maxWidth, _minChartSize);
 
           final totalStyle = textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
-                fontSize: (visualSize * 0.24).clamp(16.0, 22.0),
+                fontSize: (visualSize * 0.26).clamp(18.0, 26.0),
                 color: isDark ? Colors.white : theme.colorScheme.onSurface,
               ) ??
               TextStyle(
                 fontWeight: FontWeight.w800,
-                fontSize: (visualSize * 0.26).clamp(18.0, 24.0),
+                fontSize: (visualSize * 0.28).clamp(20.0, 28.0),
                 color: isDark ? Colors.white : theme.colorScheme.onSurface,
               );
 
@@ -210,7 +207,7 @@ class SlotStatusDonut extends StatelessWidget {
                 color: theme.colorScheme.onSurface,
               ) ??
               TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface,
               );
@@ -247,15 +244,16 @@ class SlotStatusDonut extends StatelessWidget {
                 children: [
                   PieChart(
                     PieChartData(
-                      sectionsSpace: visualSize * 0.02,
-                      centerSpaceRadius: visualSize * 0.36,
+                      sectionsSpace:
+                          (visualSize * 0.02).clamp(1.5, visualSize * 0.04),
+                      centerSpaceRadius: (visualSize * 0.34).clamp(18.0, 46.0),
                       startDegreeOffset: -90,
                       sections: [
                         for (final slice in slices)
                           PieChartSectionData(
                             value: slice.value.toDouble(),
                             color: slice.color,
-                            radius: visualSize * 0.44,
+                            radius: math.max(visualSize * 0.48, visualSize / 2 - 2),
                             title: '',
                           ),
                       ],
@@ -314,12 +312,12 @@ double _legendHeightEstimate(double chartSize, int itemCount) {
     return 0;
   }
 
-  final itemsPerRow = chartSize < 88 ? 2 : 3;
+  final itemsPerRow = chartSize < 110 ? 2 : 3;
   final rawRows = (itemCount / itemsPerRow).ceil();
   final rowCount = rawRows < 1
       ? 1
       : (rawRows > 4 ? 4 : rawRows);
-  final rowHeight = (chartSize * 0.16).clamp(18.0, 24.0);
+  final rowHeight = (chartSize * 0.18).clamp(20.0, 26.0);
   final totalHeight = rowCount * rowHeight +
       (rowCount > 1 ? (rowCount - 1) * 6.0 : 0.0);
 
