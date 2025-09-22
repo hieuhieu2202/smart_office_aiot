@@ -16,10 +16,9 @@ class YieldRateGauge extends StatelessWidget {
   final GroupMonitorController controller;
   final bool showHeader;
 
-  static const double _minGaugeWidth = 112.0;
-  static const double _maxGaugeWidth = 184.0;
-  static const double _heightFactor = 0.58;
-  static const double _footerSpacingFactor = 0.74;
+  static const double _minGaugeWidth = 108.0;
+  static const double _maxGaugeWidth = 172.0;
+  static const double _heightFactor = 0.52;
   static const Color _activeArcColor = Color(0xFF17FF92);
   static const double _pointerSweepPortion = 0.1;
   static const Color _headerBackgroundDark = Color(0xFF4E4FAF);
@@ -59,9 +58,14 @@ class YieldRateGauge extends StatelessWidget {
     return geometry.tileHeight;
   }
 
-  static double _spacingForWidth(double gaugeWidth) {
-    if (gaugeWidth <= 0) return 0;
-    return (gaugeWidth * 0.1).clamp(10.0, 24.0);
+  static double _topSpacingFor(double gaugeWidth, bool includeHeader) {
+    if (!includeHeader || gaugeWidth <= 0) return 0;
+    return math.max(8.0, gaugeWidth * 0.06);
+  }
+
+  static double _bottomSpacingFor(double gaugeWidth, bool includeHeader) {
+    if (!includeHeader || gaugeWidth <= 0) return 0;
+    return math.max(10.0, gaugeWidth * 0.12);
   }
 
   static double _solveGaugeWidth({
@@ -78,11 +82,8 @@ class YieldRateGauge extends StatelessWidget {
     var best = 0.0;
     for (var i = 0; i < 24; i++) {
       final mid = (low + high) / 2;
-      final spacing = includeHeader ? _spacingForWidth(mid) : 0.0;
-      final topSpacing = includeHeader ? math.max(10.0, spacing * 0.32) : 0.0;
-      final bottomSpacing = includeHeader
-          ? math.max(12.0, spacing * _footerSpacingFactor)
-          : 0.0;
+      final topSpacing = _topSpacingFor(mid, includeHeader);
+      final bottomSpacing = _bottomSpacingFor(mid, includeHeader);
       var total = mid * _heightFactor + topSpacing + bottomSpacing;
       if (includeHeader) {
         total += topHeaderHeight;
@@ -110,14 +111,11 @@ class YieldRateGauge extends StatelessWidget {
     final maxGauge = math.min(effectiveWidth, _maxGaugeWidth);
     final minGauge = math.min(_minGaugeWidth, maxGauge);
     var gaugeWidth =
-        math.min(maxGauge, effectiveWidth * 0.72).clamp(minGauge, maxGauge);
+        math.min(maxGauge, effectiveWidth * 0.64).clamp(minGauge, maxGauge);
 
     var gaugeHeight = gaugeWidth * _heightFactor;
-    var spacing = includeHeader ? _spacingForWidth(gaugeWidth) : 0.0;
-    var topSpacing = includeHeader ? math.max(10.0, spacing * 0.32) : 0.0;
-    var bottomSpacing = includeHeader
-        ? math.max(12.0, spacing * _footerSpacingFactor)
-        : 0.0;
+    var topSpacing = _topSpacingFor(gaugeWidth, includeHeader);
+    var bottomSpacing = _bottomSpacingFor(gaugeWidth, includeHeader);
     var tileHeight = gaugeHeight + topSpacing + bottomSpacing;
     if (includeHeader) {
       tileHeight += topHeaderHeight;
@@ -133,11 +131,8 @@ class YieldRateGauge extends StatelessWidget {
       );
       gaugeWidth = solved.clamp(0.0, maxGauge);
       gaugeHeight = gaugeWidth * _heightFactor;
-      spacing = includeHeader ? _spacingForWidth(gaugeWidth) : 0.0;
-      topSpacing = includeHeader ? math.max(10.0, spacing * 0.32) : 0.0;
-      bottomSpacing = includeHeader
-          ? math.max(12.0, spacing * _footerSpacingFactor)
-          : 0.0;
+      topSpacing = _topSpacingFor(gaugeWidth, includeHeader);
+      bottomSpacing = _bottomSpacingFor(gaugeWidth, includeHeader);
       tileHeight = gaugeHeight + topSpacing + bottomSpacing;
       if (includeHeader) {
         tileHeight += topHeaderHeight;
@@ -195,48 +190,38 @@ class YieldRateGauge extends StatelessWidget {
             ? const Color(0xFF9FB5D4)
             : labelColor.withOpacity(0.75);
         final tickStyle = TextStyle(
-          fontSize: (gaugeWidth * 0.075).clamp(9.0, 12.0),
+          fontSize: (gaugeWidth * 0.065).clamp(8.0, 11.0),
           fontWeight: FontWeight.w600,
           color: tickColor,
         );
         final percentColor = isDark ? Colors.white : theme.colorScheme.onSurface;
         final percentStyle = textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
-              fontSize: (gaugeWidth * 0.27).clamp(22.0, 34.0),
+              fontSize: (gaugeWidth * 0.24).clamp(20.0, 30.0),
               color: percentColor,
               shadows: [
-                if (isDark)
-                  Shadow(
-                    color: Colors.black.withOpacity(0.4),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
                 Shadow(
-                  color: _activeArcColor.withOpacity(isDark ? 0.35 : 0.15),
-                  blurRadius: 18,
+                  color: Colors.black.withOpacity(isDark ? 0.35 : 0.1),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ) ??
             TextStyle(
               fontWeight: FontWeight.w900,
-              fontSize: (gaugeWidth * 0.28).clamp(22.0, 34.0),
+              fontSize: (gaugeWidth * 0.24).clamp(20.0, 30.0),
               color: percentColor,
               shadows: [
-                if (isDark)
-                  Shadow(
-                    color: Colors.black.withOpacity(0.4),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
                 Shadow(
-                  color: _activeArcColor.withOpacity(isDark ? 0.35 : 0.15),
-                  blurRadius: 18,
+                  color: Colors.black.withOpacity(isDark ? 0.35 : 0.1),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             );
 
-        final thickness = (gaugeWidth * 0.22).clamp(14.0, 26.0);
-        final sidePadding = (gaugeWidth * 0.055).clamp(6.0, 14.0);
+        final thickness = (gaugeWidth * 0.2).clamp(12.0, 22.0);
+        final sidePadding = (gaugeWidth * 0.06).clamp(6.0, 12.0);
         final percentageLabel = '${yr.toStringAsFixed(2)}%';
 
         final baseArcColor = isDark
@@ -267,53 +252,48 @@ class YieldRateGauge extends StatelessWidget {
         );
 
         final headerWidget = showHeader
-            ? Align(
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  width: headerWidth,
-                  child: ChartCardHeader(
-                    label: 'YIELD RATE',
-                    textStyle: headerStyle,
-                    backgroundColor: isDark
-                        ? _headerBackgroundDark
-                        : theme.colorScheme.primary.withOpacity(0.12),
-                    borderColor: isDark
-                        ? _headerBorderDark.withOpacity(0.85)
-                        : theme.colorScheme.primary.withOpacity(0.3),
-                  ),
+            ? SizedBox(
+                width: headerWidth,
+                child: ChartCardHeader(
+                  label: 'YIELD RATE',
+                  textStyle: headerStyle,
+                  backgroundColor: isDark
+                      ? _headerBackgroundDark
+                      : theme.colorScheme.primary.withOpacity(0.12),
+                  borderColor: isDark
+                      ? _headerBorderDark.withOpacity(0.85)
+                      : theme.colorScheme.primary.withOpacity(0.3),
                 ),
               )
             : null;
 
+        final children = <Widget>[
+          if (headerWidget != null) headerWidget,
+          if (headerWidget != null && topSpacing > 0)
+            SizedBox(height: topSpacing),
+          gauge,
+          if (bottomSpacing > 0) SizedBox(height: bottomSpacing),
+        ];
+
+        final content = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            for (final child in children)
+              child is SizedBox
+                  ? child
+                  : Align(alignment: Alignment.center, child: child),
+          ],
+        );
+
         if (constraints.maxHeight.isFinite && constraints.maxHeight > 0) {
           return SizedBox(
             height: constraints.maxHeight,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (headerWidget != null) headerWidget,
-                if (headerWidget != null && topSpacing > 0)
-                  SizedBox(height: topSpacing),
-                Expanded(
-                  child: Center(child: gauge),
-                ),
-                if (bottomSpacing > 0) SizedBox(height: bottomSpacing),
-              ],
-            ),
+            child: Center(child: content),
           );
         }
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (headerWidget != null) headerWidget,
-            if (headerWidget != null && topSpacing > 0)
-              SizedBox(height: topSpacing),
-            Center(child: gauge),
-            if (bottomSpacing > 0) SizedBox(height: bottomSpacing),
-          ],
-        );
+        return Center(child: content);
       },
     );
   }
@@ -396,10 +376,10 @@ class _GaugePainter extends CustomPainter {
     if (sweep > 0) {
       final glowPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = thickness * 1.5
+        ..strokeWidth = thickness * 1.2
         ..strokeCap = StrokeCap.round
-        ..color = activeColor.withOpacity(0.35)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, thickness * 0.9);
+        ..color = activeColor.withOpacity(0.22)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, thickness * 0.7);
       canvas.drawArc(rect, math.pi, sweep, false, glowPaint);
 
       canvas.drawArc(rect, math.pi, sweep, false, active);
@@ -411,10 +391,10 @@ class _GaugePainter extends CustomPainter {
       if (pointerSweep > 0.0001) {
         final pointerPaint = Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = thickness * 1.02
+          ..strokeWidth = thickness * 0.98
           ..strokeCap = StrokeCap.round
           ..color = Colors.white
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, thickness * 0.45);
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, thickness * 0.3);
         final pointerStart = math.pi + sweep - pointerSweep;
         canvas.drawArc(rect, pointerStart, pointerSweep, false, pointerPaint);
       }
