@@ -72,8 +72,8 @@ class SlotStatusDonut extends StatelessWidget {
               ? 1
               : ((slices.length + legendColumns - 1) ~/ legendColumns);
 
-          const minChartSize = 82.0;
-          final maxChartByWidth = maxWidth.clamp(96.0, 132.0).toDouble();
+          const minChartSize = 78.0;
+          final maxChartByWidth = maxWidth.clamp(84.0, 114.0).toDouble();
           double chartSize = maxChartByWidth;
           double titleSpacing = (chartSize * 0.06).clamp(6.0, 10.0).toDouble();
           double legendSpacing = (chartSize * 0.08).clamp(6.0, 12.0).toDouble();
@@ -191,11 +191,11 @@ class SlotStatusDonut extends StatelessWidget {
                   },
                 );
 
-          return Align(
-            alignment: Alignment.center,
+          return SizedBox.expand(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
               children: [
                 Text(
                   'SLOT STATUS',

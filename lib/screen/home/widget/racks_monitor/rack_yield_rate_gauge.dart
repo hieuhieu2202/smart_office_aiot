@@ -43,7 +43,7 @@ class YieldRateGauge extends StatelessWidget {
         double gaugeWidth = maxWidth < minGaugeWidth
             ? maxWidth
             : maxWidth.clamp(minGaugeWidth, maxGaugeWidth).toDouble();
-        double headerSpacing = (gaugeWidth * 0.08).clamp(8.0, 14.0).toDouble();
+        double headerSpacing = (gaugeWidth * 0.07).clamp(6.0, 12.0).toDouble();
 
         if (maxHeight != null) {
           final availableForGauge = maxHeight - headerHeight - headerSpacing;
@@ -52,16 +52,16 @@ class YieldRateGauge extends StatelessWidget {
             if (widthFromHeight.isFinite && widthFromHeight > 0) {
               final targetWidth = widthFromHeight.clamp(minGaugeWidth, maxGaugeWidth);
               gaugeWidth = math.min(targetWidth, maxWidth);
-              headerSpacing = (gaugeWidth * 0.08).clamp(8.0, 14.0).toDouble();
+              headerSpacing = (gaugeWidth * 0.07).clamp(6.0, 12.0).toDouble();
             }
           }
         }
 
         final gaugeHeight = (gaugeWidth * 0.68).toDouble();
-        final labelFontSize = (gaugeWidth * 0.1).clamp(9.5, 12.5).toDouble();
-        final percentFontSize = (gaugeWidth * 0.25).clamp(18.0, 26.0).toDouble();
-        final thickness = (gaugeWidth * 0.12).clamp(10.0, 14.0).toDouble();
-        final sidePadding = (gaugeWidth * 0.14).clamp(12.0, 18.0).toDouble();
+        final labelFontSize = (gaugeWidth * 0.1).clamp(9.5, 12.0).toDouble();
+        final percentFontSize = (gaugeWidth * 0.24).clamp(18.0, 25.0).toDouble();
+        final thickness = (gaugeWidth * 0.115).clamp(9.0, 13.0).toDouble();
+        final sidePadding = (gaugeWidth * 0.135).clamp(12.0, 18.0).toDouble();
 
         final labelColor =
             textTheme.bodyMedium?.color ?? (isDark ? Colors.white70 : Colors.black87);
@@ -101,11 +101,11 @@ class YieldRateGauge extends StatelessWidget {
           ),
         );
 
-        return Align(
-          alignment: Alignment.center,
+        return SizedBox.expand(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
             children: [
               Text('YIELD RATE', style: headerStyle, textAlign: TextAlign.center),
               SizedBox(height: headerSpacing),
