@@ -11,9 +11,9 @@ class SlotStatusDonut extends StatelessWidget {
 
   final GroupMonitorController controller;
 
-  static const double _minChartSize = 84.0;
-  static const double _maxChartSize = 196.0;
-  static const double _preferredScale = 0.78;
+  static const double _minChartSize = 72.0;
+  static const double _maxChartSize = 168.0;
+  static const double _preferredScale = 0.58;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -47,7 +47,7 @@ class SlotStatusDonut extends StatelessWidget {
 
   static double _spacingForChart(double chartSize) {
     if (chartSize <= 0) return 0;
-    return (chartSize * 0.09).clamp(8.0, 14.0);
+    return (chartSize * 0.12).clamp(10.0, 18.0);
   }
 
   static double _solveChartSize({
@@ -86,7 +86,7 @@ class SlotStatusDonut extends StatelessWidget {
 
     final maxChart = math.min(effectiveWidth, _maxChartSize);
     final minChart = math.min(
-      math.max(_minChartSize, effectiveWidth * 0.62),
+      math.max(_minChartSize, effectiveWidth * 0.52),
       maxChart,
     );
 
@@ -156,7 +156,7 @@ class SlotStatusDonut extends StatelessWidget {
 
           final totalStyle = textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
-                fontSize: (chartSize * 0.24).clamp(18.0, 26.0),
+                fontSize: (chartSize * 0.22).clamp(16.0, 24.0),
                 color: isDark ? Colors.white : theme.colorScheme.onSurface,
               ) ??
               TextStyle(
@@ -168,7 +168,7 @@ class SlotStatusDonut extends StatelessWidget {
           final slotLabel = '$total slot';
 
           final sectionTitleStyle = textTheme.bodyMedium?.copyWith(
-                fontSize: (chartSize * 0.115).clamp(11.0, 14.0),
+                fontSize: (chartSize * 0.1).clamp(10.0, 13.0),
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
@@ -215,18 +215,18 @@ class SlotStatusDonut extends StatelessWidget {
                 children: [
                   PieChart(
                     PieChartData(
-                      sectionsSpace: visualSize * 0.014,
-                      centerSpaceRadius: visualSize * 0.36,
+                      sectionsSpace: visualSize * 0.02,
+                      centerSpaceRadius: visualSize * 0.32,
                       startDegreeOffset: -90,
                       sections: [
                         for (final slice in slices)
                           PieChartSectionData(
                             value: slice.value.toDouble(),
                             color: slice.color,
-                            radius: visualSize * 0.46,
+                            radius: visualSize * 0.4,
                             title: _titleForSlice(slice, total),
                             titleStyle: sectionTitleStyle,
-                            titlePositionPercentageOffset: 0.7,
+                            titlePositionPercentageOffset: 0.6,
                           ),
                       ],
                     ),
@@ -281,8 +281,22 @@ class _Slice {
 String _titleForSlice(_Slice slice, int total) {
   if (total <= 0) return '';
   final percent = slice.value / total;
-  if (percent < 0.06 && slice.value < 5) {
+  if (percent < 0.07 && slice.value < 5) {
     return '';
   }
-  return '${slice.label}: ${slice.value}';
+  final label = _shortLabel(slice.label);
+  return '$label ${slice.value}';
+}
+
+String _shortLabel(String label) {
+  switch (label) {
+    case 'Testing':
+      return 'Test';
+    case 'Waiting':
+      return 'Wait';
+    case 'NotUsed':
+      return 'Idle';
+    default:
+      return label;
+  }
 }
