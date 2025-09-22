@@ -14,9 +14,9 @@ class YieldRateGauge extends StatelessWidget {
   final GroupMonitorController controller;
   final bool showHeader;
 
-  static const double _minGaugeWidth = 96.0;
-  static const double _maxGaugeWidth = 168.0;
-  static const double _heightFactor = 0.64;
+  static const double _minGaugeWidth = 94.0;
+  static const double _maxGaugeWidth = 156.0;
+  static const double _heightFactor = 0.6;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -30,39 +30,26 @@ class YieldRateGauge extends StatelessWidget {
 
   static double estimateContentHeight({
     required double width,
-    required ThemeData theme,
     bool includeHeader = true,
   }) {
-    final headerStyle = headerTextStyle(theme);
-    final headerHeight = includeHeader
-        ? _headerHeight(headerStyle, theme.textTheme)
-        : 0.0;
     final geometry = _resolveGeometry(
       width: width,
-      headerHeight: headerHeight,
       includeHeader: includeHeader,
     );
     return geometry.tileHeight;
   }
 
-  static double _headerHeight(TextStyle headerStyle, TextTheme textTheme) {
-    final fontSize =
-        headerStyle.fontSize ?? textTheme.labelLarge?.fontSize ?? 14.0;
-    final lineHeight = headerStyle.height ?? textTheme.labelLarge?.height ?? 1.25;
-    return fontSize * lineHeight;
-  }
-
   static double _spacingForWidth(double gaugeWidth) {
     if (gaugeWidth <= 0) return 0;
-    return (gaugeWidth * 0.08).clamp(8.0, 16.0);
+    return (gaugeWidth * 0.075).clamp(10.0, 18.0);
   }
 
   static double _solveGaugeWidth({
-    required double headerHeight,
     required double maxHeight,
     required double maxGauge,
+    bool includeHeader = true,
   }) {
-    if (maxHeight <= headerHeight) {
+    if (maxHeight <= 0) {
       return 0;
     }
     var low = 0.0;
@@ -70,8 +57,9 @@ class YieldRateGauge extends StatelessWidget {
     var best = 0.0;
     for (var i = 0; i < 24; i++) {
       final mid = (low + high) / 2;
-      final spacing = _spacingForWidth(mid);
-      final total = headerHeight + spacing + mid * _heightFactor;
+      final spacing = includeHeader ? _spacingForWidth(mid) : 0.0;
+      final inset = includeHeader ? math.max(6.0, spacing * 0.25) : 0.0;
+      final total = mid * _heightFactor + inset;
       if (total <= maxHeight) {
         best = mid;
         low = mid;
@@ -84,7 +72,6 @@ class YieldRateGauge extends StatelessWidget {
 
   static _GaugeGeometry _resolveGeometry({
     required double width,
-    required double headerHeight,
     double? maxHeight,
     bool includeHeader = true,
   }) {
@@ -95,29 +82,31 @@ class YieldRateGauge extends StatelessWidget {
     final maxGauge = math.min(effectiveWidth, _maxGaugeWidth);
     final minGauge = math.min(_minGaugeWidth, maxGauge);
     var gaugeWidth =
-        math.min(maxGauge, effectiveWidth * 0.78).clamp(minGauge, maxGauge);
+        math.min(maxGauge, effectiveWidth * 0.72).clamp(minGauge, maxGauge);
 
     var headerSpacing = includeHeader ? _spacingForWidth(gaugeWidth) : 0.0;
     var gaugeHeight = gaugeWidth * _heightFactor;
-    var tileHeight = gaugeHeight + (includeHeader ? headerHeight + headerSpacing : 0.0);
+    var topInset = includeHeader ? math.max(6.0, headerSpacing * 0.25) : 0.0;
+    var tileHeight = gaugeHeight + topInset;
 
     final limit = maxHeight != null && maxHeight.isFinite ? maxHeight : null;
     if (limit != null && limit > 0 && tileHeight > limit + 0.1) {
       final solved = _solveGaugeWidth(
-        headerHeight: headerHeight,
         maxHeight: limit,
         maxGauge: maxGauge,
+        includeHeader: includeHeader,
       );
       gaugeWidth = solved.clamp(0.0, maxGauge);
       headerSpacing = includeHeader ? _spacingForWidth(gaugeWidth) : 0.0;
       gaugeHeight = gaugeWidth * _heightFactor;
-      tileHeight = gaugeHeight + (includeHeader ? headerHeight + headerSpacing : 0.0);
+      topInset = includeHeader ? math.max(6.0, headerSpacing * 0.25) : 0.0;
+      tileHeight = gaugeHeight + topInset;
     }
 
     return _GaugeGeometry(
       gaugeWidth: gaugeWidth,
       gaugeHeight: gaugeHeight,
-      headerSpacing: includeHeader ? headerSpacing : 0.0,
+      topInset: includeHeader ? topInset : 0.0,
       tileHeight: limit == null ? tileHeight : math.min(tileHeight, limit),
     );
   }
@@ -129,9 +118,6 @@ class YieldRateGauge extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final headerStyle = headerTextStyle(theme);
-    final headerHeight = showHeader
-        ? _headerHeight(headerStyle, textTheme)
-        : 0.0;
 
     final yr = controller.kpiYr.clamp(0, 100).toDouble();
 
@@ -146,39 +132,43 @@ class YieldRateGauge extends StatelessWidget {
 
         final geometry = _resolveGeometry(
           width: maxWidth,
-          headerHeight: headerHeight,
           maxHeight: maxHeight,
           includeHeader: showHeader,
         );
         final gaugeWidth = geometry.gaugeWidth;
         final gaugeHeight = geometry.gaugeHeight;
-        final headerSpacing = geometry.headerSpacing;
+        final topInset = geometry.topInset;
 
         final labelColor = textTheme.bodyMedium?.color ??
             (isDark ? Colors.white70 : Colors.black87);
         final tickStyle = TextStyle(
-          fontSize: (gaugeWidth * 0.09).clamp(9.0, 13.0),
+          fontSize: (gaugeWidth * 0.085).clamp(9.0, 12.0),
           fontWeight: FontWeight.w600,
           color: labelColor.withOpacity(isDark ? 0.9 : 0.75),
         );
         final percentColor = isDark ? Colors.white : theme.colorScheme.onSurface;
         final percentStyle = textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
-              fontSize: (gaugeWidth * 0.23).clamp(18.0, 30.0),
+              fontSize: (gaugeWidth * 0.21).clamp(18.0, 26.0),
               color: percentColor,
               shadows:
                   isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             ) ??
             TextStyle(
               fontWeight: FontWeight.w900,
-              fontSize: (gaugeWidth * 0.24).clamp(20.0, 30.0),
+              fontSize: (gaugeWidth * 0.22).clamp(19.0, 26.0),
               color: percentColor,
               shadows:
                   isDark ? const [Shadow(color: Colors.black45, blurRadius: 4)] : null,
             );
 
-        final thickness = (gaugeWidth * 0.1).clamp(8.0, 16.0);
-        final sidePadding = (gaugeWidth * 0.1).clamp(10.0, 22.0);
+        final headerDisplayStyle = headerStyle.copyWith(
+          fontSize: (headerStyle.fontSize ?? 14).clamp(12.0, 14.0),
+          letterSpacing: 1.05,
+        );
+
+        final thickness = (gaugeWidth * 0.1).clamp(8.0, 15.0);
+        final sidePadding = (gaugeWidth * 0.1).clamp(9.0, 20.0);
 
         final gauge = SizedBox(
           width: gaugeWidth,
@@ -195,30 +185,28 @@ class YieldRateGauge extends StatelessWidget {
               labelTextStyle: tickStyle,
             ),
             child: Align(
-              alignment: const Alignment(0, -0.12),
-              child: Text('${yr.toStringAsFixed(2)}%', style: percentStyle),
+              alignment: const Alignment(0, -0.08),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showHeader)
+                    Text(
+                      'YIELD RATE',
+                      style: headerDisplayStyle,
+                      textAlign: TextAlign.center,
+                    ),
+                  if (showHeader) SizedBox(height: gaugeHeight * 0.06),
+                  Text('${yr.toStringAsFixed(2)}%', style: percentStyle),
+                ],
+              ),
             ),
           ),
         );
 
         return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (showHeader) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: Text(
-                    'YIELD RATE',
-                    style: headerStyle,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                SizedBox(height: headerSpacing),
-              ],
-              gauge,
-            ],
+          child: Padding(
+            padding: EdgeInsets.only(top: showHeader ? topInset : 0.0),
+            child: gauge,
           ),
         );
       },
@@ -230,13 +218,13 @@ class _GaugeGeometry {
   const _GaugeGeometry({
     required this.gaugeWidth,
     required this.gaugeHeight,
-    required this.headerSpacing,
+    required this.topInset,
     required this.tileHeight,
   });
 
   final double gaugeWidth;
   final double gaugeHeight;
-  final double headerSpacing;
+  final double topInset;
   final double tileHeight;
 }
 

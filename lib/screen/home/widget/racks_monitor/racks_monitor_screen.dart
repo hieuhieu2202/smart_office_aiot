@@ -271,8 +271,8 @@ class _RackInsightsColumn extends StatelessWidget {
             .length;
         final hasSlotLegend = slotLegendCount > 0;
 
-        const double donutExtraSpace = 8.0;
-        const double gaugeExtraSpace = 8.0;
+        const double donutExtraSpace = 4.0;
+        const double gaugeExtraSpace = 4.0;
 
         final slotChartHeight = chartContentWidth <= 0
             ? 0.0
@@ -287,11 +287,10 @@ class _RackInsightsColumn extends StatelessWidget {
             ? 0.0
             : YieldRateGauge.estimateContentHeight(
                   width: chartContentWidth,
-                  theme: theme,
                   includeHeader: true,
                 ) + gaugeExtraSpace;
         final double chartTileHeight = math.max(
-          152.0,
+          140.0,
           math.max(slotChartHeight, gaugeChartHeight),
         );
 

@@ -16,13 +16,13 @@ class SlotStatusDonut extends StatelessWidget {
   final GroupMonitorController controller;
   final bool showHeader;
 
-  static const double _minChartSize = 86.0;
-  static const double _maxChartSize = 140.0;
-  static const double _preferredScale = 0.7;
-  static const double _legendMinHeight = 28.0;
-  static const double _legendMaxHeight = 96.0;
-  static const double _legendMinSpacing = 10.0;
-  static const double _legendMaxSpacing = 20.0;
+  static const double _minChartSize = 78.0;
+  static const double _maxChartSize = 128.0;
+  static const double _preferredScale = 0.58;
+  static const double _legendMinHeight = 24.0;
+  static const double _legendMaxHeight = 88.0;
+  static const double _legendMinSpacing = 12.0;
+  static const double _legendMaxSpacing = 22.0;
 
   static TextStyle headerTextStyle(ThemeData theme) {
     final textTheme = theme.textTheme;
@@ -64,7 +64,7 @@ class SlotStatusDonut extends StatelessWidget {
 
   static double _spacingForChart(double chartSize) {
     if (chartSize <= 0) return 0;
-    return (chartSize * 0.09).clamp(6.0, 14.0);
+    return (chartSize * 0.085).clamp(10.0, 18.0);
   }
 
   static _SlotStatusGeometry _resolveGeometry({
@@ -89,8 +89,9 @@ class SlotStatusDonut extends StatelessWidget {
     final hasLegend = includeLegend && legendItemCount > 0;
 
     var headerSpacing = includeHeader ? _spacingForChart(chartSize) : 0.0;
-    var legendSpacing =
-        hasLegend ? _legendSpacingEstimate(chartSize) : 0.0;
+    var legendSpacing = hasLegend
+        ? math.max(_legendSpacingEstimate(chartSize), 12.0)
+        : 0.0;
     var legendHeight = hasLegend
         ? _legendHeightEstimate(chartSize, legendItemCount)
         : 0.0;
@@ -107,8 +108,9 @@ class SlotStatusDonut extends StatelessWidget {
       for (var i = 0; i < 24; i++) {
         final mid = (low + high) / 2;
         final spacing = includeHeader ? _spacingForChart(mid) : 0.0;
-        final legendSpace =
-            hasLegend ? _legendSpacingEstimate(mid) : 0.0;
+        final legendSpace = hasLegend
+            ? math.max(_legendSpacingEstimate(mid), 12.0)
+            : 0.0;
         final legend = hasLegend
             ? _legendHeightEstimate(mid, legendItemCount)
             : 0.0;
@@ -125,7 +127,9 @@ class SlotStatusDonut extends StatelessWidget {
       }
       chartSize = best.clamp(0.0, maxChart);
       headerSpacing = includeHeader ? _spacingForChart(chartSize) : 0.0;
-      legendSpacing = hasLegend ? _legendSpacingEstimate(chartSize) : 0.0;
+      legendSpacing = hasLegend
+          ? math.max(_legendSpacingEstimate(chartSize), 12.0)
+          : 0.0;
       legendHeight = hasLegend
           ? _legendHeightEstimate(chartSize, legendItemCount)
           : 0.0;
@@ -191,12 +195,12 @@ class SlotStatusDonut extends StatelessWidget {
 
           final totalStyle = textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
-                fontSize: (visualSize * 0.26).clamp(18.0, 26.0),
+                fontSize: (visualSize * 0.24).clamp(17.0, 24.0),
                 color: isDark ? Colors.white : theme.colorScheme.onSurface,
               ) ??
               TextStyle(
                 fontWeight: FontWeight.w800,
-                fontSize: (visualSize * 0.28).clamp(20.0, 28.0),
+                fontSize: (visualSize * 0.25).clamp(18.0, 25.0),
                 color: isDark ? Colors.white : theme.colorScheme.onSurface,
               );
 
@@ -245,15 +249,16 @@ class SlotStatusDonut extends StatelessWidget {
                   PieChart(
                     PieChartData(
                       sectionsSpace:
-                          (visualSize * 0.02).clamp(1.5, visualSize * 0.04),
-                      centerSpaceRadius: (visualSize * 0.34).clamp(18.0, 46.0),
+                          (visualSize * 0.018).clamp(1.0, visualSize * 0.035),
+                      centerSpaceRadius: (visualSize * 0.36).clamp(18.0, 42.0),
                       startDegreeOffset: -90,
                       sections: [
                         for (final slice in slices)
                           PieChartSectionData(
                             value: slice.value.toDouble(),
                             color: slice.color,
-                            radius: math.max(visualSize * 0.48, visualSize / 2 - 2),
+                            radius:
+                                math.max(visualSize * 0.46, visualSize / 2 - 4),
                             title: '',
                           ),
                       ],
@@ -270,7 +275,7 @@ class SlotStatusDonut extends StatelessWidget {
           }
 
           final legendSpacing = hasLegend
-              ? _legendSpacingEstimate(chartSize)
+              ? math.max(_legendSpacingEstimate(chartSize), 12.0)
               : 0.0;
 
           return Center(
@@ -312,12 +317,12 @@ double _legendHeightEstimate(double chartSize, int itemCount) {
     return 0;
   }
 
-  final itemsPerRow = chartSize < 110 ? 2 : 3;
+  final itemsPerRow = chartSize < 108 ? 2 : 3;
   final rawRows = (itemCount / itemsPerRow).ceil();
   final rowCount = rawRows < 1
       ? 1
       : (rawRows > 4 ? 4 : rawRows);
-  final rowHeight = (chartSize * 0.18).clamp(20.0, 26.0);
+  final rowHeight = (chartSize * 0.17).clamp(18.0, 24.0);
   final totalHeight = rowCount * rowHeight +
       (rowCount > 1 ? (rowCount - 1) * 6.0 : 0.0);
 
@@ -389,13 +394,13 @@ class _SlotStatusLegend extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final spacing = constraints.maxWidth.isFinite && constraints.maxWidth < 160
-            ? 12.0
-            : 18.0;
+            ? 14.0
+            : 20.0;
         return Wrap(
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: spacing,
-          runSpacing: 6,
+          runSpacing: 8,
           children: [
             for (final slice in slices)
               _LegendEntry(
@@ -428,8 +433,8 @@ class _LegendEntry extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
-          width: 8,
-          height: 8,
+          width: 9,
+          height: 9,
           decoration: BoxDecoration(
             color: slice.color,
             shape: BoxShape.circle,
@@ -442,7 +447,7 @@ class _LegendEntry extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 5),
         Text('$label ${slice.value}', style: textStyle),
       ],
     );
