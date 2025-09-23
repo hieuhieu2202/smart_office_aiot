@@ -227,11 +227,24 @@ class AOIVIDashboardController extends GetxController {
     isModelLoading.value = true;
     try {
       final names = await PTHDashboardApi.getModelNames(group, machine);
-      final filtered = names
-          .where((item) => item.trim().isNotEmpty && item != defaultModel)
-          .toList();
-      modelNames.value =
-          filtered.isEmpty ? [defaultModel] : ([defaultModel, ...filtered]);
+      final filtered = <String>[];
+      final normalizedDefault = defaultModel.toUpperCase();
+
+      for (final raw in names) {
+        final trimmed = raw.trim();
+        if (trimmed.isEmpty) {
+          continue;
+        }
+        if (trimmed.toUpperCase() == normalizedDefault) {
+          // Bỏ qua mọi biến thể của "ALL" để tránh trùng với giá trị mặc định.
+          continue;
+        }
+        if (!filtered.contains(trimmed)) {
+          filtered.add(trimmed);
+        }
+      }
+
+      modelNames.value = [defaultModel, ...filtered];
       if (updateSelection && !modelNames.contains(selectedModel.value)) {
         selectedModel.value = modelNames.first;
       }
