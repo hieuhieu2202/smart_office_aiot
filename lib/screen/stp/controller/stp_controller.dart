@@ -14,7 +14,7 @@ class StpController extends GetxController {
   SftpClient? sftpClient;
   SSHClient? sshClient;
 
-  final String host = '10.220.130.116';
+  final String host = '10.220.130.115';
   final String username = 'Automation';
   final String password = 'auto123';
   final int port = 6742;
