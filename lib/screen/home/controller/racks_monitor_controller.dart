@@ -6,6 +6,15 @@ import '../../../service/lc_switch_rack_api.dart';
 // ======================= Helpers (TOP-LEVEL) =======================
 final RegExp _saRe = RegExp(r'(SA0+\d+|SA\d{6,})', caseSensitive: false);
 
+const String _allOptionLabel = 'ALL';
+
+bool _isAllLabel(String value) => value.trim().toUpperCase() == _allOptionLabel;
+
+String _normalizeFilterValue(String value) {
+  final trimmed = value.trim();
+  return _isAllLabel(trimmed) ? '' : trimmed;
+}
+
 String _extractSA(String? s) {
   if (s == null) return '';
   final m = _saRe.firstMatch(s);
@@ -206,13 +215,13 @@ class GroupMonitorController extends GetxController {
         ..addAll(['3F']);
       rooms
         ..clear()
-        ..addAll(['ROOM1', 'ROOM2']);
+        ..addAll([_allOptionLabel, 'ROOM1', 'ROOM2']);
       groups
         ..clear()
         ..addAll(['CTO', 'FT', 'J_TAG']);
       models
         ..clear()
-        ..addAll(['GB200', 'GB300']);
+        ..addAll([_allOptionLabel, 'GB200', 'GB300']);
       _withFilterSync(() {
         selFloor.value = floors.isNotEmpty ? floors.first : '';
         selRoom.value = rooms.isNotEmpty ? rooms.first : '';
@@ -222,15 +231,37 @@ class GroupMonitorController extends GetxController {
     }
   }
 
-  List<String> _mkOpts(Iterable<String> vals) {
+  List<String> _mkOpts(
+    Iterable<String> vals, {
+    bool includeAll = false,
+  }) {
     final s = <String>{};
     for (final v in vals) {
       final t = v.trim();
       if (t.isNotEmpty) s.add(t);
     }
-    final list =
-        s.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final list = s.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    if (includeAll) {
+      list.removeWhere(_isAllLabel);
+      list.insert(0, _allOptionLabel);
+    }
     return list;
+  }
+
+  String _resolveDefaultSelection(
+    List<String> opts, {
+    required bool preferAll,
+  }) {
+    if (opts.isEmpty) return '';
+    if (preferAll) {
+      final allOpt = opts.firstWhere(_isAllLabel, orElse: () => '');
+      if (allOpt.isNotEmpty) return allOpt;
+    }
+    return opts.firstWhere(
+      (e) => !_isAllLabel(e),
+      orElse: () => opts.first,
+    );
   }
 
   void _rebuildDependentOptions() {
@@ -257,16 +288,22 @@ class GroupMonitorController extends GetxController {
         qRoom = qRoom.where((e) => e.floor == activeFloor);
       }
       final currentRoom = selRoom.value.trim();
-      final newRooms = _mkOpts(qRoom.map((e) => e.room));
+      final newRooms = _mkOpts(
+        qRoom.map((e) => e.room),
+        includeAll: true,
+      );
       rooms
         ..clear()
         ..addAll(newRooms);
       final nextRoom =
           (currentRoom.isNotEmpty && newRooms.contains(currentRoom))
               ? currentRoom
-              : (newRooms.isNotEmpty ? newRooms.first : '');
+              : _resolveDefaultSelection(
+                  newRooms,
+                  preferAll: currentRoom.isEmpty || _isAllLabel(currentRoom),
+                );
       if (selRoom.value != nextRoom) selRoom.value = nextRoom;
-      final activeRoom = selRoom.value.trim();
+      final activeRoom = _normalizeFilterValue(selRoom.value);
 
       Iterable<LocationEntry> qGroup = qRoom;
       if (activeRoom.isNotEmpty) {
@@ -289,14 +326,20 @@ class GroupMonitorController extends GetxController {
         qModel = qModel.where((e) => e.group == activeGroup);
       }
       final currentModel = selModel.value.trim();
-      final newModels = _mkOpts(qModel.map((e) => e.model));
+      final newModels = _mkOpts(
+        qModel.map((e) => e.model),
+        includeAll: true,
+      );
       models
         ..clear()
         ..addAll(newModels);
       final nextModel =
           (currentModel.isNotEmpty && newModels.contains(currentModel))
               ? currentModel
-              : (newModels.isNotEmpty ? newModels.first : '');
+              : _resolveDefaultSelection(
+                  newModels,
+                  preferAll: currentModel.isEmpty || _isAllLabel(currentModel),
+                );
       if (selModel.value != nextModel) selModel.value = nextModel;
 
       vlog(
@@ -313,8 +356,8 @@ class GroupMonitorController extends GetxController {
 
   Map<String, dynamic> _buildBody({required bool isF17}) {
     String? _nv(String s) {
-      final trimmed = s.trim();
-      return trimmed.isEmpty ? null : trimmed;
+      final normalized = _normalizeFilterValue(s);
+      return normalized.isEmpty ? null : normalized;
     }
 
     if (isF17) {
