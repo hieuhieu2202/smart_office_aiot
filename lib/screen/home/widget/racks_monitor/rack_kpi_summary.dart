@@ -53,9 +53,9 @@ class RackNumbersBox extends StatelessWidget {
           color: const Color(0xFFFFB300),
         ),
         _SummaryMetric(
-          label: 'WIP',
-          value: qs.wip.toString(),
-          icon: Icons.inventory_2_rounded,
+          label: 'REPASS',
+          value: qs.rePass.toString(),
+          icon: Icons.replay_rounded,
           color: const Color(0xFF26C6DA),
         ),
       ];
@@ -223,10 +223,12 @@ class _SummaryMetricTile extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Icon(
                 metric.icon,
@@ -239,6 +241,7 @@ class _SummaryMetricTile extends StatelessWidget {
                   metric.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
               ),
@@ -249,6 +252,7 @@ class _SummaryMetricTile extends StatelessWidget {
             metric.value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: valueStyle,
           ),
         ],
