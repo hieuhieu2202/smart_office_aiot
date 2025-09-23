@@ -19,8 +19,8 @@ class AOIVIDashboardController extends GetxController {
   var monitoringData = Rxn<Map>(); // Dùng Rxn để tránh lỗi null
 
   // Thông tin mặc định
-  final String defaultGroup = "ALL";
-  final String defaultMachine = "ALL";
+  String defaultGroup = '';
+  String defaultMachine = '';
   final String defaultModel = "ALL";
   late final String defaultRange;
   final int defaultOpTime = 30;
@@ -36,11 +36,18 @@ class AOIVIDashboardController extends GetxController {
     selectedMachine.value = defaultMachine;
     selectedModel.value = defaultModel;
     selectedRangeDateTime.value = defaultRange;
-    loadGroups();
-    fetchMonitoring(
-      groupName: defaultGroup,
-      machineName: defaultMachine,
-      modelName: defaultModel,
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await loadGroups();
+    if (selectedGroup.value.isEmpty || selectedMachine.value.isEmpty) {
+      return;
+    }
+    await fetchMonitoring(
+      groupName: selectedGroup.value,
+      machineName: selectedMachine.value,
+      modelName: selectedModel.value,
       rangeDateTime: defaultRange,
       opTime: defaultOpTime,
       showLoading: true,
@@ -56,15 +63,45 @@ class AOIVIDashboardController extends GetxController {
 
   /// Reset filter về giá trị mặc định
   Future<void> resetFilters() async {
-    selectedGroup.value = defaultGroup;
-    selectedMachine.value = defaultMachine;
-    selectedModel.value = defaultModel;
     selectedRangeDateTime.value = getDefaultRange();
-    await loadMachines(defaultGroup);
+    await loadGroups(updateSelection: false);
+    if (groupNames.contains(defaultGroup)) {
+      selectedGroup.value = defaultGroup;
+    } else if (groupNames.isNotEmpty) {
+      selectedGroup.value = groupNames.first;
+      defaultGroup = selectedGroup.value;
+    } else {
+      selectedGroup.value = '';
+      defaultGroup = '';
+    }
+
+    await loadMachines(
+      selectedGroup.value,
+      preferredMachine: defaultMachine,
+    );
+
+    if (machineNames.contains(defaultMachine)) {
+      selectedMachine.value = defaultMachine;
+    } else if (machineNames.isNotEmpty) {
+      selectedMachine.value = machineNames.first;
+      defaultMachine = selectedMachine.value;
+    } else {
+      selectedMachine.value = '';
+      defaultMachine = '';
+    }
+
+    if (modelNames.contains(defaultModel)) {
+      selectedModel.value = defaultModel;
+    } else if (modelNames.isNotEmpty) {
+      selectedModel.value = modelNames.first;
+    } else {
+      selectedModel.value = defaultModel;
+    }
+
     await fetchMonitoring(
-      groupName: defaultGroup,
-      machineName: defaultMachine,
-      modelName: defaultModel,
+      groupName: selectedGroup.value,
+      machineName: selectedMachine.value,
+      modelName: selectedModel.value,
       rangeDateTime: selectedRangeDateTime.value,
       opTime: defaultOpTime,
       showLoading: true,
@@ -76,16 +113,36 @@ class AOIVIDashboardController extends GetxController {
     isGroupLoading.value = true;
     try {
       final names = await PTHDashboardApi.getGroupNames();
-      names.removeWhere((item) => item == "ALL");
-      names.insert(0, "ALL");
-      groupNames.value = names;
-      // Nếu chưa có selected, set về mặc định
-      if (updateSelection && !groupNames.contains(selectedGroup.value)) {
-        selectedGroup.value = defaultGroup;
+      final filtered = names
+          .where((item) => item.trim().isNotEmpty && item != "ALL")
+          .toList();
+      groupNames.value = filtered;
+
+      if (!updateSelection) {
+        return groupNames.toList();
       }
-      if (updateSelection) {
-        await loadMachines(selectedGroup.value);
+
+      if (filtered.isEmpty) {
+        selectedGroup.value = '';
+        machineNames.value = [];
+        selectedMachine.value = '';
+        modelNames.value = [defaultModel];
+        selectedModel.value = defaultModel;
+        return groupNames.toList();
       }
+
+      String resolvedGroup = selectedGroup.value;
+      if (resolvedGroup.isEmpty || !filtered.contains(resolvedGroup)) {
+        resolvedGroup = filtered.first;
+      }
+
+      selectedGroup.value = resolvedGroup;
+      if ((defaultGroup.isEmpty || !filtered.contains(defaultGroup)) &&
+          resolvedGroup.isNotEmpty) {
+        defaultGroup = resolvedGroup;
+      }
+
+      await loadMachines(resolvedGroup);
       return groupNames.toList();
     } finally {
       isGroupLoading.value = false;
@@ -95,31 +152,62 @@ class AOIVIDashboardController extends GetxController {
   /// Load danh sách machine theo group
   Future<List<String>> loadMachines(String group,
       {bool updateSelection = true, String? preferredMachine}) async {
+    if (group.trim().isEmpty) {
+      machineNames.value = [];
+      if (updateSelection) {
+        selectedMachine.value = '';
+        modelNames.value = [defaultModel];
+        selectedModel.value = defaultModel;
+      }
+      return const <String>[];
+    }
     isMachineLoading.value = true;
     try {
       final names = await PTHDashboardApi.getMachineNames(group);
-      machineNames.value =
-          names.isEmpty
-              ? []
-              : (["ALL", ...names.where((item) => item != "ALL")]);
-      // Nếu chưa có selected, set về mặc định
-      if (updateSelection) {
-        if (!machineNames.contains(selectedMachine.value)) {
-          selectedMachine.value =
-              machineNames.isNotEmpty ? machineNames.first : defaultMachine;
-        }
-        await loadModels(group, selectedMachine.value);
-      } else {
-        final target = (preferredMachine != null &&
-                machineNames.contains(preferredMachine))
-            ? preferredMachine
-            : (machineNames.isNotEmpty ? machineNames.first : null);
-        if (target != null) {
-          await loadModels(group, target, updateSelection: false);
+      final filtered = names
+          .where((item) => item.trim().isNotEmpty && item != "ALL")
+          .toList();
+      machineNames.value = filtered;
+
+      if (filtered.isEmpty) {
+        if (updateSelection) {
+          selectedMachine.value = '';
+          modelNames.value = [defaultModel];
+          selectedModel.value = defaultModel;
         } else {
-          modelNames.value = ["ALL"];
+          modelNames.value = [defaultModel];
+        }
+        return machineNames.toList();
+      }
+
+      String? resolvedMachine = preferredMachine;
+      if (resolvedMachine != null && !filtered.contains(resolvedMachine)) {
+        resolvedMachine = null;
+      }
+
+      resolvedMachine ??= selectedMachine.value;
+
+      if (resolvedMachine == null ||
+          resolvedMachine.isEmpty ||
+          !filtered.contains(resolvedMachine)) {
+        resolvedMachine = filtered.first;
+      }
+
+      final machineToLoad = resolvedMachine!;
+
+      if (updateSelection) {
+        selectedMachine.value = machineToLoad;
+        if (defaultMachine.isEmpty || !filtered.contains(defaultMachine)) {
+          defaultMachine = machineToLoad;
         }
       }
+
+      await loadModels(
+        group,
+        machineToLoad,
+        updateSelection: updateSelection,
+      );
+
       return machineNames.toList();
     } finally {
       isMachineLoading.value = false;
@@ -129,13 +217,21 @@ class AOIVIDashboardController extends GetxController {
   /// Load danh sách model theo group + machine
   Future<List<String>> loadModels(String group, String machine,
       {bool updateSelection = true}) async {
+    if (group.trim().isEmpty || machine.trim().isEmpty) {
+      modelNames.value = [defaultModel];
+      if (updateSelection) {
+        selectedModel.value = defaultModel;
+      }
+      return modelNames.toList();
+    }
     isModelLoading.value = true;
     try {
       final names = await PTHDashboardApi.getModelNames(group, machine);
+      final filtered = names
+          .where((item) => item.trim().isNotEmpty && item != defaultModel)
+          .toList();
       modelNames.value =
-          names.isEmpty
-              ? ["ALL"]
-              : (["ALL", ...names.where((item) => item != "ALL")]);
+          filtered.isEmpty ? [defaultModel] : ([defaultModel, ...filtered]);
       if (updateSelection && !modelNames.contains(selectedModel.value)) {
         selectedModel.value = modelNames.first;
       }
@@ -184,6 +280,12 @@ class AOIVIDashboardController extends GetxController {
       selectedModel.value = modelName ?? selectedModel.value;
       selectedRangeDateTime.value =
           rangeDateTime ?? selectedRangeDateTime.value;
+
+      if (selectedGroup.value.trim().isEmpty ||
+          selectedMachine.value.trim().isEmpty) {
+        monitoringData.value = null;
+        return;
+      }
 
       final data = await PTHDashboardApi.getMonitoringData(
         groupName: selectedGroup.value,
