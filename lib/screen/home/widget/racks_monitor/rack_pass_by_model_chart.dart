@@ -9,7 +9,7 @@ class PassByModelBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final barBg  = isDark ? const Color(0xFF132738) : const Color(0xFFE9EEF4);
+    final barBg = isDark ? const Color(0xFF132738) : const Color(0xFFE9EEF4);
 
     const palette = <Color>[
       Color(0xFF4DA3FF), // blue
@@ -22,16 +22,16 @@ class PassByModelBar extends StatelessWidget {
 
     return Obx(() {
       final items = controller.passByModelAgg; // List<ModelPass>
-      final data  = items.where((e) => e.pass > 0).toList();
+      final data = items.where((e) => e.totalPass > 0).toList();
       if (data.isEmpty) {
         return Text('No data', style: Theme.of(context).textTheme.bodySmall);
       }
 
-      final maxVal = data.map((e) => e.pass).reduce((a, b) => a > b ? a : b);
+      final maxVal = data.map((e) => e.totalPass).reduce((a, b) => a > b ? a : b);
 
       Widget row(int idx, ModelPass mp) {
         final color = palette[idx % palette.length];
-        final value = mp.pass; // Output (totalPass) để khớp web
+        final value = mp.totalPass; // Output (totalPass) để khớp web
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
