@@ -153,7 +153,7 @@ class RackLeftPanel extends StatelessWidget {
 
     // Tạo danh sách child: Legend + spacing + từng Rack + spacing
     final children = <Widget>[
-      const SizedBox(height: 8),
+      const RackStatusLegendBar(margin: EdgeInsets.only(bottom: 12)),
     ];
 
     for (int i = 0; i < racks.length; i++) {
