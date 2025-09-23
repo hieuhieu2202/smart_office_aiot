@@ -267,11 +267,14 @@ class LocationEntry {
   });
 
   factory LocationEntry.fromJson(Map<String, dynamic> j) => LocationEntry(
-    factory: j['factory']?.toString() ?? '',
-    floor: j['floor']?.toString() ?? '',
-    room: j['room']?.toString() ?? '',
-    group: j['group']?.toString() ?? '',
-    model: j['model']?.toString() ?? '',
+    factory: _readString(j, const ['factory', 'Factory']),
+    floor: _readString(j, const ['floor', 'Floor']),
+    room: _readString(j, const ['room', 'Room', 'Location']),
+    group: _readString(j, const ['group', 'Group', 'groupName', 'GroupName']),
+    model: _readString(
+      j,
+      const ['model', 'Model', 'modelName', 'modelSerial', 'ModelSerial'],
+    ),
   );
 }
 
@@ -282,8 +285,8 @@ class SlotStaticItem {
   SlotStaticItem({required this.status, required this.value});
 
   factory SlotStaticItem.fromJson(Map<String, dynamic> j) => SlotStaticItem(
-    status: j['status']?.toString() ?? '',
-    value: _asInt(j['value']),
+    status: _readString(j, const ['status', 'slotStatus']),
+    value: _readInt(j, const ['value', 'count']),
   );
 }
 
@@ -322,18 +325,18 @@ class QuantitySummary {
             ? (j['quantitySummary'] as Map<String, dynamic>)
             : j;
     return QuantitySummary(
-      ut: _asDouble(q['ut']),
-      input: _asInt(q['input']),
-      firstPass: _asInt(q['first_Pass']),
-      secondPass: _asInt(q['second_Pass']),
-      pass: _asInt(q['pass']),
-      rePass: _asInt(q['re_Pass']),
-      totalPass: _asInt(q['total_Pass']),
-      firstFail: _asInt(q['first_Fail']),
-      fail: _asInt(q['fail']),
-      fpr: _asDouble(q['fpr']),
-      yr: _asDouble(q['yr']),
-      wip: _asInt(q['wip']),
+      ut: _readDouble(q, const ['ut', 'UT']),
+      input: _readInt(q, const ['input']),
+      firstPass: _readInt(q, const ['firstPass', 'first_Pass']),
+      secondPass: _readInt(q, const ['secondPass', 'second_Pass']),
+      pass: _readInt(q, const ['pass']),
+      rePass: _readInt(q, const ['rePass', 're_Pass']),
+      totalPass: _readInt(q, const ['totalPass', 'total_Pass']),
+      firstFail: _readInt(q, const ['firstFail', 'first_Fail']),
+      fail: _readInt(q, const ['fail']),
+      fpr: _readDouble(q, const ['fpr', 'FPR']),
+      yr: _readDouble(q, const ['yr', 'YR']),
+      wip: _readInt(q, const ['wip', 'WIP']),
     );
   }
 }
@@ -378,23 +381,24 @@ class SlotDetail {
   });
 
   factory SlotDetail.fromJson(Map<String, dynamic> j) => SlotDetail(
-    nickName: j['nickName']?.toString() ?? '',
-    slotNumber: j['slotNumber']?.toString() ?? '',
-    slotName: j['slotName']?.toString() ?? '',
-    modelName: j['modelName']?.toString() ?? '',
-    input: _asInt(j['input']),
-    firstPass: _asInt(j['first_Pass']),
-    secondPass: _asInt(j['second_Pass']),
-    pass: _asInt(j['pass']),
-    rePass: _asInt(j['re_Pass']),
-    totalPass: _asInt(j['total_Pass']),
-    firstFail: _asInt(j['first_Fail']),
-    fail: _asInt(j['fail']),
-    fpr: _asDouble(j['fpr']),
-    yr: _asDouble(j['yr']),
-    status: j['status']?.toString() ?? '',
-    runtime: _asDouble(j['runtime']),
-    totalTime: _asDouble(j['totalTime']),
+    nickName: _readString(j, const ['nickName', 'nickname']),
+    slotNumber: _readString(j, const ['slotNumber', 'slotNo', 'slot_No']),
+    slotName: _readString(j, const ['slotName', 'slot_name']),
+    modelName:
+        _readString(j, const ['modelName', 'model', 'modelSerial', 'ModelSerial']),
+    input: _readInt(j, const ['input']),
+    firstPass: _readInt(j, const ['firstPass', 'first_Pass']),
+    secondPass: _readInt(j, const ['secondPass', 'second_Pass']),
+    pass: _readInt(j, const ['pass']),
+    rePass: _readInt(j, const ['rePass', 're_Pass']),
+    totalPass: _readInt(j, const ['totalPass', 'total_Pass']),
+    firstFail: _readInt(j, const ['firstFail', 'first_Fail']),
+    fail: _readInt(j, const ['fail']),
+    fpr: _readDouble(j, const ['fpr', 'FPR']),
+    yr: _readDouble(j, const ['yr', 'YR']),
+    status: _readString(j, const ['status', 'slotStatus']),
+    runtime: _readDouble(j, const ['runtime']),
+    totalTime: _readDouble(j, const ['totalTime', 'total_Time']),
   );
 }
 
@@ -440,23 +444,24 @@ class RackDetail {
   });
 
   factory RackDetail.fromJson(Map<String, dynamic> j) => RackDetail(
-    nickName: j['nickName']?.toString() ?? '',
-    groupName: j['groupName']?.toString() ?? '',
-    rackName: j['rackName']?.toString() ?? '',
-    modelName: j['modelName']?.toString() ?? '',
-    ut: _asDouble(j['ut']),
-    input: _asInt(j['input']),
-    firstPass: _asInt(j['first_Pass']),
-    secondPass: _asInt(j['second_Pass']),
-    pass: _asInt(j['pass']),
-    rePass: _asInt(j['re_Pass']),
-    totalPass: _asInt(j['total_Pass']),
-    firstFail: _asInt(j['first_Fail']),
-    fail: _asInt(j['fail']),
-    fpr: _asDouble(j['fpr']),
-    yr: _asDouble(j['yr']),
-    runtime: _asDouble(j['runtime']),
-    totalTime: _asDouble(j['totalTime']),
+    nickName: _readString(j, const ['nickName', 'nickname']),
+    groupName: _readString(j, const ['groupName', 'GroupName']),
+    rackName: _readString(j, const ['rackName', 'rack']),
+    modelName:
+        _readString(j, const ['modelName', 'model', 'modelSerial', 'ModelSerial']),
+    ut: _readDouble(j, const ['ut', 'UT']),
+    input: _readInt(j, const ['input']),
+    firstPass: _readInt(j, const ['firstPass', 'first_Pass']),
+    secondPass: _readInt(j, const ['secondPass', 'second_Pass']),
+    pass: _readInt(j, const ['pass']),
+    rePass: _readInt(j, const ['rePass', 're_Pass']),
+    totalPass: _readInt(j, const ['totalPass', 'total_Pass']),
+    firstFail: _readInt(j, const ['firstFail', 'first_Fail']),
+    fail: _readInt(j, const ['fail']),
+    fpr: _readDouble(j, const ['fpr', 'FPR']),
+    yr: _readDouble(j, const ['yr', 'YR']),
+    runtime: _readDouble(j, const ['runtime']),
+    totalTime: _readDouble(j, const ['totalTime', 'total_Time']),
     slotDetails:
         (j['slotDetails'] is List)
             ? (j['slotDetails'] as List)
@@ -467,15 +472,45 @@ class RackDetail {
   );
 }
 
+class ModelDetail {
+  final String modelName;
+  final int pass;
+  final int totalPass;
+
+  ModelDetail({
+    required this.modelName,
+    required this.pass,
+    required this.totalPass,
+  });
+
+  factory ModelDetail.fromJson(Map<String, dynamic> j) {
+    final model = _readString(
+      j,
+      const ['modelName', 'model', 'modelSerial', 'ModelSerial'],
+    );
+    final total = _readInt(j, const ['totalPass', 'total_Pass', 'output']);
+    final pass = _readInt(j, const ['pass']);
+    final derivedTotal = total != 0 ? total : pass;
+    final derivedPass = pass != 0 ? pass : derivedTotal;
+    return ModelDetail(
+      modelName: model,
+      pass: derivedPass,
+      totalPass: derivedTotal,
+    );
+  }
+}
+
 class GroupDataMonitoring {
   final List<SlotStaticItem> slotStatic;
   final QuantitySummary quantitySummary;
   final List<RackDetail> rackDetails;
+  final List<ModelDetail> modelDetails;
 
   GroupDataMonitoring({
     required this.slotStatic,
     required this.quantitySummary,
     required this.rackDetails,
+    required this.modelDetails,
   });
 
   factory GroupDataMonitoring.fromJson(Map<String, dynamic> j) =>
@@ -483,10 +518,10 @@ class GroupDataMonitoring {
         slotStatic:
             (j['slotStatic'] is List)
                 ? (j['slotStatic'] as List)
-                    .whereType<Map<String, dynamic>>()
-                    .map(SlotStaticItem.fromJson)
-                    .toList()
-                : const <SlotStaticItem>[],
+                .whereType<Map<String, dynamic>>()
+                .map(SlotStaticItem.fromJson)
+                .toList()
+            : const <SlotStaticItem>[],
         quantitySummary: QuantitySummary.fromJson(j),
         rackDetails:
             (j['rackDetails'] is List)
@@ -495,6 +530,13 @@ class GroupDataMonitoring {
                     .map(RackDetail.fromJson)
                     .toList()
                 : const <RackDetail>[],
+        modelDetails:
+            (j['modelDetails'] is List)
+                ? (j['modelDetails'] as List)
+                    .whereType<Map<String, dynamic>>()
+                    .map(ModelDetail.fromJson)
+                    .toList()
+                : const <ModelDetail>[],
       );
 }
 
@@ -521,4 +563,45 @@ double _asDouble(dynamic v) {
     return n == null ? 0.0 : n.toDouble();
   }
   return 0.0;
+}
+
+dynamic _valueFor(Map<String, dynamic> source, List<String> keys) {
+  for (final key in keys) {
+    if (source.containsKey(key)) {
+      final value = source[key];
+      if (value == null) continue;
+      if (value is String && value.trim().isEmpty) continue;
+      return value;
+    }
+  }
+  if (source.isEmpty) return null;
+  final lowerLookup = <String, dynamic>{};
+  for (final entry in source.entries) {
+    lowerLookup.putIfAbsent(entry.key.toLowerCase(), () => entry.value);
+  }
+  for (final key in keys) {
+    final lowerKey = key.toLowerCase();
+    if (lowerLookup.containsKey(lowerKey)) {
+      final value = lowerLookup[lowerKey];
+      if (value == null) continue;
+      if (value is String && value.trim().isEmpty) continue;
+      return value;
+    }
+  }
+  return null;
+}
+
+int _readInt(Map<String, dynamic> source, List<String> keys) {
+  return _asInt(_valueFor(source, keys));
+}
+
+double _readDouble(Map<String, dynamic> source, List<String> keys) {
+  return _asDouble(_valueFor(source, keys));
+}
+
+String _readString(Map<String, dynamic> source, List<String> keys) {
+  final value = _valueFor(source, keys);
+  if (value == null) return '';
+  if (value is String) return value.trim();
+  return value.toString().trim();
 }

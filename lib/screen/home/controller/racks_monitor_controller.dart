@@ -291,30 +291,55 @@ class GroupMonitorController extends GetxController {
   Map<String, dynamic> _buildBody({required bool isF17}) {
     String? _nv(String s) => s == 'ALL' ? null : s;
 
+    void put(
+      Map<String, dynamic> target,
+      String key,
+      String? value, [
+      List<String> aliases = const [],
+    ]) {
+      if (value == null) return;
+      target[key] = value;
+      for (final alias in aliases) {
+        target[alias] = value;
+      }
+    }
+
+    final Map<String, dynamic> body = {};
+
     if (isF17) {
-      final Map<String, dynamic> b = {
-        'Factory': selFactory.value,
-        if (_nv(selFloor.value) != null) 'Floor': _nv(selFloor.value),
-        if (_nv(selRoom.value) != null) 'Location': _nv(selRoom.value),
-        if (_nv(selGroup.value) != null) 'GroupName': _nv(selGroup.value),
-        if (_nv(selModel.value) != null) 'ModelSerial': _nv(selModel.value),
-      };
-      vlog(() => ' GỬI BODY F17(web): $b');
-      return b;
+      put(body, 'Factory', selFactory.value, ['factory']);
+      put(body, 'Floor', _nv(selFloor.value), ['floor']);
+      put(body, 'Location', _nv(selRoom.value), ['room']);
+      put(body, 'GroupName', _nv(selGroup.value), ['groupName']);
+      final modelValue = _nv(selModel.value);
+      put(
+        body,
+        'ModelSerial',
+        modelValue,
+        ['modelSerial', 'modelName', 'ModelName'],
+      );
     } else {
-      final Map<String, dynamic> b = {
-        'factory': selFactory.value,
-        if (_nv(selFloor.value) != null) 'floor': _nv(selFloor.value),
-        if (_nv(selRoom.value) != null) 'room': _nv(selRoom.value),
-        if (_nv(selGroup.value) != null) 'groupName': _nv(selGroup.value),
-        if (_nv(selModel.value) != null) 'modelSerial': _nv(selModel.value),
+      put(body, 'factory', selFactory.value, ['Factory']);
+      put(body, 'floor', _nv(selFloor.value), ['Floor']);
+      put(body, 'room', _nv(selRoom.value), ['Location']);
+      put(body, 'groupName', _nv(selGroup.value), ['GroupName']);
+      final modelValue = _nv(selModel.value);
+      put(
+        body,
+        'modelSerial',
+        modelValue,
+        ['ModelSerial', 'modelName', 'ModelName'],
+      );
+      body.addAll({
         'nickName': '',
         'rangeDateTime': '',
         'rackNames': <Map<String, dynamic>>[],
-      };
-      vlog(() => ' GỬI BODY F16(app): $b');
-      return b;
+      });
     }
+
+    final tag = isF17 ? 'F17(web)' : 'F16(app)';
+    vlog(() => ' GỬI BODY $tag: $body');
+    return body;
   }
 
   Future<void> refresh() async {
@@ -368,6 +393,52 @@ class GroupMonitorController extends GetxController {
   int get kpiWip => data.value?.quantitySummary.wip ?? 0;
 
   List<ModelPass> get passByModelAgg {
+    final directModels = data.value?.modelDetails ?? const <ModelDetail>[];
+    if (directModels.isNotEmpty) {
+      final byModel = <String, _Agg>{};
+      for (final detail in directModels) {
+        final raw = detail.modelName.trim();
+        if (raw.isEmpty) continue;
+        final sa = _extractSA(raw);
+        final model = sa.isNotEmpty ? sa : raw.toUpperCase();
+        final pass = detail.pass != 0 ? detail.pass : detail.totalPass;
+        final total = detail.totalPass != 0 ? detail.totalPass : pass;
+        final bucket = byModel.putIfAbsent(model, () => _Agg());
+        bucket.pass += pass;
+        bucket.totalPass += total;
+      }
+
+      final mapped = byModel.entries
+          .map((e) => ModelPass(e.key, e.value.pass, e.value.totalPass))
+          .toList()
+        ..sort((a, b) => b.totalPass.compareTo(a.totalPass));
+
+      if (_verbose.value) {
+        final signature = mapped.isEmpty
+            ? 'api:empty'
+            : mapped
+                .map((e) => 'api:${e.model}:${e.pass}/${e.totalPass}')
+                .join('|');
+        if (_lastPassByModelSignature != signature) {
+          _lastPassByModelSignature = signature;
+
+          if (mapped.isEmpty) {
+            vlog(() => '--- PASS BY MODEL (API modelDetails) --- (empty)');
+          } else {
+            vlog(() => '--- PASS BY MODEL (API modelDetails) ---');
+            for (final it in mapped) {
+              vlog(
+                () =>
+                    'SA=${it.model}  Pass=${it.pass}  TotalPass=${it.totalPass}',
+              );
+            }
+          }
+        }
+      }
+
+      return mapped;
+    }
+
     final agg = <String, _Agg>{};
     final racks = data.value?.rackDetails ?? const <RackDetail>[];
     final rackSAs = <String>{};
@@ -425,26 +496,28 @@ class GroupMonitorController extends GetxController {
     final mergedSnapshot = _snapshot(merged);
 
     if (_verbose.value) {
-      final signature = <String>[
-        if (rawSnapshot.isEmpty)
-          'raw:empty'
-        else
-          ...rawSnapshot
-              .map((e) => 'raw:${e.model}:${e.pass}/${e.totalPass}'),
-        if (mergedSnapshot.isEmpty)
-          'merged:empty'
-        else
-          ...mergedSnapshot
-              .map((e) => 'merged:${e.model}:${e.pass}/${e.totalPass}'),
-      ].join('|');
+      final signature = <String>['legacy']
+        ..addAll(
+          rawSnapshot.isEmpty
+              ? const ['raw:empty']
+              : rawSnapshot
+                  .map((e) => 'raw:${e.model}:${e.pass}/${e.totalPass}'),
+        )
+        ..addAll(
+          mergedSnapshot.isEmpty
+              ? const ['merged:empty']
+              : mergedSnapshot
+                  .map((e) => 'merged:${e.model}:${e.pass}/${e.totalPass}'),
+        );
+      final signatureStr = signature.join('|');
 
-      if (_lastPassByModelSignature != signature) {
-        _lastPassByModelSignature = signature;
+      if (_lastPassByModelSignature != signatureStr) {
+        _lastPassByModelSignature = signatureStr;
 
         if (rawSnapshot.isEmpty) {
-          vlog(() => '--- PASS BY MODEL (raw, before merge) --- (empty)');
+          vlog(() => '--- PASS BY MODEL (legacy raw, before merge) --- (empty)');
         } else {
-          vlog(() => '--- PASS BY MODEL (raw, before merge) ---');
+          vlog(() => '--- PASS BY MODEL (legacy raw, before merge) ---');
           for (final it in rawSnapshot) {
             vlog(
               () =>
@@ -454,9 +527,12 @@ class GroupMonitorController extends GetxController {
         }
 
         if (mergedSnapshot.isEmpty) {
-          vlog(() => '--- PASS BY MODEL (merged output = totalPass) --- (empty)');
+          vlog(
+            () =>
+                '--- PASS BY MODEL (legacy merged output = totalPass) --- (empty)',
+          );
         } else {
-          vlog(() => '--- PASS BY MODEL (merged output = totalPass) ---');
+          vlog(() => '--- PASS BY MODEL (legacy merged output = totalPass) ---');
           for (final it in mergedSnapshot) {
             vlog(
               () =>
