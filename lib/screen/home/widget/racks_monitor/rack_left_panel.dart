@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../../../../service/lc_switch_rack_api.dart'
     show RackDetail, SlotDetail;
@@ -58,7 +60,93 @@ Color _statusColor(String? status) {
 class RackStatusLegendBar extends StatelessWidget {
   const RackStatusLegendBar({super.key, this.margin});
 
+  static const _legendEntries = <_LegendConfig>[
+    _LegendConfig(_RackColors.green, 'PASS'),
+    _LegendConfig(_RackColors.red, 'FAIL'),
+    _LegendConfig(_RackColors.blue, 'TESTING'),
+    _LegendConfig(_RackColors.amber, 'WAITING'),
+    _LegendConfig(_RackColors.offline, 'OFFLINE'),
+    _LegendConfig(_RackColors.purple, 'HOLD'),
+  ];
+
+  static const double _horizontalPadding = 12;
+  static const double _verticalPadding = 8;
+  static const double _itemPadding = 2;
+  static const double _itemSpacing = 28;
+  static const double _runSpacing = 8;
+  static const double _dotSize = 10;
+  static const double _labelGap = 6;
+  static const double _heightEpsilon = 2;
+
   final EdgeInsetsGeometry? margin;
+
+  static TextStyle _legendTextStyle(bool isDark) {
+    return TextStyle(
+      fontWeight: FontWeight.w700,
+      fontSize: 11,
+      letterSpacing: .2,
+      color: isDark ? Colors.white : const Color(0xFF0F2540),
+    );
+  }
+
+  /// Ước lượng chiều cao dự kiến của legend để dùng cho header pin.
+  static double estimateHeight({
+    required BuildContext context,
+    required double maxWidth,
+  }) {
+    final mediaQuery = MediaQuery.of(context);
+    final textScale = mediaQuery.textScaleFactor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textStyle = _legendTextStyle(isDark);
+
+    final painters = _legendEntries
+        .map(
+          (entry) => TextPainter(
+            text: TextSpan(text: entry.label, style: textStyle),
+            textDirection: TextDirection.ltr,
+            textScaleFactor: textScale,
+          )..layout(),
+        )
+        .toList(growable: false);
+
+    final rowItemHeight = painters
+        .map((p) => math.max(_dotSize, p.height))
+        .fold<double>(0, (value, height) => math.max(value, height));
+
+    final itemWidths = painters
+        .map((p) =>
+            (_itemPadding * 2) + _dotSize + _labelGap + p.width)
+        .toList(growable: false);
+
+    final availableWidth = math.max(
+      0.0,
+      maxWidth - (_horizontalPadding * 2),
+    );
+
+    var rowCount = 1;
+    var currentRowWidth = 0.0;
+    for (final width in itemWidths) {
+      if (currentRowWidth == 0) {
+        currentRowWidth = width;
+        continue;
+      }
+
+      final projected = currentRowWidth + _itemSpacing + width;
+      if (projected <= availableWidth) {
+        currentRowWidth = projected;
+      } else {
+        rowCount += 1;
+        currentRowWidth = width;
+      }
+    }
+
+    final legendHeight = (_verticalPadding * 2) +
+        (rowCount * rowItemHeight) +
+        ((rowCount - 1) * _runSpacing) +
+        _heightEpsilon;
+
+    return legendHeight;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +154,10 @@ class RackStatusLegendBar extends StatelessWidget {
 
     return Container(
       margin: margin ?? const EdgeInsets.fromLTRB(12, 0, 12, 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _horizontalPadding,
+        vertical: _verticalPadding,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -81,20 +172,23 @@ class RackStatusLegendBar extends StatelessWidget {
       child: Center(
         child: Wrap(
           alignment: WrapAlignment.center,
-          spacing: 28,
-          runSpacing: 8,
-          children: const [
-            _LegendItem(color: _RackColors.green, label: 'PASS'),
-            _LegendItem(color: _RackColors.red, label: 'FAIL'),
-            _LegendItem(color: _RackColors.blue, label: 'TESTING'),
-            _LegendItem(color: _RackColors.amber, label: 'WAITING'),
-            _LegendItem(color: _RackColors.offline, label: 'OFFLINE'),
-            _LegendItem(color: _RackColors.purple, label: 'HOLD'),
+          spacing: _itemSpacing,
+          runSpacing: _runSpacing,
+          children: [
+            for (final entry in _legendEntries)
+              _LegendItem(color: entry.color, label: entry.label),
           ],
         ),
       ),
     );
   }
+}
+
+class _LegendConfig {
+  const _LegendConfig(this.color, this.label);
+
+  final Color color;
+  final String label;
 }
 
 class _LegendItem extends StatelessWidget {
@@ -107,13 +201,13 @@ class _LegendItem extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: RackStatusLegendBar._itemPadding),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 10,
-            height: 10,
+            width: RackStatusLegendBar._dotSize,
+            height: RackStatusLegendBar._dotSize,
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
@@ -129,12 +223,7 @@ class _LegendItem extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
-              letterSpacing: .2,
-              color: isDark ? Colors.white : const Color(0xFF0F2540),
-            ),
+            style: RackStatusLegendBar._legendTextStyle(isDark),
           ),
         ],
       ),
@@ -153,8 +242,11 @@ class RackLeftPanel extends StatelessWidget {
     final screenH = MediaQuery.of(context).size.height;
     final itemH = (screenH * 0.3).clamp(220.0, 320.0);
 
-    // Danh sách child: khoảng cách mở đầu + từng Rack + khoảng cách
+    // Danh sách child: Legend + khoảng cách + từng Rack + khoảng cách
     final children = <Widget>[
+      const RackStatusLegendBar(
+        margin: EdgeInsets.only(bottom: 12),
+      ),
       const SizedBox(height: 8),
     ];
 

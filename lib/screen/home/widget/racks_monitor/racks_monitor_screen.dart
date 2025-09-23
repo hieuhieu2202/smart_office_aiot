@@ -143,6 +143,14 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
                   activeFilter: filter,
                 );
 
+                final headerViewportWidth = wide
+                    ? (constraints.maxWidth - 336).clamp(0.0, constraints.maxWidth)
+                    : constraints.maxWidth;
+                final headerHeight = RackPinnedHeader.estimateHeight(
+                  context: context,
+                  maxWidth: headerViewportWidth,
+                );
+
                 final slivers = <Widget>[
                   if (!wide)
                     SliverToBoxAdapter(
@@ -154,7 +162,7 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
                   SliverPersistentHeader(
                     pinned: true,
                     delegate: RackHeaderDelegate(
-                      height: 122,
+                      height: headerHeight,
                       child: RackPinnedHeader(
                         controller: _tabController,
                         total: partition.total,

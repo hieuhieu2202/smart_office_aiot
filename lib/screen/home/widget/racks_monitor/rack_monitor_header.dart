@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'rack_left_panel.dart' show RackStatusLegendBar;
@@ -42,6 +44,21 @@ class RackPinnedHeader extends StatelessWidget {
   final int online;
   final int offline;
 
+  static double estimateHeight({
+    required BuildContext context,
+    required double maxWidth,
+  }) {
+    final tabHeight = RackTabSelector.estimateHeight(context);
+    final legendMaxWidth = math.max(0.0, maxWidth - 24); // trừ padding ngang của header
+    final legendHeight = RackStatusLegendBar.estimateHeight(
+      context: context,
+      maxWidth: legendMaxWidth,
+    );
+
+    // padding: top=10, bottom=12, legend margin top=12
+    return tabHeight + legendHeight + 10 + 12 + 12;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -85,6 +102,36 @@ class RackTabSelector extends StatelessWidget {
   final int total;
   final int online;
   final int offline;
+
+  static double estimateHeight(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final theme = Theme.of(context);
+    final textScale = mediaQuery.textScaleFactor;
+
+    final labelStyle = (theme.textTheme.labelMedium ?? const TextStyle())
+        .copyWith(fontWeight: FontWeight.w700);
+    final countStyle = (theme.textTheme.labelSmall ?? const TextStyle())
+        .copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.2);
+
+    final labelPainter = TextPainter(
+      text: TextSpan(text: 'Offline', style: labelStyle),
+      textDirection: TextDirection.ltr,
+      textScaleFactor: textScale,
+    )..layout();
+
+    final countPainter = TextPainter(
+      text: TextSpan(text: '000', style: countStyle),
+      textDirection: TextDirection.ltr,
+      textScaleFactor: textScale,
+    )..layout();
+
+    final badgeHeight = countPainter.height + 8; // vertical padding 4 top & bottom
+    final rowContentHeight = math.max(16, math.max(labelPainter.height, badgeHeight));
+    final chipHeight = rowContentHeight + 16; // chip padding vertical 8
+    const containerPadding = 12; // vertical padding 6 top & bottom
+
+    return chipHeight + containerPadding + 2; // small epsilon for rounding
+  }
 
   @override
   Widget build(BuildContext context) {
