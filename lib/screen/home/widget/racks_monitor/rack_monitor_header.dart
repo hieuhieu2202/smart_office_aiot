@@ -174,15 +174,18 @@ class RackTabSelector extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        child: Row(
-          children: [
-            for (var i = 0; i < tabs.length; i++)
-              _RackTabChip(
-                data: tabs[i],
-                selected: activeIndex == i,
-                onTap: () => controller.animateTo(i),
-              ),
-          ],
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < tabs.length; i++)
+                _RackTabChip(
+                  data: tabs[i],
+                  selected: activeIndex == i,
+                  onTap: () => controller.animateTo(i),
+                ),
+            ],
+          ),
         ),
       ),
     );
