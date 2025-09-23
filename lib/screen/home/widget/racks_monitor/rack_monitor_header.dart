@@ -55,8 +55,9 @@ class RackPinnedHeader extends StatelessWidget {
       maxWidth: legendMaxWidth,
     );
 
-    // padding: top=10, bottom=12, legend margin top=12
-    return tabHeight + legendHeight + 10 + 12 + 12;
+    // padding: top=10, bottom=12, legend margin top=12, cộng thêm buffer nhỏ để
+    // bù sai số khi text scale lớn khiến legend wrap thành nhiều dòng.
+    return tabHeight + legendHeight + 10 + 12 + 12 + 8;
   }
 
   @override
