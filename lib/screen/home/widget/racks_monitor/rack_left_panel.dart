@@ -151,8 +151,12 @@ class RackLeftPanel extends StatelessWidget {
     final screenH = MediaQuery.of(context).size.height;
     final itemH = (screenH * 0.3).clamp(220.0, 320.0);
 
-    // Tạo danh sách child: spacing + từng Rack + spacing
+    // Tạo danh sách child: Legend + spacing + từng Rack + spacing
     final children = <Widget>[
+      if (racks.isNotEmpty) ...[
+        const RackStatusLegendBar(),
+        const SizedBox(height: 6),
+      ],
       const SizedBox(height: 8),
     ];
 
