@@ -66,7 +66,7 @@ class RackStatusLegendBar extends StatelessWidget {
 
     return Container(
       margin: margin ?? const EdgeInsets.fromLTRB(12, 0, 12, 10),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -78,16 +78,17 @@ class RackStatusLegendBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
+      child: Center(
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 28,
+          runSpacing: 8,
           children: const [
-            _LegendItem(color: _RackColors.green,  label: 'PASS'),
-            _LegendItem(color: _RackColors.red,    label: 'FAIL'),
-            _LegendItem(color: _RackColors.blue,   label: 'TESTING'),
-            _LegendItem(color: _RackColors.amber,  label: 'WAITING'),
-            _LegendItem(color: _RackColors.offline,label: 'OFFLINE'),
+            _LegendItem(color: _RackColors.green, label: 'PASS'),
+            _LegendItem(color: _RackColors.red, label: 'FAIL'),
+            _LegendItem(color: _RackColors.blue, label: 'TESTING'),
+            _LegendItem(color: _RackColors.amber, label: 'WAITING'),
+            _LegendItem(color: _RackColors.offline, label: 'OFFLINE'),
             _LegendItem(color: _RackColors.purple, label: 'HOLD'),
           ],
         ),
@@ -105,9 +106,10 @@ class _LegendItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.only(right: 12),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 10,
