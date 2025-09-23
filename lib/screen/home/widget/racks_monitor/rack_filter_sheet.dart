@@ -145,6 +145,7 @@ class _RackFilterForm extends StatelessWidget {
                           isDark: isDark,
                           value: controller.selRoom,
                           items: controller.rooms,
+                          ensureAllOption: true,
                         ),
                       ),
                       SizedBox(
@@ -163,6 +164,7 @@ class _RackFilterForm extends StatelessWidget {
                           isDark: isDark,
                           value: controller.selModel,
                           items: controller.models,
+                          ensureAllOption: true,
                         ),
                       ),
                     ],
@@ -221,12 +223,14 @@ class _DropDownField extends StatelessWidget {
   final bool isDark;
   final RxString value;
   final List<String> items;
+  final bool ensureAllOption;
 
   const _DropDownField({
     required this.label,
     required this.isDark,
     required this.value,
     required this.items,
+    this.ensureAllOption = false,
   });
 
   @override
@@ -246,31 +250,38 @@ class _DropDownField extends StatelessWidget {
     );
 
     return Obx(
-      () => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: labelStyle),
-          const SizedBox(height: 6),
-          DropdownButtonFormField<String>(
-            value:
-                value.value.isNotEmpty
-                    ? value.value
-                    : (items.isNotEmpty ? items.first : null),
-            items:
-                items
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-            onChanged: (v) {
-              if (v == null && items.isNotEmpty) {
-                value.value = items.first;
-              } else if (v != null) {
-                value.value = v;
-              }
-            },
-            decoration: _dec(label),
-          ),
-        ],
-      ),
+      () {
+        final options = ensureAllOption
+            ? [
+                'ALL',
+                ...items.where((e) => e.toUpperCase() != 'ALL'),
+              ]
+            : List<String>.from(items);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: labelStyle),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              value: value.value.isNotEmpty
+                  ? value.value
+                  : (options.isNotEmpty ? options.first : null),
+              items: options
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .toList(),
+              onChanged: (v) {
+                if (v == null && options.isNotEmpty) {
+                  value.value = options.first;
+                } else if (v != null) {
+                  value.value = v;
+                }
+              },
+              decoration: _dec(label),
+            ),
+          ],
+        );
+      },
     );
   }
 }
