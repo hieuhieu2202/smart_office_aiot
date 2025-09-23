@@ -171,22 +171,45 @@ class RackTabSelector extends StatelessWidget {
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < tabs.length; i++)
-                _RackTabChip(
-                  data: tabs[i],
-                  selected: activeIndex == i,
-                  onTap: () => controller.animateTo(i),
-                ),
-            ],
-          ),
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth;
+          final fitsWithinWidth = maxWidth.isFinite &&
+              _estimateChipRowWidth(context, tabs) <= maxWidth + 0.1;
+
+          if (fitsWithinWidth) {
+            return Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (var i = 0; i < tabs.length; i++)
+                  _RackTabChip(
+                    data: tabs[i],
+                    selected: activeIndex == i,
+                    onTap: () => controller.animateTo(i),
+                  ),
+              ],
+            );
+          }
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < tabs.length; i++)
+                    _RackTabChip(
+                      data: tabs[i],
+                      selected: activeIndex == i,
+                      onTap: () => controller.animateTo(i),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -277,4 +300,64 @@ class _RackTabChip extends StatelessWidget {
       ),
     );
   }
+}
+
+double _estimateChipRowWidth(BuildContext context, List<_RackTabData> tabs) {
+  final mediaQuery = MediaQuery.of(context);
+  final theme = Theme.of(context);
+  final textScale = mediaQuery.textScaleFactor;
+
+  final labelStyle = (theme.textTheme.labelMedium ?? const TextStyle())
+      .copyWith(fontWeight: FontWeight.w700);
+  final countStyle = (theme.textTheme.labelSmall ?? const TextStyle())
+      .copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.2);
+
+  double totalWidth = 0;
+  for (final tab in tabs) {
+    totalWidth += _estimateChipWidth(
+      label: tab.label,
+      count: tab.count,
+      labelStyle: labelStyle,
+      countStyle: countStyle,
+      textScale: textScale,
+    );
+  }
+
+  return totalWidth;
+}
+
+double _estimateChipWidth({
+  required String label,
+  required int count,
+  required TextStyle labelStyle,
+  required TextStyle countStyle,
+  required double textScale,
+}) {
+  final labelPainter = TextPainter(
+    text: TextSpan(text: label, style: labelStyle),
+    textDirection: TextDirection.ltr,
+    textScaleFactor: textScale,
+  )..layout();
+
+  final countPainter = TextPainter(
+    text: TextSpan(text: '$count', style: countStyle),
+    textDirection: TextDirection.ltr,
+    textScaleFactor: textScale,
+  )..layout();
+
+  const outerPadding = 8.0; // tổng padding ngang của widget cha
+  const chipHorizontalPadding = 28.0; // padding trong AnimatedContainer (14 * 2)
+  const iconWidth = 16.0;
+  const gapIconToLabel = 6.0;
+  const gapLabelToBadge = 6.0;
+  const badgeHorizontalPadding = 16.0; // padding trong badge (8 * 2)
+
+  return outerPadding +
+      chipHorizontalPadding +
+      iconWidth +
+      gapIconToLabel +
+      labelPainter.width +
+      gapLabelToBadge +
+      badgeHorizontalPadding +
+      countPainter.width;
 }
