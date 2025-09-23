@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'rack_left_panel.dart' show RackStatusLegendBar;
+
 class RackHeaderDelegate extends SliverPersistentHeaderDelegate {
   const RackHeaderDelegate({
     required this.height,
@@ -59,6 +61,9 @@ class RackPinnedHeader extends StatelessWidget {
               total: total,
               online: online,
               offline: offline,
+            ),
+            const RackStatusLegendBar(
+              margin: EdgeInsets.only(top: 12),
             ),
           ],
         ),
