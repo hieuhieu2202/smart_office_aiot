@@ -66,21 +66,6 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
           return Text(parts.isEmpty ? 'Rack Monitor' : parts.join('  ·  '));
         }),
         actions: [
-          Obx(
-            () {
-              final verbose = controller.verboseEnabled;
-              final theme = Theme.of(context);
-              return IconButton(
-                icon: Icon(
-                  verbose ? Icons.bug_report : Icons.bug_report_outlined,
-                  color: verbose ? theme.colorScheme.secondary : null,
-                ),
-                tooltip:
-                    verbose ? 'Disable debug log' : 'Enable debug log',
-                onPressed: () => controller.enableVerbose(!verbose),
-              );
-            },
-          ),
           RackFilterPanel(controller: controller),
           Obx(
             () => IconButton(

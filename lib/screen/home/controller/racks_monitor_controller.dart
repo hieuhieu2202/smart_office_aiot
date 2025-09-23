@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../service/lc_switch_rack_api.dart';
 
@@ -39,9 +38,8 @@ class ModelPass {
 
 Map<String, _Agg> _mergeNearCodes(
   Map<String, _Agg> src,
-  Set<String> rackSAs, {
-  bool log = false,
-}) {
+  Set<String> rackSAs,
+) {
   final m = Map<String, _Agg>.from(src);
   final keys = m.keys.toList()..sort();
   final visited = <String>{};
@@ -65,10 +63,6 @@ Map<String, _Agg> _mergeNearCodes(
         canon = (m[a]!.pass >= m[b]!.pass) ? a : b;
 
       final other = (canon == a) ? b : a;
-      if (log)
-        debugPrint(
-          '↪ MERGE NEAR: $other -> $canon (other=${m[other]!.pass}, canon=${m[canon]!.pass})',
-        );
       m[canon]!.pass += m[other]!.pass;
       m[canon]!.totalPass += m[other]!.totalPass;
       m.remove(other);
@@ -82,38 +76,6 @@ Map<String, _Agg> _mergeNearCodes(
 
 // ======================= Controller =======================
 class GroupMonitorController extends GetxController {
-  // ========= Log control =========
-  final _verbose = false.obs;
-  String _lastPassByModelSignature = '';
-
-  bool get verboseEnabled => _verbose.value;
-
-  void enableVerbose(bool on) {
-    if (_verbose.value == on) {
-      CuringApiLog.network = on;
-      if (on) _logSnapshot();
-      return;
-    }
-
-    _verbose.value = on;
-    CuringApiLog.network = on;
-
-    if (on) {
-      _lastPassByModelSignature = '';
-      vlog(() => '=== VERBOSE LOGGING ENABLED ===');
-      final isF17 = selFactory.value.trim().toUpperCase() == 'F17';
-      vlog(() => '-- API BODY PREVIEW --');
-      _buildBody(isF17: isF17);
-      _logSnapshot();
-    } else {
-      debugPrint('=== VERBOSE LOGGING DISABLED ===');
-    }
-  }
-
-  void vlog(String Function() builder) {
-    if (_verbose.value) debugPrint(builder());
-  }
-
   // ========= Filters =========
   List<LocationEntry> _allLocs = const <LocationEntry>[];
 
@@ -276,16 +238,6 @@ class GroupMonitorController extends GetxController {
       ..clear()
       ..addAll(newModels);
     if (!models.contains(selModel.value)) selModel.value = 'ALL';
-
-    vlog(
-      () =>
-          'FILTER OPTIONS REBUILD: '
-          'Factory=$fact, Floor=$floor, Room=$room, Group=$group\n'
-          'Floors=${floors.join(", ")}\n'
-          'Rooms=${rooms.join(", ")}\n'
-          'Groups=${groups.join(", ")}\n'
-          'Models=${models.join(", ")}',
-    );
   }
 
   Map<String, dynamic> _buildBody({required bool isF17}) {
@@ -337,8 +289,6 @@ class GroupMonitorController extends GetxController {
       });
     }
 
-    final tag = isF17 ? 'F17(web)' : 'F16(app)';
-    vlog(() => ' GỬI BODY $tag: $body');
     return body;
   }
 
@@ -357,10 +307,6 @@ class GroupMonitorController extends GetxController {
         body: _buildBody(isF17: isF17),
       );
       data.value = res;
-
-      _lastPassByModelSignature = '';
-
-      _logSnapshot();
     } catch (e) {
       error.value = 'Refresh failed: $e';
     } finally {
@@ -408,35 +354,10 @@ class GroupMonitorController extends GetxController {
         bucket.totalPass += total;
       }
 
-      final mapped = byModel.entries
+      return byModel.entries
           .map((e) => ModelPass(e.key, e.value.pass, e.value.totalPass))
           .toList()
         ..sort((a, b) => b.totalPass.compareTo(a.totalPass));
-
-      if (_verbose.value) {
-        final signature = mapped.isEmpty
-            ? 'api:empty'
-            : mapped
-                .map((e) => 'api:${e.model}:${e.pass}/${e.totalPass}')
-                .join('|');
-        if (_lastPassByModelSignature != signature) {
-          _lastPassByModelSignature = signature;
-
-          if (mapped.isEmpty) {
-            vlog(() => '--- PASS BY MODEL (API modelDetails) --- (empty)');
-          } else {
-            vlog(() => '--- PASS BY MODEL (API modelDetails) ---');
-            for (final it in mapped) {
-              vlog(
-                () =>
-                    'SA=${it.model}  Pass=${it.pass}  TotalPass=${it.totalPass}',
-              );
-            }
-          }
-        }
-      }
-
-      return mapped;
     }
 
     final agg = <String, _Agg>{};
@@ -458,22 +379,12 @@ class GroupMonitorController extends GetxController {
       for (final s in r.slotDetails) {
         String slotSA = _extractSA(s.modelName);
 
-        if (slotSA.isEmpty && rackSA.isNotEmpty) {
-          vlog(
-            () =>
-                '↪ NORMALIZE: ${r.rackName}/${s.slotNumber} slotSA="" -> rackSA=$rackSA (total=${s.totalPass})',
-          );
-          slotSA = rackSA;
-        }
+        if (slotSA.isEmpty && rackSA.isNotEmpty) slotSA = rackSA;
 
         if (slotSA.isNotEmpty &&
             rackSA.isNotEmpty &&
             slotSA != rackSA &&
             _diffAtMostOneChar(slotSA, rackSA)) {
-          vlog(
-            () =>
-                '↪ NORMALIZE: ${r.rackName}/${s.slotNumber} slotSA=$slotSA ~ rackSA=$rackSA -> use rackSA (total=${s.totalPass})',
-          );
           slotSA = rackSA;
         }
 
@@ -485,105 +396,12 @@ class GroupMonitorController extends GetxController {
       }
     }
 
-    List<ModelPass> _snapshot(Map<String, _Agg> source) =>
-        source.entries
-            .map((e) => ModelPass(e.key, e.value.pass, e.value.totalPass))
-            .toList()
-          ..sort((a, b) => a.model.compareTo(b.model));
-
-    final rawSnapshot = _snapshot(agg);
-    final merged = _mergeNearCodes(agg, rackSAs, log: _verbose.value);
-    final mergedSnapshot = _snapshot(merged);
-
-    if (_verbose.value) {
-      final signature = <String>['legacy']
-        ..addAll(
-          rawSnapshot.isEmpty
-              ? const ['raw:empty']
-              : rawSnapshot
-                  .map((e) => 'raw:${e.model}:${e.pass}/${e.totalPass}'),
-        )
-        ..addAll(
-          mergedSnapshot.isEmpty
-              ? const ['merged:empty']
-              : mergedSnapshot
-                  .map((e) => 'merged:${e.model}:${e.pass}/${e.totalPass}'),
-        );
-      final signatureStr = signature.join('|');
-
-      if (_lastPassByModelSignature != signatureStr) {
-        _lastPassByModelSignature = signatureStr;
-
-        if (rawSnapshot.isEmpty) {
-          vlog(() => '--- PASS BY MODEL (legacy raw, before merge) --- (empty)');
-        } else {
-          vlog(() => '--- PASS BY MODEL (legacy raw, before merge) ---');
-          for (final it in rawSnapshot) {
-            vlog(
-              () =>
-                  'SA=${it.model}  Pass=${it.pass}  TotalPass=${it.totalPass}',
-            );
-          }
-        }
-
-        if (mergedSnapshot.isEmpty) {
-          vlog(
-            () =>
-                '--- PASS BY MODEL (legacy merged output = totalPass) --- (empty)',
-          );
-        } else {
-          vlog(() => '--- PASS BY MODEL (legacy merged output = totalPass) ---');
-          for (final it in mergedSnapshot) {
-            vlog(
-              () =>
-                  'SA=${it.model}  Pass=${it.pass}  TotalPass=${it.totalPass}',
-            );
-          }
-        }
-      }
-    }
-
-    final list = List<ModelPass>.from(mergedSnapshot)
+    final merged = _mergeNearCodes(agg, rackSAs);
+    final list = merged.entries
+        .map((e) => ModelPass(e.key, e.value.pass, e.value.totalPass))
+        .toList()
       ..sort((a, b) => b.totalPass.compareTo(a.totalPass));
     return list;
-  }
-
-  void _logSnapshot() {
-    if (!_verbose.value) return;
-    final qs = data.value?.quantitySummary;
-    if (qs == null) return;
-
-    vlog(() => '===== SNAPSHOT =====');
-    vlog(
-      () =>
-          'Factory=${selFactory.value}  Floor=${selFloor.value}  Room=${selRoom.value}  Group=${selGroup.value}  Model=${selModel.value}',
-    );
-    vlog(
-      () =>
-          'UT=${qs.ut.toStringAsFixed(2)}%  INPUT=${qs.input}  FAIL=${qs.fail}  PASS=${qs.pass}  RE-PASS=${qs.rePass}  TOTAL_PASS=${qs.totalPass}',
-    );
-
-    for (final r in data.value?.rackDetails ?? const <RackDetail>[]) {
-      for (final s in r.slotDetails) {
-        final sa = _extractSA(
-          s.modelName.isNotEmpty ? s.modelName : r.modelName,
-        );
-        vlog(
-          () =>
-              '· SLOT ${r.rackName}/${s.slotNumber}  SA=$sa  pass=${s.pass}  total=${s.totalPass}',
-        );
-      }
-    }
-
-    final agg = passByModelAgg;
-    vlog(() => '--- PASS BY MODEL (Output = totalPass, merged) ---');
-    for (final it in agg) {
-      vlog(
-        () =>
-            'SA=${it.model}  Pass=${it.pass}  TotalPass=${it.totalPass}',
-      );
-    }
-    vlog(() => '====================\n');
   }
 
   Map<String, int> get slotStatusCount {
