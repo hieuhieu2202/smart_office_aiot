@@ -13,6 +13,7 @@ class StpController extends GetxController {
   var filesAndFolders = <String, bool>{}.obs;
   var errorMessage = ''.obs;
   var rememberLogin = false.obs;
+  var allowAutoLogin = false.obs;
   var host = ''.obs;
   var username = ''.obs;
   var password = ''.obs;
@@ -27,7 +28,8 @@ class StpController extends GetxController {
   void onInit() {
     super.onInit();
     _loadSavedCredentials();
-    if (rememberLogin.value &&
+    if (allowAutoLogin.value &&
+        rememberLogin.value &&
         host.value.isNotEmpty &&
         username.value.isNotEmpty &&
         password.value.isNotEmpty) {
@@ -41,6 +43,11 @@ class StpController extends GetxController {
     password.value = _box.read('sftpPassword') ?? '';
     port.value = _box.read('sftpPort') ?? 6742;
     rememberLogin.value = _box.read('sftpRemember') ?? false;
+    allowAutoLogin.value = _box.read('sftpAutoLogin') ?? false;
+    if (!rememberLogin.value && allowAutoLogin.value) {
+      allowAutoLogin.value = false;
+      _box.write('sftpAutoLogin', false);
+    }
     shouldResetLoginForm.value = false;
   }
 
@@ -148,18 +155,22 @@ class StpController extends GetxController {
     rememberLogin.value = remember;
     shouldResetLoginForm.value = false;
 
+    allowAutoLogin.value = remember;
+
     if (remember) {
       _box.write('sftpHost', this.host.value);
       _box.write('sftpUsername', this.username.value);
       _box.write('sftpPassword', this.password.value);
       _box.write('sftpPort', this.port.value);
       _box.write('sftpRemember', true);
+      _box.write('sftpAutoLogin', true);
     } else {
       _box.remove('sftpHost');
       _box.remove('sftpUsername');
       _box.remove('sftpPassword');
       _box.remove('sftpPort');
       _box.write('sftpRemember', false);
+      _box.write('sftpAutoLogin', false);
     }
 
     await _checkAndConnect();
@@ -182,6 +193,9 @@ class StpController extends GetxController {
     currentPath.value = '/';
     errorMessage.value = '';
 
+    allowAutoLogin.value = false;
+    _box.write('sftpAutoLogin', false);
+
     if (clearSaved || !rememberLogin.value) {
       host.value = '';
       username.value = '';
@@ -193,6 +207,7 @@ class StpController extends GetxController {
       _box.remove('sftpPassword');
       _box.remove('sftpPort');
       _box.write('sftpRemember', false);
+      _box.write('sftpAutoLogin', false);
       shouldResetLoginForm.value = true;
     }
 
