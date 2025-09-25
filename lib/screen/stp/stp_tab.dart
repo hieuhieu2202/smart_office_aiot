@@ -151,6 +151,10 @@ class _SftpScreenState extends State<SftpScreen> {
   }
 
   Widget _buildLoginForm(bool isDark) {
+    if (sftpController.isAutoLoggingIn.value) {
+      return _buildAutoLoginSplash(isDark);
+    }
+
     if (sftpController.shouldResetLoginForm.value) {
       hostController.clear();
       usernameController.clear();
@@ -414,6 +418,52 @@ class _SftpScreenState extends State<SftpScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildAutoLoginSplash(bool isDark) {
+    final Color textColor =
+        isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText;
+
+    return Scaffold(
+      backgroundColor: isDark
+          ? GlobalColors.bodyDarkBg
+          : GlobalColors.bodyLightBg,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 64,
+              width: 64,
+              child: CircularProgressIndicator(
+                strokeWidth: 5,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  GlobalColors.accentByIsDark(isDark),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Đang đăng nhập...',
+              style: GlobalTextStyles.bodyLarge(isDark: isDark).copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Vui lòng chờ trong giây lát.',
+              style: GlobalTextStyles.bodyMedium(isDark: isDark).copyWith(
+                color: isDark
+                    ? GlobalColors.darkSecondaryText
+                    : GlobalColors.lightSecondaryText,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -20,6 +20,7 @@ class StpController extends GetxController {
   var password = ''.obs;
   var port = 6742.obs;
   var shouldResetLoginForm = false.obs;
+  var isAutoLoggingIn = false.obs;
 
   final GetStorage _box = GetStorage();
   SftpClient? sftpClient;
@@ -33,7 +34,7 @@ class StpController extends GetxController {
         host.value.isNotEmpty &&
         username.value.isNotEmpty &&
         password.value.isNotEmpty) {
-      _checkAndConnect();
+      _attemptAutoLogin();
     }
   }
 
@@ -66,6 +67,19 @@ class StpController extends GetxController {
     }
 
     shouldResetLoginForm.value = false;
+  }
+
+  Future<void> _attemptAutoLogin() async {
+    if (isAutoLoggingIn.value) {
+      return;
+    }
+
+    isAutoLoggingIn.value = true;
+    try {
+      await _checkAndConnect();
+    } finally {
+      isAutoLoggingIn.value = false;
+    }
   }
 
   Future<void> _checkAndConnect() async {
@@ -226,6 +240,7 @@ class StpController extends GetxController {
     allowAutoLogin.value = false;
     rememberLogin.value = false;
     hasSavedCredentials.value = false;
+    isAutoLoggingIn.value = false;
     await _box.write('sftpAutoLogin', false);
     await _box.write('sftpSessionActive', false);
     await _box.write('sftpRemember', false);
@@ -245,6 +260,7 @@ class StpController extends GetxController {
   }
 
   Future<void> logout() async {
+    isAutoLoggingIn.value = false;
     final currentSftpClient = sftpClient;
     if (currentSftpClient != null) {
       currentSftpClient.close();
