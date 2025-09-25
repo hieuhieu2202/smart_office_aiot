@@ -111,6 +111,7 @@ flutter:
     - assets/images/background_light.png
     - assets/images/logo.png
     - assets/icons/faceid.png
+    - assets/images/robot_icon.png
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

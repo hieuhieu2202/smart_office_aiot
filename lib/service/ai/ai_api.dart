@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import '../../config/ApiConfig.dart'; // đảm bảo đúng tên file
+import '../../config/ApiConfig.dart';
 
 class AiApi {
   static final AiApi _i = AiApi._();
@@ -47,7 +47,7 @@ class AiApi {
   }
 }
 
-/// ⚠️ Chỉ dùng trong môi trường nội bộ/dev với chứng chỉ tự ký
+/// Chỉ dùng trong môi trường nội bộ/dev với chứng chỉ tự ký
 class _DevHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? c) {
