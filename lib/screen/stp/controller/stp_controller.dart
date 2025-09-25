@@ -17,6 +17,7 @@ class StpController extends GetxController {
   var username = ''.obs;
   var password = ''.obs;
   var port = 6742.obs;
+  var shouldResetLoginForm = false.obs;
 
   final GetStorage _box = GetStorage();
   SftpClient? sftpClient;
@@ -40,6 +41,7 @@ class StpController extends GetxController {
     password.value = _box.read('sftpPassword') ?? '';
     port.value = _box.read('sftpPort') ?? 6742;
     rememberLogin.value = _box.read('sftpRemember') ?? false;
+    shouldResetLoginForm.value = false;
   }
 
   Future<void> _checkAndConnect() async {
@@ -144,6 +146,7 @@ class StpController extends GetxController {
     this.password.value = password;
     this.port.value = port;
     rememberLogin.value = remember;
+    shouldResetLoginForm.value = false;
 
     if (remember) {
       _box.write('sftpHost', this.host.value);
@@ -190,6 +193,7 @@ class StpController extends GetxController {
       _box.remove('sftpPassword');
       _box.remove('sftpPort');
       _box.write('sftpRemember', false);
+      shouldResetLoginForm.value = true;
     }
 
     Get.snackbar(

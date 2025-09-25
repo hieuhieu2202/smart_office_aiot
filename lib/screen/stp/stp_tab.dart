@@ -151,6 +151,15 @@ class _SftpScreenState extends State<SftpScreen> {
   }
 
   Widget _buildLoginForm(bool isDark) {
+    if (sftpController.shouldResetLoginForm.value) {
+      hostController.clear();
+      usernameController.clear();
+      passwordController.clear();
+      portController.text =
+          sftpController.port.value > 0 ? sftpController.port.value.toString() : '';
+      sftpController.shouldResetLoginForm.value = false;
+    }
+
     if (hostController.text.isEmpty && sftpController.host.value.isNotEmpty) {
       hostController.text = sftpController.host.value;
     }
