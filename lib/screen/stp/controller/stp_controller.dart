@@ -163,8 +163,15 @@ class StpController extends GetxController {
   }
 
   Future<void> logout({bool clearSaved = false}) async {
-    await sftpClient?.close();
-    await sshClient?.close();
+    final currentSftpClient = sftpClient;
+    if (currentSftpClient != null) {
+      await currentSftpClient.close();
+    }
+
+    final currentSshClient = sshClient;
+    if (currentSshClient != null) {
+      await currentSshClient.close();
+    }
     sftpClient = null;
     sshClient = null;
     isConnected.value = false;
