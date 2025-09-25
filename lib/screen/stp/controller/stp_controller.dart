@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:smart_factory/config/global_color.dart';
@@ -11,21 +12,46 @@ class StpController extends GetxController {
   var currentPath = '/'.obs;
   var filesAndFolders = <String, bool>{}.obs;
   var errorMessage = ''.obs;
+  var rememberLogin = false.obs;
+  var host = ''.obs;
+  var username = ''.obs;
+  var password = ''.obs;
+  var port = 6742.obs;
+
+  final GetStorage _box = GetStorage();
   SftpClient? sftpClient;
   SSHClient? sshClient;
-
-  final String host = '10.220.130.115';
-  final String username = 'Automation';
-  final String password = 'auto123';
-  final int port = 6742;
 
   @override
   void onInit() {
     super.onInit();
-    _checkAndConnect();
+    _loadSavedCredentials();
+    if (rememberLogin.value &&
+        host.value.isNotEmpty &&
+        username.value.isNotEmpty &&
+        password.value.isNotEmpty) {
+      _checkAndConnect();
+    }
+  }
+
+  void _loadSavedCredentials() {
+    host.value = _box.read('sftpHost') ?? '';
+    username.value = _box.read('sftpUsername') ?? '';
+    password.value = _box.read('sftpPassword') ?? '';
+    port.value = _box.read('sftpPort') ?? 6742;
+    rememberLogin.value = _box.read('sftpRemember') ?? false;
   }
 
   Future<void> _checkAndConnect() async {
+    if (host.value.isEmpty ||
+        username.value.isEmpty ||
+        password.value.isEmpty ||
+        port.value <= 0) {
+      isConnected.value = false;
+      errorMessage.value = 'Thiếu thông tin đăng nhập!';
+      return;
+    }
+
     var connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult == ConnectivityResult.none) {
       isConnected.value = false;
@@ -48,12 +74,12 @@ class StpController extends GetxController {
 
   Future<void> connectToSftp() async {
     try {
-      print('Đang kết nối $host:$port...');
-      final socket = await SSHSocket.connect(host, port);
+      print('Đang kết nối ${host.value}:${port.value}...');
+      final socket = await SSHSocket.connect(host.value, port.value);
       sshClient = SSHClient(
         socket,
-        username: username,
-        onPasswordRequest: () => password,
+        username: username.value,
+        onPasswordRequest: () => password.value,
       );
       sftpClient = await sshClient!.sftp();
       isConnected.value = true;
@@ -86,6 +112,88 @@ class StpController extends GetxController {
                 : GlobalColors.lightPrimaryText,
       );
     }
+  }
+
+  Future<void> connectWithCredentials({
+    required String host,
+    required int port,
+    required String username,
+    required String password,
+    required bool remember,
+  }) async {
+    if (host.trim().isEmpty ||
+        username.trim().isEmpty ||
+        password.isEmpty ||
+        port <= 0) {
+      errorMessage.value = 'Vui lòng nhập đầy đủ thông tin hợp lệ!';
+      Get.snackbar(
+        'Lỗi',
+        'Vui lòng nhập đầy đủ thông tin hợp lệ!',
+        snackStyle: SnackStyle.FLOATING,
+        backgroundColor:
+            Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+        colorText: Get.isDarkMode
+            ? GlobalColors.darkPrimaryText
+            : GlobalColors.lightPrimaryText,
+      );
+      return;
+    }
+
+    this.host.value = host.trim();
+    this.username.value = username.trim();
+    this.password.value = password;
+    this.port.value = port;
+    rememberLogin.value = remember;
+
+    if (remember) {
+      _box.write('sftpHost', this.host.value);
+      _box.write('sftpUsername', this.username.value);
+      _box.write('sftpPassword', this.password.value);
+      _box.write('sftpPort', this.port.value);
+      _box.write('sftpRemember', true);
+    } else {
+      _box.remove('sftpHost');
+      _box.remove('sftpUsername');
+      _box.remove('sftpPassword');
+      _box.remove('sftpPort');
+      _box.write('sftpRemember', false);
+    }
+
+    await _checkAndConnect();
+  }
+
+  Future<void> logout({bool clearSaved = false}) async {
+    await sftpClient?.close();
+    await sshClient?.close();
+    sftpClient = null;
+    sshClient = null;
+    isConnected.value = false;
+    filesAndFolders.clear();
+    currentPath.value = '/';
+    errorMessage.value = '';
+
+    if (clearSaved || !rememberLogin.value) {
+      host.value = '';
+      username.value = '';
+      password.value = '';
+      port.value = 6742;
+      rememberLogin.value = false;
+      _box.remove('sftpHost');
+      _box.remove('sftpUsername');
+      _box.remove('sftpPassword');
+      _box.remove('sftpPort');
+      _box.write('sftpRemember', false);
+    }
+
+    Get.snackbar(
+      'Đăng xuất',
+      'Đã ngắt kết nối khỏi máy chủ WinSCP.',
+      snackStyle: SnackStyle.FLOATING,
+      backgroundColor:
+          Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+      colorText:
+          Get.isDarkMode ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+    );
   }
 
   Future<void> listDirectory(String path) async {
