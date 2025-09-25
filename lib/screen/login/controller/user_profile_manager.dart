@@ -1,6 +1,7 @@
 // screen/login/controller/user_profile_manager.dart
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:smart_factory/service/auth/auth_config.dart';
 
 class UserProfileManager {
   static final UserProfileManager _instance = UserProfileManager._internal();
@@ -31,7 +32,7 @@ class UserProfileManager {
     location.value = box.read('location') ?? '';
     managers.value = box.read('managers') ?? '';
     hireDate.value = box.read('hireDate') ?? '';
-    avatarUrl.value = box.read('avatarUrl') ?? '';
+    avatarUrl.value = _resolveAvatarUrl(box.read('avatarUrl') ?? '');
     email.value = box.read('email') ?? '';
   }
 
@@ -49,7 +50,8 @@ class UserProfileManager {
     location.value = decodedToken['Location'] ?? '';
     managers.value = decodedToken['Managers'] ?? '';
     hireDate.value = decodedToken['HireDate'] ?? '';
-    avatarUrl.value = decodedToken['AvatarUrl'] ?? '';
+    avatarUrl.value =
+        _resolveAvatarUrl(decodedToken['AvatarUrl']?.toString() ?? '');
     email.value = decodedToken['Email'] ?? '';
 
     box.write('civetUserno', civetUserno.value);
@@ -88,5 +90,25 @@ class UserProfileManager {
     box.remove('hireDate');
     box.remove('avatarUrl');
     box.remove('email');
+  }
+
+  String _resolveAvatarUrl(String url) {
+    final trimmedUrl = url.trim();
+    if (trimmedUrl.isEmpty) {
+      return '';
+    }
+
+    final lowerCaseUrl = trimmedUrl.toLowerCase();
+    if (lowerCaseUrl.startsWith('http://') ||
+        lowerCaseUrl.startsWith('https://')) {
+      return trimmedUrl;
+    }
+
+    final base = AuthConfig.baseUrl;
+    if (trimmedUrl.startsWith('/')) {
+      return '$base$trimmedUrl';
+    }
+
+    return '$base/$trimmedUrl';
   }
 }
