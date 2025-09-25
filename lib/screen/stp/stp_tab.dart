@@ -229,7 +229,13 @@ class _SftpScreenState extends State<SftpScreen> {
                 contentPadding: EdgeInsets.zero,
                 value: sftpController.rememberLogin.value,
                 onChanged: (value) {
-                  sftpController.rememberLogin.value = value ?? false;
+                  final isChecked = value ?? false;
+                  if (!isChecked && sftpController.hasSavedCredentials.value) {
+                    sftpController.clearRememberedCredentials(
+                      resetFormFields: false,
+                    );
+                  }
+                  sftpController.rememberLogin.value = isChecked;
                 },
                 title: Text(
                   'Lưu thông tin đăng nhập',
@@ -285,25 +291,29 @@ class _SftpScreenState extends State<SftpScreen> {
             ),
             const SizedBox(height: 16),
             Obx(
-              () => (!sftpController.rememberLogin.value &&
-                      sftpController.host.value.isEmpty)
-                  ? const SizedBox.shrink()
-                  : OutlinedButton(
-                      onPressed: () {
-                        sftpController.logout();
-                        hostController.clear();
-                        portController.clear();
-                        usernameController.clear();
-                        passwordController.clear();
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(
-                        'Xóa thông tin đã lưu',
-                        style: GlobalTextStyles.bodyMedium(isDark: isDark),
-                      ),
-                    ),
+              () {
+                final shouldShowClear = sftpController.rememberLogin.value ||
+                    sftpController.hasSavedCredentials.value;
+                if (!shouldShowClear) {
+                  return const SizedBox.shrink();
+                }
+                return OutlinedButton(
+                  onPressed: () {
+                    sftpController.clearRememberedCredentials();
+                    hostController.clear();
+                    portController.clear();
+                    usernameController.clear();
+                    passwordController.clear();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(
+                    'Xóa thông tin đã lưu',
+                    style: GlobalTextStyles.bodyMedium(isDark: isDark),
+                  ),
+                );
+              },
             ),
           ],
         ),

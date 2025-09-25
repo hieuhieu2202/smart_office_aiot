@@ -14,6 +14,7 @@ class StpController extends GetxController {
   var errorMessage = ''.obs;
   var rememberLogin = false.obs;
   var allowAutoLogin = false.obs;
+  var hasSavedCredentials = false.obs;
   var host = ''.obs;
   var username = ''.obs;
   var password = ''.obs;
@@ -38,15 +39,39 @@ class StpController extends GetxController {
   }
 
   void _loadSavedCredentials() {
-    host.value = _box.read('sftpHost') ?? '';
-    username.value = _box.read('sftpUsername') ?? '';
-    password.value = _box.read('sftpPassword') ?? '';
-    port.value = _box.read('sftpPort') ?? 6742;
-    rememberLogin.value = _box.read('sftpRemember') ?? false;
-    allowAutoLogin.value = _box.read('sftpAutoLogin') ?? false;
-    if (!rememberLogin.value && allowAutoLogin.value) {
+    final savedHost = _box.read('sftpHost') ?? '';
+    final savedUsername = _box.read('sftpUsername') ?? '';
+    final savedPassword = _box.read('sftpPassword') ?? '';
+    final savedPort = _box.read('sftpPort') ?? 6742;
+    final savedRemember = _box.read('sftpRemember') ?? false;
+    final savedAutoLogin = _box.read('sftpAutoLogin') ?? false;
+
+    host.value = savedHost;
+    username.value = savedUsername;
+    password.value = savedPassword;
+    port.value = savedPort;
+    rememberLogin.value = savedRemember;
+
+    hasSavedCredentials.value =
+        savedRemember &&
+        savedHost.isNotEmpty &&
+        savedUsername.isNotEmpty &&
+        savedPassword.isNotEmpty;
+
+    allowAutoLogin.value = hasSavedCredentials.value && savedAutoLogin;
+    if (!hasSavedCredentials.value) {
       allowAutoLogin.value = false;
+      host.value = '';
+      username.value = '';
+      password.value = '';
+      port.value = 6742;
+      rememberLogin.value = false;
       _box.write('sftpAutoLogin', false);
+      _box.write('sftpRemember', false);
+      _box.remove('sftpHost');
+      _box.remove('sftpUsername');
+      _box.remove('sftpPassword');
+      _box.remove('sftpPort');
     }
     shouldResetLoginForm.value = false;
   }
@@ -156,6 +181,7 @@ class StpController extends GetxController {
     shouldResetLoginForm.value = false;
 
     allowAutoLogin.value = remember;
+    hasSavedCredentials.value = remember;
 
     if (remember) {
       _box.write('sftpHost', this.host.value);
@@ -171,9 +197,30 @@ class StpController extends GetxController {
       _box.remove('sftpPort');
       _box.write('sftpRemember', false);
       _box.write('sftpAutoLogin', false);
+      hasSavedCredentials.value = false;
     }
 
     await _checkAndConnect();
+  }
+
+  void clearRememberedCredentials({bool resetFormFields = true}) {
+    allowAutoLogin.value = false;
+    rememberLogin.value = false;
+    hasSavedCredentials.value = false;
+    _box.write('sftpAutoLogin', false);
+    _box.write('sftpRemember', false);
+    _box.remove('sftpHost');
+    _box.remove('sftpUsername');
+    _box.remove('sftpPassword');
+    _box.remove('sftpPort');
+
+    if (resetFormFields) {
+      host.value = '';
+      username.value = '';
+      password.value = '';
+      port.value = 6742;
+      shouldResetLoginForm.value = true;
+    }
   }
 
   Future<void> logout() async {
@@ -193,20 +240,7 @@ class StpController extends GetxController {
     currentPath.value = '/';
     errorMessage.value = '';
 
-    allowAutoLogin.value = false;
-    rememberLogin.value = false;
-    _box.write('sftpAutoLogin', false);
-    _box.write('sftpRemember', false);
-
-    host.value = '';
-    username.value = '';
-    password.value = '';
-    port.value = 6742;
-    _box.remove('sftpHost');
-    _box.remove('sftpUsername');
-    _box.remove('sftpPassword');
-    _box.remove('sftpPort');
-    shouldResetLoginForm.value = true;
+    clearRememberedCredentials();
 
     Get.snackbar(
       'Đăng xuất',
@@ -264,6 +298,10 @@ class StpController extends GetxController {
                 : GlobalColors.lightPrimaryText,
       );
     } catch (e) {
+      if ((!isConnected.value || sftpClient == null) &&
+          e.toString().contains('Connection closed')) {
+        return;
+      }
       errorMessage.value = 'Lỗi khi liệt kê thư mục: $e';
       print('Lỗi liệt kê: $e');
       Get.snackbar(
