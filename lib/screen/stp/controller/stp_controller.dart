@@ -187,16 +187,29 @@ class StpController extends GetxController {
       return;
     }
 
-    await _box.write('sftpHost', host.value);
-    await _box.write('sftpUsername', username.value);
-    await _box.write('sftpPassword', password.value);
-    await _box.write('sftpPort', port.value);
-    await _box.write('sftpAutoLogin', true);
-    await _box.write('sftpSessionActive', true);
-    await _box.write('sftpRemember', rememberLogin.value);
+    if (rememberLogin.value) {
+      await _box.write('sftpHost', host.value);
+      await _box.write('sftpUsername', username.value);
+      await _box.write('sftpPassword', password.value);
+      await _box.write('sftpPort', port.value);
+      await _box.write('sftpAutoLogin', true);
+      await _box.write('sftpRemember', true);
+      await _box.write('sftpSessionActive', true);
 
-    allowAutoLogin.value = true;
-    hasSavedCredentials.value = rememberLogin.value && hasAllFields;
+      allowAutoLogin.value = true;
+      hasSavedCredentials.value = true;
+    } else {
+      await _box.remove('sftpHost');
+      await _box.remove('sftpUsername');
+      await _box.remove('sftpPassword');
+      await _box.remove('sftpPort');
+      await _box.write('sftpAutoLogin', false);
+      await _box.write('sftpRemember', false);
+      await _box.write('sftpSessionActive', false);
+
+      allowAutoLogin.value = false;
+      hasSavedCredentials.value = false;
+    }
   }
 
   Future<void> updateRememberPreference(bool remember) async {
