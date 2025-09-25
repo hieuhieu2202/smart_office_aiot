@@ -373,7 +373,7 @@ class StpController extends GetxController {
     await listDirectory(parentPath);
   }
 
-  Future<void> downloadFile(String filename) async {
+  Future<File?> downloadFile(String filename, {bool notifyUser = true}) async {
     if (!isConnected.value || sftpClient == null) {
       errorMessage.value = 'Chưa kết nối đến Sever!';
       Get.snackbar(
@@ -387,16 +387,40 @@ class StpController extends GetxController {
                 ? GlobalColors.darkPrimaryText
                 : GlobalColors.lightPrimaryText,
       );
-      return;
+      return null;
     }
 
     try {
-      var storageStatus = await Permission.storage.request();
-      if (!storageStatus.isGranted) {
-        errorMessage.value = 'Không có quyền lưu dữ liệu!';
+      Directory? localDir;
+      if (Platform.isAndroid) {
+        final storageStatus = await Permission.storage.request();
+        if (!storageStatus.isGranted) {
+          errorMessage.value = 'Không có quyền lưu dữ liệu!';
+          Get.snackbar(
+            'Lỗi',
+            'Không có quyền lưu trữ!',
+            snackStyle: SnackStyle.FLOATING,
+            backgroundColor:
+                Get.isDarkMode
+                    ? GlobalColors.cardDarkBg
+                    : GlobalColors.cardLightBg,
+            colorText:
+                Get.isDarkMode
+                    ? GlobalColors.darkPrimaryText
+                    : GlobalColors.lightPrimaryText,
+          );
+          return null;
+        }
+        localDir = await getExternalStorageDirectory();
+      } else {
+        localDir = await getApplicationDocumentsDirectory();
+      }
+
+      if (localDir == null) {
+        errorMessage.value = 'Không xác định được thư mục lưu trữ!';
         Get.snackbar(
           'Lỗi',
-          'Không có quyền lưu trữ!',
+          'Không xác định được thư mục lưu trữ!',
           snackStyle: SnackStyle.FLOATING,
           backgroundColor:
               Get.isDarkMode
@@ -407,8 +431,9 @@ class StpController extends GetxController {
                   ? GlobalColors.darkPrimaryText
                   : GlobalColors.lightPrimaryText,
         );
-        return;
+        return null;
       }
+
       final remotePath =
           currentPath.value == '/'
               ? '/$filename'
@@ -419,23 +444,30 @@ class StpController extends GetxController {
       );
       final content = await fileHandle.readBytes();
       await fileHandle.close();
-      final localDir = await getExternalStorageDirectory();
-      final localPath = '${localDir!.path}/$filename';
-      final localFile = File(localPath);
-      await localFile.writeAsBytes(content);
 
-      errorMessage.value = 'Đã tải file về: $localPath';
-      Get.snackbar(
-        'Thành công',
-        'Đã tải file về: $localPath',
-        snackStyle: SnackStyle.FLOATING,
-        backgroundColor:
-            Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-        colorText:
-            Get.isDarkMode
-                ? GlobalColors.darkPrimaryText
-                : GlobalColors.lightPrimaryText,
-      );
+      final sanitizedName = filename.split('/').last;
+      final localPath = '${localDir.path}/$sanitizedName';
+      final localFile = File(localPath);
+      await localFile.writeAsBytes(content, flush: true);
+
+      if (notifyUser) {
+        errorMessage.value = 'Đã tải file về: $localPath';
+        Get.snackbar(
+          'Thành công',
+          'Đã tải file về: $localPath',
+          snackStyle: SnackStyle.FLOATING,
+          backgroundColor:
+              Get.isDarkMode
+                  ? GlobalColors.cardDarkBg
+                  : GlobalColors.cardLightBg,
+          colorText:
+              Get.isDarkMode
+                  ? GlobalColors.darkPrimaryText
+                  : GlobalColors.lightPrimaryText,
+        );
+      }
+
+      return localFile;
     } catch (e) {
       errorMessage.value = 'Lỗi khi tải file: $e';
       print('Lỗi tải file: $e');
@@ -449,59 +481,6 @@ class StpController extends GetxController {
             Get.isDarkMode
                 ? GlobalColors.darkPrimaryText
                 : GlobalColors.lightPrimaryText,
-      );
-    }
-  }
-
-  Future<File?> fetchFileForPreview(String filename) async {
-    if (!isConnected.value || sftpClient == null) {
-      await _checkAndConnect();
-      if (!isConnected.value || sftpClient == null) {
-        errorMessage.value = 'Không thể kết nối để xem trước tệp!';
-        Get.snackbar(
-          'Lỗi',
-          'Không thể kết nối để xem trước tệp!',
-          snackStyle: SnackStyle.FLOATING,
-          backgroundColor:
-              Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-          colorText: Get.isDarkMode
-              ? GlobalColors.darkPrimaryText
-              : GlobalColors.lightPrimaryText,
-        );
-        return null;
-      }
-    }
-
-    try {
-      final remotePath =
-          currentPath.value == '/' ? '/$filename' : '${currentPath.value}/$filename';
-
-      final fileHandle = await sftpClient!.open(
-        remotePath,
-        mode: SftpFileOpenMode.read,
-      );
-      final content = await fileHandle.readBytes();
-      await fileHandle.close();
-
-      final tempDir = await getTemporaryDirectory();
-      final sanitizedName = filename.split('/').last;
-      final timestamp = DateTime.now().microsecondsSinceEpoch;
-      final localPath = '${tempDir.path}/$timestamp-$sanitizedName';
-      final localFile = File(localPath);
-      await localFile.writeAsBytes(content, flush: true);
-
-      return localFile;
-    } catch (e) {
-      errorMessage.value = 'Lỗi khi tải tệp xem trước: $e';
-      Get.snackbar(
-        'Lỗi',
-        'Lỗi khi tải tệp xem trước: $e',
-        snackStyle: SnackStyle.FLOATING,
-        backgroundColor:
-            Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-        colorText: Get.isDarkMode
-            ? GlobalColors.darkPrimaryText
-            : GlobalColors.lightPrimaryText,
       );
       return null;
     }
