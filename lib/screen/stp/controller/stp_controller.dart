@@ -30,7 +30,6 @@ class StpController extends GetxController {
     super.onInit();
     _loadSavedCredentials();
     if (allowAutoLogin.value &&
-        rememberLogin.value &&
         host.value.isNotEmpty &&
         username.value.isNotEmpty &&
         password.value.isNotEmpty) {
@@ -44,7 +43,8 @@ class StpController extends GetxController {
     final savedPassword = _box.read('sftpPassword') ?? '';
     final savedPort = _box.read('sftpPort') ?? 6742;
     final savedRemember = _box.read('sftpRemember') ?? false;
-    final savedAutoLogin = _box.read('sftpAutoLogin') ?? false;
+    final savedAutoLogin =
+        _box.read('sftpSessionActive') ?? _box.read('sftpAutoLogin') ?? false;
 
     host.value = savedHost;
     username.value = savedUsername;
@@ -111,6 +111,7 @@ class StpController extends GetxController {
       isConnected.value = true;
       errorMessage.value = '';
       await listDirectory(currentPath.value);
+      await _persistCredentialsForSession();
       Get.snackbar(
         'Thành công',
         'Kết nối đến Sever thành công!',
@@ -172,27 +173,40 @@ class StpController extends GetxController {
     rememberLogin.value = remember;
     shouldResetLoginForm.value = false;
 
-    allowAutoLogin.value = remember;
-    hasSavedCredentials.value = remember;
-
-    if (remember) {
-      await _box.write('sftpHost', this.host.value);
-      await _box.write('sftpUsername', this.username.value);
-      await _box.write('sftpPassword', this.password.value);
-      await _box.write('sftpPort', this.port.value);
-      await _box.write('sftpRemember', true);
-      await _box.write('sftpAutoLogin', true);
-    } else {
-      await _box.remove('sftpHost');
-      await _box.remove('sftpUsername');
-      await _box.remove('sftpPassword');
-      await _box.remove('sftpPort');
-      await _box.write('sftpRemember', false);
-      await _box.write('sftpAutoLogin', false);
-      hasSavedCredentials.value = false;
-    }
+    await updateRememberPreference(remember);
 
     await _checkAndConnect();
+  }
+
+  Future<void> _persistCredentialsForSession() async {
+    final hasAllFields = host.value.isNotEmpty &&
+        username.value.isNotEmpty &&
+        password.value.isNotEmpty;
+
+    if (!hasAllFields) {
+      return;
+    }
+
+    await _box.write('sftpHost', host.value);
+    await _box.write('sftpUsername', username.value);
+    await _box.write('sftpPassword', password.value);
+    await _box.write('sftpPort', port.value);
+    await _box.write('sftpAutoLogin', true);
+    await _box.write('sftpSessionActive', true);
+    await _box.write('sftpRemember', rememberLogin.value);
+
+    allowAutoLogin.value = true;
+    hasSavedCredentials.value = rememberLogin.value && hasAllFields;
+  }
+
+  Future<void> updateRememberPreference(bool remember) async {
+    rememberLogin.value = remember;
+    await _box.write('sftpRemember', remember);
+
+    final hasAllFields = host.value.isNotEmpty &&
+        username.value.isNotEmpty &&
+        password.value.isNotEmpty;
+    hasSavedCredentials.value = remember && hasAllFields;
   }
 
   Future<void> clearRememberedCredentials({bool resetFormFields = true}) async {
@@ -200,11 +214,13 @@ class StpController extends GetxController {
     rememberLogin.value = false;
     hasSavedCredentials.value = false;
     await _box.write('sftpAutoLogin', false);
+    await _box.write('sftpSessionActive', false);
     await _box.write('sftpRemember', false);
     await _box.remove('sftpHost');
     await _box.remove('sftpUsername');
     await _box.remove('sftpPassword');
     await _box.remove('sftpPort');
+    await _box.remove('sftpSessionActive');
 
     if (resetFormFields) {
       host.value = '';

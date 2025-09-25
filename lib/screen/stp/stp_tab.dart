@@ -294,13 +294,9 @@ class _SftpScreenState extends State<SftpScreen> {
                           value: sftpController.rememberLogin.value,
                           onChanged: (value) async {
                             final isChecked = value ?? false;
-                            if (!isChecked &&
-                                sftpController.hasSavedCredentials.value) {
-                              await sftpController.clearRememberedCredentials(
-                                resetFormFields: false,
-                              );
-                            }
-                            sftpController.rememberLogin.value = isChecked;
+                            await sftpController.updateRememberPreference(
+                              isChecked,
+                            );
                           },
                           title: Text(
                             'Lưu thông tin đăng nhập',
