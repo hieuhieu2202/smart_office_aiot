@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:smart_factory/config/global_text_style.dart';
 import 'package:smart_factory/config/global_color.dart';
-import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 import '../../widget/custom_app_bar.dart';
 import 'controller/stp_controller.dart';
+import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 class SftpScreen extends StatefulWidget {
   const SftpScreen({super.key});
@@ -22,6 +27,34 @@ class _SftpScreenState extends State<SftpScreen> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  static const Set<String> _imageExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'bmp',
+    'webp',
+    'heic',
+  };
+
+  static const Set<String> _textExtensions = {
+    'txt',
+    'xml',
+    'json',
+    'csv',
+    'md',
+    'log',
+  };
+
+  static const Set<String> _officeExtensions = {
+    'doc',
+    'docx',
+    'xls',
+    'xlsx',
+    'ppt',
+    'pptx',
+  };
+
   Future<void> pickFileAndUpload() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null) {
@@ -30,6 +63,193 @@ class _SftpScreenState extends State<SftpScreen> {
       if (localPath != null) {
         await sftpController.uploadFile(localPath, filename);
       }
+    }
+  }
+
+  Widget _buildPreviewHeader(String title, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: GlobalTextStyles.bodyLarge(isDark: isDark),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            onPressed: () => Get.back(),
+            icon: Icon(
+              Icons.close,
+              color: isDark
+                  ? GlobalColors.darkPrimaryText
+                  : GlobalColors.lightPrimaryText,
+            ),
+            tooltip: 'Đóng',
+          )
+        ],
+      ),
+    );
+  }
+
+  Future<void> _previewFile(String filename, bool isDark) async {
+    final extension = filename.contains('.')
+        ? filename.split('.').last.toLowerCase()
+        : '';
+
+    Get.dialog(
+      const Center(child: CircularProgressIndicator()),
+      barrierDismissible: false,
+    );
+
+    File? tempFile;
+
+    try {
+      tempFile = await sftpController.fetchFileForPreview(filename);
+    } finally {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+    }
+
+    if (tempFile == null) {
+      return;
+    }
+
+    if (_imageExtensions.contains(extension)) {
+      await Get.dialog(
+        Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          backgroundColor:
+              isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: Get.height * 0.8,
+              maxWidth: Get.width * 0.9,
+            ),
+            child: Column(
+              children: [
+                _buildPreviewHeader('Xem trước $filename', isDark),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(12),
+                    ),
+                    child: PhotoView(
+                      backgroundDecoration: BoxDecoration(
+                        color: isDark
+                            ? GlobalColors.cardDarkBg
+                            : GlobalColors.cardLightBg,
+                      ),
+                      imageProvider: FileImage(tempFile),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (extension == 'pdf') {
+      await Get.dialog(
+        Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          backgroundColor:
+              isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: Get.height * 0.85,
+              maxWidth: Get.width * 0.95,
+            ),
+            child: Column(
+              children: [
+                _buildPreviewHeader('Xem trước $filename', isDark),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(12),
+                    ),
+                    child: SfPdfViewer.file(tempFile),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (_textExtensions.contains(extension)) {
+      final fileContent = await tempFile.readAsString();
+      await Get.dialog(
+        Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          backgroundColor:
+              isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: Get.height * 0.7,
+              maxWidth: Get.width * 0.9,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildPreviewHeader('Xem trước $filename', isDark),
+                const Divider(height: 1),
+                Expanded(
+                  child: Scrollbar(
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: SelectableText(
+                        fileContent,
+                        style: GlobalTextStyles.bodyMedium(isDark: isDark),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (_officeExtensions.contains(extension)) {
+      final result = await OpenFilex.open(tempFile.path);
+      if (result.type != ResultType.done) {
+        Get.snackbar(
+          'Lỗi',
+          'Không thể mở tệp $filename (${result.message})',
+          snackStyle: SnackStyle.FLOATING,
+          backgroundColor:
+              isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+          colorText: isDark
+              ? GlobalColors.darkPrimaryText
+              : GlobalColors.lightPrimaryText,
+        );
+      }
+      return;
+    }
+
+    final openResult = await OpenFilex.open(tempFile.path);
+    if (openResult.type != ResultType.done) {
+      Get.snackbar(
+        'Lỗi',
+        'Không thể mở tệp $filename (${openResult.message})',
+        snackStyle: SnackStyle.FLOATING,
+        backgroundColor:
+            isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+        colorText:
+            isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+      );
     }
   }
 
@@ -678,17 +898,7 @@ class _SftpScreenState extends State<SftpScreen> {
                       : null,
                   onTap: isFolder
                       ? () => sftpController.navigateTo(itemName)
-                      : () => Get.snackbar(
-                    'Thông tin',
-                    'Đây là tệp: $itemName',
-                    snackStyle: SnackStyle.FLOATING,
-                    backgroundColor: isDark
-                        ? GlobalColors.cardDarkBg
-                        : GlobalColors.cardLightBg,
-                    colorText: isDark
-                        ? GlobalColors.darkPrimaryText
-                        : GlobalColors.lightPrimaryText,
-                  ),
+                      : () => _previewFile(itemName, isDark),
                 ),
               );
             },

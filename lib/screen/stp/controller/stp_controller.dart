@@ -424,7 +424,7 @@ class StpController extends GetxController {
       final localFile = File(localPath);
       await localFile.writeAsBytes(content);
 
-      errorMessage.value = 'Tải ảnh thành công: $localPath';
+      errorMessage.value = 'Đã tải file về: $localPath';
       Get.snackbar(
         'Thành công',
         'Đã tải file về: $localPath',
@@ -450,6 +450,60 @@ class StpController extends GetxController {
                 ? GlobalColors.darkPrimaryText
                 : GlobalColors.lightPrimaryText,
       );
+    }
+  }
+
+  Future<File?> fetchFileForPreview(String filename) async {
+    if (!isConnected.value || sftpClient == null) {
+      await _checkAndConnect();
+      if (!isConnected.value || sftpClient == null) {
+        errorMessage.value = 'Không thể kết nối để xem trước tệp!';
+        Get.snackbar(
+          'Lỗi',
+          'Không thể kết nối để xem trước tệp!',
+          snackStyle: SnackStyle.FLOATING,
+          backgroundColor:
+              Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+          colorText: Get.isDarkMode
+              ? GlobalColors.darkPrimaryText
+              : GlobalColors.lightPrimaryText,
+        );
+        return null;
+      }
+    }
+
+    try {
+      final remotePath =
+          currentPath.value == '/' ? '/$filename' : '${currentPath.value}/$filename';
+
+      final fileHandle = await sftpClient!.open(
+        remotePath,
+        mode: SftpFileOpenMode.read,
+      );
+      final content = await fileHandle.readBytes();
+      await fileHandle.close();
+
+      final tempDir = await getTemporaryDirectory();
+      final sanitizedName = filename.split('/').last;
+      final timestamp = DateTime.now().microsecondsSinceEpoch;
+      final localPath = '${tempDir.path}/$timestamp-$sanitizedName';
+      final localFile = File(localPath);
+      await localFile.writeAsBytes(content, flush: true);
+
+      return localFile;
+    } catch (e) {
+      errorMessage.value = 'Lỗi khi tải tệp xem trước: $e';
+      Get.snackbar(
+        'Lỗi',
+        'Lỗi khi tải tệp xem trước: $e',
+        snackStyle: SnackStyle.FLOATING,
+        backgroundColor:
+            Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+        colorText: Get.isDarkMode
+            ? GlobalColors.darkPrimaryText
+            : GlobalColors.lightPrimaryText,
+      );
+      return null;
     }
   }
 
