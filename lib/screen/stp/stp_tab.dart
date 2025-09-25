@@ -1,15 +1,29 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:smart_factory/config/global_text_style.dart';
 import 'package:smart_factory/config/global_color.dart';
-import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 import '../../widget/custom_app_bar.dart';
 import 'controller/stp_controller.dart';
+import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 
-class SftpScreen extends StatelessWidget {
+class SftpScreen extends StatefulWidget {
+  const SftpScreen({super.key});
+
+  @override
+  State<SftpScreen> createState() => _SftpScreenState();
+}
+
+class _SftpScreenState extends State<SftpScreen> {
   final StpController sftpController = Get.put(StpController());
   final SettingController settingController = Get.find<SettingController>();
+  final TextEditingController hostController = TextEditingController();
+  final TextEditingController portController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   Future<void> pickFileAndUpload() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
@@ -20,6 +34,52 @@ class SftpScreen extends StatelessWidget {
         await sftpController.uploadFile(localPath, filename);
       }
     }
+  }
+
+  Future<void> _handleFileTap(String filename, bool isDark) async {
+    Get.dialog(
+      const Center(child: CircularProgressIndicator()),
+      barrierDismissible: false,
+    );
+
+    File? downloadedFile;
+
+    try {
+      downloadedFile =
+          await sftpController.downloadFile(filename, notifyUser: false);
+    } finally {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+    }
+
+    if (downloadedFile == null) {
+      return;
+    }
+
+    final result = await OpenFilex.open(downloadedFile.path);
+    if (result.type != ResultType.done) {
+      Get.snackbar(
+        'Lỗi',
+        'Không thể mở tệp $filename (${result.message})',
+        snackStyle: SnackStyle.FLOATING,
+        backgroundColor:
+            isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+        colorText:
+            isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+      );
+      return;
+    }
+
+    Get.snackbar(
+      'Thành công',
+      'Đã tải file về: ${downloadedFile.path}',
+      snackStyle: SnackStyle.FLOATING,
+      backgroundColor:
+          isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+      colorText:
+          isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+    );
   }
 
   Future<void> showCreateFolderDialog(bool isDark) async {
@@ -139,10 +199,392 @@ class SftpScreen extends StatelessWidget {
     return breadcrumbs;
   }
 
+  Widget _buildLoginForm(bool isDark) {
+    if (sftpController.isAutoLoggingIn.value) {
+      return _buildAutoLoginSplash(isDark);
+    }
+
+    if (sftpController.shouldResetLoginForm.value) {
+      hostController.clear();
+      usernameController.clear();
+      passwordController.clear();
+      portController.text =
+          sftpController.port.value > 0 ? sftpController.port.value.toString() : '';
+      sftpController.shouldResetLoginForm.value = false;
+    }
+
+    if (hostController.text.isEmpty && sftpController.host.value.isNotEmpty) {
+      hostController.text = sftpController.host.value;
+    }
+    if (usernameController.text.isEmpty &&
+        sftpController.username.value.isNotEmpty) {
+      usernameController.text = sftpController.username.value;
+    }
+    if (passwordController.text.isEmpty &&
+        sftpController.password.value.isNotEmpty) {
+      passwordController.text = sftpController.password.value;
+    }
+    if (portController.text.isEmpty && sftpController.port.value > 0) {
+      portController.text = sftpController.port.value.toString();
+    }
+
+    return Scaffold(
+      backgroundColor:
+          isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
+      appBar: CustomAppBar(
+        isDark: isDark,
+        accent: GlobalColors.accentByIsDark(isDark),
+        title: Text(
+          'Kết nối WinSCP',
+          style: GlobalTextStyles.bodyLarge(isDark: isDark),
+        ),
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+                  decoration: BoxDecoration(
+                    color: (isDark
+                            ? GlobalColors.cardDarkBg.withOpacity(0.92)
+                            : GlobalColors.cardLightBg)
+                        .withOpacity(isDark ? 0.92 : 0.98),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isDark
+                          ? GlobalColors.borderDark.withOpacity(0.6)
+                          : GlobalColors.borderLight.withOpacity(0.65),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isDark
+                                ? GlobalColors.shadowDark
+                                : GlobalColors.shadowLight)
+                            .withOpacity(isDark ? 0.35 : 0.45),
+                        blurRadius: 24,
+                        spreadRadius: -8,
+                        offset: const Offset(0, 18),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.cloud_sync_rounded,
+                            size: 32,
+                            color: GlobalColors.accentByIsDark(isDark),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Thông tin đăng nhập',
+                            style: GlobalTextStyles.bodyLarge(isDark: isDark)
+                                .copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Nhập thông tin kết nối để truy cập máy chủ.',
+                        textAlign: TextAlign.center,
+                        style: GlobalTextStyles.bodyMedium(isDark: isDark)
+                            .copyWith(
+                          color: isDark
+                              ? GlobalColors.darkSecondaryText
+                              : GlobalColors.lightSecondaryText,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildTextField(
+                        controller: hostController,
+                        label: 'Địa chỉ IP/Host',
+                        isDark: isDark,
+                        keyboardType: TextInputType.text,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: portController,
+                        label: 'Cổng (port)',
+                        isDark: isDark,
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: usernameController,
+                        label: 'Tên đăng nhập',
+                        isDark: isDark,
+                        keyboardType: TextInputType.text,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: passwordController,
+                        label: 'Mật khẩu',
+                        isDark: isDark,
+                        obscureText: true,
+                        keyboardType: TextInputType.visiblePassword,
+                      ),
+                      const SizedBox(height: 16),
+                      Obx(
+                        () => CheckboxListTile(
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          tileColor: (isDark
+                                  ? GlobalColors.inputDarkFill
+                                  : GlobalColors.inputLightFill)
+                              .withOpacity(isDark ? 0.45 : 0.7),
+                          value: sftpController.rememberLogin.value,
+                          onChanged: (value) async {
+                            final isChecked = value ?? false;
+                            await sftpController.updateRememberPreference(
+                              isChecked,
+                            );
+                          },
+                          title: Text(
+                            'Lưu thông tin đăng nhập',
+                            style: GlobalTextStyles.bodyMedium(isDark: isDark)
+                                .copyWith(fontWeight: FontWeight.w500),
+                          ),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          activeColor: GlobalColors.accentByIsDark(isDark),
+                          checkboxShape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          final int port =
+                              int.tryParse(portController.text.trim()) ?? 0;
+                          sftpController.connectWithCredentials(
+                            host: hostController.text.trim(),
+                            port: port,
+                            username: usernameController.text.trim(),
+                            password: passwordController.text,
+                            remember: sftpController.rememberLogin.value,
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: GlobalColors.accentByIsDark(isDark),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Đăng nhập',
+                          style: GlobalTextStyles.bodyMedium(isDark: isDark)
+                              .copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Obx(
+                        () => sftpController.errorMessage.value.isEmpty
+                            ? const SizedBox.shrink()
+                            : Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: (isDark
+                                          ? GlobalColors.cardDarkBg
+                                          : GlobalColors.cardLightBg)
+                                      .withOpacity(isDark ? 0.6 : 0.8),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: GlobalColors.accentByIsDark(isDark)
+                                        .withOpacity(0.45),
+                                  ),
+                                ),
+                                child: Text(
+                                  sftpController.errorMessage.value,
+                                  textAlign: TextAlign.center,
+                                  style: GlobalTextStyles.bodyMedium(isDark: isDark)
+                                      .copyWith(
+                                    color: GlobalColors.accentByIsDark(isDark),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                      ),
+                      const SizedBox(height: 20),
+                      Obx(
+                        () {
+                          final shouldShowClear =
+                              sftpController.rememberLogin.value ||
+                                  sftpController.hasSavedCredentials.value;
+                          if (!shouldShowClear) {
+                            return const SizedBox.shrink();
+                          }
+                          return OutlinedButton(
+                            onPressed: () async {
+                              await sftpController.clearRememberedCredentials();
+                              hostController.clear();
+                              portController.clear();
+                              usernameController.clear();
+                              passwordController.clear();
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                              foregroundColor:
+                                  GlobalColors.accentByIsDark(isDark),
+                              side: BorderSide(
+                                color: GlobalColors.accentByIsDark(isDark)
+                                    .withOpacity(0.65),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            child: Text(
+                              'Xóa thông tin đã lưu',
+                              style: GlobalTextStyles.bodyMedium(isDark: isDark)
+                                  .copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAutoLoginSplash(bool isDark) {
+    final Color textColor =
+        isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText;
+
+    return Scaffold(
+      backgroundColor: isDark
+          ? GlobalColors.bodyDarkBg
+          : GlobalColors.bodyLightBg,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 64,
+              width: 64,
+              child: CircularProgressIndicator(
+                strokeWidth: 5,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  GlobalColors.accentByIsDark(isDark),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Đang đăng nhập...',
+              style: GlobalTextStyles.bodyLarge(isDark: isDark).copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Vui lòng chờ trong giây lát.',
+              style: GlobalTextStyles.bodyMedium(isDark: isDark).copyWith(
+                color: isDark
+                    ? GlobalColors.darkSecondaryText
+                    : GlobalColors.lightSecondaryText,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required bool isDark,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+  }) {
+    final Color borderColor =
+        isDark ? GlobalColors.borderDark : GlobalColors.borderLight;
+    final Color fillColor =
+        isDark ? GlobalColors.inputDarkFill.withOpacity(0.55) : Colors.white;
+
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GlobalTextStyles.bodyMedium(isDark: isDark).copyWith(
+          color:
+              isDark ? GlobalColors.darkSecondaryText : GlobalColors.lightSecondaryText,
+        ),
+        filled: true,
+        fillColor: fillColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: borderColor.withOpacity(0.4)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: borderColor.withOpacity(0.55), width: 1.1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(
+            color: GlobalColors.accentByIsDark(isDark),
+            width: 2.2,
+          ),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+      ),
+      style: GlobalTextStyles.bodyMedium(isDark: isDark).copyWith(
+        color:
+            isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    hostController.dispose();
+    portController.dispose();
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       final bool isDark = settingController.isDarkMode.value;
+
+      if (!sftpController.isConnected.value) {
+        return _buildLoginForm(isDark);
+      }
+
       final bool isRoot = sftpController.currentPath.value == '/';
 
       return Scaffold(
@@ -171,6 +613,16 @@ class SftpScreen extends StatelessWidget {
             child: Row(children: _buildBreadcrumb(sftpController, isDark)),
           ),
           actions: [
+            IconButton(
+              onPressed: () async => await sftpController.logout(),
+              icon: Icon(
+                Icons.logout,
+                color: isDark
+                    ? GlobalColors.darkPrimaryText
+                    : GlobalColors.lightPrimaryText,
+              ),
+              tooltip: 'Đăng xuất',
+            ),
             PopupMenuButton<String>(
               color: isDark
                   ? GlobalColors.cardDarkBg
@@ -275,17 +727,7 @@ class SftpScreen extends StatelessWidget {
                       : null,
                   onTap: isFolder
                       ? () => sftpController.navigateTo(itemName)
-                      : () => Get.snackbar(
-                    'Thông tin',
-                    'Đây là tệp: $itemName',
-                    snackStyle: SnackStyle.FLOATING,
-                    backgroundColor: isDark
-                        ? GlobalColors.cardDarkBg
-                        : GlobalColors.cardLightBg,
-                    colorText: isDark
-                        ? GlobalColors.darkPrimaryText
-                        : GlobalColors.lightPrimaryText,
-                  ),
+                      : () => _handleFileTap(itemName, isDark),
                 ),
               );
             },

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:smart_factory/config/global_color.dart';
@@ -11,21 +12,86 @@ class StpController extends GetxController {
   var currentPath = '/'.obs;
   var filesAndFolders = <String, bool>{}.obs;
   var errorMessage = ''.obs;
+  var rememberLogin = false.obs;
+  var allowAutoLogin = false.obs;
+  var hasSavedCredentials = false.obs;
+  var host = ''.obs;
+  var username = ''.obs;
+  var password = ''.obs;
+  var port = 6742.obs;
+  var shouldResetLoginForm = false.obs;
+  var isAutoLoggingIn = false.obs;
+
+  final GetStorage _box = GetStorage();
   SftpClient? sftpClient;
   SSHClient? sshClient;
-
-  final String host = '10.220.130.115';
-  final String username = 'Automation';
-  final String password = 'auto123';
-  final int port = 6742;
 
   @override
   void onInit() {
     super.onInit();
-    _checkAndConnect();
+    _loadSavedCredentials();
+    if (allowAutoLogin.value &&
+        host.value.isNotEmpty &&
+        username.value.isNotEmpty &&
+        password.value.isNotEmpty) {
+      _attemptAutoLogin();
+    }
+  }
+
+  void _loadSavedCredentials() {
+    final savedHost = _box.read('sftpHost') ?? '';
+    final savedUsername = _box.read('sftpUsername') ?? '';
+    final savedPassword = _box.read('sftpPassword') ?? '';
+    final savedPort = _box.read('sftpPort') ?? 6742;
+    final savedRemember = _box.read('sftpRemember') ?? false;
+    final savedAutoLogin =
+        _box.read('sftpSessionActive') ?? _box.read('sftpAutoLogin') ?? false;
+
+    host.value = savedHost;
+    username.value = savedUsername;
+    password.value = savedPassword;
+    port.value = savedPort;
+    rememberLogin.value = savedRemember;
+
+    final hasAllFields =
+        savedHost.isNotEmpty && savedUsername.isNotEmpty && savedPassword.isNotEmpty;
+
+    hasSavedCredentials.value = savedRemember && hasAllFields;
+    allowAutoLogin.value = hasAllFields && savedAutoLogin;
+
+    if (!hasAllFields) {
+      host.value = '';
+      username.value = '';
+      password.value = '';
+      port.value = 6742;
+    }
+
+    shouldResetLoginForm.value = false;
+  }
+
+  Future<void> _attemptAutoLogin() async {
+    if (isAutoLoggingIn.value) {
+      return;
+    }
+
+    isAutoLoggingIn.value = true;
+    try {
+      await _checkAndConnect();
+    } finally {
+      isAutoLoggingIn.value = false;
+    }
   }
 
   Future<void> _checkAndConnect() async {
+    if (host.value.isEmpty ||
+        username.value.isEmpty ||
+        password.value.isEmpty ||
+        port.value <= 0) {
+      isConnected.value = false;
+      errorMessage.value = 'Thiếu thông tin đăng nhập!';
+      return;
+    }
+
     var connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult == ConnectivityResult.none) {
       isConnected.value = false;
@@ -48,17 +114,18 @@ class StpController extends GetxController {
 
   Future<void> connectToSftp() async {
     try {
-      print('Đang kết nối $host:$port...');
-      final socket = await SSHSocket.connect(host, port);
+      print('Đang kết nối ${host.value}:${port.value}...');
+      final socket = await SSHSocket.connect(host.value, port.value);
       sshClient = SSHClient(
         socket,
-        username: username,
-        onPasswordRequest: () => password,
+        username: username.value,
+        onPasswordRequest: () => password.value,
       );
       sftpClient = await sshClient!.sftp();
       isConnected.value = true;
       errorMessage.value = '';
       await listDirectory(currentPath.value);
+      await _persistCredentialsForSession();
       Get.snackbar(
         'Thành công',
         'Kết nối đến Sever thành công!',
@@ -86,6 +153,141 @@ class StpController extends GetxController {
                 : GlobalColors.lightPrimaryText,
       );
     }
+  }
+
+  Future<void> connectWithCredentials({
+    required String host,
+    required int port,
+    required String username,
+    required String password,
+    required bool remember,
+  }) async {
+    if (host.trim().isEmpty ||
+        username.trim().isEmpty ||
+        password.isEmpty ||
+        port <= 0) {
+      errorMessage.value = 'Vui lòng nhập đầy đủ thông tin hợp lệ!';
+      Get.snackbar(
+        'Lỗi',
+        'Vui lòng nhập đầy đủ thông tin hợp lệ!',
+        snackStyle: SnackStyle.FLOATING,
+        backgroundColor:
+            Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+        colorText: Get.isDarkMode
+            ? GlobalColors.darkPrimaryText
+            : GlobalColors.lightPrimaryText,
+      );
+      return;
+    }
+
+    this.host.value = host.trim();
+    this.username.value = username.trim();
+    this.password.value = password;
+    this.port.value = port;
+    rememberLogin.value = remember;
+    shouldResetLoginForm.value = false;
+
+    await updateRememberPreference(remember);
+
+    await _checkAndConnect();
+  }
+
+  Future<void> _persistCredentialsForSession() async {
+    final hasAllFields = host.value.isNotEmpty &&
+        username.value.isNotEmpty &&
+        password.value.isNotEmpty;
+
+    if (!hasAllFields) {
+      return;
+    }
+
+    if (rememberLogin.value) {
+      await _box.write('sftpHost', host.value);
+      await _box.write('sftpUsername', username.value);
+      await _box.write('sftpPassword', password.value);
+      await _box.write('sftpPort', port.value);
+      await _box.write('sftpAutoLogin', true);
+      await _box.write('sftpRemember', true);
+      await _box.write('sftpSessionActive', true);
+
+      allowAutoLogin.value = true;
+      hasSavedCredentials.value = true;
+    } else {
+      await _box.remove('sftpHost');
+      await _box.remove('sftpUsername');
+      await _box.remove('sftpPassword');
+      await _box.remove('sftpPort');
+      await _box.write('sftpAutoLogin', false);
+      await _box.write('sftpRemember', false);
+      await _box.write('sftpSessionActive', false);
+
+      allowAutoLogin.value = false;
+      hasSavedCredentials.value = false;
+    }
+  }
+
+  Future<void> updateRememberPreference(bool remember) async {
+    rememberLogin.value = remember;
+    await _box.write('sftpRemember', remember);
+
+    final hasAllFields = host.value.isNotEmpty &&
+        username.value.isNotEmpty &&
+        password.value.isNotEmpty;
+    hasSavedCredentials.value = remember && hasAllFields;
+  }
+
+  Future<void> clearRememberedCredentials({bool resetFormFields = true}) async {
+    allowAutoLogin.value = false;
+    rememberLogin.value = false;
+    hasSavedCredentials.value = false;
+    isAutoLoggingIn.value = false;
+    await _box.write('sftpAutoLogin', false);
+    await _box.write('sftpSessionActive', false);
+    await _box.write('sftpRemember', false);
+    await _box.remove('sftpHost');
+    await _box.remove('sftpUsername');
+    await _box.remove('sftpPassword');
+    await _box.remove('sftpPort');
+    await _box.remove('sftpSessionActive');
+
+    if (resetFormFields) {
+      host.value = '';
+      username.value = '';
+      password.value = '';
+      port.value = 6742;
+      shouldResetLoginForm.value = true;
+    }
+  }
+
+  Future<void> logout() async {
+    isAutoLoggingIn.value = false;
+    final currentSftpClient = sftpClient;
+    if (currentSftpClient != null) {
+      currentSftpClient.close();
+    }
+
+    final currentSshClient = sshClient;
+    if (currentSshClient != null) {
+      currentSshClient.close();
+    }
+    sftpClient = null;
+    sshClient = null;
+    isConnected.value = false;
+    filesAndFolders.clear();
+    currentPath.value = '/';
+    errorMessage.value = '';
+
+    await clearRememberedCredentials();
+
+    Get.snackbar(
+      'Đăng xuất',
+      'Đã ngắt kết nối khỏi máy chủ WinSCP.',
+      snackStyle: SnackStyle.FLOATING,
+      backgroundColor:
+          Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+      colorText:
+          Get.isDarkMode ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+    );
   }
 
   Future<void> listDirectory(String path) async {
@@ -133,6 +335,10 @@ class StpController extends GetxController {
                 : GlobalColors.lightPrimaryText,
       );
     } catch (e) {
+      if ((!isConnected.value || sftpClient == null) &&
+          e.toString().contains('Connection closed')) {
+        return;
+      }
       errorMessage.value = 'Lỗi khi liệt kê thư mục: $e';
       print('Lỗi liệt kê: $e');
       Get.snackbar(
@@ -167,7 +373,7 @@ class StpController extends GetxController {
     await listDirectory(parentPath);
   }
 
-  Future<void> downloadFile(String filename) async {
+  Future<File?> downloadFile(String filename, {bool notifyUser = true}) async {
     if (!isConnected.value || sftpClient == null) {
       errorMessage.value = 'Chưa kết nối đến Sever!';
       Get.snackbar(
@@ -181,16 +387,40 @@ class StpController extends GetxController {
                 ? GlobalColors.darkPrimaryText
                 : GlobalColors.lightPrimaryText,
       );
-      return;
+      return null;
     }
 
     try {
-      var storageStatus = await Permission.storage.request();
-      if (!storageStatus.isGranted) {
-        errorMessage.value = 'Không có quyền lưu dữ liệu!';
+      Directory? localDir;
+      if (Platform.isAndroid) {
+        final storageStatus = await Permission.storage.request();
+        if (!storageStatus.isGranted) {
+          errorMessage.value = 'Không có quyền lưu dữ liệu!';
+          Get.snackbar(
+            'Lỗi',
+            'Không có quyền lưu trữ!',
+            snackStyle: SnackStyle.FLOATING,
+            backgroundColor:
+                Get.isDarkMode
+                    ? GlobalColors.cardDarkBg
+                    : GlobalColors.cardLightBg,
+            colorText:
+                Get.isDarkMode
+                    ? GlobalColors.darkPrimaryText
+                    : GlobalColors.lightPrimaryText,
+          );
+          return null;
+        }
+        localDir = await getExternalStorageDirectory();
+      } else {
+        localDir = await getApplicationDocumentsDirectory();
+      }
+
+      if (localDir == null) {
+        errorMessage.value = 'Không xác định được thư mục lưu trữ!';
         Get.snackbar(
           'Lỗi',
-          'Không có quyền lưu trữ!',
+          'Không xác định được thư mục lưu trữ!',
           snackStyle: SnackStyle.FLOATING,
           backgroundColor:
               Get.isDarkMode
@@ -201,8 +431,9 @@ class StpController extends GetxController {
                   ? GlobalColors.darkPrimaryText
                   : GlobalColors.lightPrimaryText,
         );
-        return;
+        return null;
       }
+
       final remotePath =
           currentPath.value == '/'
               ? '/$filename'
@@ -213,23 +444,30 @@ class StpController extends GetxController {
       );
       final content = await fileHandle.readBytes();
       await fileHandle.close();
-      final localDir = await getExternalStorageDirectory();
-      final localPath = '${localDir!.path}/$filename';
-      final localFile = File(localPath);
-      await localFile.writeAsBytes(content);
 
-      errorMessage.value = 'Tải ảnh thành công: $localPath';
-      Get.snackbar(
-        'Thành công',
-        'Đã tải file về: $localPath',
-        snackStyle: SnackStyle.FLOATING,
-        backgroundColor:
-            Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-        colorText:
-            Get.isDarkMode
-                ? GlobalColors.darkPrimaryText
-                : GlobalColors.lightPrimaryText,
-      );
+      final sanitizedName = filename.split('/').last;
+      final localPath = '${localDir.path}/$sanitizedName';
+      final localFile = File(localPath);
+      await localFile.writeAsBytes(content, flush: true);
+
+      if (notifyUser) {
+        errorMessage.value = 'Đã tải file về: $localPath';
+        Get.snackbar(
+          'Thành công',
+          'Đã tải file về: $localPath',
+          snackStyle: SnackStyle.FLOATING,
+          backgroundColor:
+              Get.isDarkMode
+                  ? GlobalColors.cardDarkBg
+                  : GlobalColors.cardLightBg,
+          colorText:
+              Get.isDarkMode
+                  ? GlobalColors.darkPrimaryText
+                  : GlobalColors.lightPrimaryText,
+        );
+      }
+
+      return localFile;
     } catch (e) {
       errorMessage.value = 'Lỗi khi tải file: $e';
       print('Lỗi tải file: $e');
@@ -244,6 +482,7 @@ class StpController extends GetxController {
                 ? GlobalColors.darkPrimaryText
                 : GlobalColors.lightPrimaryText,
       );
+      return null;
     }
   }
 
