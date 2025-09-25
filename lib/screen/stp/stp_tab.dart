@@ -290,7 +290,7 @@ class _SftpScreenState extends State<SftpScreen> {
                   ? const SizedBox.shrink()
                   : OutlinedButton(
                       onPressed: () {
-                        sftpController.logout(clearSaved: true);
+                        sftpController.logout();
                         hostController.clear();
                         portController.clear();
                         usernameController.clear();

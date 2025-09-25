@@ -176,7 +176,7 @@ class StpController extends GetxController {
     await _checkAndConnect();
   }
 
-  Future<void> logout({bool clearSaved = false}) async {
+  Future<void> logout() async {
     final currentSftpClient = sftpClient;
     if (currentSftpClient != null) {
       currentSftpClient.close();
@@ -194,22 +194,19 @@ class StpController extends GetxController {
     errorMessage.value = '';
 
     allowAutoLogin.value = false;
+    rememberLogin.value = false;
     _box.write('sftpAutoLogin', false);
+    _box.write('sftpRemember', false);
 
-    if (clearSaved || !rememberLogin.value) {
-      host.value = '';
-      username.value = '';
-      password.value = '';
-      port.value = 6742;
-      rememberLogin.value = false;
-      _box.remove('sftpHost');
-      _box.remove('sftpUsername');
-      _box.remove('sftpPassword');
-      _box.remove('sftpPort');
-      _box.write('sftpRemember', false);
-      _box.write('sftpAutoLogin', false);
-      shouldResetLoginForm.value = true;
-    }
+    host.value = '';
+    username.value = '';
+    password.value = '';
+    port.value = 6742;
+    _box.remove('sftpHost');
+    _box.remove('sftpUsername');
+    _box.remove('sftpPassword');
+    _box.remove('sftpPort');
+    shouldResetLoginForm.value = true;
 
     Get.snackbar(
       'Đăng xuất',
