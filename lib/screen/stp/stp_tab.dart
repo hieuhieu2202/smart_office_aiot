@@ -228,10 +228,10 @@ class _SftpScreenState extends State<SftpScreen> {
               () => CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 value: sftpController.rememberLogin.value,
-                onChanged: (value) {
+                onChanged: (value) async {
                   final isChecked = value ?? false;
                   if (!isChecked && sftpController.hasSavedCredentials.value) {
-                    sftpController.clearRememberedCredentials(
+                    await sftpController.clearRememberedCredentials(
                       resetFormFields: false,
                     );
                   }
@@ -298,8 +298,8 @@ class _SftpScreenState extends State<SftpScreen> {
                   return const SizedBox.shrink();
                 }
                 return OutlinedButton(
-                  onPressed: () {
-                    sftpController.clearRememberedCredentials();
+                  onPressed: () async {
+                    await sftpController.clearRememberedCredentials();
                     hostController.clear();
                     portController.clear();
                     usernameController.clear();
@@ -395,7 +395,7 @@ class _SftpScreenState extends State<SftpScreen> {
           ),
           actions: [
             IconButton(
-              onPressed: () => sftpController.logout(),
+              onPressed: () async => await sftpController.logout(),
               icon: Icon(
                 Icons.logout,
                 color: isDark
