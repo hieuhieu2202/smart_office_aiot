@@ -697,7 +697,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         majorTickLines: const MajorTickLines(size: 0),
         axisLine: const AxisLine(width: 0),
       ),
-      series: <ChartSeries<_LineTrackingDatum, String>>[
+      series: <CartesianSeries<dynamic, dynamic>>[
         ColumnSeries<_LineTrackingDatum, String>(
           dataSource: data,
           width: 0.6,
@@ -828,13 +828,13 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         majorTickLines: const MajorTickLines(size: 0),
         axisLine: const AxisLine(width: 0),
       ),
-      series: <ChartSeries<_BarDatum, String>>[
+      series: <CartesianSeries<dynamic, dynamic>>[
         ColumnSeries<_BarDatum, String>(
           dataSource: data,
           xValueMapper: (item, _) => item.label,
           yValueMapper: (item, _) => item.value,
           pointColorMapper: (item, index) =>
-              _standardBarColor(index ?? 0),
+              _standardBarColor(index?.toInt() ?? 0),
           width: 0.55,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
           dataLabelSettings: DataLabelSettings(
