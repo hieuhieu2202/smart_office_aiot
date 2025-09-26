@@ -49,6 +49,7 @@ class YieldReportController extends GetxController {
 
   RxBool filterPanelOpen = false.obs;
   Timer? _refreshTimer;
+  Future<void>? _activeFetch;
 
   final expandedNickNames =
       <String>{}.obs; // ✅ giữ danh sách Nick đang mở khi refresh
@@ -78,57 +79,81 @@ class YieldReportController extends GetxController {
   String get range =>
       '${_format.format(startDateTime.value)} - ${_format.format(endDateTime.value)}';
 
-  Future<void> fetchReport({String? nickName}) async {
-    isLoading.value = true;
-    final currentNick = _normalizeNickName(nickName ?? selectedNickName.value);
-    final apiNick = currentNick == 'ALL' ? 'All' : currentNick;
-    final requestRange = range;
-    final stopwatch = Stopwatch()..start();
-    print(
-      '>> [YieldReport] Fetch start type=$_reportType nick=$currentNick range="$requestRange"',
-    );
-    try {
-      final data = await YieldRateApi.getOutputReport(
-        rangeDateTime: requestRange,
-        type: _reportType,
-        nickName: apiNick,
-      );
-      stopwatch.stop();
-      final res = data['Data'] ?? {};
-      dates.value = List<String>.from(res['ClassDates'] ?? []);
-      dataNickNames.value = List<Map<String, dynamic>>.from(
-        res['DataNickNames'] ?? [],
-      );
-      // capture all nick names when loading unfiltered data
-      if (currentNick == 'ALL') {
-        allNickNames.value = _sanitizeNickList(
-          dataNickNames.map((e) => e['NickName']),
-        );
-      } else {
-        final names = <String>{...allNickNames, if (currentNick != 'ALL') currentNick};
-        for (final item in dataNickNames) {
-          final name = (item['NickName'] ?? '').toString();
-          if (name.isNotEmpty && name.toUpperCase() != 'ALL') {
-            names.add(name);
-          }
-        }
-        allNickNames.value = names.toList();
+  Future<void> fetchReport({String? nickName, bool force = false}) async {
+    final inFlight = _activeFetch;
+    if (inFlight != null) {
+      if (!force) {
+        print('>> [YieldReport] Skip fetch - request already in-flight');
+        return inFlight;
       }
-      // ✅ không reset expandedNickNames
+      print('>> [YieldReport] Waiting for active fetch before forcing refresh');
+      try {
+        await inFlight;
+      } catch (_) {}
+    }
+
+    Future<void> run() async {
+      isLoading.value = true;
+      final currentNick = _normalizeNickName(nickName ?? selectedNickName.value);
+      final apiNick = currentNick == 'ALL' ? 'All' : currentNick;
+      final requestRange = range;
+      final stopwatch = Stopwatch()..start();
       print(
-        '>> [YieldReport] Fetch success type=$_reportType nick=$currentNick range="$requestRange" '
-        'dates=${dates.length} nickCount=${dataNickNames.length} '
-        'elapsed=${stopwatch.elapsedMilliseconds}ms',
+        '>> [YieldReport] Fetch start type=$_reportType nick=$currentNick range="$requestRange"',
       );
-    } catch (e, stack) {
-      stopwatch.stop();
-      print(
-        '>> [YieldReport] Fetch error type=$_reportType nick=$currentNick range="$requestRange" err=$e',
-      );
-      print(stack);
-      Get.snackbar('Error', e.toString());
+      try {
+        final data = await YieldRateApi.getOutputReport(
+          rangeDateTime: requestRange,
+          type: _reportType,
+          nickName: apiNick,
+        );
+        stopwatch.stop();
+        final res = data['Data'] ?? {};
+        dates.value = List<String>.from(res['ClassDates'] ?? []);
+        dataNickNames.value = List<Map<String, dynamic>>.from(
+          res['DataNickNames'] ?? [],
+        );
+        // capture all nick names when loading unfiltered data
+        if (currentNick == 'ALL') {
+          allNickNames.value = _sanitizeNickList(
+            dataNickNames.map((e) => e['NickName']),
+          );
+        } else {
+          final names = <String>{...allNickNames, if (currentNick != 'ALL') currentNick};
+          for (final item in dataNickNames) {
+            final name = (item['NickName'] ?? '').toString();
+            if (name.isNotEmpty && name.toUpperCase() != 'ALL') {
+              names.add(name);
+            }
+          }
+          allNickNames.value = names.toList();
+        }
+        // ✅ không reset expandedNickNames
+        print(
+          '>> [YieldReport] Fetch success type=$_reportType nick=$currentNick range="$requestRange" '
+          'dates=${dates.length} nickCount=${dataNickNames.length} '
+          'elapsed=${stopwatch.elapsedMilliseconds}ms',
+        );
+      } catch (e, stack) {
+        stopwatch.stop();
+        print(
+          '>> [YieldReport] Fetch error type=$_reportType nick=$currentNick range="$requestRange" err=$e',
+        );
+        print(stack);
+        Get.snackbar('Error', e.toString());
+      } finally {
+        isLoading.value = false;
+      }
+    }
+
+    final future = run();
+    _activeFetch = future;
+    try {
+      await future;
     } finally {
-      isLoading.value = false;
+      if (identical(_activeFetch, future)) {
+        _activeFetch = null;
+      }
     }
   }
 
@@ -148,7 +173,7 @@ class YieldReportController extends GetxController {
     selectedNickName.value =
         (nickName == null || nickName.isEmpty) ? 'ALL' : _normalizeNickName(nickName);
     closeFilterPanel();
-    fetchReport(nickName: selectedNickName.value);
+    fetchReport(nickName: selectedNickName.value, force: true);
   }
 
   void resetFilter() {
@@ -157,7 +182,7 @@ class YieldReportController extends GetxController {
     endDateTime.value = DateTime(now.year, now.month, now.day, 19, 30);
     selectedNickName.value = 'ALL';
     closeFilterPanel();
-    fetchReport();
+    fetchReport(force: true);
   }
 
   List<Map<String, dynamic>> get filteredNickNames {

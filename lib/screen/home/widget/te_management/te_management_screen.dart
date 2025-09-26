@@ -187,7 +187,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: controller.fetchData,
+              onPressed: () => controller.fetchData(force: true),
             ),
           ],
         ),

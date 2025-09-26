@@ -102,7 +102,7 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
             IconButton(
               icon: const Icon(Icons.refresh),
               tooltip: 'Làm mới dữ liệu',
-              onPressed: controller.fetchReport,
+              onPressed: () => controller.fetchReport(force: true),
             ),
           ],
         ),

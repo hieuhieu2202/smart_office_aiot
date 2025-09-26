@@ -21,14 +21,17 @@ class YieldRateApi {
     print('>> [YieldRateApi] POST $_url payload=$payload');
 
     final body = json.encode(payload);
+    final stopwatch = Stopwatch()..start();
 
     final res = await http.post(
       Uri.parse(_url),
       headers: AuthConfig.getAuthorizedHeaders(),
       body: body,
     );
+    stopwatch.stop();
     print(
-      '>> [YieldRateApi] Response status=${res.statusCode} length=${res.body.length}',
+      '>> [YieldRateApi] Response status=${res.statusCode} length=${res.body.length} '
+      'elapsed=${stopwatch.elapsedMilliseconds}ms',
     );
 
     if (res.statusCode == 200 && res.body.isNotEmpty) {
