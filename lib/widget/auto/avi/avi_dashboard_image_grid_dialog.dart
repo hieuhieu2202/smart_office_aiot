@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../service/aoivi_dashboard_api.dart';
 import 'image_fullscreen_page.dart';
-import '../../animation/loading/eva_loading_view.dart';
 
 class PTHDashboardImageGridDialog extends StatelessWidget {
   final String serialNumber;
@@ -92,7 +91,11 @@ class PTHDashboardImageGridDialog extends StatelessWidget {
                                     ConnectionState.waiting) {
                                   return Container(
                                     color: Colors.grey[200],
-                                    child: const EvaLoadingView(size: 180),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
                                   );
                                 }
                                 if (!snap.hasData) {
