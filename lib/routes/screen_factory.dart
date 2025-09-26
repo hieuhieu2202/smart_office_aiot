@@ -10,6 +10,7 @@ import 'package:smart_factory/screen/home/widget/nvidia_lc_switch/Dashboard/Curi
 import 'package:smart_factory/screen/home/controller/cdu_controller.dart';
 import 'package:smart_factory/screen/home/widget/nvidia_lc_switch/Cdu_Monitoring/cdu_monitoring_screen.dart';
 
+import 'package:smart_factory/screen/home/widget/smt/stencil_monitor/stencil_monitor_screen.dart';
 import '../model/AppModel.dart';
 import '../screen/home/widget/project_list_page.dart';
 
@@ -47,6 +48,10 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
       ),
   'clean_room': (project) => CleanRoomScreen(),
   'pcba_line_dashboard': (project) => PcbaLineDashboardScreen(),
+  'stencil_monitor': (project) => StencilMonitorScreen(
+        title: project.name,
+        controllerTag: 'stencil_monitor_${((project.screenType ?? '').trim()).replaceAll(' ', '_')}',
+      ),
   'curing_monitoring_dashboard': (project) => CuringRoomMonitoringScreen(),
 
   /// HUB CDU (mặc định F16-3F; có dropdown để đổi)
