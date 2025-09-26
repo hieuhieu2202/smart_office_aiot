@@ -741,7 +741,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final item = active[index];
-        final hours = item.runningHours ?? 0;
+        final hours = item.runningHours ?? 0.0;
         final color = _lineHoursColor(hours);
         final lineLabel = item.lineName?.isNotEmpty == true
             ? item.lineName!
