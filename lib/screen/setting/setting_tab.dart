@@ -11,7 +11,6 @@ import 'package:smart_factory/lang/language_selection_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/model/version_check_summary.dart';
 
-import '../../widget/animation/loading/eva_loading_view.dart';
 import '../../widget/custom_app_bar.dart';
 
 class SettingTab extends StatelessWidget {
@@ -355,9 +354,12 @@ class SettingTab extends StatelessWidget {
                     ),
                   if (isChecking)
                     SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: EvaLoadingView(size: 140),
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(accent),
+                      ),
                     )
                   else
                     IconButton(
