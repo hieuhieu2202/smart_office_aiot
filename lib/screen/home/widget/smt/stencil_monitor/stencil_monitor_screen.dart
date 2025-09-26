@@ -716,7 +716,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ),
       ],
       onTooltipRender: (TooltipArgs args) {
-        final idx = args.pointIndex;
+        final idx = args.pointIndex?.toInt();
         if (idx == null || idx < 0 || idx >= data.length) {
           return;
         }
