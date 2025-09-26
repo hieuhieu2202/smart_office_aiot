@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import 'package:smart_factory/screen/home/controller/stencil_monitor_controller.dart';
+
 import '../../../../../config/global_color.dart';
 import '../../../../../model/smt/stencil_detail.dart';
-import '../../controller/stencil_monitor_controller.dart';
 import '../../../../../widget/animation/loading/eva_loading_view.dart';
 
 class StencilMonitorScreen extends StatefulWidget {
