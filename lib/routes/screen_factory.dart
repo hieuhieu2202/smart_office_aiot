@@ -22,13 +22,11 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
         reportType: 'SWITCH',
       ),
   'yield_report_adapter': (project) => YieldReportScreen(
-        initialNickName: 'ADAPTER',
         title: project.name,
         controllerTag: 'yield_report_adapter',
         reportType: 'ADAPTER',
       ),
   'yield_report_switch': (project) => YieldReportScreen(
-        initialNickName: 'SWITCH',
         title: project.name,
         controllerTag: 'yield_report_switch',
         reportType: 'SWITCH',

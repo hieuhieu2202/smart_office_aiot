@@ -12,7 +12,7 @@ import 'yield_report_search_bar.dart';
 class YieldReportScreen extends StatefulWidget {
   const YieldReportScreen({
     super.key,
-    this.initialNickName = 'All',
+    this.initialNickName = 'ALL',
     this.controllerTag,
     this.title,
     this.reportType = 'SWITCH',

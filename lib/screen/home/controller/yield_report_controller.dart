@@ -5,18 +5,30 @@ import '../../../service/yield_rate_api.dart';
 
 String _normalizeNickName(String value) {
   final trimmed = value.trim();
-  return trimmed.isEmpty ? 'All' : trimmed;
+  if (trimmed.isEmpty) return 'ALL';
+  return trimmed.toUpperCase() == 'ALL' ? 'ALL' : trimmed;
+}
+
+List<String> _sanitizeNickList(Iterable<dynamic> rawList) {
+  final result = <String>{};
+  for (final item in rawList) {
+    final name = (item ?? '').toString().trim();
+    if (name.isEmpty) continue;
+    if (name.toUpperCase() == 'ALL') continue;
+    result.add(name);
+  }
+  return result.toList();
 }
 
 class YieldReportController extends GetxController {
   YieldReportController({
     required String reportType,
-    String initialNickName = 'All',
+    String initialNickName = 'ALL',
   })  : _reportType =
             reportType.trim().isEmpty ? 'SWITCH' : reportType.trim().toUpperCase(),
         _initialNickName = _normalizeNickName(initialNickName),
         selectedNickName = _normalizeNickName(initialNickName).obs {
-    if (_initialNickName != 'All') {
+    if (_initialNickName != 'ALL') {
       allNickNames.add(_initialNickName);
     }
   }
@@ -69,6 +81,7 @@ class YieldReportController extends GetxController {
   Future<void> fetchReport({String? nickName}) async {
     isLoading.value = true;
     final currentNick = _normalizeNickName(nickName ?? selectedNickName.value);
+    final apiNick = currentNick == 'ALL' ? 'All' : currentNick;
     final requestRange = range;
     final stopwatch = Stopwatch()..start();
     print(
@@ -78,7 +91,7 @@ class YieldReportController extends GetxController {
       final data = await YieldRateApi.getOutputReport(
         rangeDateTime: requestRange,
         type: _reportType,
-        nickName: currentNick,
+        nickName: apiNick,
       );
       stopwatch.stop();
       final res = data['Data'] ?? {};
@@ -87,14 +100,15 @@ class YieldReportController extends GetxController {
         res['DataNickNames'] ?? [],
       );
       // capture all nick names when loading unfiltered data
-      if (currentNick == 'All') {
-        allNickNames.value =
-            dataNickNames.map((e) => e['NickName'].toString()).toSet().toList();
+      if (currentNick == 'ALL') {
+        allNickNames.value = _sanitizeNickList(
+          dataNickNames.map((e) => e['NickName']),
+        );
       } else {
-        final names = <String>{...allNickNames, currentNick};
+        final names = <String>{...allNickNames, if (currentNick != 'ALL') currentNick};
         for (final item in dataNickNames) {
           final name = (item['NickName'] ?? '').toString();
-          if (name.isNotEmpty) {
+          if (name.isNotEmpty && name.toUpperCase() != 'ALL') {
             names.add(name);
           }
         }
@@ -132,7 +146,7 @@ class YieldReportController extends GetxController {
     startDateTime.value = start;
     endDateTime.value = end;
     selectedNickName.value =
-        (nickName == null || nickName.isEmpty) ? 'All' : nickName;
+        (nickName == null || nickName.isEmpty) ? 'ALL' : _normalizeNickName(nickName);
     closeFilterPanel();
     fetchReport(nickName: selectedNickName.value);
   }
@@ -141,7 +155,7 @@ class YieldReportController extends GetxController {
     final now = DateTime.now();
     startDateTime.value = DateTime(now.year, now.month, now.day - 2, 7, 30);
     endDateTime.value = DateTime(now.year, now.month, now.day, 19, 30);
-    selectedNickName.value = 'All';
+    selectedNickName.value = 'ALL';
     closeFilterPanel();
     fetchReport();
   }
@@ -204,10 +218,10 @@ class YieldReportController extends GetxController {
     return result;
   }
 
-  List<String> get nickNameList => ['All', ...allNickNames];
+  List<String> get nickNameList => ['ALL', ...allNickNames];
 
   bool get isDefaultFilter =>
-      selectedNickName.value == 'All' &&
+      selectedNickName.value == 'ALL' &&
       startDateTime.value.isBefore(
         DateTime.now().subtract(const Duration(days: 2)),
       ) &&
