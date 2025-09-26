@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'eva_scanner.dart';
@@ -11,21 +13,28 @@ class EvaLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget content = SizedBox.square(
-      dimension: size,
-      child: EvaScanner(size: size),
+    Widget content = LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.hasBoundedWidth ? constraints.maxWidth : size;
+        final maxHeight = constraints.hasBoundedHeight ? constraints.maxHeight : size;
+
+        double dimension = math.min(size, math.min(maxWidth, maxHeight));
+        if (dimension.isInfinite || dimension <= 0) {
+          dimension = size;
+        }
+
+        return SizedBox.square(
+          dimension: dimension,
+          child: EvaScanner(size: dimension),
+        );
+      },
     );
     if (padding != null) {
       content = Padding(padding: padding!, child: content);
     }
     return Align(
       alignment: alignment,
-      widthFactor: 1,
-      heightFactor: 1,
-      child: FittedBox(
-        fit: BoxFit.contain,
-        child: content,
-      ),
+      child: content,
     );
   }
 }
