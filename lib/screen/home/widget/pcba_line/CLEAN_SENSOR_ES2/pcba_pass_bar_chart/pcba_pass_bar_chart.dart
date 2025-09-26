@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
+import 'package:smart_factory/widget/animation/loading/eva_loading_view.dart';
+
 import '../../../../controller/pcba_line_controller.dart';
 import 'pcba_pass_detail_screen.dart';
 
@@ -25,7 +27,7 @@ class PcbaPassBarChart extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Obx(() {
-      if (controller.loading.value) return const Center(child: CircularProgressIndicator());
+      if (controller.loading.value) return const EvaLoadingView(size: 240);
       if (controller.passFailPoints.isEmpty) return const Center(child: Text('No data'));
 
       final groups = <BarChartGroupData>[];

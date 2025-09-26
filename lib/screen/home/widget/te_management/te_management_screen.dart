@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:data_table_2/data_table_2.dart';
 import '../../../../config/global_color.dart';
+import '../../../../widget/animation/loading/eva_loading_view.dart';
 import '../../controller/te_management_controller.dart';
 import 'te_management_search_bar.dart';
 import 'te_management_filter_panel.dart';
@@ -221,7 +222,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
 
   Widget _buildBody(bool isDark) {
     if (controller.isLoading.value) {
-      return const Center(child: CircularProgressIndicator());
+      return const EvaLoadingView(size: 260);
     }
     if (controller.error.isNotEmpty) {
       return Center(child: Text(controller.error.value));

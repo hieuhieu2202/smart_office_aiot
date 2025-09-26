@@ -6,6 +6,7 @@ import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 import 'package:smart_factory/screen/login/controller/login_controller.dart';
 
+import '../../widget/animation/loading/eva_loading_view.dart';
 import '../../widget/login_logo.dart';
 import '../../widget/login_title.dart';
 
@@ -251,11 +252,7 @@ class LoginScreen extends StatelessWidget {
                                       // Nút Đăng nhập
                                       Expanded(
                                         child: Obx(() => controller.isLoading.value
-                                            ? Center(
-                                          child: CircularProgressIndicator(
-                                            color: borderColor,
-                                          ),
-                                        )
+                                            ? const EvaLoadingView(size: 180)
                                             : SizedBox(
                                           height: 50,
                                           child: ElevatedButton(

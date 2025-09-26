@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
+import 'animation/loading/eva_loading_view.dart';
+
 class FullScreenImage extends StatelessWidget {
   final String imageUrl;
   final PhotoViewController _controller = PhotoViewController();
@@ -76,8 +78,7 @@ class FullScreenImage extends StatelessWidget {
             minScale: PhotoViewComputedScale.contained,
             maxScale: PhotoViewComputedScale.covered * 5,
             loadingBuilder:
-                (context, event) =>
-                    const Center(child: CircularProgressIndicator()),
+                (context, event) => const EvaLoadingView(size: 240),
             errorBuilder:
                 (context, error, stackTrace) => const Center(
                   child: Text(

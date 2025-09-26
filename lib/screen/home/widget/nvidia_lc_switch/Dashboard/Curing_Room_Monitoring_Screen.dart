@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../controller/nvidia_lc_switch_dashboard_curing_monitoring_controller.dart';
+import '../../../../../widget/animation/loading/eva_loading_view.dart';
 import 'Room_Canvas.dart';
 import 'Right_Sidebar.dart';
 
@@ -35,7 +36,7 @@ class CuringRoomMonitoringScreen extends StatelessWidget {
       ),
       body: Obx(() {
         if (c.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const EvaLoadingView(size: 280);
         }
         if (c.errorMessage.isNotEmpty) {
           return Center(child: Text(c.errorMessage.value));

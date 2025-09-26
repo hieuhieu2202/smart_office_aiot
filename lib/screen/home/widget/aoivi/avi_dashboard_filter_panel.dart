@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../../config/global_color.dart';
 import '../../controller/avi_dashboard_controller.dart';
+import '../../../../widget/animation/loading/eva_loading_view.dart';
 
 class PTHDashboardFilterPanel extends StatefulWidget {
   final bool show;
@@ -627,13 +628,7 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                           : Colors.white.withOpacity(0.55),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Center(
-                      child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
+                    child: const EvaLoadingView(size: 200),
                   ),
                 ),
             ],
@@ -1058,15 +1053,9 @@ class _PTHDashboardFilterPanelState extends State<PTHDashboardFilterPanel> with 
                                               },
                                         child: isBusy
                                             ? const SizedBox(
-                                                height: 20,
-                                                width: 20,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<Color>(
-                                                    Colors.white,
-                                                  ),
-                                                ),
+                                                height: 72,
+                                                width: 72,
+                                                child: EvaLoadingView(size: 160),
                                               )
                                             : const Text('Áp dụng'),
                                       ),

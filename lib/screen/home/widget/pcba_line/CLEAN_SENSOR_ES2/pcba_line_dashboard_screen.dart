@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:smart_factory/config/global_color.dart';
+
 import '../../../controller/pcba_line_controller.dart';
+import '../../../../../widget/animation/loading/eva_loading_view.dart';
 import 'pcba_pass_bar_chart/pcba_pass_bar_chart.dart';
 import 'pcba_fail_bar_chart/pcba_fail_bar_chart.dart';
 import 'pcba_yield_line_chart.dart';
 import 'pcba_line_filter_panel.dart';
-import 'package:smart_factory/config/global_color.dart';
 
 class PcbaLineDashboardScreen extends StatelessWidget {
   const PcbaLineDashboardScreen({super.key});
@@ -44,7 +46,7 @@ class PcbaLineDashboardScreen extends StatelessWidget {
         ],
       ),
       body: controller.loading.value
-          ? const Center(child: CircularProgressIndicator())
+          ? const EvaLoadingView(size: 280)
           : controller.errorMessage.value != null
           ? Center(
         child: Text(

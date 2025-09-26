@@ -5,6 +5,7 @@ import '../../../../config/global_color.dart';
 import '../../../../service/aoivi_dashboard_api.dart';
 import '../../../../widget/auto/avi/avi_dashboard_detail_card.dart';
 import '../../../../widget/auto/avi/avi_dashboard_detail_empty.dart';
+import '../../../../widget/animation/loading/eva_loading_view.dart';
 
 class PTHDashboardDetailScreen extends StatefulWidget {
   final String status;
@@ -93,7 +94,7 @@ class _PTHDashboardDetailScreenState extends State<PTHDashboardDetailScreen> {
       ),
       body: Obx(() {
         if (_isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const EvaLoadingView(size: 260);
         }
         // Search/filter logic
         final filteredList = _detailList.where((item) {

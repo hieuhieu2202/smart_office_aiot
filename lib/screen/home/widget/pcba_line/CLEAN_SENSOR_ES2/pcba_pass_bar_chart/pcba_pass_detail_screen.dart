@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:smart_factory/widget/animation/loading/eva_loading_view.dart';
+
 import '../../../../controller/pcba_line_controller.dart';
 import 'pcba_pass_detail_bar_chart.dart';
 
@@ -44,7 +46,7 @@ class _PcbaPassDetailScreenState extends State<PcbaPassDetailScreen> {
         elevation: 0,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const EvaLoadingView(size: 260)
           : Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

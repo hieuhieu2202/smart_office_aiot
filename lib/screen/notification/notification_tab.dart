@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/global_color.dart';
 import '../../generated/l10n.dart';
 import '../../model/notification_entry.dart';
+import '../../widget/animation/loading/eva_loading_view.dart';
 import '../../widget/custom_app_bar.dart';
 import '../../widget/notification/notification_card.dart';
 import '../setting/controller/setting_controller.dart';
@@ -204,11 +205,9 @@ class _NotificationTabState extends State<NotificationTab> {
         separatorBuilder: (_, __) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
           if (index >= items.length) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: CircularProgressIndicator(color: accent),
-              ),
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: EvaLoadingView(size: 180),
             );
           }
 
@@ -402,7 +401,7 @@ class _NotificationTabState extends State<NotificationTab> {
 
       Widget bodyContent;
       if (isLoading && notifications.isEmpty) {
-        bodyContent = const Center(child: CircularProgressIndicator());
+        bodyContent = const EvaLoadingView(size: 260);
       } else if (notifications.isEmpty) {
         bodyContent =
             _buildEmptyState(context, isDark, errorMessage, accent);

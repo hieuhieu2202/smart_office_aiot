@@ -7,6 +7,7 @@ import '../../model/notification_attachment_payload.dart';
 import '../../model/notification_entry.dart';
 import '../../model/notification_message.dart';
 import '../../service/notification_attachment_service.dart';
+import '../../widget/animation/loading/eva_loading_view.dart';
 import '../../widget/custom_app_bar.dart';
 import '../setting/controller/setting_controller.dart';
 
@@ -350,11 +351,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
         color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: const SizedBox(
-        width: 28,
-        height: 28,
-        child: CircularProgressIndicator(strokeWidth: 2.8),
-      ),
+      child: const EvaLoadingView(size: 140),
     );
   }
 

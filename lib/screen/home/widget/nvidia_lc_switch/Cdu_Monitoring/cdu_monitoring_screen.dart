@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../controller/cdu_controller.dart';
+import '../../../../../widget/animation/loading/eva_loading_view.dart';
 import 'cdu_summary_header.dart';
 import 'cdu_history_panel.dart';
 import 'cdu_layout_canvas.dart';
@@ -47,7 +48,7 @@ class CduMonitoringScreen extends StatelessWidget {
       body: Obx(() {
         // Trạng thái loading lần đầu
         if (controller.isLoading.value && controller.dashboard.value == null) {
-          return const Center(child: CircularProgressIndicator());
+          return const EvaLoadingView(size: 280);
         }
 
         // Không có dữ liệu
@@ -89,7 +90,7 @@ class CduMonitoringScreen extends StatelessWidget {
                           controller.isLoading.value && nodes.isEmpty;
 
                       if (isLoadingCanvas) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const EvaLoadingView(size: 240);
                       }
 
                       return InteractiveViewer(

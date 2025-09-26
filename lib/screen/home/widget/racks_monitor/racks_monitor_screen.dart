@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../service/lc_switch_rack_api.dart' show RackDetail;
+import '../../../../widget/animation/loading/eva_loading_view.dart';
 import '../../controller/racks_monitor_controller.dart';
 import 'rack_filter_sheet.dart';
 import 'rack_left_panel.dart';
@@ -88,7 +89,7 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
         }
 
         if (controller.isLoading.value && controller.data.value == null) {
-          return const Center(child: CircularProgressIndicator());
+          return const EvaLoadingView(size: 280);
         }
 
         final data = controller.data.value;

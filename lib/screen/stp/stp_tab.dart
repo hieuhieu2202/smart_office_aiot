@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:smart_factory/config/global_text_style.dart';
 import 'package:smart_factory/config/global_color.dart';
+import '../../widget/animation/loading/eva_loading_view.dart';
 import '../../widget/custom_app_bar.dart';
 import 'controller/stp_controller.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
@@ -38,7 +39,7 @@ class _SftpScreenState extends State<SftpScreen> {
 
   Future<void> _handleFileTap(String filename, bool isDark) async {
     Get.dialog(
-      const Center(child: CircularProgressIndicator()),
+      const EvaLoadingView(size: 220),
       barrierDismissible: false,
     );
 
@@ -483,16 +484,7 @@ class _SftpScreenState extends State<SftpScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              height: 64,
-              width: 64,
-              child: CircularProgressIndicator(
-                strokeWidth: 5,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  GlobalColors.accentByIsDark(isDark),
-                ),
-              ),
-            ),
+            const EvaLoadingView(size: 220),
             const SizedBox(height: 24),
             Text(
               'Đang đăng nhập...',

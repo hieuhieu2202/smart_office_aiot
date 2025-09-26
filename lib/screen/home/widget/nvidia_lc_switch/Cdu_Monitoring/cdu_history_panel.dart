@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
+import '../../../../../widget/animation/loading/eva_loading_view.dart';
+
 class CduHistoryPanel extends StatelessWidget {
   final Map<String, dynamic>? history;
   final bool isLoading;
@@ -34,7 +36,7 @@ class CduHistoryPanel extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: showBigSpinner
-              ? const Center(child: CircularProgressIndicator())
+              ? const EvaLoadingView(size: 220)
               : (list.isEmpty
               ? const Center(child: Text('No history available'))
               : ListView.separated(
@@ -58,9 +60,9 @@ class CduHistoryPanel extends StatelessWidget {
               child: const Padding(
                 padding: EdgeInsets.all(6),
                 child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  width: 64,
+                  height: 64,
+                  child: EvaLoadingView(size: 140),
                 ),
               ),
             ),
