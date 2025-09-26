@@ -9,14 +9,19 @@ String _normalizeNickName(String value) {
 }
 
 class YieldReportController extends GetxController {
-  YieldReportController({String initialNickName = 'All'})
-      : _initialNickName = _normalizeNickName(initialNickName),
+  YieldReportController({
+    required String reportType,
+    String initialNickName = 'All',
+  })  : _reportType =
+            reportType.trim().isEmpty ? 'SWITCH' : reportType.trim().toUpperCase(),
+        _initialNickName = _normalizeNickName(initialNickName),
         selectedNickName = _normalizeNickName(initialNickName).obs {
     if (_initialNickName != 'All') {
       allNickNames.add(_initialNickName);
     }
   }
 
+  final String _reportType;
   final String _initialNickName;
 
   var dates = <String>[].obs;
@@ -64,11 +69,18 @@ class YieldReportController extends GetxController {
   Future<void> fetchReport({String? nickName}) async {
     isLoading.value = true;
     final currentNick = _normalizeNickName(nickName ?? selectedNickName.value);
+    final requestRange = range;
+    final stopwatch = Stopwatch()..start();
+    print(
+      '>> [YieldReport] Fetch start type=$_reportType nick=$currentNick range="$requestRange"',
+    );
     try {
       final data = await YieldRateApi.getOutputReport(
-        rangeDateTime: range,
+        rangeDateTime: requestRange,
+        type: _reportType,
         nickName: currentNick,
       );
+      stopwatch.stop();
       final res = data['Data'] ?? {};
       dates.value = List<String>.from(res['ClassDates'] ?? []);
       dataNickNames.value = List<Map<String, dynamic>>.from(
@@ -89,7 +101,17 @@ class YieldReportController extends GetxController {
         allNickNames.value = names.toList();
       }
       // ✅ không reset expandedNickNames
-    } catch (e) {
+      print(
+        '>> [YieldReport] Fetch success type=$_reportType nick=$currentNick range="$requestRange" '
+        'dates=${dates.length} nickCount=${dataNickNames.length} '
+        'elapsed=${stopwatch.elapsedMilliseconds}ms',
+      );
+    } catch (e, stack) {
+      stopwatch.stop();
+      print(
+        '>> [YieldReport] Fetch error type=$_reportType nick=$currentNick range="$requestRange" err=$e',
+      );
+      print(stack);
       Get.snackbar('Error', e.toString());
     } finally {
       isLoading.value = false;

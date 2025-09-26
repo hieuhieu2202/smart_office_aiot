@@ -15,11 +15,13 @@ class YieldReportScreen extends StatefulWidget {
     this.initialNickName = 'All',
     this.controllerTag,
     this.title,
+    this.reportType = 'SWITCH',
   });
 
   final String initialNickName;
   final String? controllerTag;
   final String? title;
+  final String reportType;
 
   @override
   State<YieldReportScreen> createState() => _YieldReportScreenState();
@@ -40,7 +42,10 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
     _controllerTag = widget.controllerTag ??
         'YIELD_REPORT_${widget.initialNickName.toUpperCase()}';
     controller = Get.put(
-      YieldReportController(initialNickName: widget.initialNickName),
+      YieldReportController(
+        reportType: widget.reportType,
+        initialNickName: widget.initialNickName,
+      ),
       tag: _controllerTag,
     );
     _hGroup = LinkedScrollControllerGroup();

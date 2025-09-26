@@ -12,17 +12,23 @@ class YieldRateApi {
     required String rangeDateTime,
     String nickName = 'All',
   }) async {
-    final body = json.encode({
+    final payload = {
       'Customer': customer,
       'Type': type,
       'RangeDateTime': rangeDateTime,
       'NickName': nickName,
-    });
+    };
+    print('>> [YieldRateApi] POST $_url payload=$payload');
+
+    final body = json.encode(payload);
 
     final res = await http.post(
       Uri.parse(_url),
       headers: AuthConfig.getAuthorizedHeaders(),
       body: body,
+    );
+    print(
+      '>> [YieldRateApi] Response status=${res.statusCode} length=${res.body.length}',
     );
 
     if (res.statusCode == 200 && res.body.isNotEmpty) {

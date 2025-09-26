@@ -19,16 +19,19 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
   'yield_report': (project) => YieldReportScreen(
         title: project.name,
         controllerTag: 'yield_report_all',
+        reportType: 'SWITCH',
       ),
   'yield_report_adapter': (project) => YieldReportScreen(
         initialNickName: 'ADAPTER',
         title: project.name,
         controllerTag: 'yield_report_adapter',
+        reportType: 'ADAPTER',
       ),
   'yield_report_switch': (project) => YieldReportScreen(
         initialNickName: 'SWITCH',
         title: project.name,
         controllerTag: 'yield_report_switch',
+        reportType: 'SWITCH',
       ),
   'te_management': (project) => TEManagementScreen(
         title: project.name,
