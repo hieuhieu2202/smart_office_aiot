@@ -716,11 +716,11 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ),
       ],
       onTooltipRender: (TooltipArgs args) {
-        final index = args.pointIndex;
-        if (index == null || index < 0 || index >= data.length) {
+        final idx = args.pointIndex;
+        if (idx == null || idx < 0 || idx >= data.length) {
           return;
         }
-        final item = data[index];
+        final item = data[idx];
         final start = _dateFormat.format(item.startTime.toLocal());
         final use = item.totalUse?.toString() ?? '-';
         args.text =
@@ -834,7 +834,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           xValueMapper: (item, _) => item.label,
           yValueMapper: (item, _) => item.value,
           pointColorMapper: (item, index) =>
-              _standardBarColor(index?.toInt() ?? 0),
+              _standardBarColor(index ?? 0),
           width: 0.55,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
           dataLabelSettings: DataLabelSettings(
@@ -1044,7 +1044,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       list.add(
         _LineTrackingDatum(
           category: category,
-          hours: diff < 0 ? 0 : diff,
+          hours: diff < 0 ? 0.0 : diff,
           stencilSn: item.stencilSn,
           startTime: start,
           location: item.location ?? '-',
