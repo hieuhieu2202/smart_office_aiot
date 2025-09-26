@@ -10,7 +10,16 @@ import 'yield_report_header_row.dart';
 import 'yield_report_search_bar.dart';
 
 class YieldReportScreen extends StatefulWidget {
-  YieldReportScreen({super.key});
+  const YieldReportScreen({
+    super.key,
+    this.initialNickName = 'All',
+    this.controllerTag,
+    this.title,
+  });
+
+  final String initialNickName;
+  final String? controllerTag;
+  final String? title;
 
   @override
   State<YieldReportScreen> createState() => _YieldReportScreenState();
@@ -21,16 +30,38 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
   late final LinkedScrollControllerGroup _hGroup;
   late final ScrollController _headerController;
   final List<ScrollController> _tableControllers = [];
+  late final String _controllerTag;
+  late final YieldReportController controller;
+  Worker? _quickFilterWorker;
 
   @override
   void initState() {
     super.initState();
+    _controllerTag = widget.controllerTag ??
+        'YIELD_REPORT_${widget.initialNickName.toUpperCase()}';
+    controller = Get.put(
+      YieldReportController(initialNickName: widget.initialNickName),
+      tag: _controllerTag,
+    );
     _hGroup = LinkedScrollControllerGroup();
     _headerController = _hGroup.addAndGet();
+    _quickFilterWorker = ever(controller.quickFilter, (_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
+    _quickFilterWorker?.dispose();
+    if (Get.isRegistered<YieldReportController>(tag: _controllerTag)) {
+      Get.delete<YieldReportController>(tag: _controllerTag);
+    }
     // LinkedScrollControllerGroup already disposes all controllers
     _hGroup.dispose();
     _scrollController.dispose();
@@ -47,23 +78,12 @@ class _YieldReportScreenState extends State<YieldReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(YieldReportController());
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    controller.quickFilter.listen((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
 
     return Obx(
       () => Scaffold(
         appBar: AppBar(
-          title: const Text('Yield Rate Report'),
+          title: Text(widget.title ?? 'Yield Rate Report'),
           centerTitle: true,
           elevation: 0,
           backgroundColor:

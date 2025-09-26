@@ -16,7 +16,20 @@ import '../screen/home/widget/project_list_page.dart';
 final Map<String, Widget Function(AppProject)> screenBuilderMap = {
   'pth_dashboard': (project) => AOIVIDashboardScreen(),
   'racks_monitor': (project) => GroupMonitorScreen(),
-  'yield_report': (project) => YieldReportScreen(),
+  'yield_report': (project) => YieldReportScreen(
+        title: project.name,
+        controllerTag: 'yield_report_all',
+      ),
+  'yield_report_adapter': (project) => YieldReportScreen(
+        initialNickName: 'ADAPTER',
+        title: project.name,
+        controllerTag: 'yield_report_adapter',
+      ),
+  'yield_report_switch': (project) => YieldReportScreen(
+        initialNickName: 'SWITCH',
+        title: project.name,
+        controllerTag: 'yield_report_switch',
+      ),
   'te_management': (project) => TEManagementScreen(
         title: project.name,
         controllerTag: 'te_management_default',

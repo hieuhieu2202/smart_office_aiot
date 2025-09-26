@@ -84,11 +84,11 @@ List<AppProject> appProjects = [
         screenType: "dashboard",
       ),
       AppProject(
-        name: "YEILD RATE REPORT",
+        name: "YEILD RATE REPORT (ADAPTER)",
         progress: 1.0,
         status: "Ready",
         icon: Icons.analytics,
-        screenType: "yield_report",
+        screenType: "yield_report_adapter",
       ),
       AppProject(
         name: "ICT MANAGEMENT",
@@ -217,11 +217,11 @@ List<AppProject> appProjects = [
         screenType: "racks_monitor",
       ),
       AppProject(
-        name: "YEILD RATE REPORT",
+        name: "YEILD RATE REPORT (SWITCH)",
         progress: 1.0,
         status: "Ready",
         icon: Icons.analytics,
-        screenType: "yield_report",
+        screenType: "yield_report_switch",
       ),
       AppProject(
         name: "TE MANAGEMENT (SWITCH)",

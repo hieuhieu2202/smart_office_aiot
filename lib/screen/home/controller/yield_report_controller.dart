@@ -3,15 +3,30 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../service/yield_rate_api.dart';
 
+String _normalizeNickName(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? 'All' : trimmed;
+}
+
 class YieldReportController extends GetxController {
+  YieldReportController({String initialNickName = 'All'})
+      : _initialNickName = _normalizeNickName(initialNickName),
+        selectedNickName = _normalizeNickName(initialNickName).obs {
+    if (_initialNickName != 'All') {
+      allNickNames.add(_initialNickName);
+    }
+  }
+
+  final String _initialNickName;
+
   var dates = <String>[].obs;
   var dataNickNames = <Map<String, dynamic>>[].obs;
   var isLoading = false.obs;
-  var allNickNames = <String>[].obs;
+  final RxList<String> allNickNames = <String>[].obs;
 
   late Rx<DateTime> startDateTime;
   late Rx<DateTime> endDateTime;
-  RxString selectedNickName = 'All'.obs;
+  final RxString selectedNickName;
   RxString quickFilter = ''.obs;
   RxString searchKey = ''.obs;
 
@@ -31,7 +46,7 @@ class YieldReportController extends GetxController {
       DateTime(now.year, now.month, now.day - 2, 7, 30),
     );
     endDateTime = Rx<DateTime>(DateTime(now.year, now.month, now.day, 19, 30));
-    fetchReport();
+    fetchReport(nickName: selectedNickName.value);
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       fetchReport(); // ✅ chỉ cập nhật dữ liệu, không reset bảng
     });
@@ -48,10 +63,11 @@ class YieldReportController extends GetxController {
 
   Future<void> fetchReport({String? nickName}) async {
     isLoading.value = true;
+    final currentNick = _normalizeNickName(nickName ?? selectedNickName.value);
     try {
       final data = await YieldRateApi.getOutputReport(
         rangeDateTime: range,
-        nickName: nickName ?? selectedNickName.value,
+        nickName: currentNick,
       );
       final res = data['Data'] ?? {};
       dates.value = List<String>.from(res['ClassDates'] ?? []);
@@ -59,9 +75,18 @@ class YieldReportController extends GetxController {
         res['DataNickNames'] ?? [],
       );
       // capture all nick names when loading unfiltered data
-      if ((nickName ?? selectedNickName.value) == 'All') {
+      if (currentNick == 'All') {
         allNickNames.value =
             dataNickNames.map((e) => e['NickName'].toString()).toSet().toList();
+      } else {
+        final names = <String>{...allNickNames, currentNick};
+        for (final item in dataNickNames) {
+          final name = (item['NickName'] ?? '').toString();
+          if (name.isNotEmpty) {
+            names.add(name);
+          }
+        }
+        allNickNames.value = names.toList();
       }
       // ✅ không reset expandedNickNames
     } catch (e) {
