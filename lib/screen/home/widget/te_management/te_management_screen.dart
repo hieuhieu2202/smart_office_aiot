@@ -7,14 +7,48 @@ import 'te_management_search_bar.dart';
 import 'te_management_filter_panel.dart';
 
 class TEManagementScreen extends StatefulWidget {
-  TEManagementScreen({super.key});
+  const TEManagementScreen({
+    super.key,
+    this.initialModelSerial = 'SWITCH',
+    this.initialModel = '',
+    this.controllerTag,
+    this.title,
+  });
+
+  final String initialModelSerial;
+  final String initialModel;
+  final String? controllerTag;
+  final String? title;
 
   @override
   State<TEManagementScreen> createState() => _TEManagementScreenState();
 }
 
 class _TEManagementScreenState extends State<TEManagementScreen> {
-  final TEManagementController controller = Get.put(TEManagementController());
+  late final String _controllerTag;
+  late final TEManagementController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = widget.controllerTag ??
+        'TE_MANAGEMENT_${widget.initialModelSerial}_${widget.initialModel}';
+    controller = Get.put(
+      TEManagementController(
+        initialModelSerial: widget.initialModelSerial,
+        initialModel: widget.initialModel,
+      ),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<TEManagementController>(tag: _controllerTag)) {
+      Get.delete<TEManagementController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   Color _rateColor(double v, bool isDark) {
     if (v < 90) return isDark ? Colors.redAccent : Colors.red;
@@ -140,7 +174,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
           () => Scaffold(
         backgroundColor: isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
         appBar: AppBar(
-          title: const Text('TE Management'),
+          title: Text(widget.title ?? 'TE Management'),
           centerTitle: true,
           backgroundColor: isDark ? GlobalColors.appBarDarkBg : GlobalColors.appBarLightBg,
           iconTheme: IconThemeData(

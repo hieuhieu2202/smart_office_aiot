@@ -98,11 +98,11 @@ List<AppProject> appProjects = [
         screenType: "ict_management",
       ),
       AppProject(
-        name: "TE MANAGEMENT",
+        name: "TE MANAGEMENT (ADAPTER)",
         progress: 1.0,
         status: "Ready",
         icon: Icons.storage,
-        screenType: "te_management",
+        screenType: "te_management_adapter",
       ),
       AppProject(
         name: "GLUE MACHINE",
@@ -224,11 +224,11 @@ List<AppProject> appProjects = [
         screenType: "yield_report",
       ),
       AppProject(
-        name: "TE MANAGEMENT",
+        name: "TE MANAGEMENT (SWITCH)",
         progress: 1.0,
         status: "Ready",
         icon: Icons.storage,
-        screenType: "te_management",
+        screenType: "te_management_switch",
       ),
       AppProject(
         name: "ROOM MONITORING",

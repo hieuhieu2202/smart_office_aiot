@@ -3,18 +3,24 @@ import 'package:intl/intl.dart';
 import '../../../service/te_management_api.dart';
 
 class TEManagementController extends GetxController {
-  var data = <List<Map<String, dynamic>>>[].obs;
-  var isLoading = false.obs;
-  var error = ''.obs;
+  TEManagementController({
+    String initialModelSerial = 'SWITCH',
+    String initialModel = '',
+  })  : modelSerial = initialModelSerial.obs,
+        model = initialModel.obs;
+
+  final RxList<List<Map<String, dynamic>>> data = <List<Map<String, dynamic>>>[].obs;
+  final RxBool isLoading = false.obs;
+  final RxString error = ''.obs;
 
   late Rx<DateTime> startDate;
   late Rx<DateTime> endDate;
   final DateFormat _fmt = DateFormat('yyyy/MM/dd HH:mm');
 
-  RxString modelSerial = 'SWITCH'.obs;
-  RxString model = ''.obs;
-  RxString quickFilter = ''.obs;
-  RxBool filterPanelOpen = false.obs;
+  final RxString modelSerial;
+  final RxString model;
+  final RxString quickFilter = ''.obs;
+  final RxBool filterPanelOpen = false.obs;
 
   @override
   void onInit() {

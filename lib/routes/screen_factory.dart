@@ -17,7 +17,20 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
   'pth_dashboard': (project) => AOIVIDashboardScreen(),
   'racks_monitor': (project) => GroupMonitorScreen(),
   'yield_report': (project) => YieldReportScreen(),
-  'te_management': (project) => TEManagementScreen(),
+  'te_management': (project) => TEManagementScreen(
+        title: project.name,
+        controllerTag: 'te_management_default',
+      ),
+  'te_management_switch': (project) => TEManagementScreen(
+        initialModelSerial: 'SWITCH',
+        title: project.name,
+        controllerTag: 'te_management_switch',
+      ),
+  'te_management_adapter': (project) => TEManagementScreen(
+        initialModelSerial: 'ADAPTER',
+        title: project.name,
+        controllerTag: 'te_management_adapter',
+      ),
   'clean_room': (project) => CleanRoomScreen(),
   'pcba_line_dashboard': (project) => PcbaLineDashboardScreen(),
   'curing_monitoring_dashboard': (project) => CuringRoomMonitoringScreen(),
