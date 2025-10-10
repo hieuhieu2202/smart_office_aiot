@@ -406,11 +406,11 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     final palette = _palette;
     final total = data.slices.fold<int>(0, (sum, slice) => sum + slice.value);
     final displaySlices = data.slices.take(4).toList();
-    final remaining = data.slices.length > displaySlices.length
-        ? data.slices
-            .skip(displaySlices.length)
-            .fold<int>(0, (sum, slice) => sum + slice.value)
-        : 0;
+    final hiddenSlices = data.slices.length > displaySlices.length
+        ? data.slices.skip(displaySlices.length).toList()
+        : <_PieSlice>[];
+    final hiddenCount = hiddenSlices.length;
+    final hiddenTotal = hiddenSlices.fold<int>(0, (sum, slice) => sum + slice.value);
 
     final titleStyle = GoogleFonts.spaceGrotesk(
       color: data.accent,
@@ -452,9 +452,15 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       for (final slice in displaySlices) {
         children.add(_buildSliceRow(slice.label, slice.value, data.accent));
       }
-      if (remaining > 0) {
+      if (hiddenCount > 0) {
         children.add(
-          _buildMoreIndicator(context, remaining, data.accent, data),
+          _buildMoreIndicator(
+            context,
+            hiddenCount,
+            hiddenTotal,
+            data.accent,
+            data,
+          ),
         );
       } else if (data.slices.length > 1) {
         children.add(
@@ -572,7 +578,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
   Widget _buildMoreIndicator(
     BuildContext context,
-    int remaining,
+    int hiddenCount,
+    int hiddenTotal,
     Color accent,
     _OverviewCardData data,
   ) {
@@ -582,6 +589,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       color: _palette.onSurface,
       fontWeight: FontWeight.w600,
     );
+
+    final totalLabel = hiddenTotal > 0 ? ' (${hiddenTotal} items)' : '';
+    final groupLabel = hiddenCount == 1 ? 'group' : 'groups';
 
     return InkWell(
       onTap: () => _showBreakdownDetail(context, data),
@@ -601,7 +611,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                '+ $remaining more entries • View all',
+                '+ $hiddenCount more $groupLabel$totalLabel • View all',
                 style: textStyle,
               ),
             ),
