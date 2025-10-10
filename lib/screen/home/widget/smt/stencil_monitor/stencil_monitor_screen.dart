@@ -1041,9 +1041,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   List<_PieSlice> _buildCustomerSlices(List<StencilDetail> data) {
     final map = <String, int>{};
     for (final item in data) {
-      if (_isIgnoredCustomer(item)) {
-        continue;
-      }
       final label = _mapCustomerLabel(item.customer);
       map[label] = (map[label] ?? 0) + 1;
     }
