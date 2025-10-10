@@ -30,7 +30,7 @@ class _InsightsStrip extends StatelessWidget {
     final muted = palette.onSurfaceMuted;
 
     return SizedBox(
-      height: 108,
+      height: 132,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
@@ -62,6 +62,7 @@ class _InsightsStrip extends StatelessWidget {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   metric.label,
@@ -73,7 +74,6 @@ class _InsightsStrip extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const Spacer(),
                 Text(
                   metric.value,
                   style: GlobalTextStyles.bodyLarge(isDark: palette.isDark).copyWith(
@@ -82,7 +82,6 @@ class _InsightsStrip extends StatelessWidget {
                     color: textColor,
                   ),
                 ),
-                const SizedBox(height: 4),
                 Text(
                   metric.description,
                   style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
@@ -90,6 +89,8 @@ class _InsightsStrip extends StatelessWidget {
                     fontSize: 11,
                     color: muted,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

@@ -287,7 +287,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           _InsightsStrip(items: insights),
         ],
         const SizedBox(height: 20),
-        _buildLineTrackingCard(lineTracking),
+        _buildLineTrackingCard(context, lineTracking),
         const SizedBox(height: 20),
         _buildUsageRow(usingTimeSlices, checkSlices),
         const SizedBox(height: 20),
@@ -420,7 +420,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               .map(
                 (card) => SizedBox(
                   width: itemWidth,
-                  child: _buildOverviewCard(card),
+                  child: _buildOverviewCard(context, card),
                 ),
               )
               .toList(),
@@ -429,7 +429,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildOverviewCard(_OverviewCardData data) {
+  Widget _buildOverviewCard(BuildContext context, _OverviewCardData data) {
     final palette = _palette;
     final total = data.slices.fold<int>(0, (sum, slice) => sum + slice.value);
     final displaySlices = data.slices.take(4).toList();
@@ -480,33 +480,76 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         children.add(_buildSliceRow(slice.label, slice.value, data.accent));
       }
       if (remaining > 0) {
-        children.add(_buildMoreIndicator(remaining, data.accent));
+        children.add(
+          _buildMoreIndicator(context, remaining, data.accent, data),
+        );
+      } else if (data.slices.length > 1) {
+        children.add(
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => _showBreakdownDetail(context, data),
+              style: TextButton.styleFrom(
+                foregroundColor: data.accent,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Icon(Icons.open_in_full, size: 16),
+              label: Text(
+                'View breakdown',
+                style: GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
+                  fontFamily: GoogleFonts.robotoMono().fontFamily,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ),
+        );
       }
     }
 
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: data.accent.withOpacity(0.45), width: 1.1),
-        color: palette.cardBackground,
-        gradient: LinearGradient(
-          colors: [data.accent.withOpacity(0.12), Colors.transparent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: palette.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 12),
+    final cardRadius = BorderRadius.circular(24);
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: cardRadius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        borderRadius: cardRadius,
+        splashColor: data.accent.withOpacity(0.12),
+        highlightColor: data.accent.withOpacity(0.08),
+        onTap: total > 0
+            ? () => _showBreakdownDetail(
+                  context,
+                  data,
+                )
+            : null,
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            borderRadius: cardRadius,
+            border: Border.all(color: data.accent.withOpacity(0.45), width: 1.1),
+            color: palette.cardBackground,
+            gradient: LinearGradient(
+              colors: [data.accent.withOpacity(0.12), Colors.transparent],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: palette.cardShadow,
+                blurRadius: 18,
+                offset: const Offset(0, 12),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: children,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: children,
+          ),
+        ),
       ),
     );
   }
@@ -554,33 +597,52 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildMoreIndicator(int remaining, Color accent) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4),
-            color: accent.withOpacity(0.3),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            '+ $remaining more entries',
-            style: GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
-              fontFamily: GoogleFonts.robotoMono().fontFamily,
-              fontSize: 11,
-              color: _palette.onSurfaceMuted,
+  Widget _buildMoreIndicator(
+    BuildContext context,
+    int remaining,
+    Color accent,
+    _OverviewCardData data,
+  ) {
+    final textStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
+      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontSize: 11,
+      color: _palette.onSurface,
+      fontWeight: FontWeight.w600,
+    );
+
+    return InkWell(
+      onTap: () => _showBreakdownDetail(context, data),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                color: accent.withOpacity(0.5),
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '+ $remaining more entries • View all',
+                style: textStyle,
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 16, color: accent.withOpacity(0.8)),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildLineTrackingCard(List<_LineTrackingDatum> data) {
+  Widget _buildLineTrackingCard(
+    BuildContext context,
+    List<_LineTrackingDatum> data,
+  ) {
     final palette = _palette;
     final accent = palette.accentSecondary;
     final coolColor = palette.accentPrimary;
@@ -659,15 +721,30 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               _buildLineProgressRow(
                 item,
                 normalizedMax,
+                onTap: () {
+                  final detail = _findDetailBySn(item.stencilSn);
+                  if (detail != null) {
+                    _showSingleDetail(context, detail, item.hours);
+                  }
+                },
               ),
             if (data.length > top.length)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '+ ${data.length - top.length} more lines',
-                  style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                    fontFamily: GoogleFonts.robotoMono().fontFamily,
-                    color: _textSecondary,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _showLineTrackingDetail(context, data),
+                  style: TextButton.styleFrom(
+                    foregroundColor: accent,
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: const Icon(Icons.auto_graph_rounded, size: 16),
+                  label: Text(
+                    'View all ${data.length} lines',
+                    style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                      fontFamily: GoogleFonts.robotoMono().fontFamily,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               ),
@@ -679,8 +756,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
   Widget _buildLineProgressRow(
     _LineTrackingDatum item,
-    double maxHours,
-  ) {
+    double maxHours, {
+    VoidCallback? onTap,
+  }) {
     final palette = _palette;
     final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
       fontFamily: GoogleFonts.robotoMono().fontFamily,
@@ -702,8 +780,22 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ? item.hours.toStringAsFixed(1)
         : item.hours.toStringAsFixed(2);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+    final radius = BorderRadius.circular(18);
+    final content = Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        border: Border.all(color: _lineHoursColor(item.hours).withOpacity(0.4)),
+        gradient: LinearGradient(
+          colors: [
+            _lineHoursColor(item.hours).withOpacity(0.14),
+            palette.cardBackground.withOpacity(0.9),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -721,7 +813,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               Text('$formattedHours h', style: valueStyle),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
@@ -731,13 +823,23 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               backgroundColor: _lineHoursColor(item.hours).withOpacity(0.18),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             '${item.location} • ${_dateFormat.format(item.startTime)}',
             style: metaStyle,
           ),
         ],
       ),
+    );
+
+    if (onTap == null) {
+      return content;
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: radius,
+      child: content,
     );
   }
 
@@ -793,17 +895,17 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         if (constraints.maxWidth < 520) {
           return Column(
             children: [
-              _buildOverviewCard(cards[0]),
+              _buildOverviewCard(context, cards[0]),
               const SizedBox(height: 16),
-              _buildOverviewCard(cards[1]),
+              _buildOverviewCard(context, cards[1]),
             ],
           );
         }
         return Row(
           children: [
-            Expanded(child: _buildOverviewCard(cards[0])),
+            Expanded(child: _buildOverviewCard(context, cards[0])),
             const SizedBox(width: 16),
-            Expanded(child: _buildOverviewCard(cards[1])),
+            Expanded(child: _buildOverviewCard(context, cards[1])),
           ],
         );
       },
@@ -1016,6 +1118,17 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     list.sort((a, b) => a.startTime.compareTo(b.startTime));
     return list;
+  }
+
+  StencilDetail? _findDetailBySn(String? sn) {
+    if (sn == null || sn.isEmpty) return null;
+    for (final detail in controller.stencilData) {
+      final stencilSn = detail.stencilSn;
+      if (stencilSn != null && stencilSn.isNotEmpty && stencilSn == sn) {
+        return detail;
+      }
+    }
+    return null;
   }
 
   List<_PieSlice> _buildStandardBuckets(List<StencilDetail> data) {
