@@ -1,4 +1,4 @@
-part of 'stencil_monitor_screen.dart';
+part of 'package:smart_factory/screen/home/widget/smt/stencil_monitor/stencil_monitor_screen.dart';
 
 class _FilterActionButton extends StatelessWidget {
   const _FilterActionButton({required this.controller});

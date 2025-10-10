@@ -1,4 +1,4 @@
-part of 'stencil_monitor_screen.dart';
+part of 'package:smart_factory/screen/home/widget/smt/stencil_monitor/stencil_monitor_screen.dart';
 
 class _RunningLineTile extends StatelessWidget {
   const _RunningLineTile({
