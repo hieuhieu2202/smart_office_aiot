@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -643,7 +641,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                 textStyle: GoogleFonts.robotoMono(color: Colors.white, fontSize: 11),
                 header: '',
               ),
-              series: <ChartSeries<_LineTrackingDatum, String>>[
+              series: <CartesianSeries<dynamic, dynamic>>[
                 ColumnSeries<_LineTrackingDatum, String>(
                   dataSource: data,
                   xValueMapper: (datum, _) => datum.category,
@@ -659,7 +657,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                   ),
                   enableTooltip: true,
                   name: 'Hours',
-                  onCreateRenderer: (args) => _NeonColumnSeriesRenderer(),
                 ),
               ],
             ),
@@ -1244,26 +1241,3 @@ class _OverviewCardData {
   final Color accent;
 }
 
-class _NeonColumnSeriesRenderer extends ColumnSeriesRenderer {
-  @override
-  void onPaint(Canvas canvas, ChartSeries<dynamic, dynamic> series,
-      ChartPoint<dynamic> point, Paint fillPaint, Paint strokePaint,
-      {double? seriesAnimationFactor}) {
-    final region = point.region;
-    if (region != null) {
-      final shader = LinearGradient(
-        colors: [
-          fillPaint.color.withOpacity(0.9),
-          fillPaint.color.withOpacity(0.5),
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ).createShader(region.outerRect);
-      fillPaint
-        ..shader = shader
-        ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 6);
-    }
-    super.onPaint(canvas, series, point, fillPaint, strokePaint,
-        seriesAnimationFactor: seriesAnimationFactor);
-  }
-}
