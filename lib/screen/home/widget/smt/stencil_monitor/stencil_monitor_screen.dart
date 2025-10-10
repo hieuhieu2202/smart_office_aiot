@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
-
 import 'package:smart_factory/config/global_color.dart';
 import 'package:smart_factory/config/global_text_style.dart';
 import 'package:smart_factory/screen/home/controller/stencil_monitor_controller.dart';
@@ -36,29 +34,12 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   late final StencilMonitorController controller;
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
-  final List<Color> _neonPalette = const [
-    Color(0xFF4DE1FF),
-    Color(0xFF8F5BFF),
-    Color(0xFF2CF6B3),
-    Color(0xFFFFA726),
-    Color(0xFFFF667D),
-    Color(0xFF7CF0FF),
-    Color(0xFFB388FF),
-    Color(0xFF64FFDA),
-  ];
-
   late _StencilColorScheme _palette;
 
   Color get _textPrimary => _palette.onSurface;
   Color get _textSecondary => _palette.onSurfaceMuted;
   Color get _axisLineColor => _palette.onSurface
       .withOpacity(_palette.isDark ? 0.25 : 0.2);
-  Color get _gridLineColor => _palette.onSurface
-      .withOpacity(_palette.isDark ? 0.12 : 0.1);
-  Color get _tooltipBackground => _palette.tooltipBackground;
-  Color get _tooltipTextColor => _palette.isDark
-      ? GlobalColors.darkPrimaryText
-      : GlobalColors.lightPrimaryText;
 
   @override
   void initState() {
@@ -425,37 +406,92 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       ),
     ];
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 0.86,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      children: cards
-          .map(
-            (card) => _buildOverviewCard(card),
-          )
-          .toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth > 520 ? 2 : 1;
+        const spacing = 16.0;
+        final itemWidth = columns == 1
+            ? constraints.maxWidth
+            : (constraints.maxWidth - spacing) / 2;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: cards
+              .map(
+                (card) => SizedBox(
+                  width: itemWidth,
+                  child: _buildOverviewCard(card),
+                ),
+              )
+              .toList(),
+        );
+      },
     );
   }
 
   Widget _buildOverviewCard(_OverviewCardData data) {
     final palette = _palette;
     final total = data.slices.fold<int>(0, (sum, slice) => sum + slice.value);
-    final displaySlices = data.slices.take(6).toList();
+    final displaySlices = data.slices.take(4).toList();
+    final remaining = data.slices.length > displaySlices.length
+        ? data.slices
+            .skip(displaySlices.length)
+            .fold<int>(0, (sum, slice) => sum + slice.value)
+        : 0;
+
+    final titleStyle = GoogleFonts.orbitron(
+      color: data.accent,
+      fontSize: 15,
+      letterSpacing: 1,
+    );
+
+    final totalStyle = GoogleFonts.orbitron(
+      fontSize: 26,
+      fontWeight: FontWeight.w700,
+      color: palette.onSurface,
+    );
+
+    final subtitleStyle = GoogleFonts.robotoMono(
+      fontSize: 12,
+      color: palette.onSurfaceMuted,
+    );
+
+    final children = <Widget>[
+      Text(data.title, style: titleStyle),
+      const SizedBox(height: 12),
+      Text('$total', style: totalStyle),
+      const SizedBox(height: 2),
+      Text('Total items', style: subtitleStyle),
+      const SizedBox(height: 16),
+    ];
+
+    if (total == 0) {
+      children.add(
+        Text(
+          'No data available',
+          style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+            fontFamily: GoogleFonts.robotoMono().fontFamily,
+            color: palette.onSurfaceMuted,
+          ),
+        ),
+      );
+    } else {
+      for (final slice in displaySlices) {
+        children.add(_buildSliceRow(slice.label, slice.value, data.accent));
+      }
+      if (remaining > 0) {
+        children.add(_buildMoreIndicator(remaining, data.accent));
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: data.accent.withOpacity(0.5), width: 1.2),
+        border: Border.all(color: data.accent.withOpacity(0.45), width: 1.1),
         color: palette.cardBackground,
         gradient: LinearGradient(
-          colors: [
-            data.accent.withOpacity(0.12),
-            Colors.transparent,
-          ],
+          colors: [data.accent.withOpacity(0.12), Colors.transparent],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -463,118 +499,84 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           BoxShadow(
             color: palette.cardShadow,
             blurRadius: 18,
-            spreadRadius: 1,
             offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildSliceRow(String label, int value, Color accent) {
+    final palette = _palette;
+    final nameStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontSize: 12,
+      color: palette.onSurface,
+    );
+    final valueStyle = nameStyle.copyWith(
+      fontWeight: FontWeight.w600,
+      color: accent,
+    );
+
+    final normalizedLabel = label.trim().isEmpty ? 'Unknown' : label.trim();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            data.title,
-            style: GoogleFonts.orbitron(
-              color: data.accent,
-              fontSize: 15,
-              letterSpacing: 1,
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(4),
             ),
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 148,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SfCircularChart(
-                  margin: EdgeInsets.zero,
-                  backgroundColor: Colors.transparent,
-                  series: <CircularSeries<_PieSlice, String>>[
-                    DoughnutSeries<_PieSlice, String>(
-                      dataSource: displaySlices,
-                      xValueMapper: (datum, _) => datum.label,
-                      yValueMapper: (datum, _) => datum.value,
-                      pointColorMapper: (datum, index) =>
-                          _neonPalette[index % _neonPalette.length],
-                      innerRadius: '58%',
-                      radius: '118%',
-                      explode: displaySlices.length == 1,
-                      dataLabelSettings: DataLabelSettings(
-                        isVisible: displaySlices.length <= 4,
-                        textStyle: GoogleFonts.robotoMono(
-                          color: palette.onSurface,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$total',
-                      style: GoogleFonts.orbitron(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: palette.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Total',
-                      style: GoogleFonts.robotoMono(
-                        fontSize: 12,
-                        color: palette.onSurfaceMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              normalizedLabel,
+              style: nameStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: displaySlices
-                .map(
-                  (slice) => _buildLegendPill(
-                    slice.label,
-                    slice.value,
-                    data.accent,
-                    textColor: palette.onSurface,
-                  ),
-                )
-                .toList(),
-          ),
+          const SizedBox(width: 8),
+          Text('$value', style: valueStyle),
         ],
       ),
     );
   }
 
-  Widget _buildLegendPill(
-    String label,
-    int value,
-    Color accent, {
-    required Color textColor,
-  }) {
-    final textStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
-      fontFamily: GoogleFonts.robotoMono().fontFamily,
-      fontSize: 11,
-      color: textColor.withOpacity(0.85),
-    );
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent.withOpacity(0.5)),
-        color: accent.withOpacity(0.12),
-      ),
-      child: Text(
-        '$label • $value',
-        style: textStyle,
-      ),
+  Widget _buildMoreIndicator(int remaining, Color accent) {
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            color: accent.withOpacity(0.3),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            '+ $remaining more entries',
+            style: GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
+              fontFamily: GoogleFonts.robotoMono().fontFamily,
+              fontSize: 11,
+              color: _palette.onSurfaceMuted,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -596,6 +598,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       letterSpacing: 1.1,
       color: accent,
     );
+
+    final top = data.take(8).toList();
+    final maxHours = top.fold<double>(0, (max, item) => item.hours > max ? item.hours : max);
+    final normalizedMax = maxHours <= 0 ? 1 : maxHours + 0.5;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -637,58 +643,98 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 260,
-            child: SfCartesianChart(
-              backgroundColor: Colors.transparent,
-              primaryXAxis: CategoryAxis(
-                axisLine: AxisLine(color: _axisLineColor),
-                majorGridLines: const MajorGridLines(color: Colors.transparent),
-                labelStyle: GoogleFonts.robotoMono(
+          if (top.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                'No runtime tracking data available',
+                style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                  fontFamily: GoogleFonts.robotoMono().fontFamily,
                   color: _textSecondary,
-                  fontSize: 10,
                 ),
               ),
-              primaryYAxis: NumericAxis(
-                axisLine: AxisLine(color: _axisLineColor),
-                majorGridLines: MajorGridLines(
-                  width: 0.4,
-                  color: _gridLineColor,
-                ),
-                labelStyle: GoogleFonts.robotoMono(
-                  color: _textSecondary,
-                  fontSize: 10,
-                ),
-                minimum: 0,
+            )
+          else ...[
+            for (final item in top)
+              _buildLineProgressRow(
+                item,
+                normalizedMax,
               ),
-              tooltipBehavior: TooltipBehavior(
-                enable: true,
-                color: _tooltipBackground,
-                textStyle: GoogleFonts.robotoMono(
-                  color: _tooltipTextColor,
-                  fontSize: 11,
-                ),
-                header: '',
-              ),
-              series: <CartesianSeries<dynamic, dynamic>>[
-                ColumnSeries<_LineTrackingDatum, String>(
-                  dataSource: data,
-                  xValueMapper: (datum, _) => datum.category,
-                  yValueMapper: (datum, _) => datum.hours,
-                  pointColorMapper: (datum, _) => _lineHoursColor(datum.hours),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                  dataLabelSettings: DataLabelSettings(
-                    isVisible: data.length <= 6,
-                    textStyle: GoogleFonts.robotoMono(
-                      color: _textPrimary,
-                      fontSize: 9,
-                    ),
+            if (data.length > top.length)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '+ ${data.length - top.length} more lines',
+                  style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                    fontFamily: GoogleFonts.robotoMono().fontFamily,
+                    color: _textSecondary,
                   ),
-                  enableTooltip: true,
-                  name: 'Hours',
                 ),
-              ],
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLineProgressRow(
+    _LineTrackingDatum item,
+    double maxHours,
+  ) {
+    final palette = _palette;
+    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontSize: 12,
+      color: palette.onSurface,
+    );
+    final valueStyle = labelStyle.copyWith(
+      fontWeight: FontWeight.w600,
+      color: _lineHoursColor(item.hours),
+    );
+    final metaStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontSize: 11,
+      color: _textSecondary,
+    );
+
+    final progress = (item.hours / maxHours).clamp(0.0, 1.0);
+    final formattedHours = item.hours >= 10
+        ? item.hours.toStringAsFixed(1)
+        : item.hours.toStringAsFixed(2);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item.category,
+                  style: labelStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('$formattedHours h', style: valueStyle),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              valueColor: AlwaysStoppedAnimation<Color>(_lineHoursColor(item.hours)),
+              backgroundColor: _lineHoursColor(item.hours).withOpacity(0.18),
             ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${item.location} • ${_dateFormat.format(item.startTime)}',
+            style: metaStyle,
           ),
         ],
       ),
@@ -733,135 +779,34 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     List<_PieSlice> usingTime,
     List<_PieSlice> checkTime,
   ) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildMiniDonutCard(
-            title: 'USING TIME',
-            accent: const Color(0xFF4DE1FF),
-            slices: usingTime,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildMiniDonutCard(
-            title: 'CHECKING TIME',
-            accent: const Color(0xFFFF6FB7),
-            slices: checkTime,
-          ),
-        ),
-      ],
-    );
-  }
+    final usageAccent = _palette.accentPrimary;
+    final checkingAccent =
+        _palette.isDark ? GlobalColors.gradientDarkEnd : GlobalColors.gradientLightEnd;
 
-  Widget _buildMiniDonutCard({
-    required String title,
-    required Color accent,
-    required List<_PieSlice> slices,
-  }) {
-    final palette = _palette;
-    final total = slices.fold<int>(0, (sum, item) => sum + item.value);
-    final display = slices.take(6).toList();
+    final cards = [
+      _OverviewCardData(title: 'USING TIME', slices: usingTime, accent: usageAccent),
+      _OverviewCardData(title: 'CHECKING TIME', slices: checkTime, accent: checkingAccent),
+    ];
 
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: accent.withOpacity(0.5), width: 1.1),
-        color: palette.cardBackground,
-        gradient: LinearGradient(
-          colors: [accent.withOpacity(0.12), Colors.transparent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: palette.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.orbitron(
-              color: accent,
-              fontSize: 14,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 160,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SfCircularChart(
-                  margin: EdgeInsets.zero,
-                  backgroundColor: Colors.transparent,
-                  series: <CircularSeries<_PieSlice, String>>[
-                    DoughnutSeries<_PieSlice, String>(
-                      dataSource: display,
-                      xValueMapper: (datum, _) => datum.label,
-                      yValueMapper: (datum, _) => datum.value,
-                      pointColorMapper: (datum, index) =>
-                          _neonPalette[index % _neonPalette.length],
-                      innerRadius: '55%',
-                      radius: '122%',
-                      dataLabelSettings: DataLabelSettings(
-                        isVisible: display.length <= 3,
-                        textStyle: GoogleFonts.robotoMono(
-                          color: palette.onSurface,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$total',
-                      style: GoogleFonts.orbitron(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: palette.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Total',
-                      style: GoogleFonts.robotoMono(
-                        fontSize: 11,
-                        color: palette.onSurfaceMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: display
-                .map(
-                  (slice) => _buildLegendPill(
-                    slice.label,
-                    slice.value,
-                    accent,
-                    textColor: palette.onSurface,
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 520) {
+          return Column(
+            children: [
+              _buildOverviewCard(cards[0]),
+              const SizedBox(height: 16),
+              _buildOverviewCard(cards[1]),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: _buildOverviewCard(cards[0])),
+            const SizedBox(width: 16),
+            Expanded(child: _buildOverviewCard(cards[1])),
+          ],
+        );
+      },
     );
   }
 

@@ -114,9 +114,11 @@ class _EvaScannerState extends State<EvaScanner> with TickerProviderStateMixin {
     const bodyW = 104.0, bodyH = 134.0;
     const eyeW  = 72.0, eyeH  = 44.0;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
+    return FittedBox(
+      fit: BoxFit.contain,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
         // ĐẦU
         Stack(
           clipBehavior: Clip.none,
@@ -262,7 +264,8 @@ class _EvaScannerState extends State<EvaScanner> with TickerProviderStateMixin {
             ],
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 }
