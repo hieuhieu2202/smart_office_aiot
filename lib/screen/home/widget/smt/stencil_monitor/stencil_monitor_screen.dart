@@ -601,7 +601,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     final top = data.take(8).toList();
     final maxHours = top.fold<double>(0, (max, item) => item.hours > max ? item.hours : max);
-    final normalizedMax = maxHours <= 0 ? 1 : maxHours + 0.5;
+    final normalizedMax = maxHours <= 0 ? 1.0 : maxHours + 0.5;
 
     return Container(
       padding: const EdgeInsets.all(20),
