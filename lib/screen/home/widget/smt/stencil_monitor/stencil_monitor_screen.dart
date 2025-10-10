@@ -697,7 +697,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       color: _textSecondary,
     );
 
-    final progress = (item.hours / maxHours).clamp(0.0, 1.0);
+    final progress = (item.hours / maxHours).clamp(0.0, 1.0).toDouble();
     final formattedHours = item.hours >= 10
         ? item.hours.toStringAsFixed(1)
         : item.hours.toStringAsFixed(2);
