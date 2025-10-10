@@ -233,43 +233,16 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   }
 
   Widget _buildDashboard(BuildContext context, List<StencilDetail> filtered) {
-    final customerSlices = _groupToPie(
-      filtered,
-      (item) => item.customerLabel,
-      labelTransformer: _mapCustomerLabel,
-    );
-    final statusSlices = controller.statusBreakdown(filtered)
-        .entries
-        .map((e) => _PieSlice(e.key, e.value))
-        .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final vendorSlices = controller.vendorBreakdown(filtered)
-        .entries
-        .map((e) => _PieSlice(e.key, e.value))
-        .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final processSlices = _groupToPie(
-      filtered,
-      (item) {
-        final raw = item.process?.trim().toUpperCase() ?? '';
-        if (raw == 'T' || raw == 'TOP') return 'TOP';
-        if (raw == 'B' || raw == 'BOTTOM') return 'BOTTOM';
-        if (raw == 'D' || raw == 'DOUBLE') return 'DOUBLE';
-        if (raw.isEmpty) return 'DOUBLE';
-        return raw;
-      },
-    );
+    final customerSlices = _buildCustomerSlices(filtered);
+    final statusSlices = _buildStatusSlices(filtered);
+    final vendorSlices = _buildVendorSlices(filtered);
+    final processSlices = _buildProcessSlices(filtered);
 
     final lineTracking = _buildLineTracking(filtered);
     final usingTimeSlices = _buildStandardBuckets(filtered);
     final checkSlices = _buildCheckTimeBuckets(filtered);
 
-    final activeLines = filtered
-        .where((item) => item.isActive)
-        .toList()
-      ..sort((a, b) =>
-          (a.startTime ?? DateTime.fromMillisecondsSinceEpoch(0))
-              .compareTo(b.startTime ?? DateTime.fromMillisecondsSinceEpoch(0)));
+    final activeLines = _filterActiveLines(filtered);
 
     final insights = _buildInsightMetrics(activeLines);
 
@@ -1055,32 +1028,79 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  List<_PieSlice> _groupToPie(
-    List<StencilDetail> source,
-    String Function(StencilDetail item) selector, {
-    String Function(String value)? labelTransformer,
-  }) {
+  List<_PieSlice> _buildCustomerSlices(List<StencilDetail> data) {
     final map = <String, int>{};
-    for (final item in source) {
-      var key = selector(item).trim();
-      if (labelTransformer != null) {
-        key = labelTransformer(key);
+    for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
       }
-      final normalized = key.isEmpty ? 'UNKNOWN' : key.trim();
-      map[normalized] = (map[normalized] ?? 0) + 1;
+      final label = _mapCustomerLabel(item.customer);
+      map[label] = (map[label] ?? 0) + 1;
+    }
+
+    final entries = map.entries.toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+    return entries.map((entry) => _PieSlice(entry.key, entry.value)).toList();
+  }
+
+  List<_PieSlice> _buildStatusSlices(List<StencilDetail> data) {
+    final map = <String, int>{};
+    for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
+      final status = item.status?.trim() ?? '';
+      if (status.toUpperCase() == 'TOOLROOM') {
+        continue;
+      }
+      final label = status.isEmpty ? 'UNKNOWN' : status;
+      map[label] = (map[label] ?? 0) + 1;
+    }
+
+    final entries = map.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return entries.map((entry) => _PieSlice(entry.key, entry.value)).toList();
+  }
+
+  List<_PieSlice> _buildVendorSlices(List<StencilDetail> data) {
+    final map = <String, int>{};
+    for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
+      final vendor = item.vendorName.trim();
+      final label = vendor.isEmpty ? 'UNKNOWN' : vendor;
+      map[label] = (map[label] ?? 0) + 1;
+    }
+
+    final entries = map.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return entries.map((entry) => _PieSlice(entry.key, entry.value)).toList();
+  }
+
+  List<_PieSlice> _buildProcessSlices(List<StencilDetail> data) {
+    final map = <String, int>{};
+    for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
+      final label = _mapProcess(item.process);
+      map[label] = (map[label] ?? 0) + 1;
     }
 
     final entries = map.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
+    return entries.map((entry) => _PieSlice(entry.key, entry.value)).toList();
+  }
 
-    if (entries.length <= 8) {
-      return entries.map((e) => _PieSlice(e.key, e.value)).toList();
-    }
-
-    final top = entries.take(7).map((e) => _PieSlice(e.key, e.value)).toList();
-    final otherTotal = entries.skip(7).fold<int>(0, (sum, e) => sum + e.value);
-    top.add(_PieSlice('Other', otherTotal));
-    return top;
+  List<StencilDetail> _filterActiveLines(List<StencilDetail> data) {
+    final list = data
+        .where((item) => item.isActive && !_isIgnoredCustomer(item))
+        .toList();
+    list.sort((a, b) =>
+        (a.startTime ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(
+            b.startTime ?? DateTime.fromMillisecondsSinceEpoch(0)));
+    return list;
   }
 
   String _mapCustomerLabel(String value) {
@@ -1091,11 +1111,23 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     return value.trim().isEmpty ? 'UNKNOWN' : value.trim();
   }
 
+  String _mapProcess(String? raw) {
+    final value = raw?.trim().toUpperCase() ?? '';
+    if (value == 'T' || value == 'TOP') return 'TOP';
+    if (value == 'B' || value == 'BOTTOM') return 'BOTTOM';
+    if (value == 'D' || value == 'DOUBLE') return 'DOUBLE';
+    if (value.isEmpty) return 'DOUBLE';
+    return value;
+  }
+
   List<_LineTrackingDatum> _buildLineTracking(List<StencilDetail> data) {
     final now = DateTime.now();
     final list = <_LineTrackingDatum>[];
 
     for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
       final start = item.startTime;
       if (start == null) continue;
       final diff = now.difference(start).inMinutes / 60.0;
@@ -1120,6 +1152,11 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     return list;
   }
 
+  bool _isIgnoredCustomer(StencilDetail detail) {
+    final raw = detail.customer.trim().toUpperCase();
+    return StencilMonitorController.ignoredCustomers.contains(raw);
+  }
+
   StencilDetail? _findDetailBySn(String? sn) {
     if (sn == null || sn.isEmpty) return null;
     for (final detail in controller.stencilData) {
@@ -1139,13 +1176,20 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       const _UsageRange(min: 50001, max: 80000, label: '50K – 80K'),
       const _UsageRange(min: 80001, max: 90000, label: '80K – 90K'),
       const _UsageRange(min: 90001, max: 100000, label: '90K – 100K'),
-      const _UsageRange(min: 100001, max: double.infinity, label: '> 100K'),
+      const _UsageRange(
+        min: 100001,
+        max: double.infinity,
+        label: 'Greater than 100K',
+      ),
     ];
 
     final counts = <String, int>{for (final range in ranges) range.label: 0};
     var unknownCount = 0;
 
     for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
       final value = item.totalUseTimes;
       if (value == null) {
         unknownCount++;
@@ -1191,6 +1235,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     final now = DateTime.now();
     for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
       final check = item.checkTime;
       if (check == null) {
         map['Unknown'] = map['Unknown']! + 1;

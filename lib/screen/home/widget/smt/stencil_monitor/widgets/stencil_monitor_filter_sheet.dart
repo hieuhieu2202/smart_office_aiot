@@ -25,6 +25,7 @@ class _FilterActionButton extends StatelessWidget {
         final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
         final screenWidth = MediaQuery.of(ctx).size.width;
         final sheetWidth = screenWidth < 420 ? screenWidth * 0.9 : 360.0;
+        final navigator = Navigator.of(ctx);
 
         return SafeArea(
           child: Align(
@@ -35,7 +36,11 @@ class _FilterActionButton extends StatelessWidget {
                 width: sheetWidth,
                 child: _FilterSheetCard(
                   controller: controller,
-                  onClose: () => Navigator.of(ctx).pop(),
+                  onClose: () {
+                    if (navigator.mounted) {
+                      navigator.pop();
+                    }
+                  },
                 ),
               ),
             ),
@@ -262,9 +267,9 @@ class _FilterSheetCard extends StatelessWidget {
                               foregroundColor:
                                   isDark ? GlobalColors.darkBackground : Colors.white,
                             ),
-                            onPressed: () async {
-                              await controller.refresh();
+                            onPressed: () {
                               onClose();
+                              controller.fetchData(force: true);
                             },
                             icon: const Icon(Icons.check_circle_outline),
                             label: const Text('Apply'),

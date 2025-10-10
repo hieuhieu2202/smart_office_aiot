@@ -18,7 +18,7 @@ class StencilMonitorController extends GetxController {
   final RxList<String> floors = <String>[].obs;
 
   Future<void>? _activeFetch;
-  static const Set<String> _ignoredCustomers = {'CPEII'};
+  static const Set<String> ignoredCustomers = {'CPEII'};
 
   @override
   void onInit() {
@@ -88,11 +88,8 @@ class StencilMonitorController extends GetxController {
     final floorFilter = selectedFloor.value;
     return stencilData.where((item) {
       final customerLabel = item.customerLabel;
-      if (_ignoredCustomers.contains(customerLabel.toUpperCase())) {
-        return false;
-      }
-
       final floorLabel = item.floorLabel;
+
       final matchCustomer =
           customerFilter == 'ALL' || customerLabel == customerFilter;
       final matchFloor = floorFilter == 'ALL' || floorLabel == floorFilter;
@@ -103,6 +100,10 @@ class StencilMonitorController extends GetxController {
   Map<String, int> statusBreakdown(List<StencilDetail> source) {
     final map = <String, int>{};
     for (final item in source) {
+      final customer = item.customer.trim().toUpperCase();
+      if (ignoredCustomers.contains(customer)) {
+        continue;
+      }
       final status = item.statusLabel;
       if (status.toUpperCase() == 'TOOLROOM') {
         continue;
@@ -115,6 +116,10 @@ class StencilMonitorController extends GetxController {
   Map<String, int> vendorBreakdown(List<StencilDetail> source) {
     final map = <String, int>{};
     for (final item in source) {
+      final customer = item.customer.trim().toUpperCase();
+      if (ignoredCustomers.contains(customer)) {
+        continue;
+      }
       final vendor = _normalizeLabel(item.vendorName);
       map[vendor] = (map[vendor] ?? 0) + 1;
     }
@@ -125,9 +130,6 @@ class StencilMonitorController extends GetxController {
     final set = <String>{};
     for (final item in stencilData) {
       final label = item.customerLabel;
-      if (_ignoredCustomers.contains(label.toUpperCase())) {
-        continue;
-      }
       set.add(label);
     }
     final sorted = set.toList()..sort();
@@ -142,10 +144,6 @@ class StencilMonitorController extends GetxController {
     final customerFilter = selectedCustomer.value;
     for (final item in stencilData) {
       final label = item.customerLabel;
-      if (_ignoredCustomers.contains(label.toUpperCase())) {
-        continue;
-      }
-
       if (customerFilter != 'ALL' && label != customerFilter) {
         continue;
       }
