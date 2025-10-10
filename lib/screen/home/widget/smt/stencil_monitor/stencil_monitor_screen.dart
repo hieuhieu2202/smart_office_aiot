@@ -64,6 +64,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
       return Scaffold(
         backgroundColor: Colors.transparent,
+        appBar: _buildAppBar(
+          context,
+          loading: loading,
+        ),
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -113,7 +117,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildHeader(context, loading: loading, error: error),
+                    _buildHeader(context, error: error),
                     const SizedBox(height: 20),
                     if (filtered.isEmpty)
                       _buildEmptyState()
@@ -129,10 +133,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context,
-      {required bool loading, required String error}) {
-    final customers = controller.customers.toList(growable: false);
-    final floors = controller.floors.toList(growable: false);
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context, {
+    required bool loading,
+  }) {
     final lastUpdated = controller.lastUpdated.value;
     final updateText = lastUpdated != null
         ? _dateFormat.format(lastUpdated)
@@ -140,6 +144,99 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     final floorLabel = controller.selectedFloor.value == 'ALL'
         ? 'F06'
         : controller.selectedFloor.value;
+
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(90),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF071B30), Color(0xFF0B2B4A)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border(
+            bottom: BorderSide(
+              color: Colors.cyanAccent.withOpacity(0.3),
+              width: 1.2,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.45),
+              blurRadius: 18,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'SMT $floorLabel STENCIL MONITOR',
+                        style: GoogleFonts.orbitron(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.cyanAccent,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Last update: $updateText',
+                        style: GoogleFonts.robotoMono(
+                          color: Colors.white.withOpacity(0.75),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: loading
+                          ? Colors.yellowAccent.withOpacity(0.7)
+                          : Colors.cyanAccent.withOpacity(0.6),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.cyanAccent.withOpacity(0.25),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      loading ? Icons.sync : Icons.refresh,
+                      color: loading
+                          ? Colors.yellowAccent
+                          : Colors.cyanAccent,
+                    ),
+                    onPressed: () => controller.fetchData(force: true),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, {required String error}) {
+    final customers = controller.customers.toList(growable: false);
+    final floors = controller.floors.toList(growable: false);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -166,60 +263,16 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'SMT $floorLabel STENCIL MONITOR',
-                      style: GoogleFonts.orbitron(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.cyanAccent,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Last update: $updateText',
-                      style: GoogleFonts.robotoMono(
-                        color: Colors.white.withOpacity(0.75),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: loading
-                        ? Colors.yellowAccent.withOpacity(0.7)
-                        : Colors.cyanAccent.withOpacity(0.6),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.cyanAccent.withOpacity(0.25),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    loading ? Icons.sync : Icons.refresh,
-                    color:
-                        loading ? Colors.yellowAccent : Colors.cyanAccent,
-                  ),
-                  onPressed: () => controller.fetchData(force: true),
-                ),
-              ),
-            ],
+          Text(
+            'Control Panel',
+            style: GoogleFonts.orbitron(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.cyanAccent.withOpacity(0.9),
+              letterSpacing: 1.1,
+            ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -428,7 +481,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 0.95,
+      childAspectRatio: 0.85,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
       children: cards
