@@ -147,11 +147,23 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ? 'F06'
         : controller.selectedFloor.value;
 
+    final canPop = Navigator.of(context).canPop();
+
     return AppBar(
       backgroundColor: const Color(0xFF061F3C),
       elevation: 8,
       toolbarHeight: 72,
       automaticallyImplyLeading: false,
+      leadingWidth: canPop ? 64 : null,
+      leading: canPop
+          ? Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: _NeonIconButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
+            )
+          : null,
       iconTheme: const IconThemeData(color: Colors.cyanAccent),
       titleSpacing: 0,
       title: Column(
@@ -179,14 +191,15 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       ),
       actions: [
         _FilterActionButton(controller: controller),
-        const SizedBox(width: 4),
-        IconButton(
-          tooltip: 'Refresh',
-          icon: Icon(loading ? Icons.sync : Icons.refresh),
-          color: loading ? Colors.amberAccent : Colors.cyanAccent,
-          onPressed: () => controller.fetchData(force: true),
+        const SizedBox(width: 6),
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: _NeonIconButton(
+            icon: loading ? Icons.sync : Icons.refresh,
+            glowColor: loading ? Colors.amberAccent : Colors.cyanAccent,
+            onTap: () => controller.fetchData(force: true),
+          ),
         ),
-        const SizedBox(width: 8),
       ],
     );
   }
@@ -262,6 +275,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           (a.startTime ?? DateTime.fromMillisecondsSinceEpoch(0))
               .compareTo(b.startTime ?? DateTime.fromMillisecondsSinceEpoch(0)));
 
+    final insights = _buildInsightMetrics(activeLines);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -271,14 +286,80 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           vendorSlices: vendorSlices,
           processSlices: processSlices,
         ),
+        if (insights.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _InsightsStrip(items: insights),
+        ],
         const SizedBox(height: 20),
         _buildLineTrackingCard(lineTracking),
         const SizedBox(height: 20),
         _buildUsageRow(usingTimeSlices, checkSlices),
         const SizedBox(height: 20),
-        _buildRunningLine(activeLines),
+        _buildRunningLine(context, activeLines),
       ],
     );
+  }
+
+  List<_InsightMetric> _buildInsightMetrics(List<StencilDetail> activeLines) {
+    if (activeLines.isEmpty) return const [];
+
+    final total = activeLines.length;
+    int good = 0;
+    int warning = 0;
+    int danger = 0;
+
+    final now = DateTime.now();
+    for (final item in activeLines) {
+      final start = item.startTime;
+      if (start == null) continue;
+      final diff = now.difference(start).inMinutes / 60;
+      if (diff <= 3.5) {
+        good++;
+      } else if (diff <= 4) {
+        warning++;
+      } else {
+        danger++;
+      }
+    }
+
+    final checkNow = DateTime.now();
+    final recentCutoff = checkNow.subtract(const Duration(days: 180));
+    final onCheck = activeLines
+        .where((e) => (e.checkTime ?? checkNow).isAfter(recentCutoff))
+        .length;
+
+    return [
+      _InsightMetric(
+        label: 'ACTIVE LINES',
+        value: total.toString(),
+        accent: Colors.cyanAccent,
+        description: 'Monitoring right now',
+      ),
+      _InsightMetric(
+        label: 'STABLE',
+        value: good.toString(),
+        accent: const Color(0xFF2CF6B3),
+        description: '< 3.5 hours runtime',
+      ),
+      _InsightMetric(
+        label: 'WATCH',
+        value: warning.toString(),
+        accent: Colors.amberAccent,
+        description: '3.5 – 4 hours runtime',
+      ),
+      _InsightMetric(
+        label: 'ALERT',
+        value: danger.toString(),
+        accent: Colors.redAccent,
+        description: '> 4 hours runtime',
+      ),
+      _InsightMetric(
+        label: 'RECENT CHECK',
+        value: onCheck.toString(),
+        accent: const Color(0xFF8F5BFF),
+        description: 'Checked in last 6 months',
+      ),
+    ];
   }
 
   Widget _buildOverviewGrid({
@@ -711,157 +792,69 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildRunningLine(List<StencilDetail> activeLines) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.45)),
-        gradient: LinearGradient(
-          colors: [
-            Colors.cyanAccent.withOpacity(0.15),
-            Colors.transparent,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.cyanAccent.withOpacity(0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'RUNNING LINE',
-            style: GoogleFonts.orbitron(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.cyanAccent,
-              letterSpacing: 1.1,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 320,
-            child: activeLines.isEmpty
-                ? Center(
-                    child: Text(
-                      'No active stencil lines detected.',
-                      style: GoogleFonts.robotoMono(
-                        color: Colors.white54,
-                        fontSize: 12,
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final item = activeLines[index];
-                      return _buildRunningLineTile(item);
-                    },
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemCount: activeLines.length,
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRunningLineTile(StencilDetail item) {
-    final now = DateTime.now();
-    final start = item.startTime;
-    final diffHours = start != null
-        ? now.difference(start).inMinutes / 60.0
-        : 0.0;
-    final hoursText = diffHours.toStringAsFixed(2);
-    final color = _lineHoursColor(diffHours);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withOpacity(0.6)),
-        color: color.withOpacity(0.15),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item.lineName ?? item.location ?? item.stencilSn,
-                  style: GoogleFonts.orbitron(
-                    color: Colors.white,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: color.withOpacity(0.7)),
-                  color: Colors.black.withOpacity(0.3),
-                ),
-                child: Text(
-                  '$hoursText h',
-                  style: GoogleFonts.robotoMono(
-                    color: Colors.white,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildInfoRow('Stencil SN', item.stencilSn),
-          _buildInfoRow('Start Time',
-              start != null ? _dateFormat.format(start) : 'Unknown'),
-          _buildInfoRow('Use Times', '${item.totalUseTimes ?? 0}'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 90,
+  Widget _buildRunningLine(BuildContext context, List<StencilDetail> activeLines) {
+    if (activeLines.isEmpty) {
+      return _GlassCard(
+        accent: Colors.cyanAccent,
+        title: 'RUNNING LINE',
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48),
             child: Text(
-              label,
+              'No active stencil on line',
               style: GoogleFonts.robotoMono(
                 color: Colors.white60,
-                fontSize: 11,
+                fontSize: 14,
               ),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
+        ),
+      );
+    }
+
+    final now = DateTime.now();
+    final limited = activeLines.take(8).toList();
+
+    return _GlassCard(
+      accent: Colors.cyanAccent,
+      title: 'RUNNING LINE',
+      action: TextButton.icon(
+        onPressed: () => _showRunningLineDetail(context, activeLines),
+        icon: const Icon(Icons.list_alt_rounded, color: Colors.cyanAccent, size: 18),
+        label: const Text(
+          'View all',
+          style: TextStyle(color: Colors.cyanAccent),
+        ),
+      ),
+      child: Column(
+        children: [
+          ...limited.map((item) {
+            final diffHours = item.startTime == null
+                ? 0.0
+                : now.difference(item.startTime!).inMinutes / 60.0;
+            final color = diffHours <= 3.5
+                ? Colors.cyanAccent
+                : diffHours <= 4
+                    ? Colors.amberAccent
+                    : Colors.redAccent;
+
+            return _RunningLineTile(
+              detail: item,
+              hourDiff: diffHours,
+              accent: color,
+              onTap: () => _showSingleDetail(context, item, diffHours),
+            );
+          }),
+          if (activeLines.length > limited.length) ...[
+            const SizedBox(height: 12),
+            Text(
+              '+${activeLines.length - limited.length} more lines running',
               style: GoogleFonts.robotoMono(
-                color: Colors.white,
+                color: Colors.white54,
                 fontSize: 12,
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -1346,6 +1339,404 @@ class _FilterSheetCard extends StatelessWidget {
             ],
           );
         }),
+      ),
+    );
+  }
+}
+
+class _NeonIconButton extends StatelessWidget {
+  const _NeonIconButton({
+    required this.icon,
+    this.onTap,
+    this.glowColor = Colors.cyanAccent,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color glowColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: glowColor.withOpacity(0.6)),
+          gradient: LinearGradient(
+            colors: [
+              glowColor.withOpacity(0.22),
+              Colors.transparent,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: glowColor.withOpacity(0.4),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          color: glowColor,
+          size: 20,
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({
+    required this.title,
+    required this.child,
+    required this.accent,
+    this.action,
+  });
+
+  final String title;
+  final Widget child;
+  final Color accent;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accent.withOpacity(0.45)),
+        gradient: LinearGradient(
+          colors: [accent.withOpacity(0.12), Colors.transparent],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withOpacity(0.28),
+            blurRadius: 24,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.orbitron(
+                    color: accent,
+                    fontSize: 16,
+                    letterSpacing: 1,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (action != null) action!,
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightMetric {
+  const _InsightMetric({
+    required this.label,
+    required this.value,
+    required this.description,
+    required this.accent,
+  });
+
+  final String label;
+  final String value;
+  final String description;
+  final Color accent;
+}
+
+class _InsightsStrip extends StatelessWidget {
+  const _InsightsStrip({required this.items});
+
+  final List<_InsightMetric> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 108,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        itemBuilder: (_, index) {
+          final metric = items[index];
+          return Container(
+            width: 168,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: metric.accent.withOpacity(0.5)),
+              gradient: LinearGradient(
+                colors: [
+                  metric.accent.withOpacity(0.18),
+                  Colors.transparent,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: metric.accent.withOpacity(0.25),
+                  blurRadius: 18,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  metric.label,
+                  style: GoogleFonts.orbitron(
+                    fontSize: 11,
+                    color: metric.accent,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  metric.value,
+                  style: GoogleFonts.orbitron(
+                    fontSize: 26,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  metric.description,
+                  style: GoogleFonts.robotoMono(
+                    fontSize: 11,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _RunningLineTile extends StatelessWidget {
+  const _RunningLineTile({
+    required this.detail,
+    required this.hourDiff,
+    required this.accent,
+    this.onTap,
+    this.dense = true,
+  });
+
+  final StencilDetail detail;
+  final double hourDiff;
+  final Color accent;
+  final VoidCallback? onTap;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final hoursText = hourDiff.toStringAsFixed(2);
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                detail.lineName ?? detail.location ?? detail.stencilSn,
+                style: GoogleFonts.orbitron(
+                  color: Colors.white,
+                  fontSize: dense ? 14 : 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: accent.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: accent.withOpacity(0.55)),
+              ),
+              child: Text(
+                '$hoursText h',
+                style: GoogleFonts.robotoMono(
+                  color: accent,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _DetailRow(label: 'Stencil SN', value: detail.stencilSn ?? '--'),
+        _DetailRow(label: 'Start', value: detail.startTime != null ? DateFormat('yyyy-MM-dd HH:mm:ss').format(detail.startTime!) : 'Unknown'),
+        _DetailRow(label: 'Use times', value: '${detail.totalUseTimes ?? 0}'),
+      ],
+    );
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        margin: EdgeInsets.only(bottom: dense ? 12 : 0),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: accent.withOpacity(0.5)),
+          gradient: LinearGradient(
+            colors: [accent.withOpacity(0.18), Colors.transparent],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withOpacity(0.25),
+              blurRadius: 18,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: content,
+      ),
+    );
+  }
+}
+
+class _DetailSheetContainer extends StatelessWidget {
+  const _DetailSheetContainer({
+    required this.title,
+    required this.child,
+    this.controller,
+  });
+
+  final String title;
+  final Widget child;
+  final ScrollController? controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF030A18),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 14),
+          Container(
+            width: 60,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(100),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.orbitron(
+                      color: Colors.cyanAccent,
+                      fontSize: 16,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white70),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              child: Material(
+                color: Colors.transparent,
+                child: controller == null
+                    ? child
+                    : PrimaryScrollController(
+                        controller: controller!,
+                        child: child,
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.accent,
+  });
+
+  final String label;
+  final String value;
+  final Color? accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: GoogleFonts.robotoMono(
+                color: (accent ?? Colors.cyanAccent).withOpacity(0.75),
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.robotoMono(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
