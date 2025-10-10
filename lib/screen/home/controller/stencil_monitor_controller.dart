@@ -12,7 +12,7 @@ class StencilMonitorController extends GetxController {
   final Rx<DateTime?> lastUpdated = Rx<DateTime?>(null);
 
   final RxString selectedCustomer = 'ALL'.obs;
-  final RxString selectedFloor = 'ALL'.obs;
+  final RxString selectedFloor = 'F06'.obs;
 
   final RxList<String> customers = <String>[].obs;
   final RxList<String> floors = <String>[].obs;
@@ -24,7 +24,7 @@ class StencilMonitorController extends GetxController {
   void onInit() {
     super.onInit();
     customers.assignAll(['ALL']);
-    floors.assignAll(['ALL']);
+    floors.assignAll(['ALL', 'F06']);
     fetchData();
   }
 
@@ -157,7 +157,7 @@ class StencilMonitorController extends GetxController {
 
   String _normalizeLabel(String? value) {
     final raw = value?.trim() ?? '';
-    return raw.isEmpty ? 'UNK' : raw;
+    return raw.isEmpty ? 'UNKNOWN' : raw;
   }
 }
 

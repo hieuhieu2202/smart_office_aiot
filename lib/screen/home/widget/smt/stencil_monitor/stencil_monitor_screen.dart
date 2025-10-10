@@ -1066,7 +1066,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       if (labelTransformer != null) {
         key = labelTransformer(key);
       }
-      final normalized = key.isEmpty ? 'UNK' : key.trim();
+      final normalized = key.isEmpty ? 'UNKNOWN' : key.trim();
       map[normalized] = (map[normalized] ?? 0) + 1;
     }
 
@@ -1088,7 +1088,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     if (upper == 'CPEI') {
       return 'CPEII';
     }
-    return value.trim().isEmpty ? 'UNK' : value.trim();
+    return value.trim().isEmpty ? 'UNKNOWN' : value.trim();
   }
 
   List<_LineTrackingDatum> _buildLineTracking(List<StencilDetail> data) {
