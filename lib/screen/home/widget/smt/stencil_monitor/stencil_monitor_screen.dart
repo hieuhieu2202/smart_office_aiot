@@ -45,6 +45,20 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     Color(0xFF64FFDA),
   ];
 
+  late _StencilColorScheme _palette;
+
+  Color get _textPrimary => _palette.onSurface;
+  Color get _textSecondary => _palette.onSurfaceMuted;
+  Color get _axisLineColor => _palette.onSurface
+      .withOpacity(_palette.brightness == Brightness.dark ? 0.25 : 0.2);
+  Color get _gridLineColor => _palette.onSurface
+      .withOpacity(_palette.brightness == Brightness.dark ? 0.12 : 0.1);
+  Color get _tooltipBackground => _palette.brightness == Brightness.dark
+      ? const Color(0xFF061F3C)
+      : Colors.white;
+  Color get _tooltipTextColor =>
+      _palette.brightness == Brightness.dark ? Colors.white : Colors.black87;
+
   @override
   void initState() {
     super.initState();
@@ -63,23 +77,24 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      _palette = _StencilColorScheme.of(context);
       final loading = controller.isLoading.value;
       final hasData = controller.stencilData.isNotEmpty;
       final filtered = controller.filteredData;
       final error = controller.error.value;
 
       return Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: _buildAppBar(
           context,
           loading: loading,
         ),
         body: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF040B1E), Color(0xFF061F3C)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
+              colors: _palette.backgroundGradient,
             ),
           ),
           child: SafeArea(
@@ -111,7 +126,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     return RefreshIndicator(
       onRefresh: controller.refresh,
-      color: Colors.cyanAccent,
+      color: Theme.of(context).colorScheme.secondary,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
@@ -154,10 +169,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         : controller.selectedFloor.value;
 
     return AppBar(
-      backgroundColor: const Color(0xFF061F3C),
-      elevation: 4,
+      elevation: 2,
       automaticallyImplyLeading: true,
-      iconTheme: const IconThemeData(color: Colors.white),
       titleSpacing: 0,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +181,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             style: GoogleFonts.orbitron(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: _palette.onSurface,
               letterSpacing: 1.1,
             ),
           ),
@@ -176,7 +189,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           Text(
             'Last update: $updateText',
             style: GoogleFonts.robotoMono(
-              color: Colors.white70,
+              color: _palette.onSurfaceMuted,
               fontSize: 11,
             ),
           ),
@@ -189,29 +202,30 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           icon: Icon(loading ? Icons.sync : Icons.refresh),
           onPressed: () => controller.fetchData(force: true),
         ),
-        ],
-      );
+      ],
+    );
   }
 
   Widget _buildErrorChip(String message) {
+    final palette = _palette;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
-        color: Colors.redAccent.withOpacity(0.12),
+        border: Border.all(color: palette.errorBorder),
+        color: palette.errorFill,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.max,
         children: [
-          const Icon(Icons.error_outline, color: Colors.redAccent),
+          Icon(Icons.error_outline, color: palette.errorText),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
               style: GoogleFonts.robotoMono(
-                color: Colors.redAccent.shade100,
+                color: palette.errorText,
                 fontSize: 12,
               ),
             ),
@@ -384,7 +398,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 0.78,
+      childAspectRatio: 0.86,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
       children: cards
@@ -396,6 +410,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   }
 
   Widget _buildOverviewCard(_OverviewCardData data) {
+    final palette = _palette;
     final total = data.slices.fold<int>(0, (sum, slice) => sum + slice.value);
     final displaySlices = data.slices.take(6).toList();
 
@@ -404,6 +419,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: data.accent.withOpacity(0.5), width: 1.2),
+        color: palette.cardBackground,
         gradient: LinearGradient(
           colors: [
             data.accent.withOpacity(0.12),
@@ -414,7 +430,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: data.accent.withOpacity(0.25),
+            color: palette.cardShadow,
             blurRadius: 18,
             spreadRadius: 1,
             offset: const Offset(0, 12),
@@ -433,7 +449,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          Expanded(
+          SizedBox(
+            height: 148,
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -453,7 +470,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                       dataLabelSettings: DataLabelSettings(
                         isVisible: displaySlices.length <= 4,
                         textStyle: GoogleFonts.robotoMono(
-                          color: Colors.white,
+                          color: palette.onSurface,
                           fontSize: 11,
                         ),
                       ),
@@ -468,7 +485,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                       style: GoogleFonts.orbitron(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: palette.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -476,7 +493,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                       'Total',
                       style: GoogleFonts.robotoMono(
                         fontSize: 12,
-                        color: Colors.white.withOpacity(0.75),
+                        color: palette.onSurfaceMuted,
                       ),
                     ),
                   ],
@@ -494,6 +511,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                     slice.label,
                     slice.value,
                     data.accent,
+                    textColor: palette.onSurface,
                   ),
                 )
                 .toList(),
@@ -503,7 +521,12 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildLegendPill(String label, int value, Color accent) {
+  Widget _buildLegendPill(
+    String label,
+    int value,
+    Color accent, {
+    required Color textColor,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
@@ -515,7 +538,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         '$label • $value',
         style: GoogleFonts.robotoMono(
           fontSize: 11,
-          color: Colors.white.withOpacity(0.8),
+          color: textColor.withOpacity(0.85),
         ),
       ),
     );
@@ -551,7 +574,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             style: GoogleFonts.orbitron(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.purpleAccent,
+              color: _palette.brightness == Brightness.dark
+                  ? Colors.purpleAccent
+                  : const Color(0xFF5C3AFF),
               letterSpacing: 1.1,
             ),
           ),
@@ -572,29 +597,32 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             child: SfCartesianChart(
               backgroundColor: Colors.transparent,
               primaryXAxis: CategoryAxis(
-                axisLine: const AxisLine(color: Colors.white24),
+                axisLine: AxisLine(color: _axisLineColor),
                 majorGridLines: const MajorGridLines(color: Colors.transparent),
                 labelStyle: GoogleFonts.robotoMono(
-                  color: Colors.white70,
+                  color: _textSecondary,
                   fontSize: 10,
                 ),
               ),
               primaryYAxis: NumericAxis(
-                axisLine: const AxisLine(color: Colors.white24),
+                axisLine: AxisLine(color: _axisLineColor),
                 majorGridLines: MajorGridLines(
                   width: 0.4,
-                  color: Colors.white10,
+                  color: _gridLineColor,
                 ),
                 labelStyle: GoogleFonts.robotoMono(
-                  color: Colors.white70,
+                  color: _textSecondary,
                   fontSize: 10,
                 ),
                 minimum: 0,
               ),
               tooltipBehavior: TooltipBehavior(
                 enable: true,
-                color: const Color(0xFF061F3C),
-                textStyle: GoogleFonts.robotoMono(color: Colors.white, fontSize: 11),
+                color: _tooltipBackground,
+                textStyle: GoogleFonts.robotoMono(
+                  color: _tooltipTextColor,
+                  fontSize: 11,
+                ),
                 header: '',
               ),
               series: <CartesianSeries<dynamic, dynamic>>[
@@ -607,7 +635,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                   dataLabelSettings: DataLabelSettings(
                     isVisible: data.length <= 6,
                     textStyle: GoogleFonts.robotoMono(
-                      color: Colors.white,
+                      color: _textPrimary,
                       fontSize: 9,
                     ),
                   ),
@@ -644,7 +672,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         Text(
           label,
           style: GoogleFonts.robotoMono(
-            color: Colors.white70,
+            color: _textSecondary,
             fontSize: 11,
           ),
         ),
@@ -682,6 +710,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     required Color accent,
     required List<_PieSlice> slices,
   }) {
+    final palette = _palette;
     final total = slices.fold<int>(0, (sum, item) => sum + item.value);
     final display = slices.take(6).toList();
 
@@ -690,6 +719,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: accent.withOpacity(0.5), width: 1.1),
+        color: palette.cardBackground,
         gradient: LinearGradient(
           colors: [accent.withOpacity(0.12), Colors.transparent],
           begin: Alignment.topLeft,
@@ -697,7 +727,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: accent.withOpacity(0.25),
+            color: palette.cardShadow,
             blurRadius: 18,
             offset: const Offset(0, 12),
           ),
@@ -735,7 +765,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                       dataLabelSettings: DataLabelSettings(
                         isVisible: display.length <= 3,
                         textStyle: GoogleFonts.robotoMono(
-                          color: Colors.white,
+                          color: palette.onSurface,
                           fontSize: 10,
                         ),
                       ),
@@ -750,7 +780,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                       style: GoogleFonts.orbitron(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: palette.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -758,7 +788,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                       'Total',
                       style: GoogleFonts.robotoMono(
                         fontSize: 11,
-                        color: Colors.white.withOpacity(0.75),
+                        color: palette.onSurfaceMuted,
                       ),
                     ),
                   ],
@@ -772,7 +802,12 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             runSpacing: 6,
             children: display
                 .map(
-                  (slice) => _buildLegendPill(slice.label, slice.value, accent),
+                  (slice) => _buildLegendPill(
+                    slice.label,
+                    slice.value,
+                    accent,
+                    textColor: palette.onSurface,
+                  ),
                 )
                 .toList(),
           ),
@@ -792,7 +827,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             child: Text(
               'No active stencil on line',
               style: GoogleFonts.robotoMono(
-                color: Colors.white60,
+                color: _textSecondary,
                 fontSize: 14,
               ),
             ),
@@ -810,10 +845,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       action: TextButton.icon(
         onPressed: () => _showRunningLineDetail(context, activeLines),
         icon: const Icon(Icons.list_alt_rounded, color: Colors.cyanAccent, size: 18),
-        label: const Text(
-          'View all',
-          style: TextStyle(color: Colors.cyanAccent),
-        ),
+        label: Text('View all',
+            style: GoogleFonts.robotoMono(color: Colors.cyanAccent, fontSize: 12)),
       ),
       child: Column(
         children: [
@@ -839,7 +872,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             Text(
               '+${activeLines.length - limited.length} more lines running',
               style: GoogleFonts.robotoMono(
-                color: Colors.white54,
+                color: _textSecondary,
                 fontSize: 12,
               ),
             ),
@@ -854,19 +887,18 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white12),
-        color: Colors.white.withOpacity(0.03),
+        border: Border.all(color: _axisLineColor),
+        color: _palette.surfaceOverlay,
       ),
       child: Column(
         children: [
-          Icon(Icons.sensors_off,
-              size: 48, color: Colors.white.withOpacity(0.5)),
+          Icon(Icons.sensors_off, size: 48, color: _textSecondary.withOpacity(0.7)),
           const SizedBox(height: 12),
           Text(
             'No stencil records match the selected filters.',
             textAlign: TextAlign.center,
             style: GoogleFonts.robotoMono(
-              color: Colors.white70,
+              color: _textSecondary,
               fontSize: 12,
             ),
           ),
@@ -883,12 +915,12 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.error_outline,
-                size: 52, color: Colors.redAccent.withOpacity(0.8)),
+                size: 52, color: _palette.errorText.withOpacity(0.9)),
             const SizedBox(height: 12),
             Text(
               'Unable to load stencil monitor data.',
               style: GoogleFonts.orbitron(
-                color: Colors.white,
+                color: _textPrimary,
                 fontSize: 16,
               ),
             ),
@@ -897,7 +929,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               message,
               textAlign: TextAlign.center,
               style: GoogleFonts.robotoMono(
-                color: Colors.white70,
+                color: _textSecondary,
                 fontSize: 12,
               ),
             ),

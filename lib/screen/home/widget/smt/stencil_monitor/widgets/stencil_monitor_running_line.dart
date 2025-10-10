@@ -18,6 +18,7 @@ class _RunningLineTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hoursText = hourDiff.toStringAsFixed(2);
+    final palette = _StencilColorScheme.of(context);
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -27,7 +28,7 @@ class _RunningLineTile extends StatelessWidget {
               child: Text(
                 detail.lineName ?? detail.location ?? detail.stencilSn,
                 style: GoogleFonts.orbitron(
-                  color: Colors.white,
+                  color: palette.onSurface,
                   fontSize: dense ? 14 : 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -77,7 +78,7 @@ class _RunningLineTile extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: accent.withOpacity(0.25),
+              color: palette.cardShadow,
               blurRadius: 18,
               offset: const Offset(0, 12),
             ),
@@ -103,7 +104,7 @@ class _RunningLineTile extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: accent.withOpacity(0.25),
+              color: palette.cardShadow,
               blurRadius: 18,
               offset: const Offset(0, 12),
             ),

@@ -75,17 +75,22 @@ class _FilterSheetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _StencilColorScheme.of(context);
+    final isDark = palette.brightness == Brightness.dark;
+    final fieldFill = isDark ? Colors.white.withOpacity(0.05) : palette.surfaceOverlay;
+    final dropdownColor = isDark ? const Color(0xFF071B30) : Colors.white;
+
     return Material(
       color: Colors.transparent,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFF05142B),
+          color: palette.cardBackground,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.cyanAccent.withOpacity(0.35)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.45),
+              color: palette.cardShadow,
               blurRadius: 28,
               offset: const Offset(0, 20),
             ),
@@ -130,11 +135,11 @@ class _FilterSheetCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   value: value,
-                  dropdownColor: const Color(0xFF071B30),
+                  dropdownColor: dropdownColor,
                   icon: const Icon(Icons.expand_more, color: Colors.cyanAccent),
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.05),
+                    fillColor: fieldFill,
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(
@@ -155,7 +160,7 @@ class _FilterSheetCard extends StatelessWidget {
                     ),
                   ),
                   style: GoogleFonts.robotoMono(
-                    color: Colors.white,
+                    color: palette.onSurface,
                     fontSize: 13,
                   ),
                   items: options
@@ -193,7 +198,7 @@ class _FilterSheetCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white70),
+                    icon: Icon(Icons.close, color: palette.onSurfaceMuted),
                     onPressed: onClose,
                   ),
                 ],
@@ -216,7 +221,7 @@ class _FilterSheetCard extends StatelessWidget {
               Text(
                 'Records matched: $activeCount',
                 style: GoogleFonts.robotoMono(
-                  color: Colors.white70,
+                  color: palette.onSurfaceMuted,
                   fontSize: 12,
                 ),
               ),

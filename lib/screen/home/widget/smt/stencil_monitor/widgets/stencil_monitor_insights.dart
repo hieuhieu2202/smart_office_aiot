@@ -25,6 +25,10 @@ class _InsightsStrip extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final palette = _StencilColorScheme.of(context);
+    final textColor = palette.onSurface;
+    final muted = palette.onSurfaceMuted;
+
     return SizedBox(
       height: 108,
       child: ListView.separated(
@@ -39,6 +43,7 @@ class _InsightsStrip extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: metric.accent.withOpacity(0.5)),
+              color: palette.cardBackground,
               gradient: LinearGradient(
                 colors: [
                   metric.accent.withOpacity(0.18),
@@ -49,7 +54,7 @@ class _InsightsStrip extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: metric.accent.withOpacity(0.25),
+                  color: palette.cardShadow,
                   blurRadius: 18,
                   offset: const Offset(0, 12),
                 ),
@@ -71,7 +76,7 @@ class _InsightsStrip extends StatelessWidget {
                   metric.value,
                   style: GoogleFonts.orbitron(
                     fontSize: 26,
-                    color: Colors.white,
+                    color: textColor,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -80,7 +85,7 @@ class _InsightsStrip extends StatelessWidget {
                   metric.description,
                   style: GoogleFonts.robotoMono(
                     fontSize: 11,
-                    color: Colors.white70,
+                    color: muted,
                   ),
                 ),
               ],

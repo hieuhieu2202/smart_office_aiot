@@ -1,5 +1,37 @@
 part of 'package:smart_factory/screen/home/widget/smt/stencil_monitor/stencil_monitor_screen.dart';
 
+class _StencilColorScheme {
+  _StencilColorScheme._(this.theme);
+
+  final ThemeData theme;
+
+  Brightness get brightness => theme.brightness;
+  Color get onSurface => theme.colorScheme.onSurface;
+  Color get onSurfaceMuted =>
+      onSurface.withOpacity(brightness == Brightness.dark ? 0.68 : 0.62);
+  List<Color> get backgroundGradient => brightness == Brightness.dark
+      ? const [Color(0xFF040B1E), Color(0xFF061F3C)]
+      : const [Color(0xFFF4F7FF), Color(0xFFFFFFFF)];
+  Color get cardBackground =>
+      brightness == Brightness.dark ? const Color(0xFF05142B) : Colors.white;
+  Color get cardShadow =>
+      brightness == Brightness.dark ? Colors.black.withOpacity(0.45) : Colors.black12;
+  Color get surfaceOverlay => brightness == Brightness.dark
+      ? Colors.white.withOpacity(0.06)
+      : const Color(0xFFF0F4FF);
+  Color get dividerColor =>
+      brightness == Brightness.dark ? Colors.white12 : Colors.black12;
+  Color get errorFill =>
+      brightness == Brightness.dark ? const Color(0x26FF5252) : const Color(0x1AFF5252);
+  Color get errorBorder =>
+      brightness == Brightness.dark ? const Color(0x80FF5252) : const Color(0x59FF5252);
+  Color get errorText =>
+      brightness == Brightness.dark ? const Color(0xFFFF8A80) : const Color(0xFFD32F2F);
+
+  static _StencilColorScheme of(BuildContext context) =>
+      _StencilColorScheme._(Theme.of(context));
+}
+
 class _GlassCard extends StatelessWidget {
   const _GlassCard({
     required this.title,
@@ -15,12 +47,14 @@ class _GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _StencilColorScheme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: accent.withOpacity(0.45)),
+        color: palette.cardBackground,
         gradient: LinearGradient(
           colors: [accent.withOpacity(0.14), Colors.transparent],
           begin: Alignment.topLeft,
@@ -28,7 +62,7 @@ class _GlassCard extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: accent.withOpacity(0.25),
+            color: palette.cardShadow,
             blurRadius: 18,
             offset: const Offset(0, 12),
           ),
@@ -73,10 +107,18 @@ class _DetailSheetContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _StencilColorScheme.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF030A18),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: palette.cardBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: palette.cardShadow,
+            blurRadius: 20,
+            offset: const Offset(0, -8),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -85,7 +127,7 @@ class _DetailSheetContainer extends StatelessWidget {
             width: 60,
             height: 5,
             decoration: BoxDecoration(
-              color: Colors.white10,
+              color: palette.onSurfaceMuted.withOpacity(0.25),
               borderRadius: BorderRadius.circular(100),
             ),
           ),
@@ -98,14 +140,14 @@ class _DetailSheetContainer extends StatelessWidget {
                   child: Text(
                     title,
                     style: GoogleFonts.orbitron(
-                      color: Colors.cyanAccent,
+                      color: palette.onSurface,
                       fontSize: 16,
                       letterSpacing: 1,
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white70),
+                  icon: Icon(Icons.close, color: palette.onSurfaceMuted),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -116,7 +158,7 @@ class _DetailSheetContainer extends StatelessWidget {
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               child: Material(
-                color: Colors.transparent,
+                color: palette.cardBackground,
                 child: controller == null
                     ? child
                     : PrimaryScrollController(
@@ -145,6 +187,7 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _StencilColorScheme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -155,7 +198,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label,
               style: GoogleFonts.robotoMono(
-                color: (accent ?? Colors.cyanAccent).withOpacity(0.75),
+                color: (accent ?? palette.onSurface).withOpacity(0.75),
                 fontSize: 12,
               ),
             ),
@@ -164,7 +207,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               value,
               style: GoogleFonts.robotoMono(
-                color: Colors.white,
+                color: palette.onSurface,
                 fontSize: 13,
               ),
             ),
