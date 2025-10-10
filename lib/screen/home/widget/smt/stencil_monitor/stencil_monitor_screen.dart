@@ -1041,7 +1041,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   List<_PieSlice> _buildCustomerSlices(List<StencilDetail> data) {
     final map = <String, int>{};
     for (final item in data) {
-      final label = _mapCustomerLabel(item.customer);
+      final label = item.customerLabel;
       map[label] = (map[label] ?? 0) + 1;
     }
 
@@ -1108,14 +1108,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         (a.startTime ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(
             b.startTime ?? DateTime.fromMillisecondsSinceEpoch(0)));
     return list;
-  }
-
-  String _mapCustomerLabel(String value) {
-    final upper = value.trim().toUpperCase();
-    if (upper == 'CPEI') {
-      return 'CPEII';
-    }
-    return value.trim().isEmpty ? 'UNKNOWN' : value.trim();
   }
 
   String _mapProcess(String? raw) {
