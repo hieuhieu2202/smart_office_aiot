@@ -100,21 +100,15 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                   ),
                   _DetailRow(
                     label: 'Customer',
-                    value: detail.customer?.trim().isNotEmpty == true
-                        ? detail.customer!.trim()
-                        : 'UNKNOWN',
+                    value: detail.customerLabel,
                   ),
                   _DetailRow(
                     label: 'Factory',
-                    value: detail.floor?.trim().isNotEmpty == true
-                        ? detail.floor!.trim()
-                        : 'UNKNOWN',
+                    value: detail.floorLabel,
                   ),
                   _DetailRow(
                     label: 'Status',
-                    value: detail.status?.trim().isNotEmpty == true
-                        ? detail.status!.trim()
-                        : 'UNKNOWN',
+                    value: detail.statusLabel,
                   ),
                   _DetailRow(
                     label: 'Hours running',
@@ -141,8 +135,8 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                   ),
                   _DetailRow(
                     label: 'Vendor',
-                    value: detail.venderName?.trim().isNotEmpty == true
-                        ? detail.venderName!.trim()
+                    value: detail.vendorName.trim().isNotEmpty
+                        ? detail.vendorName.trim()
                         : 'Unknown',
                   ),
                 ],
