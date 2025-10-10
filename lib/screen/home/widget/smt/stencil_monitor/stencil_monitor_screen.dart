@@ -1132,41 +1132,52 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   }
 
   List<_PieSlice> _buildStandardBuckets(List<StencilDetail> data) {
-    final buckets = <String, int>{
-      '0 – 1K': 0,
-      '1K – 3K': 0,
-      '3K – 5K': 0,
-      '5K – 8K': 0,
-      '8K – 10K': 0,
-      '> 10K': 0,
-      'Unknown': 0,
-    };
+    final ranges = <_UsageRange>[
+      const _UsageRange(min: double.negativeInfinity, max: 0, label: '0'),
+      const _UsageRange(min: 1, max: 20000, label: '1 – 20K'),
+      const _UsageRange(min: 20001, max: 50000, label: '20K – 50K'),
+      const _UsageRange(min: 50001, max: 80000, label: '50K – 80K'),
+      const _UsageRange(min: 80001, max: 90000, label: '80K – 90K'),
+      const _UsageRange(min: 90001, max: 100000, label: '90K – 100K'),
+      const _UsageRange(min: 100001, max: double.infinity, label: '> 100K'),
+    ];
+
+    final counts = <String, int>{for (final range in ranges) range.label: 0};
+    var unknownCount = 0;
 
     for (final item in data) {
-      final value = item.standardTimes;
+      final value = item.totalUseTimes;
       if (value == null) {
-        buckets['Unknown'] = buckets['Unknown']! + 1;
+        unknownCount++;
         continue;
       }
-      if (value <= 1000) {
-        buckets['0 – 1K'] = buckets['0 – 1K']! + 1;
-      } else if (value <= 3000) {
-        buckets['1K – 3K'] = buckets['1K – 3K']! + 1;
-      } else if (value <= 5000) {
-        buckets['3K – 5K'] = buckets['3K – 5K']! + 1;
-      } else if (value <= 8000) {
-        buckets['5K – 8K'] = buckets['5K – 8K']! + 1;
-      } else if (value <= 10000) {
-        buckets['8K – 10K'] = buckets['8K – 10K']! + 1;
+
+      final matched = ranges.firstWhere(
+        (range) => range.matches(value),
+        orElse: () => const _UsageRange(
+          min: double.nan,
+          max: double.nan,
+          label: 'Unknown',
+        ),
+      );
+
+      if (matched.label == 'Unknown') {
+        unknownCount++;
       } else {
-        buckets['> 10K'] = buckets['> 10K']! + 1;
+        counts[matched.label] = (counts[matched.label] ?? 0) + 1;
       }
     }
 
-    return buckets.entries
+    final slices = counts.entries
         .where((entry) => entry.value > 0)
         .map((entry) => _PieSlice(entry.key, entry.value))
         .toList();
+
+    if (unknownCount > 0) {
+      slices.add(_PieSlice('Unknown', unknownCount));
+    }
+
+    return slices;
   }
 
   List<_PieSlice> _buildCheckTimeBuckets(List<StencilDetail> data) {
@@ -1265,5 +1276,22 @@ class _OverviewCardData {
   final String title;
   final List<_PieSlice> slices;
   final Color accent;
+}
+
+class _UsageRange {
+  const _UsageRange({
+    required this.min,
+    required this.max,
+    required this.label,
+  });
+
+  final double min;
+  final double max;
+  final String label;
+
+  bool matches(num value) {
+    final doubleVal = value.toDouble();
+    return doubleVal >= min && doubleVal <= max;
+  }
 }
 

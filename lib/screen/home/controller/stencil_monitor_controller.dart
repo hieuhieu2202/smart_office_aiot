@@ -103,8 +103,11 @@ class StencilMonitorController extends GetxController {
   Map<String, int> statusBreakdown(List<StencilDetail> source) {
     final map = <String, int>{};
     for (final item in source) {
-      final key = item.statusLabel;
-      map[key] = (map[key] ?? 0) + 1;
+      final status = item.statusLabel;
+      if (status.toUpperCase() == 'TOOLROOM') {
+        continue;
+      }
+      map[status] = (map[status] ?? 0) + 1;
     }
     return map;
   }
