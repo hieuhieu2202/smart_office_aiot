@@ -65,25 +65,28 @@ class _InsightsStrip extends StatelessWidget {
               children: [
                 Text(
                   metric.label,
-                  style: GoogleFonts.orbitron(
+                  style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                    fontFamily: GoogleFonts.orbitron().fontFamily,
                     fontSize: 11,
                     color: metric.accent,
                     letterSpacing: 0.8,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const Spacer(),
                 Text(
                   metric.value,
-                  style: GoogleFonts.orbitron(
+                  style: GlobalTextStyles.bodyLarge(isDark: palette.isDark).copyWith(
+                    fontFamily: GoogleFonts.orbitron().fontFamily,
                     fontSize: 26,
                     color: textColor,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   metric.description,
-                  style: GoogleFonts.robotoMono(
+                  style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                    fontFamily: GoogleFonts.robotoMono().fontFamily,
                     fontSize: 11,
                     color: muted,
                   ),

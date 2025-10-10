@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
+import 'package:smart_factory/config/global_color.dart';
+import 'package:smart_factory/config/global_text_style.dart';
 import 'package:smart_factory/screen/home/controller/stencil_monitor_controller.dart';
 
 import '../../../../../model/smt/stencil_detail.dart';
@@ -50,14 +52,13 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   Color get _textPrimary => _palette.onSurface;
   Color get _textSecondary => _palette.onSurfaceMuted;
   Color get _axisLineColor => _palette.onSurface
-      .withOpacity(_palette.brightness == Brightness.dark ? 0.25 : 0.2);
+      .withOpacity(_palette.isDark ? 0.25 : 0.2);
   Color get _gridLineColor => _palette.onSurface
-      .withOpacity(_palette.brightness == Brightness.dark ? 0.12 : 0.1);
-  Color get _tooltipBackground => _palette.brightness == Brightness.dark
-      ? const Color(0xFF061F3C)
-      : Colors.white;
-  Color get _tooltipTextColor =>
-      _palette.brightness == Brightness.dark ? Colors.white : Colors.black87;
+      .withOpacity(_palette.isDark ? 0.12 : 0.1);
+  Color get _tooltipBackground => _palette.tooltipBackground;
+  Color get _tooltipTextColor => _palette.isDark
+      ? GlobalColors.darkPrimaryText
+      : GlobalColors.lightPrimaryText;
 
   @override
   void initState() {
@@ -126,7 +127,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     return RefreshIndicator(
       onRefresh: controller.refresh,
-      color: Theme.of(context).colorScheme.secondary,
+      color: _palette.accentPrimary,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
@@ -167,10 +168,27 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     final floorLabel = controller.selectedFloor.value == 'ALL'
         ? 'F06'
         : controller.selectedFloor.value;
+    final titleStyle = GlobalTextStyles.bodyMedium(isDark: _palette.isDark)
+        .copyWith(
+      fontFamily: GoogleFonts.orbitron().fontFamily,
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+      letterSpacing: 1.1,
+      color: _palette.onSurface,
+    );
+    final subtitleStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark)
+        .copyWith(
+      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontSize: 11,
+      color: _palette.onSurfaceMuted,
+    );
 
     return AppBar(
+      backgroundColor:
+          _palette.isDark ? GlobalColors.appBarDarkBg : GlobalColors.appBarLightBg,
       elevation: 2,
       automaticallyImplyLeading: true,
+      iconTheme: IconThemeData(color: _palette.onSurface),
       titleSpacing: 0,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,20 +196,12 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         children: [
           Text(
             'SMT $floorLabel STENCIL MONITOR',
-            style: GoogleFonts.orbitron(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: _palette.onSurface,
-              letterSpacing: 1.1,
-            ),
+            style: titleStyle,
           ),
           const SizedBox(height: 4),
           Text(
             'Last update: $updateText',
-            style: GoogleFonts.robotoMono(
-              color: _palette.onSurfaceMuted,
-              fontSize: 11,
-            ),
+            style: subtitleStyle,
           ),
         ],
       ),
@@ -224,15 +234,17 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           Expanded(
             child: Text(
               message,
-              style: GoogleFonts.robotoMono(
-                color: palette.errorText,
-                fontSize: 12,
-              ),
+              style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
+                  .copyWith(color: palette.errorText, fontSize: 12),
             ),
           ),
           TextButton(
             onPressed: () => controller.fetchData(force: true),
-            child: const Text('Retry'),
+            child: Text(
+              'Retry',
+              style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
+                  .copyWith(color: palette.accentPrimary),
+            ),
           ),
         ],
       ),
@@ -306,6 +318,17 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   List<_InsightMetric> _buildInsightMetrics(List<StencilDetail> activeLines) {
     if (activeLines.isEmpty) return const [];
 
+    final accentPrimary = _palette.accentPrimary;
+    final accentSecondary = _palette.accentSecondary;
+    final neutralAccent =
+        _palette.isDark ? GlobalColors.borderDark : GlobalColors.borderLight;
+    final cautionAccent = _palette.isDark
+        ? Colors.amberAccent.shade200
+        : Colors.amberAccent.shade400;
+    final alertAccent = _palette.isDark
+        ? Colors.redAccent.shade200
+        : Colors.redAccent.shade400;
+
     final total = activeLines.length;
     int good = 0;
     int warning = 0;
@@ -335,31 +358,31 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       _InsightMetric(
         label: 'ACTIVE LINES',
         value: total.toString(),
-        accent: Colors.cyanAccent,
+        accent: accentPrimary,
         description: 'Monitoring right now',
       ),
       _InsightMetric(
         label: 'STABLE',
         value: good.toString(),
-        accent: const Color(0xFF2CF6B3),
+        accent: accentSecondary,
         description: '< 3.5 hours runtime',
       ),
       _InsightMetric(
         label: 'WATCH',
         value: warning.toString(),
-        accent: Colors.amberAccent,
+        accent: cautionAccent,
         description: '3.5 – 4 hours runtime',
       ),
       _InsightMetric(
         label: 'ALERT',
         value: danger.toString(),
-        accent: Colors.redAccent,
+        accent: alertAccent,
         description: '> 4 hours runtime',
       ),
       _InsightMetric(
         label: 'RECENT CHECK',
         value: onCheck.toString(),
-        accent: const Color(0xFF8F5BFF),
+        accent: neutralAccent,
         description: 'Checked in last 6 months',
       ),
     ];
@@ -371,26 +394,34 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     required List<_PieSlice> vendorSlices,
     required List<_PieSlice> processSlices,
   }) {
+    final accentPrimary = _palette.accentPrimary;
+    final accentSecondary = _palette.accentSecondary;
+    final accentInfo =
+        _palette.isDark ? GlobalColors.borderDark : GlobalColors.borderLight;
+    final accentSuccess = _palette.isDark
+        ? GlobalColors.gradientDarkStart
+        : GlobalColors.gradientLightStart;
+
     final cards = [
       _OverviewCardData(
         title: 'CUSTOMER',
         slices: customerSlices,
-        accent: const Color(0xFF4DE1FF),
+        accent: accentPrimary,
       ),
       _OverviewCardData(
         title: 'STATUS',
         slices: statusSlices,
-        accent: const Color(0xFFFFC740),
+        accent: accentSecondary,
       ),
       _OverviewCardData(
         title: 'VENDOR',
         slices: vendorSlices,
-        accent: const Color(0xFF8F5BFF),
+        accent: accentInfo,
       ),
       _OverviewCardData(
         title: 'STENCIL SIDE',
         slices: processSlices,
-        accent: const Color(0xFF2CF6B3),
+        accent: accentSuccess,
       ),
     ];
 
@@ -527,6 +558,12 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     Color accent, {
     required Color textColor,
   }) {
+    final textStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
+      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontSize: 11,
+      color: textColor.withOpacity(0.85),
+    );
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
@@ -536,23 +573,38 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       ),
       child: Text(
         '$label • $value',
-        style: GoogleFonts.robotoMono(
-          fontSize: 11,
-          color: textColor.withOpacity(0.85),
-        ),
+        style: textStyle,
       ),
     );
   }
 
   Widget _buildLineTrackingCard(List<_LineTrackingDatum> data) {
+    final palette = _palette;
+    final accent = palette.accentSecondary;
+    final coolColor = palette.accentPrimary;
+    final cautionColor = _palette.isDark
+        ? Colors.amberAccent.shade200
+        : Colors.amberAccent.shade400;
+    final dangerColor = _palette.isDark
+        ? Colors.redAccent.shade200
+        : Colors.redAccent.shade400;
+    final titleStyle = GlobalTextStyles.bodyMedium(isDark: palette.isDark)
+        .copyWith(
+      fontFamily: GoogleFonts.orbitron().fontFamily,
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.1,
+      color: accent,
+    );
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.purpleAccent.withOpacity(0.45)),
+        border: Border.all(color: accent.withOpacity(0.45)),
         gradient: LinearGradient(
           colors: [
-            Colors.purpleAccent.withOpacity(0.12),
+            accent.withOpacity(0.12),
             Colors.transparent,
           ],
           begin: Alignment.topRight,
@@ -560,7 +612,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.purpleAccent.withOpacity(0.25),
+            color: accent.withOpacity(0.25),
             blurRadius: 20,
             offset: const Offset(0, 12),
           ),
@@ -571,24 +623,17 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         children: [
           Text(
             'LINE TRACKING',
-            style: GoogleFonts.orbitron(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: _palette.brightness == Brightness.dark
-                  ? Colors.purpleAccent
-                  : const Color(0xFF5C3AFF),
-              letterSpacing: 1.1,
-            ),
+            style: titleStyle,
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              _buildColorLegend(' < 3.5h', Colors.cyanAccent),
+              _buildColorLegend(' < 3.5h', coolColor),
               const SizedBox(width: 12),
-              _buildColorLegend('3.5 – 4h', Colors.amberAccent),
+              _buildColorLegend('3.5 – 4h', cautionColor),
               const SizedBox(width: 12),
-              _buildColorLegend('> 4h', Colors.redAccent),
+              _buildColorLegend('> 4h', dangerColor),
             ],
           ),
           const SizedBox(height: 16),
@@ -651,6 +696,13 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   }
 
   Widget _buildColorLegend(String label, Color color) {
+    final textStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark)
+        .copyWith(
+      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontSize: 11,
+      color: _textSecondary,
+    );
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -671,10 +723,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         const SizedBox(width: 6),
         Text(
           label,
-          style: GoogleFonts.robotoMono(
-            color: _textSecondary,
-            fontSize: 11,
-          ),
+          style: textStyle,
         ),
       ],
     );
@@ -819,7 +868,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   Widget _buildRunningLine(BuildContext context, List<StencilDetail> activeLines) {
     if (activeLines.isEmpty) {
       return _GlassCard(
-        accent: Colors.cyanAccent,
+        accent: _palette.accentPrimary,
         title: 'RUNNING LINE',
         child: Center(
           child: Padding(
@@ -838,15 +887,29 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     final now = DateTime.now();
     final limited = activeLines.take(8).toList();
+    final accent = _palette.accentPrimary;
+    final cautionColor = _palette.isDark
+        ? Colors.amberAccent.shade200
+        : Colors.amberAccent.shade400;
+    final dangerColor = _palette.isDark
+        ? Colors.redAccent.shade200
+        : Colors.redAccent.shade400;
 
     return _GlassCard(
-      accent: Colors.cyanAccent,
+      accent: accent,
       title: 'RUNNING LINE',
       action: TextButton.icon(
         onPressed: () => _showRunningLineDetail(context, activeLines),
-        icon: const Icon(Icons.list_alt_rounded, color: Colors.cyanAccent, size: 18),
-        label: Text('View all',
-            style: GoogleFonts.robotoMono(color: Colors.cyanAccent, fontSize: 12)),
+        style: TextButton.styleFrom(foregroundColor: accent),
+        icon: Icon(Icons.list_alt_rounded, color: accent, size: 18),
+        label: Text(
+          'View all',
+          style: GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
+            fontFamily: GoogleFonts.robotoMono().fontFamily,
+            fontSize: 12,
+            color: accent,
+          ),
+        ),
       ),
       child: Column(
         children: [
@@ -855,10 +918,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                 ? 0.0
                 : now.difference(item.startTime!).inMinutes / 60.0;
             final color = diffHours <= 3.5
-                ? Colors.cyanAccent
+                ? accent
                 : diffHours <= 4
-                    ? Colors.amberAccent
-                    : Colors.redAccent;
+                    ? cautionColor
+                    : dangerColor;
 
             return _RunningLineTile(
               detail: item,
@@ -1096,12 +1159,16 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
   Color _lineHoursColor(double hours) {
     if (hours >= 4) {
-      return Colors.redAccent.shade200;
+      return _palette.isDark
+          ? Colors.redAccent.shade200
+          : Colors.redAccent.shade400;
     }
     if (hours >= 3.5) {
-      return Colors.amberAccent.shade200;
+      return _palette.isDark
+          ? Colors.amberAccent.shade200
+          : Colors.amberAccent.shade400;
     }
-    return Colors.cyanAccent.shade200;
+    return _palette.accentPrimary;
   }
 }
 

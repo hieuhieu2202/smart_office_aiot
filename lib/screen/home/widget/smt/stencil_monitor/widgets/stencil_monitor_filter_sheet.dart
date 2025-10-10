@@ -76,9 +76,15 @@ class _FilterSheetCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = _StencilColorScheme.of(context);
-    final isDark = palette.brightness == Brightness.dark;
-    final fieldFill = isDark ? Colors.white.withOpacity(0.05) : palette.surfaceOverlay;
-    final dropdownColor = isDark ? const Color(0xFF071B30) : Colors.white;
+    final isDark = palette.isDark;
+    final fieldFill = isDark
+        ? GlobalColors.inputDarkFill
+        : GlobalColors.inputLightFill;
+    final dropdownColor = isDark
+        ? GlobalColors.cardDark
+        : GlobalColors.cardLight;
+    final accent = palette.accentPrimary;
+    final borderColor = palette.dividerColor.withOpacity(isDark ? 0.4 : 0.6);
 
     return Material(
       color: Colors.transparent,
@@ -86,8 +92,8 @@ class _FilterSheetCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: palette.cardBackground,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.cyanAccent.withOpacity(0.35)),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: borderColor),
           boxShadow: [
             BoxShadow(
               color: palette.cardShadow,
@@ -126,40 +132,40 @@ class _FilterSheetCard extends StatelessWidget {
               children: [
                 Text(
                   label.toUpperCase(),
-                  style: GoogleFonts.robotoMono(
-                    color: Colors.cyanAccent.withOpacity(0.8),
-                    fontSize: 12,
+                  style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
+                    fontFamily: GoogleFonts.robotoMono().fontFamily,
                     letterSpacing: 0.8,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    color: accent,
                   ),
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   value: value,
                   dropdownColor: dropdownColor,
-                  icon: const Icon(Icons.expand_more, color: Colors.cyanAccent),
+                  icon: Icon(Icons.expand_more, color: accent),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: fieldFill,
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(
-                        color: Colors.cyanAccent.withOpacity(0.35),
+                        color: accent.withOpacity(0.4),
                         width: 1.2,
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                        color: Colors.cyanAccent,
-                        width: 1.4,
-                      ),
+                      borderSide: BorderSide(color: accent, width: 1.4),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 10,
                     ),
                   ),
-                  style: GoogleFonts.robotoMono(
+                  style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
+                    fontFamily: GoogleFonts.robotoMono().fontFamily,
                     color: palette.onSurface,
                     fontSize: 13,
                   ),
@@ -187,75 +193,87 @@ class _FilterSheetCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text(
-                    'FILTERS',
-                    style: GoogleFonts.orbitron(
-                      color: Colors.cyanAccent,
-                      fontSize: 16,
-                      letterSpacing: 1.1,
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Text(
+                      'FILTERS',
+                      style: GlobalTextStyles.bodyMedium(isDark: isDark).copyWith(
+                        fontFamily: GoogleFonts.orbitron().fontFamily,
+                        fontSize: 16,
+                        letterSpacing: 1.1,
+                        color: accent,
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   IconButton(
                     icon: Icon(Icons.close, color: palette.onSurfaceMuted),
                     onPressed: onClose,
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              buildDropdown(
-                label: 'Customer',
-                value: effectiveCustomer,
-                options: customerOptions,
-                onChanged: controller.selectCustomer,
-              ),
-              const SizedBox(height: 16),
-              buildDropdown(
-                label: 'Factory',
-                value: effectiveFloor,
-                options: floorOptions,
-                onChanged: controller.selectFloor,
-              ),
               const SizedBox(height: 20),
-              Text(
-                'Records matched: $activeCount',
-                style: GoogleFonts.robotoMono(
-                  color: palette.onSurfaceMuted,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.cyanAccent,
-                      side: BorderSide(color: Colors.cyanAccent.withOpacity(0.6)),
+              SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    buildDropdown(
+                      label: 'Customer',
+                      value: effectiveCustomer,
+                      options: customerOptions,
+                      onChanged: controller.selectCustomer,
                     ),
-                    onPressed: () {
-                      controller.selectCustomer('ALL');
-                      controller.selectFloor('ALL');
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Reset'),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.cyanAccent,
-                        foregroundColor: Colors.blueGrey[900],
+                    const SizedBox(height: 18),
+                    buildDropdown(
+                      label: 'Factory',
+                      value: effectiveFloor,
+                      options: floorOptions,
+                      onChanged: controller.selectFloor,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Records matched: $activeCount',
+                      style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
+                        color: palette.onSurfaceMuted,
+                        fontFamily: GoogleFonts.robotoMono().fontFamily,
+                        fontSize: 12,
                       ),
-                      onPressed: () async {
-                        await controller.refresh();
-                        onClose();
-                      },
-                      icon: const Icon(Icons.check_circle_outline),
-                      label: const Text('Apply'),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: accent,
+                            side: BorderSide(color: accent.withOpacity(0.6)),
+                          ),
+                          onPressed: () {
+                            controller.selectCustomer('ALL');
+                            controller.selectFloor('ALL');
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Reset'),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: accent,
+                              foregroundColor:
+                                  isDark ? GlobalColors.darkBackground : Colors.white,
+                            ),
+                            onPressed: () async {
+                              await controller.refresh();
+                              onClose();
+                            },
+                            icon: const Icon(Icons.check_circle_outline),
+                            label: const Text('Apply'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           );

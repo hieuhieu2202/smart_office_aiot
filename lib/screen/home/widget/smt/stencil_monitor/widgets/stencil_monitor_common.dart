@@ -6,27 +6,36 @@ class _StencilColorScheme {
   final ThemeData theme;
 
   Brightness get brightness => theme.brightness;
-  Color get onSurface => theme.colorScheme.onSurface;
+  bool get isDark => brightness == Brightness.dark;
+
+  Color get onSurface =>
+      isDark ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText;
   Color get onSurfaceMuted =>
-      onSurface.withOpacity(brightness == Brightness.dark ? 0.68 : 0.62);
-  List<Color> get backgroundGradient => brightness == Brightness.dark
-      ? const [Color(0xFF040B1E), Color(0xFF061F3C)]
-      : const [Color(0xFFF4F7FF), Color(0xFFFFFFFF)];
+      isDark ? GlobalColors.darkSecondaryText : GlobalColors.lightSecondaryText;
+  List<Color> get backgroundGradient => isDark
+      ? [GlobalColors.bgDark, GlobalColors.darkBackground]
+      : [GlobalColors.bgLight, GlobalColors.lightBackground];
   Color get cardBackground =>
-      brightness == Brightness.dark ? const Color(0xFF05142B) : Colors.white;
+      isDark ? GlobalColors.cardDark : GlobalColors.cardLight;
   Color get cardShadow =>
-      brightness == Brightness.dark ? Colors.black.withOpacity(0.45) : Colors.black12;
-  Color get surfaceOverlay => brightness == Brightness.dark
-      ? Colors.white.withOpacity(0.06)
-      : const Color(0xFFF0F4FF);
+      isDark ? GlobalColors.shadowDark : GlobalColors.shadowLight;
+  Color get surfaceOverlay =>
+      isDark ? GlobalColors.inputDarkFill : GlobalColors.inputLightFill;
   Color get dividerColor =>
-      brightness == Brightness.dark ? Colors.white12 : Colors.black12;
+      isDark ? GlobalColors.borderDark : GlobalColors.borderLight;
+  Color get accentPrimary => GlobalColors.accentByIsDark(isDark);
+  Color get accentSecondary =>
+      isDark ? GlobalColors.gradientDarkEnd : GlobalColors.gradientLightEnd;
+  Color get tooltipBackground =>
+      isDark ? GlobalColors.tooltipBgDark : GlobalColors.tooltipBgLight;
+  Color get chipBackground =>
+      isDark ? GlobalColors.slotBgDark : GlobalColors.slotBgLight;
   Color get errorFill =>
-      brightness == Brightness.dark ? const Color(0x26FF5252) : const Color(0x1AFF5252);
+      isDark ? const Color(0x26FF5252) : const Color(0x1AFF5252);
   Color get errorBorder =>
-      brightness == Brightness.dark ? const Color(0x80FF5252) : const Color(0x59FF5252);
+      isDark ? const Color(0x80FF5252) : const Color(0x59FF5252);
   Color get errorText =>
-      brightness == Brightness.dark ? const Color(0xFFFF8A80) : const Color(0xFFD32F2F);
+      isDark ? const Color(0xFFFF8A80) : const Color(0xFFD32F2F);
 
   static _StencilColorScheme of(BuildContext context) =>
       _StencilColorScheme._(Theme.of(context));
@@ -76,7 +85,9 @@ class _GlassCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: GoogleFonts.orbitron(
+                  style: GlobalTextStyles.bodyMedium(isDark: palette.isDark)
+                      .copyWith(
+                    fontFamily: GoogleFonts.orbitron().fontFamily,
                     color: accent,
                     fontSize: 14,
                     letterSpacing: 1,
@@ -139,7 +150,9 @@ class _DetailSheetContainer extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: GoogleFonts.orbitron(
+                    style: GlobalTextStyles.bodyMedium(isDark: palette.isDark)
+                        .copyWith(
+                      fontFamily: GoogleFonts.orbitron().fontFamily,
                       color: palette.onSurface,
                       fontSize: 16,
                       letterSpacing: 1,
@@ -197,7 +210,8 @@ class _DetailRow extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: GoogleFonts.robotoMono(
+              style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                fontFamily: GoogleFonts.robotoMono().fontFamily,
                 color: (accent ?? palette.onSurface).withOpacity(0.75),
                 fontSize: 12,
               ),
@@ -206,7 +220,8 @@ class _DetailRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: GoogleFonts.robotoMono(
+              style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                fontFamily: GoogleFonts.robotoMono().fontFamily,
                 color: palette.onSurface,
                 fontSize: 13,
               ),
