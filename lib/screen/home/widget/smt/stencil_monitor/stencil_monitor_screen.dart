@@ -26,7 +26,7 @@ class StencilMonitorScreen extends StatefulWidget {
 class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   late final String _controllerTag;
   late final StencilMonitorController controller;
-  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
   @override
   void initState() {
@@ -152,14 +152,13 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       );
     }
 
-    final total = filtered.length;
-    final active = filtered.where((item) => item.isActive).length;
     final statusMap = controller.statusBreakdown(filtered);
     final vendorMap = controller.vendorBreakdown(filtered);
 
     final customerSlices = _groupToPie(
       filtered,
       (item) => item.customerLabel,
+      labelTransformer: _mapCustomerLabel,
     );
     final statusSlices = statusMap.entries
         .map((entry) => _PieSlice(entry.key, entry.value))
@@ -171,9 +170,14 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       ..sort((a, b) => b.value.compareTo(a.value));
     final processSlices = _groupToPie(
       filtered,
-      (item) => (item.process == null || item.process!.trim().isEmpty)
-          ? 'Process UNK'
-          : 'Process ${item.process!.trim()}',
+      (item) {
+        final raw = item.process?.trim().toUpperCase() ?? '';
+        if (raw == 'T' || raw == 'TOP') return 'TOP';
+        if (raw == 'B' || raw == 'BOTTOM') return 'BOTTOM';
+        if (raw == 'D' || raw == 'DOUBLE') return 'DOUBLE';
+        if (raw.isEmpty) return 'DOUBLE';
+        return raw;
+      },
     );
 
     final lineTracking = _buildLineTracking(filtered);
@@ -195,39 +199,18 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           _buildErrorBanner(isDark, error),
         ],
         const SizedBox(height: 16),
-        _buildOverviewRow(
-          context,
-          isDark: isDark,
-          total: total,
-          active: active,
-          status: statusSlices,
-          vendors: vendorSlices,
-          maxWidth: maxWidth,
-        ),
-        const SizedBox(height: 20),
-        _buildTopCharts(
+        _buildMainLayout(
           isDark: isDark,
           maxWidth: maxWidth,
           customers: customerSlices,
           status: statusSlices,
           vendors: vendorSlices,
           process: processSlices,
-        ),
-        const SizedBox(height: 20),
-        _buildMiddleSection(
-          isDark: isDark,
-          maxWidth: maxWidth,
           lineTracking: lineTracking,
-          activeLines: activeLines,
-        ),
-        const SizedBox(height: 20),
-        _buildBottomCharts(
-          isDark: isDark,
-          maxWidth: maxWidth,
           standardBuckets: standardBuckets,
           checkBuckets: checkBuckets,
+          activeLines: activeLines,
         ),
-        const SizedBox(height: 24),
       ],
     );
   }
@@ -260,6 +243,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             Wrap(
               spacing: 16,
               runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 _buildDropdown(
                   label: 'Customer',
@@ -269,11 +253,22 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                   isDark: isDark,
                 ),
                 _buildDropdown(
-                  label: 'Floor',
+                  label: 'Factory',
                   value: floorValue,
                   items: floors,
                   onChanged: controller.selectFloor,
                   isDark: isDark,
+                ),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.search, size: 18),
+                  label: const Text('Query'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 14,
+                    ),
+                  ),
+                  onPressed: () => controller.fetchData(force: true),
                 ),
               ],
             ),
@@ -332,255 +327,232 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildOverviewRow(
-    BuildContext context, {
-    required bool isDark,
-    required int total,
-    required int active,
-    required List<_PieSlice> status,
-    required List<_PieSlice> vendors,
-    required double maxWidth,
-  }) {
-    final statusTop = status.isNotEmpty ? status.first : null;
-    final vendorTop = vendors.isNotEmpty ? vendors.first : null;
-    final tileWidth = _responsiveTileWidth(maxWidth, preferCount: 4, minWidth: 220);
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: [
-        SizedBox(
-          width: tileWidth,
-          child: _metricCard(
-            title: 'Total Stencils',
-            value: total.toString(),
-            icon: Icons.inventory_2_outlined,
-            color: Colors.cyanAccent,
-            isDark: isDark,
-          ),
-        ),
-        SizedBox(
-          width: tileWidth,
-          child: _metricCard(
-            title: 'Active Lines',
-            value: active.toString(),
-            icon: Icons.precision_manufacturing_outlined,
-            color: Colors.greenAccent,
-            isDark: isDark,
-          ),
-        ),
-        if (statusTop != null)
-          SizedBox(
-            width: tileWidth,
-            child: _metricCard(
-              title: 'Top Status',
-              value: '${statusTop.label} (${statusTop.value})',
-              icon: Icons.stacked_bar_chart,
-              color: Colors.orangeAccent,
-              isDark: isDark,
-            ),
-          ),
-        if (vendorTop != null)
-          SizedBox(
-            width: tileWidth,
-            child: _metricCard(
-              title: 'Top Vendor',
-              value: '${vendorTop.label} (${vendorTop.value})',
-              icon: Icons.local_shipping_outlined,
-              color: Colors.purpleAccent,
-              isDark: isDark,
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _metricCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-    required bool isDark,
-  }) {
-    final bgColor = isDark ? color.withOpacity(0.2) : color.withOpacity(0.12);
-    final textColor = isDark ? Colors.white : Colors.blueGrey[900];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.6)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.white70 : Colors.blueGrey[700],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: textColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopCharts({
+  Widget _buildMainLayout({
     required bool isDark,
     required double maxWidth,
     required List<_PieSlice> customers,
     required List<_PieSlice> status,
     required List<_PieSlice> vendors,
     required List<_PieSlice> process,
-  }) {
-    final width = _responsiveTileWidth(maxWidth, preferCount: 4, minWidth: 240);
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: [
-        SizedBox(
-          width: width,
-          child: _pieChartCard(
-            title: 'Customer',
-            data: customers,
-            isDark: isDark,
-          ),
-        ),
-        SizedBox(
-          width: width,
-          child: _pieChartCard(
-            title: 'Status',
-            data: status,
-            isDark: isDark,
-          ),
-        ),
-        SizedBox(
-          width: width,
-          child: _pieChartCard(
-            title: 'Vendor',
-            data: vendors,
-            isDark: isDark,
-          ),
-        ),
-        SizedBox(
-          width: width,
-          child: _pieChartCard(
-            title: 'Process',
-            data: process,
-            isDark: isDark,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMiddleSection({
-    required bool isDark,
-    required double maxWidth,
     required List<_LineTrackingDatum> lineTracking,
-    required List<StencilDetail> activeLines,
-  }) {
-    const spacing = 16.0;
-    double primaryWidth;
-    double secondaryWidth;
-
-    if (maxWidth >= 1350) {
-      secondaryWidth = 360;
-      primaryWidth = maxWidth - secondaryWidth - spacing;
-    } else if (maxWidth >= 1100) {
-      secondaryWidth = 320;
-      primaryWidth = maxWidth - secondaryWidth - spacing;
-    } else if (maxWidth >= 900) {
-      primaryWidth = (maxWidth - spacing) / 2;
-      secondaryWidth = primaryWidth;
-    } else {
-      primaryWidth = maxWidth;
-      secondaryWidth = maxWidth;
-    }
-
-    if (primaryWidth < 280) primaryWidth = maxWidth;
-    if (secondaryWidth < 280 && maxWidth > 320) secondaryWidth = 320;
-
-    return Wrap(
-      spacing: spacing,
-      runSpacing: spacing,
-      children: [
-        SizedBox(
-          width: primaryWidth,
-          child: _chartCard(
-            isDark: isDark,
-            title: 'Line Tracking',
-            height: 320,
-            child: _buildLineTrackingChart(lineTracking, isDark),
-          ),
-        ),
-        SizedBox(
-          width: secondaryWidth,
-          child: _chartCard(
-            isDark: isDark,
-            title: 'Currently Lines',
-            height: 320,
-            child: _buildActiveLinesPanel(activeLines, isDark),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomCharts({
-    required bool isDark,
-    required double maxWidth,
     required List<_BarDatum> standardBuckets,
     required List<_PieSlice> checkBuckets,
+    required List<StencilDetail> activeLines,
   }) {
-    final width = _responsiveTileWidth(maxWidth, preferCount: 2, minWidth: 320);
+    const gap = 16.0;
 
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
+    Widget buildLeft({required bool compact}) => _buildLeftColumn(
+          isDark: isDark,
+          customers: customers,
+          status: status,
+          vendors: vendors,
+          process: process,
+          compact: compact,
+        );
+
+    Widget buildCenter({required bool compact}) => _buildCenterColumn(
+          isDark: isDark,
+          lineTracking: lineTracking,
+          standardBuckets: standardBuckets,
+          checkBuckets: checkBuckets,
+          compact: compact,
+        );
+
+    Widget buildRight() => _buildRightColumn(
+          isDark: isDark,
+          activeLines: activeLines,
+        );
+
+    if (maxWidth >= 1200) {
+      final leftWidth = (maxWidth * 0.22).clamp(260.0, 340.0);
+      final rightWidth = (maxWidth * 0.24).clamp(260.0, 360.0);
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: leftWidth, child: buildLeft(compact: false)),
+          const SizedBox(width: gap),
+          Expanded(child: buildCenter(compact: false)),
+          const SizedBox(width: gap),
+          SizedBox(width: rightWidth, child: buildRight()),
+        ],
+      );
+    }
+
+    if (maxWidth >= 900) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: buildLeft(compact: true)),
+              const SizedBox(width: gap),
+              Expanded(flex: 2, child: buildCenter(compact: false)),
+            ],
+          ),
+          const SizedBox(height: gap),
+          buildRight(),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: width,
-          child: _chartCard(
-            isDark: isDark,
-            title: 'Standard Use Time',
-            height: 280,
-            child: _buildStandardChart(standardBuckets, isDark),
-          ),
+        buildLeft(compact: true),
+        const SizedBox(height: gap),
+        buildCenter(compact: true),
+        const SizedBox(height: gap),
+        buildRight(),
+      ],
+    );
+  }
+
+  Widget _buildLeftColumn({
+    required bool isDark,
+    required List<_PieSlice> customers,
+    required List<_PieSlice> status,
+    required List<_PieSlice> vendors,
+    required List<_PieSlice> process,
+    required bool compact,
+  }) {
+    final height = compact ? 200.0 : 220.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _pieChartCard(
+          title: 'Customer',
+          data: customers,
+          isDark: isDark,
+          height: height,
         ),
-        SizedBox(
-          width: width,
-          child: _pieChartCard(
-            title: 'Check Time',
-            data: checkBuckets,
-            isDark: isDark,
-            height: 280,
-          ),
+        const SizedBox(height: 16),
+        _pieChartCard(
+          title: 'Status',
+          data: status,
+          isDark: isDark,
+          height: height,
+        ),
+        const SizedBox(height: 16),
+        _pieChartCard(
+          title: 'Vendor',
+          data: vendors,
+          isDark: isDark,
+          height: height,
+        ),
+        const SizedBox(height: 16),
+        _pieChartCard(
+          title: 'Stencil Side',
+          data: process,
+          isDark: isDark,
+          height: height,
         ),
       ],
+    );
+  }
+
+  Widget _buildCenterColumn({
+    required bool isDark,
+    required List<_LineTrackingDatum> lineTracking,
+    required List<_BarDatum> standardBuckets,
+    required List<_PieSlice> checkBuckets,
+    required bool compact,
+  }) {
+    final lineHeight = compact ? 300.0 : 360.0;
+    final detailHeight = compact ? 220.0 : 240.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _chartCard(
+          isDark: isDark,
+          title: 'Line Tracking',
+          height: lineHeight,
+          child: _buildLineTrackingChart(lineTracking, isDark),
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final horizontal = constraints.maxWidth >= 650 && !compact;
+            if (horizontal) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _chartCard(
+                      isDark: isDark,
+                      title: 'Using Time',
+                      height: detailHeight,
+                      child: _buildStandardChart(standardBuckets, isDark),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _chartCard(
+                      isDark: isDark,
+                      title: 'Checking Time',
+                      height: detailHeight,
+                      child: _buildCheckTimeChart(checkBuckets, isDark),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _chartCard(
+                  isDark: isDark,
+                  title: 'Using Time',
+                  height: detailHeight,
+                  child: _buildStandardChart(standardBuckets, isDark),
+                ),
+                const SizedBox(height: 16),
+                _chartCard(
+                  isDark: isDark,
+                  title: 'Checking Time',
+                  height: detailHeight,
+                  child: _buildCheckTimeChart(checkBuckets, isDark),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRightColumn({
+    required bool isDark,
+    required List<StencilDetail> activeLines,
+  }) {
+    return Card(
+      color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 6,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'Running Line',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isDark
+                          ? Colors.lightBlue[100]
+                          : GlobalColors.appBarLightText,
+                    ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildActiveLinesPanel(activeLines, isDark),
+          ],
+        ),
+      ),
     );
   }
 
@@ -772,7 +744,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                     ),
                   ),
                   Text(
-                    '${hours.toStringAsFixed(1)} h',
+                    '${hours.toStringAsFixed(2)} h',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: color,
@@ -801,6 +773,42 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCheckTimeChart(List<_PieSlice> data, bool isDark) {
+    if (data.isEmpty) {
+      return _buildEmptyChart('No checking time data.', isDark);
+    }
+
+    return SfCircularChart(
+      margin: EdgeInsets.zero,
+      legend: Legend(
+        isVisible: true,
+        position: LegendPosition.right,
+        overflowMode: LegendItemOverflowMode.wrap,
+        textStyle: TextStyle(
+          color: isDark ? Colors.white70 : Colors.blueGrey[700],
+          fontSize: 11,
+        ),
+      ),
+      tooltipBehavior: TooltipBehavior(enable: true, format: 'point.x: point.y'),
+      series: <CircularSeries<_PieSlice, String>>[
+        DoughnutSeries<_PieSlice, String>(
+          dataSource: data,
+          xValueMapper: (slice, _) => slice.label,
+          yValueMapper: (slice, _) => slice.value,
+          dataLabelSettings: DataLabelSettings(
+            isVisible: true,
+            textStyle: TextStyle(
+              color: isDark ? Colors.white : Colors.blueGrey[900],
+              fontSize: 10,
+            ),
+          ),
+          innerRadius: '45%',
+          radius: '70%',
+        ),
+      ],
     );
   }
 
@@ -977,41 +985,18 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  double _responsiveTileWidth(
-    double maxWidth, {
-    int preferCount = 4,
-    double minWidth = 220,
-  }) {
-    const spacing = 16.0;
-    if (maxWidth <= 0) return 0;
-    if (maxWidth < minWidth) return maxWidth;
-
-    double width;
-    if (maxWidth >= 1400) {
-      width = (maxWidth - spacing * (preferCount - 1)) / preferCount;
-    } else if (maxWidth >= 1000) {
-      width = (maxWidth - spacing) / 2;
-    } else {
-      width = maxWidth;
-    }
-
-    if (width < minWidth && maxWidth >= minWidth) {
-      width = minWidth;
-    }
-    if (width > maxWidth) {
-      width = maxWidth;
-    }
-    return width;
-  }
-
   List<_PieSlice> _groupToPie(
     List<StencilDetail> source,
-    String Function(StencilDetail item) selector,
-  ) {
+    String Function(StencilDetail item) selector, {
+    String Function(String value)? labelTransformer,
+  }) {
     final map = <String, int>{};
     for (final item in source) {
-      final key = selector(item).trim();
-      final normalized = key.isEmpty ? 'UNK' : key;
+      var key = selector(item).trim();
+      if (labelTransformer != null) {
+        key = labelTransformer(key);
+      }
+      final normalized = key.isEmpty ? 'UNK' : key.trim();
       map[normalized] = (map[normalized] ?? 0) + 1;
     }
 
@@ -1026,6 +1011,14 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     final otherTotal = entries.skip(7).fold<int>(0, (sum, e) => sum + e.value);
     top.add(_PieSlice('Other', otherTotal));
     return top;
+  }
+
+  String _mapCustomerLabel(String value) {
+    final upper = value.trim().toUpperCase();
+    if (upper == 'CPEI') {
+      return 'CPEII';
+    }
+    return value.trim().isEmpty ? 'UNK' : value.trim();
   }
 
   List<_LineTrackingDatum> _buildLineTracking(List<StencilDetail> data) {
@@ -1098,7 +1091,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   List<_PieSlice> _buildCheckTimeBuckets(List<StencilDetail> data) {
     final map = <String, int>{
       '0 – 6 Months': 0,
-      '6 – 12 Months': 0,
+      '6 Months – 1 Year': 0,
       '1 – 2 Years': 0,
       'Over 2 Years': 0,
       'Unknown': 0,
@@ -1116,7 +1109,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       if (months <= 6) {
         map['0 – 6 Months'] = map['0 – 6 Months']! + 1;
       } else if (months <= 12) {
-        map['6 – 12 Months'] = map['6 – 12 Months']! + 1;
+        map['6 Months – 1 Year'] = map['6 Months – 1 Year']! + 1;
       } else if (months <= 24) {
         map['1 – 2 Years'] = map['1 – 2 Years']! + 1;
       } else {
@@ -1126,7 +1119,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     final order = {
       '0 – 6 Months': 0,
-      '6 – 12 Months': 1,
+      '6 Months – 1 Year': 1,
       '1 – 2 Years': 2,
       'Over 2 Years': 3,
       'Unknown': 4,

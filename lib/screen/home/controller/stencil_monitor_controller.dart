@@ -17,6 +17,7 @@ class StencilMonitorController extends GetxController {
   final RxList<String> floors = <String>[].obs;
 
   Future<void>? _activeFetch;
+  static const Set<String> _ignoredCustomers = {'CPEII'};
 
   @override
   void onInit() {
@@ -85,6 +86,10 @@ class StencilMonitorController extends GetxController {
     final floorFilter = selectedFloor.value;
     return stencilData.where((item) {
       final customerLabel = item.customerLabel;
+      if (_ignoredCustomers.contains(customerLabel.toUpperCase())) {
+        return false;
+      }
+
       final floorLabel = item.floorLabel;
       final matchCustomer =
           customerFilter == 'ALL' || customerLabel == customerFilter;
@@ -114,7 +119,11 @@ class StencilMonitorController extends GetxController {
   void _rebuildCustomers() {
     final set = <String>{};
     for (final item in stencilData) {
-      set.add(item.customerLabel);
+      final label = item.customerLabel;
+      if (_ignoredCustomers.contains(label.toUpperCase())) {
+        continue;
+      }
+      set.add(label);
     }
     final sorted = set.toList()..sort();
     customers.assignAll(['ALL', ...sorted]);
@@ -127,7 +136,12 @@ class StencilMonitorController extends GetxController {
     final set = <String>{};
     final customerFilter = selectedCustomer.value;
     for (final item in stencilData) {
-      if (customerFilter != 'ALL' && item.customerLabel != customerFilter) {
+      final label = item.customerLabel;
+      if (_ignoredCustomers.contains(label.toUpperCase())) {
+        continue;
+      }
+
+      if (customerFilter != 'ALL' && label != customerFilter) {
         continue;
       }
       set.add(item.floorLabel);
@@ -144,3 +158,4 @@ class StencilMonitorController extends GetxController {
     return raw.isEmpty ? 'UNK' : raw;
   }
 }
+
