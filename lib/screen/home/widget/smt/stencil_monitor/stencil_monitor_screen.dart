@@ -153,24 +153,11 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ? 'F06'
         : controller.selectedFloor.value;
 
-    final canPop = Navigator.of(context).canPop();
-
     return AppBar(
       backgroundColor: const Color(0xFF061F3C),
-      elevation: 8,
-      toolbarHeight: 72,
-      automaticallyImplyLeading: false,
-      leadingWidth: canPop ? 64 : null,
-      leading: canPop
-          ? Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: _NeonIconButton(
-                icon: Icons.arrow_back_ios_new_rounded,
-                onTap: () => Navigator.of(context).maybePop(),
-              ),
-            )
-          : null,
-      iconTheme: const IconThemeData(color: Colors.cyanAccent),
+      elevation: 4,
+      automaticallyImplyLeading: true,
+      iconTheme: const IconThemeData(color: Colors.white),
       titleSpacing: 0,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,9 +166,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           Text(
             'SMT $floorLabel STENCIL MONITOR',
             style: GoogleFonts.orbitron(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Colors.cyanAccent,
+              color: Colors.white,
               letterSpacing: 1.1,
             ),
           ),
@@ -189,25 +176,21 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           Text(
             'Last update: $updateText',
             style: GoogleFonts.robotoMono(
-              color: Colors.white.withOpacity(0.75),
-              fontSize: 12,
+              color: Colors.white70,
+              fontSize: 11,
             ),
           ),
         ],
       ),
       actions: [
         _FilterActionButton(controller: controller),
-        const SizedBox(width: 6),
-        Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: _NeonIconButton(
-            icon: loading ? Icons.sync : Icons.refresh,
-            glowColor: loading ? Colors.amberAccent : Colors.cyanAccent,
-            onTap: () => controller.fetchData(force: true),
-          ),
+        IconButton(
+          tooltip: 'Refresh',
+          icon: Icon(loading ? Icons.sync : Icons.refresh),
+          onPressed: () => controller.fetchData(force: true),
         ),
-      ],
-    );
+        ],
+      );
   }
 
   Widget _buildErrorChip(String message) {

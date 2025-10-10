@@ -1,52 +1,5 @@
 part of 'package:smart_factory/screen/home/widget/smt/stencil_monitor/stencil_monitor_screen.dart';
 
-class _NeonIconButton extends StatelessWidget {
-  const _NeonIconButton({
-    required this.icon,
-    required this.onTap,
-    this.glowColor = Colors.cyanAccent,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color glowColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: glowColor.withOpacity(0.6), width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: glowColor.withOpacity(0.35),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-            gradient: LinearGradient(
-              colors: [
-                glowColor.withOpacity(0.15),
-                Colors.transparent,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Icon(icon, color: glowColor, size: 20),
-        ),
-      ),
-    );
-  }
-}
-
 class _GlassCard extends StatelessWidget {
   const _GlassCard({
     required this.title,
