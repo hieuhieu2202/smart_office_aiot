@@ -117,8 +117,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildHeader(context, error: error),
-                    const SizedBox(height: 20),
+                    if (error.isNotEmpty) ...[
+                      _buildErrorChip(error),
+                      const SizedBox(height: 20),
+                    ],
                     if (filtered.isEmpty)
                       _buildEmptyState()
                     else
@@ -145,222 +147,53 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ? 'F06'
         : controller.selectedFloor.value;
 
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(90),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF071B30), Color(0xFF0B2B4A)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          border: Border(
-            bottom: BorderSide(
-              color: Colors.cyanAccent.withOpacity(0.3),
-              width: 1.2,
-            ),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.45),
-              blurRadius: 18,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'SMT $floorLabel STENCIL MONITOR',
-                        style: GoogleFonts.orbitron(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.cyanAccent,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Last update: $updateText',
-                        style: GoogleFonts.robotoMono(
-                          color: Colors.white.withOpacity(0.75),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: loading
-                          ? Colors.yellowAccent.withOpacity(0.7)
-                          : Colors.cyanAccent.withOpacity(0.6),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.cyanAccent.withOpacity(0.25),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      loading ? Icons.sync : Icons.refresh,
-                      color: loading
-                          ? Colors.yellowAccent
-                          : Colors.cyanAccent,
-                    ),
-                    onPressed: () => controller.fetchData(force: true),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, {required String error}) {
-    final customers = controller.customers.toList(growable: false);
-    final floors = controller.floors.toList(growable: false);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.35), width: 1.5),
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withOpacity(0.06),
-            Colors.white.withOpacity(0.02),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.cyanAccent.withOpacity(0.15),
-            blurRadius: 20,
-            spreadRadius: 1,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
+    return AppBar(
+      backgroundColor: const Color(0xFF061F3C),
+      elevation: 8,
+      toolbarHeight: 72,
+      automaticallyImplyLeading: false,
+      iconTheme: const IconThemeData(color: Colors.cyanAccent),
+      titleSpacing: 0,
+      title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'Control Panel',
+            'SMT $floorLabel STENCIL MONITOR',
             style: GoogleFonts.orbitron(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.cyanAccent.withOpacity(0.9),
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.cyanAccent,
               letterSpacing: 1.1,
             ),
           ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _buildNeonDropdown(
-                label: 'Customer',
-                value: controller.selectedCustomer.value,
-                items: customers,
-                onChanged: controller.selectCustomer,
-              ),
-              _buildNeonDropdown(
-                label: 'Factory',
-                value: controller.selectedFloor.value,
-                items: floors,
-                onChanged: controller.selectFloor,
-              ),
-            ],
+          const SizedBox(height: 4),
+          Text(
+            'Last update: $updateText',
+            style: GoogleFonts.robotoMono(
+              color: Colors.white.withOpacity(0.75),
+              fontSize: 12,
+            ),
           ),
-          if (error.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildErrorChip(error),
-          ],
         ],
       ),
-    );
-  }
-
-  Widget _buildNeonDropdown({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String> onChanged,
-  }) {
-    final effectiveValue = items.contains(value) ? value : items.first;
-    return SizedBox(
-      width: 200,
-      child: DropdownButtonFormField<String>(
-        value: effectiveValue,
-        dropdownColor: const Color(0xFF061F3C),
-        icon: const Icon(Icons.expand_more, color: Colors.cyanAccent),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: GoogleFonts.robotoMono(
-            fontSize: 12,
-            color: Colors.cyanAccent.withOpacity(0.8),
-          ),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.03),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: Colors.cyanAccent.withOpacity(0.4),
-              width: 1.2,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(
-              color: Colors.cyanAccent,
-              width: 1.5,
-            ),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 10,
-          ),
+      actions: [
+        _FilterActionButton(controller: controller),
+        const SizedBox(width: 4),
+        IconButton(
+          tooltip: 'Refresh',
+          icon: Icon(loading ? Icons.sync : Icons.refresh),
+          color: loading ? Colors.amberAccent : Colors.cyanAccent,
+          onPressed: () => controller.fetchData(force: true),
         ),
-        style: GoogleFonts.robotoMono(
-          color: Colors.white,
-          fontSize: 13,
-        ),
-        onChanged: (val) {
-          if (val != null) onChanged(val);
-        },
-        items: items
-            .map(
-              (item) => DropdownMenuItem<String>(
-                value: item,
-                child: Text(item),
-              ),
-            )
-            .toList(),
-      ),
+        const SizedBox(width: 8),
+      ],
     );
   }
 
   Widget _buildErrorChip(String message) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -368,7 +201,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         color: Colors.redAccent.withOpacity(0.12),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         children: [
           const Icon(Icons.error_outline, color: Colors.redAccent),
           const SizedBox(width: 10),
@@ -481,7 +314,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 0.85,
+      childAspectRatio: 0.78,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
       children: cards
@@ -497,7 +330,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     final displaySlices = data.slices.take(6).toList();
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: data.accent.withOpacity(0.5), width: 1.2),
@@ -525,7 +358,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             data.title,
             style: GoogleFonts.orbitron(
               color: data.accent,
-              fontSize: 13,
+              fontSize: 15,
               letterSpacing: 1,
             ),
           ),
@@ -544,14 +377,14 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                       yValueMapper: (datum, _) => datum.value,
                       pointColorMapper: (datum, index) =>
                           _neonPalette[index % _neonPalette.length],
-                      innerRadius: '65%',
-                      radius: '100%',
+                      innerRadius: '58%',
+                      radius: '118%',
                       explode: displaySlices.length == 1,
                       dataLabelSettings: DataLabelSettings(
                         isVisible: displaySlices.length <= 4,
                         textStyle: GoogleFonts.robotoMono(
                           color: Colors.white,
-                          fontSize: 10,
+                          fontSize: 11,
                         ),
                       ),
                     ),
@@ -563,8 +396,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                     Text(
                       '$total',
                       style: GoogleFonts.orbitron(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                     ),
@@ -572,8 +405,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                     Text(
                       'Total',
                       style: GoogleFonts.robotoMono(
-                        fontSize: 11,
-                        color: Colors.white70,
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.75),
                       ),
                     ),
                   ],
@@ -602,7 +435,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
   Widget _buildLegendPill(String label, int value, Color accent) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: accent.withOpacity(0.5)),
@@ -611,8 +444,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       child: Text(
         '$label • $value',
         style: GoogleFonts.robotoMono(
-          fontSize: 10,
-          color: Colors.white70,
+          fontSize: 11,
+          color: Colors.white.withOpacity(0.8),
         ),
       ),
     );
@@ -783,7 +616,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     final display = slices.take(6).toList();
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: accent.withOpacity(0.5), width: 1.1),
@@ -827,13 +660,13 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                       yValueMapper: (datum, _) => datum.value,
                       pointColorMapper: (datum, index) =>
                           _neonPalette[index % _neonPalette.length],
-                      innerRadius: '68%',
-                      radius: '100%',
+                      innerRadius: '55%',
+                      radius: '122%',
                       dataLabelSettings: DataLabelSettings(
                         isVisible: display.length <= 3,
                         textStyle: GoogleFonts.robotoMono(
                           color: Colors.white,
-                          fontSize: 9,
+                          fontSize: 10,
                         ),
                       ),
                     ),
@@ -845,16 +678,17 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                     Text(
                       '$total',
                       style: GoogleFonts.orbitron(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       'Total',
                       style: GoogleFonts.robotoMono(
-                        fontSize: 10,
-                        color: Colors.white70,
+                        fontSize: 11,
+                        color: Colors.white.withOpacity(0.75),
                       ),
                     ),
                   ],
@@ -1254,6 +1088,215 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       return Colors.amberAccent.shade200;
     }
     return Colors.cyanAccent.shade200;
+  }
+}
+
+class _FilterActionButton extends StatelessWidget {
+  const _FilterActionButton({required this.controller});
+
+  final StencilMonitorController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Filters',
+      icon: const Icon(Icons.filter_alt_outlined),
+      onPressed: () => _openFilterSheet(context),
+    );
+  }
+
+  Future<void> _openFilterSheet(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottomInset),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF05142B),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.cyanAccent.withOpacity(0.35)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 24,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Obx(() {
+              final customers = controller.customers.toList(growable: false);
+              final floors = controller.floors.toList(growable: false);
+              final customerOptions =
+                  customers.isEmpty ? <String>['ALL'] : customers;
+              final floorOptions = floors.isEmpty ? <String>['ALL'] : floors;
+              final selectedCustomer = controller.selectedCustomer.value;
+              final selectedFloor = controller.selectedFloor.value;
+              final activeCount = controller.filteredData.length;
+
+              String ensureValue(List<String> values, String value) {
+                if (values.isEmpty) {
+                  return 'ALL';
+                }
+                return values.contains(value) ? value : values.first;
+              }
+
+              final effectiveCustomer =
+                  ensureValue(customerOptions, selectedCustomer);
+              final effectiveFloor = ensureValue(floorOptions, selectedFloor);
+
+              Widget buildDropdown({
+                required String label,
+                required String value,
+                required List<String> options,
+                required ValueChanged<String> onChanged,
+              }) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label.toUpperCase(),
+                      style: GoogleFonts.robotoMono(
+                        color: Colors.cyanAccent.withOpacity(0.8),
+                        fontSize: 12,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: value,
+                      dropdownColor: const Color(0xFF071B30),
+                      icon: const Icon(Icons.expand_more, color: Colors.cyanAccent),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.05),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: Colors.cyanAccent.withOpacity(0.35),
+                            width: 1.2,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Colors.cyanAccent,
+                            width: 1.4,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                      ),
+                      style: GoogleFonts.robotoMono(
+                        color: Colors.white,
+                        fontSize: 13,
+                      ),
+                      items: options
+                          .map(
+                            (item) => DropdownMenuItem<String>(
+                              value: item,
+                              child: Text(item),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          onChanged(value);
+                        }
+                      },
+                    ),
+                  ],
+                );
+              }
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'FILTERS',
+                        style: GoogleFonts.orbitron(
+                          color: Colors.cyanAccent,
+                          fontSize: 16,
+                          letterSpacing: 1.1,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white70),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  buildDropdown(
+                    label: 'Customer',
+                    value: effectiveCustomer,
+                    options: customerOptions,
+                    onChanged: controller.selectCustomer,
+                  ),
+                  const SizedBox(height: 16),
+                  buildDropdown(
+                    label: 'Factory',
+                    value: effectiveFloor,
+                    options: floorOptions,
+                    onChanged: controller.selectFloor,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Records matched: $activeCount',
+                    style: GoogleFonts.robotoMono(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.cyanAccent,
+                          side: BorderSide(color: Colors.cyanAccent.withOpacity(0.6)),
+                        ),
+                        onPressed: () {
+                          controller.selectCustomer('ALL');
+                          controller.selectFloor('ALL');
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Reset'),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.cyanAccent,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          child: const Text('Close'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            }),
+          ),
+        );
+      },
+    );
   }
 }
 
