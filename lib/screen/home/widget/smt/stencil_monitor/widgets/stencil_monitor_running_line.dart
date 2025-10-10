@@ -27,7 +27,7 @@ class _RunningLineTile extends StatelessWidget {
             Expanded(
               child: Text(
                 detail.lineName ?? detail.location ?? detail.stencilSn,
-                style: GoogleFonts.orbitron(
+                style: GoogleFonts.spaceGrotesk(
                   color: palette.onSurface,
                   fontSize: dense ? 14 : 16,
                   fontWeight: FontWeight.w600,
@@ -43,7 +43,7 @@ class _RunningLineTile extends StatelessWidget {
               ),
               child: Text(
                 '$hoursText h',
-                style: GoogleFonts.robotoMono(
+                style: GoogleFonts.ibmPlexMono(
                   color: accent,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

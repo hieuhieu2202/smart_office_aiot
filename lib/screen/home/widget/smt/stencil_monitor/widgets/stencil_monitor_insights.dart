@@ -67,7 +67,7 @@ class _InsightsStrip extends StatelessWidget {
                 Text(
                   metric.label,
                   style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                    fontFamily: GoogleFonts.orbitron().fontFamily,
+                    fontFamily: _StencilTypography.heading,
                     fontSize: 11,
                     color: metric.accent,
                     letterSpacing: 0.8,
@@ -77,7 +77,7 @@ class _InsightsStrip extends StatelessWidget {
                 Text(
                   metric.value,
                   style: GlobalTextStyles.bodyLarge(isDark: palette.isDark).copyWith(
-                    fontFamily: GoogleFonts.orbitron().fontFamily,
+                    fontFamily: _StencilTypography.heading,
                     fontSize: 26,
                     color: textColor,
                   ),
@@ -85,7 +85,7 @@ class _InsightsStrip extends StatelessWidget {
                 Text(
                   metric.description,
                   style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                    fontFamily: GoogleFonts.robotoMono().fontFamily,
+                    fontFamily: _StencilTypography.numeric,
                     fontSize: 11,
                     color: muted,
                   ),

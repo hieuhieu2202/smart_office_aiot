@@ -69,7 +69,7 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                                 style: GlobalTextStyles.bodySmall(
                                   isDark: palette.isDark,
                                 ).copyWith(
-                                  fontFamily: GoogleFonts.orbitron().fontFamily,
+                                  fontFamily: _StencilTypography.heading,
                                   color: accent,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -84,7 +84,7 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                                 style: GlobalTextStyles.bodyMedium(
                                   isDark: palette.isDark,
                                 ).copyWith(
-                                  fontFamily: GoogleFonts.robotoMono().fontFamily,
+                                  fontFamily: _StencilTypography.numeric,
                                   fontSize: 14,
                                   color: palette.onSurface,
                                 ),
@@ -98,7 +98,7 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                               style: GlobalTextStyles.bodyMedium(
                                 isDark: palette.isDark,
                               ).copyWith(
-                                fontFamily: GoogleFonts.orbitron().fontFamily,
+                                fontFamily: _StencilTypography.heading,
                                 fontWeight: FontWeight.w700,
                                 color: accent,
                               ),

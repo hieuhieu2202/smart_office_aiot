@@ -138,7 +138,7 @@ class _FilterSheetCard extends StatelessWidget {
                 Text(
                   label.toUpperCase(),
                   style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
-                    fontFamily: GoogleFonts.robotoMono().fontFamily,
+                    fontFamily: _StencilTypography.numeric,
                     letterSpacing: 0.8,
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
@@ -170,7 +170,7 @@ class _FilterSheetCard extends StatelessWidget {
                     ),
                   ),
                   style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
-                    fontFamily: GoogleFonts.robotoMono().fontFamily,
+                    fontFamily: _StencilTypography.numeric,
                     color: palette.onSurface,
                     fontSize: 13,
                   ),
@@ -202,7 +202,7 @@ class _FilterSheetCard extends StatelessWidget {
                     child: Text(
                       'FILTERS',
                       style: GlobalTextStyles.bodyMedium(isDark: isDark).copyWith(
-                        fontFamily: GoogleFonts.orbitron().fontFamily,
+                        fontFamily: _StencilTypography.heading,
                         fontSize: 16,
                         letterSpacing: 1.1,
                         color: accent,
@@ -240,7 +240,7 @@ class _FilterSheetCard extends StatelessWidget {
                       'Records matched: $activeCount',
                       style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
                         color: palette.onSurfaceMuted,
-                        fontFamily: GoogleFonts.robotoMono().fontFamily,
+                        fontFamily: _StencilTypography.numeric,
                         fontSize: 12,
                       ),
                     ),

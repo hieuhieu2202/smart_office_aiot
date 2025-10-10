@@ -151,7 +151,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         : controller.selectedFloor.value;
     final titleStyle = GlobalTextStyles.bodyMedium(isDark: _palette.isDark)
         .copyWith(
-      fontFamily: GoogleFonts.orbitron().fontFamily,
+      fontFamily: _StencilTypography.heading,
       fontWeight: FontWeight.w700,
       fontSize: 16,
       letterSpacing: 1.1,
@@ -159,7 +159,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
     final subtitleStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark)
         .copyWith(
-      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontFamily: _StencilTypography.numeric,
       fontSize: 11,
       color: _palette.onSurfaceMuted,
     );
@@ -412,19 +412,19 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             .fold<int>(0, (sum, slice) => sum + slice.value)
         : 0;
 
-    final titleStyle = GoogleFonts.orbitron(
+    final titleStyle = GoogleFonts.spaceGrotesk(
       color: data.accent,
       fontSize: 15,
       letterSpacing: 1,
     );
 
-    final totalStyle = GoogleFonts.orbitron(
+    final totalStyle = GoogleFonts.spaceGrotesk(
       fontSize: 26,
       fontWeight: FontWeight.w700,
       color: palette.onSurface,
     );
 
-    final subtitleStyle = GoogleFonts.robotoMono(
+    final subtitleStyle = GoogleFonts.ibmPlexMono(
       fontSize: 12,
       color: palette.onSurfaceMuted,
     );
@@ -443,7 +443,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         Text(
           'No data available',
           style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-            fontFamily: GoogleFonts.robotoMono().fontFamily,
+            fontFamily: _StencilTypography.numeric,
             color: palette.onSurfaceMuted,
           ),
         ),
@@ -472,7 +472,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               label: Text(
                 'View breakdown',
                 style: GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
-                  fontFamily: GoogleFonts.robotoMono().fontFamily,
+                  fontFamily: _StencilTypography.numeric,
                   fontSize: 11,
                 ),
               ),
@@ -530,7 +530,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   Widget _buildSliceRow(String label, int value, Color accent) {
     final palette = _palette;
     final nameStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontFamily: _StencilTypography.numeric,
       fontSize: 12,
       color: palette.onSurface,
     );
@@ -577,7 +577,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     _OverviewCardData data,
   ) {
     final textStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
-      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontFamily: _StencilTypography.numeric,
       fontSize: 11,
       color: _palette.onSurface,
       fontWeight: FontWeight.w600,
@@ -627,7 +627,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         : Colors.redAccent.shade400;
     final titleStyle = GlobalTextStyles.bodyMedium(isDark: palette.isDark)
         .copyWith(
-      fontFamily: GoogleFonts.orbitron().fontFamily,
+      fontFamily: _StencilTypography.heading,
       fontSize: 16,
       fontWeight: FontWeight.w600,
       letterSpacing: 1.1,
@@ -684,7 +684,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               child: Text(
                 'No runtime tracking data available',
                 style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                  fontFamily: GoogleFonts.robotoMono().fontFamily,
+                  fontFamily: _StencilTypography.numeric,
                   color: _textSecondary,
                 ),
               ),
@@ -715,7 +715,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                   label: Text(
                     'View all ${data.length} lines',
                     style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                      fontFamily: GoogleFonts.robotoMono().fontFamily,
+                      fontFamily: _StencilTypography.numeric,
                       fontSize: 11,
                     ),
                   ),
@@ -734,7 +734,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   }) {
     final palette = _palette;
     final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontFamily: _StencilTypography.numeric,
       fontSize: 12,
       color: palette.onSurface,
     );
@@ -743,7 +743,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       color: _lineHoursColor(item.hours),
     );
     final metaStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontFamily: _StencilTypography.numeric,
       fontSize: 11,
       color: _textSecondary,
     );
@@ -819,7 +819,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   Widget _buildColorLegend(String label, Color color) {
     final textStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark)
         .copyWith(
-      fontFamily: GoogleFonts.robotoMono().fontFamily,
+      fontFamily: _StencilTypography.numeric,
       fontSize: 11,
       color: _textSecondary,
     );
@@ -895,7 +895,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             padding: const EdgeInsets.symmetric(vertical: 48),
             child: Text(
               'No active stencil on line',
-              style: GoogleFonts.robotoMono(
+              style: GoogleFonts.ibmPlexMono(
                 color: _textSecondary,
                 fontSize: 14,
               ),
@@ -925,7 +925,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         label: Text(
           'View all',
           style: GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
-            fontFamily: GoogleFonts.robotoMono().fontFamily,
+            fontFamily: _StencilTypography.numeric,
             fontSize: 12,
             color: accent,
           ),
@@ -954,7 +954,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             const SizedBox(height: 12),
             Text(
               '+${activeLines.length - limited.length} more lines running',
-              style: GoogleFonts.robotoMono(
+              style: GoogleFonts.ibmPlexMono(
                 color: _textSecondary,
                 fontSize: 12,
               ),
@@ -980,7 +980,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           Text(
             'No stencil records match the selected filters.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.robotoMono(
+            style: GoogleFonts.ibmPlexMono(
               color: _textSecondary,
               fontSize: 12,
             ),
@@ -1002,7 +1002,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             const SizedBox(height: 12),
             Text(
               'Unable to load stencil monitor data.',
-              style: GoogleFonts.orbitron(
+              style: GoogleFonts.spaceGrotesk(
                 color: _textPrimary,
                 fontSize: 16,
               ),
@@ -1011,7 +1011,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: GoogleFonts.robotoMono(
+              style: GoogleFonts.ibmPlexMono(
                 color: _textSecondary,
                 fontSize: 12,
               ),

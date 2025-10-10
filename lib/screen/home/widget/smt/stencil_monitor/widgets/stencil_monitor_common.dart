@@ -41,6 +41,17 @@ class _StencilColorScheme {
       _StencilColorScheme._(Theme.of(context));
 }
 
+class _StencilTypography {
+  _StencilTypography._();
+
+  static final String heading =
+      GoogleFonts.spaceGrotesk().fontFamily ?? 'Space Grotesk';
+  static final String body =
+      GoogleFonts.ibmPlexSans().fontFamily ?? 'IBM Plex Sans';
+  static final String numeric =
+      GoogleFonts.ibmPlexMono().fontFamily ?? 'IBM Plex Mono';
+}
+
 class _GlassCard extends StatelessWidget {
   const _GlassCard({
     required this.title,
@@ -87,7 +98,7 @@ class _GlassCard extends StatelessWidget {
                   title,
                   style: GlobalTextStyles.bodyMedium(isDark: palette.isDark)
                       .copyWith(
-                    fontFamily: GoogleFonts.orbitron().fontFamily,
+                    fontFamily: _StencilTypography.heading,
                     color: accent,
                     fontSize: 14,
                     letterSpacing: 1,
@@ -148,11 +159,11 @@ class _DetailSheetContainer extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    title,
-                    style: GlobalTextStyles.bodyMedium(isDark: palette.isDark)
-                        .copyWith(
-                      fontFamily: GoogleFonts.orbitron().fontFamily,
+                child: Text(
+                  title,
+                  style: GlobalTextStyles.bodyMedium(isDark: palette.isDark)
+                      .copyWith(
+                      fontFamily: _StencilTypography.heading,
                       color: palette.onSurface,
                       fontSize: 16,
                       letterSpacing: 1,
@@ -211,7 +222,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label,
               style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                fontFamily: GoogleFonts.robotoMono().fontFamily,
+                fontFamily: _StencilTypography.numeric,
                 color: (accent ?? palette.onSurface).withOpacity(0.75),
                 fontSize: 12,
               ),
@@ -221,7 +232,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               value,
               style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                fontFamily: GoogleFonts.robotoMono().fontFamily,
+                fontFamily: _StencilTypography.numeric,
                 color: palette.onSurface,
                 fontSize: 13,
               ),
