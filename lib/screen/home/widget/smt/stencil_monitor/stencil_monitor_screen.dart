@@ -1,11 +1,13 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import 'package:smart_factory/screen/home/controller/stencil_monitor_controller.dart';
 
-import '../../../../../config/global_color.dart';
 import '../../../../../model/smt/stencil_detail.dart';
 import '../../../../../widget/animation/loading/eva_loading_view.dart';
 
@@ -28,6 +30,17 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   late final StencilMonitorController controller;
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
+  final List<Color> _neonPalette = const [
+    Color(0xFF4DE1FF),
+    Color(0xFF8F5BFF),
+    Color(0xFF2CF6B3),
+    Color(0xFFFFA726),
+    Color(0xFFFF667D),
+    Color(0xFF7CF0FF),
+    Color(0xFFB388FF),
+    Color(0xFF64FFDA),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -45,7 +58,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Obx(() {
       final loading = controller.isLoading.value;
       final hasData = controller.stencilData.isNotEmpty;
@@ -53,76 +65,65 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       final error = controller.error.value;
 
       return Scaffold(
-        backgroundColor:
-            isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
-        appBar: AppBar(
-          title: Text(widget.title ?? 'Stencil Monitor'),
-          centerTitle: true,
-          backgroundColor:
-              isDark ? GlobalColors.appBarDarkBg : GlobalColors.appBarLightBg,
-          iconTheme: IconThemeData(
-            color: isDark
-                ? GlobalColors.appBarDarkText
-                : GlobalColors.appBarLightText,
-          ),
-          actions: [
-            if (loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2.2),
-                ),
-              ),
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () => controller.fetchData(force: true),
+        backgroundColor: Colors.transparent,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF040B1E), Color(0xFF061F3C)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
-        ),
-        body: _buildBody(
-          context,
-          isDark: isDark,
-          loading: loading,
-          hasData: hasData,
-          error: error,
-          filtered: filtered,
+          ),
+          child: SafeArea(
+            child: loading && !hasData
+                ? const Center(child: EvaLoadingView(size: 140))
+                : _buildContent(
+                    context,
+                    loading: loading,
+                    error: error,
+                    filtered: filtered,
+                    hasData: hasData,
+                  ),
+          ),
         ),
       );
     });
   }
 
-  Widget _buildBody(
+  Widget _buildContent(
     BuildContext context, {
-    required bool isDark,
     required bool loading,
-    required bool hasData,
     required String error,
     required List<StencilDetail> filtered,
+    required bool hasData,
   }) {
-    if (loading && !hasData) {
-      return const Center(child: EvaLoadingView(size: 120));
-    }
-
     if (error.isNotEmpty && !hasData) {
-      return _buildFullError(isDark, error);
+      return _buildFullError(error);
     }
 
     return RefreshIndicator(
-      onRefresh: () => controller.fetchData(force: true),
-      color: Theme.of(context).colorScheme.secondary,
+      onRefresh: controller.refresh,
+      color: Colors.cyanAccent,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: _buildDashboard(
-              context,
-              isDark: isDark,
-              error: error,
-              filtered: filtered,
-              maxWidth: constraints.maxWidth,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildHeader(context, loading: loading, error: error),
+                    const SizedBox(height: 20),
+                    if (filtered.isEmpty)
+                      _buildEmptyState()
+                    else
+                      _buildDashboard(context, filtered),
+                  ],
+                ),
+              ),
             ),
           );
         },
@@ -130,42 +131,228 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildDashboard(
-    BuildContext context, {
-    required bool isDark,
-    required String error,
-    required List<StencilDetail> filtered,
-    required double maxWidth,
-  }) {
-    if (filtered.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildFilterCard(isDark),
-          if (error.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _buildErrorBanner(isDark, error),
+  Widget _buildHeader(BuildContext context,
+      {required bool loading, required String error}) {
+    final customers = controller.customers.toList(growable: false);
+    final floors = controller.floors.toList(growable: false);
+    final lastUpdated = controller.lastUpdated.value;
+    final updateText = lastUpdated != null
+        ? _dateFormat.format(lastUpdated)
+        : 'Waiting for data…';
+    final floorLabel = controller.selectedFloor.value == 'ALL'
+        ? 'F06'
+        : controller.selectedFloor.value;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.cyanAccent.withOpacity(0.35), width: 1.5),
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.06),
+            Colors.white.withOpacity(0.02),
           ],
-          const SizedBox(height: 16),
-          _buildEmptyState(isDark),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.cyanAccent.withOpacity(0.15),
+            blurRadius: 20,
+            spreadRadius: 1,
+            offset: const Offset(0, 10),
+          ),
         ],
-      );
-    }
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'SMT $floorLabel STENCIL MONITOR',
+                      style: GoogleFonts.orbitron(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.cyanAccent,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Last update: $updateText',
+                      style: GoogleFonts.robotoMono(
+                        color: Colors.white.withOpacity(0.75),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: loading
+                        ? Colors.yellowAccent.withOpacity(0.7)
+                        : Colors.cyanAccent.withOpacity(0.6),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.cyanAccent.withOpacity(0.25),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    loading ? Icons.sync : Icons.refresh,
+                    color:
+                        loading ? Colors.yellowAccent : Colors.cyanAccent,
+                  ),
+                  onPressed: () => controller.fetchData(force: true),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _buildNeonDropdown(
+                label: 'Customer',
+                value: controller.selectedCustomer.value,
+                items: customers,
+                onChanged: controller.selectCustomer,
+              ),
+              _buildNeonDropdown(
+                label: 'Factory',
+                value: controller.selectedFloor.value,
+                items: floors,
+                onChanged: controller.selectFloor,
+              ),
+            ],
+          ),
+          if (error.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildErrorChip(error),
+          ],
+        ],
+      ),
+    );
+  }
 
-    final statusMap = controller.statusBreakdown(filtered);
-    final vendorMap = controller.vendorBreakdown(filtered);
+  Widget _buildNeonDropdown({
+    required String label,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String> onChanged,
+  }) {
+    final effectiveValue = items.contains(value) ? value : items.first;
+    return SizedBox(
+      width: 200,
+      child: DropdownButtonFormField<String>(
+        value: effectiveValue,
+        dropdownColor: const Color(0xFF061F3C),
+        icon: const Icon(Icons.expand_more, color: Colors.cyanAccent),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: GoogleFonts.robotoMono(
+            fontSize: 12,
+            color: Colors.cyanAccent.withOpacity(0.8),
+          ),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.03),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Colors.cyanAccent.withOpacity(0.4),
+              width: 1.2,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(
+              color: Colors.cyanAccent,
+              width: 1.5,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 10,
+          ),
+        ),
+        style: GoogleFonts.robotoMono(
+          color: Colors.white,
+          fontSize: 13,
+        ),
+        onChanged: (val) {
+          if (val != null) onChanged(val);
+        },
+        items: items
+            .map(
+              (item) => DropdownMenuItem<String>(
+                value: item,
+                child: Text(item),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
 
+  Widget _buildErrorChip(String message) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
+        color: Colors.redAccent.withOpacity(0.12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, color: Colors.redAccent),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: GoogleFonts.robotoMono(
+                color: Colors.redAccent.shade100,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => controller.fetchData(force: true),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboard(BuildContext context, List<StencilDetail> filtered) {
     final customerSlices = _groupToPie(
       filtered,
       (item) => item.customerLabel,
       labelTransformer: _mapCustomerLabel,
     );
-    final statusSlices = statusMap.entries
-        .map((entry) => _PieSlice(entry.key, entry.value))
+    final statusSlices = controller.statusBreakdown(filtered)
+        .entries
+        .map((e) => _PieSlice(e.key, e.value))
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final vendorSlices = vendorMap.entries
-        .map((entry) => _PieSlice(entry.key, entry.value))
+    final vendorSlices = controller.vendorBreakdown(filtered)
+        .entries
+        .map((e) => _PieSlice(e.key, e.value))
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final processSlices = _groupToPie(
@@ -181,8 +368,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
 
     final lineTracking = _buildLineTracking(filtered);
-    final standardBuckets = _buildStandardBuckets(filtered);
-    final checkBuckets = _buildCheckTimeBuckets(filtered);
+    final usingTimeSlices = _buildStandardBuckets(filtered);
+    final checkSlices = _buildCheckTimeBuckets(filtered);
+
     final activeLines = filtered
         .where((item) => item.isActive)
         .toList()
@@ -193,734 +381,635 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildFilterCard(isDark),
-        if (error.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _buildErrorBanner(isDark, error),
-        ],
-        const SizedBox(height: 16),
-        _buildMainLayout(
-          isDark: isDark,
-          maxWidth: maxWidth,
-          customers: customerSlices,
-          status: statusSlices,
-          vendors: vendorSlices,
-          process: processSlices,
-          lineTracking: lineTracking,
-          standardBuckets: standardBuckets,
-          checkBuckets: checkBuckets,
-          activeLines: activeLines,
+        _buildOverviewGrid(
+          customerSlices: customerSlices,
+          statusSlices: statusSlices,
+          vendorSlices: vendorSlices,
+          processSlices: processSlices,
         ),
+        const SizedBox(height: 20),
+        _buildLineTrackingCard(lineTracking),
+        const SizedBox(height: 20),
+        _buildUsageRow(usingTimeSlices, checkSlices),
+        const SizedBox(height: 20),
+        _buildRunningLine(activeLines),
       ],
     );
   }
 
-  Widget _buildFilterCard(bool isDark) {
-    final customers = controller.customers.toList(growable: false);
-    final floors = controller.floors.toList(growable: false);
-    final customerValue = controller.selectedCustomer.value;
-    final floorValue = controller.selectedFloor.value;
-
-    return Card(
-      color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 6,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Filters',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? Colors.lightBlue[100]
-                        : GlobalColors.appBarLightText,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 16,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                _buildDropdown(
-                  label: 'Customer',
-                  value: customerValue,
-                  items: customers,
-                  onChanged: controller.selectCustomer,
-                  isDark: isDark,
-                ),
-                _buildDropdown(
-                  label: 'Factory',
-                  value: floorValue,
-                  items: floors,
-                  onChanged: controller.selectFloor,
-                  isDark: isDark,
-                ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.search, size: 18),
-                  label: const Text('Query'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 14,
-                    ),
-                  ),
-                  onPressed: () => controller.fetchData(force: true),
-                ),
-              ],
-            ),
-          ],
-        ),
+  Widget _buildOverviewGrid({
+    required List<_PieSlice> customerSlices,
+    required List<_PieSlice> statusSlices,
+    required List<_PieSlice> vendorSlices,
+    required List<_PieSlice> processSlices,
+  }) {
+    final cards = [
+      _OverviewCardData(
+        title: 'CUSTOMER',
+        slices: customerSlices,
+        accent: const Color(0xFF4DE1FF),
       ),
+      _OverviewCardData(
+        title: 'STATUS',
+        slices: statusSlices,
+        accent: const Color(0xFFFFC740),
+      ),
+      _OverviewCardData(
+        title: 'VENDOR',
+        slices: vendorSlices,
+        accent: const Color(0xFF8F5BFF),
+      ),
+      _OverviewCardData(
+        title: 'STENCIL SIDE',
+        slices: processSlices,
+        accent: const Color(0xFF2CF6B3),
+      ),
+    ];
+
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 0.95,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      children: cards
+          .map(
+            (card) => _buildOverviewCard(card),
+          )
+          .toList(),
     );
   }
 
-  Widget _buildDropdown({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String> onChanged,
-    required bool isDark,
-  }) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 160, maxWidth: 260),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(
-            color: isDark ? Colors.blueGrey[200] : Colors.blueGrey[700],
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+  Widget _buildOverviewCard(_OverviewCardData data) {
+    final total = data.slices.fold<int>(0, (sum, slice) => sum + slice.value);
+    final displaySlices = data.slices.take(6).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: data.accent.withOpacity(0.5), width: 1.2),
+        gradient: LinearGradient(
+          colors: [
+            data.accent.withOpacity(0.12),
+            Colors.transparent,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: items.contains(value) ? value : null,
-            isExpanded: true,
-            icon: Icon(
-              Icons.arrow_drop_down,
-              color: isDark ? Colors.white70 : Colors.blueGrey[700],
+        boxShadow: [
+          BoxShadow(
+            color: data.accent.withOpacity(0.25),
+            blurRadius: 18,
+            spreadRadius: 1,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            data.title,
+            style: GoogleFonts.orbitron(
+              color: data.accent,
+              fontSize: 13,
+              letterSpacing: 1,
             ),
-            onChanged: (val) {
-              if (val != null) onChanged(val);
-            },
-            items: items
-                .map(
-                  (item) => DropdownMenuItem<String>(
-                    value: item,
-                    child: Text(
-                      item,
-                      overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SfCircularChart(
+                  margin: EdgeInsets.zero,
+                  backgroundColor: Colors.transparent,
+                  series: <CircularSeries<_PieSlice, String>>[
+                    DoughnutSeries<_PieSlice, String>(
+                      dataSource: displaySlices,
+                      xValueMapper: (datum, _) => datum.label,
+                      yValueMapper: (datum, _) => datum.value,
+                      pointColorMapper: (datum, index) =>
+                          _neonPalette[index % _neonPalette.length],
+                      innerRadius: '65%',
+                      radius: '100%',
+                      explode: displaySlices.length == 1,
+                      dataLabelSettings: DataLabelSettings(
+                        isVisible: displaySlices.length <= 4,
+                        textStyle: GoogleFonts.robotoMono(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
+                  ],
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$total',
+                      style: GoogleFonts.orbitron(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Total',
+                      style: GoogleFonts.robotoMono(
+                        fontSize: 11,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: displaySlices
+                .map(
+                  (slice) => _buildLegendPill(
+                    slice.label,
+                    slice.value,
+                    data.accent,
                   ),
                 )
                 .toList(),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainLayout({
-    required bool isDark,
-    required double maxWidth,
-    required List<_PieSlice> customers,
-    required List<_PieSlice> status,
-    required List<_PieSlice> vendors,
-    required List<_PieSlice> process,
-    required List<_LineTrackingDatum> lineTracking,
-    required List<_BarDatum> standardBuckets,
-    required List<_PieSlice> checkBuckets,
-    required List<StencilDetail> activeLines,
-  }) {
-    const gap = 16.0;
-
-    Widget buildLeft({required bool compact}) => _buildLeftColumn(
-          isDark: isDark,
-          customers: customers,
-          status: status,
-          vendors: vendors,
-          process: process,
-          compact: compact,
-        );
-
-    Widget buildCenter({required bool compact}) => _buildCenterColumn(
-          isDark: isDark,
-          lineTracking: lineTracking,
-          standardBuckets: standardBuckets,
-          checkBuckets: checkBuckets,
-          compact: compact,
-        );
-
-    Widget buildRight() => _buildRightColumn(
-          isDark: isDark,
-          activeLines: activeLines,
-        );
-
-    if (maxWidth >= 1200) {
-      final leftWidth = (maxWidth * 0.22).clamp(260.0, 340.0);
-      final rightWidth = (maxWidth * 0.24).clamp(260.0, 360.0);
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: leftWidth, child: buildLeft(compact: false)),
-          const SizedBox(width: gap),
-          Expanded(child: buildCenter(compact: false)),
-          const SizedBox(width: gap),
-          SizedBox(width: rightWidth, child: buildRight()),
         ],
-      );
-    }
-
-    if (maxWidth >= 900) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: buildLeft(compact: true)),
-              const SizedBox(width: gap),
-              Expanded(flex: 2, child: buildCenter(compact: false)),
-            ],
-          ),
-          const SizedBox(height: gap),
-          buildRight(),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        buildLeft(compact: true),
-        const SizedBox(height: gap),
-        buildCenter(compact: true),
-        const SizedBox(height: gap),
-        buildRight(),
-      ],
-    );
-  }
-
-  Widget _buildLeftColumn({
-    required bool isDark,
-    required List<_PieSlice> customers,
-    required List<_PieSlice> status,
-    required List<_PieSlice> vendors,
-    required List<_PieSlice> process,
-    required bool compact,
-  }) {
-    final height = compact ? 200.0 : 220.0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _pieChartCard(
-          title: 'Customer',
-          data: customers,
-          isDark: isDark,
-          height: height,
-        ),
-        const SizedBox(height: 16),
-        _pieChartCard(
-          title: 'Status',
-          data: status,
-          isDark: isDark,
-          height: height,
-        ),
-        const SizedBox(height: 16),
-        _pieChartCard(
-          title: 'Vendor',
-          data: vendors,
-          isDark: isDark,
-          height: height,
-        ),
-        const SizedBox(height: 16),
-        _pieChartCard(
-          title: 'Stencil Side',
-          data: process,
-          isDark: isDark,
-          height: height,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCenterColumn({
-    required bool isDark,
-    required List<_LineTrackingDatum> lineTracking,
-    required List<_BarDatum> standardBuckets,
-    required List<_PieSlice> checkBuckets,
-    required bool compact,
-  }) {
-    final lineHeight = compact ? 300.0 : 360.0;
-    final detailHeight = compact ? 220.0 : 240.0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _chartCard(
-          isDark: isDark,
-          title: 'Line Tracking',
-          height: lineHeight,
-          child: _buildLineTrackingChart(lineTracking, isDark),
-        ),
-        const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final horizontal = constraints.maxWidth >= 650 && !compact;
-            if (horizontal) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _chartCard(
-                      isDark: isDark,
-                      title: 'Using Time',
-                      height: detailHeight,
-                      child: _buildStandardChart(standardBuckets, isDark),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _chartCard(
-                      isDark: isDark,
-                      title: 'Checking Time',
-                      height: detailHeight,
-                      child: _buildCheckTimeChart(checkBuckets, isDark),
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _chartCard(
-                  isDark: isDark,
-                  title: 'Using Time',
-                  height: detailHeight,
-                  child: _buildStandardChart(standardBuckets, isDark),
-                ),
-                const SizedBox(height: 16),
-                _chartCard(
-                  isDark: isDark,
-                  title: 'Checking Time',
-                  height: detailHeight,
-                  child: _buildCheckTimeChart(checkBuckets, isDark),
-                ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRightColumn({
-    required bool isDark,
-    required List<StencilDetail> activeLines,
-  }) {
-    return Card(
-      color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 6,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'Running Line',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isDark
-                          ? Colors.lightBlue[100]
-                          : GlobalColors.appBarLightText,
-                    ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildActiveLinesPanel(activeLines, isDark),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _chartCard({
-    required bool isDark,
-    required String title,
-    required Widget child,
-    double height = 260,
-  }) {
-    return Card(
-      color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? Colors.lightBlue[100]
-                        : GlobalColors.appBarLightText,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: height,
-              child: child,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _pieChartCard({
-    required String title,
-    required List<_PieSlice> data,
-    required bool isDark,
-    double height = 260,
-  }) {
-    return _chartCard(
-      isDark: isDark,
-      title: title,
-      height: height,
-      child: data.isEmpty
-          ? _buildEmptyChart('No data available.', isDark)
-          : SfCircularChart(
-              margin: EdgeInsets.zero,
-              legend: Legend(
-                isVisible: true,
-                overflowMode: LegendItemOverflowMode.wrap,
-                textStyle: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.blueGrey[700],
-                  fontSize: 11,
-                ),
-              ),
-              tooltipBehavior: TooltipBehavior(enable: true, format: 'point.x: point.y'),
-              series: <CircularSeries<_PieSlice, String>>[
-                DoughnutSeries<_PieSlice, String>(
-                  dataSource: data,
-                  xValueMapper: (slice, _) => slice.label,
-                  yValueMapper: (slice, _) => slice.value,
-                  dataLabelSettings: DataLabelSettings(
-                    isVisible: true,
-                    textStyle: TextStyle(
-                      color: isDark ? Colors.white : Colors.blueGrey[900],
-                      fontSize: 10,
-                    ),
-                  ),
-                  radius: '70%',
-                  innerRadius: '45%',
-                ),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildLineTrackingChart(
-    List<_LineTrackingDatum> data,
-    bool isDark,
-  ) {
-    if (data.isEmpty) {
-      return _buildEmptyChart('No active line tracking data.', isDark);
-    }
-
-    final rotation = data.length > 8
-        ? 60
-        : data.length > 5
-            ? 40
-            : 0;
-
-    return SfCartesianChart(
-      margin: EdgeInsets.zero,
-      plotAreaBorderWidth: 0,
-      tooltipBehavior: TooltipBehavior(enable: true, header: ''),
-      primaryXAxis: CategoryAxis(
-        labelRotation: rotation,
-        labelStyle: TextStyle(
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
-          fontSize: 11,
-        ),
-        majorGridLines: const MajorGridLines(width: 0),
-      ),
-      primaryYAxis: NumericAxis(
-        minimum: 0,
-        labelFormat: '{value}h',
-        labelStyle: TextStyle(
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
-        ),
-        majorTickLines: const MajorTickLines(size: 0),
-        axisLine: const AxisLine(width: 0),
-      ),
-      series: <CartesianSeries<dynamic, dynamic>>[
-        ColumnSeries<_LineTrackingDatum, String>(
-          dataSource: data,
-          width: 0.6,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-          xValueMapper: (item, _) => item.category,
-          yValueMapper: (item, _) => item.hours,
-          pointColorMapper: (item, _) => _lineHoursColor(item.hours),
-          dataLabelSettings: DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(
-              color: isDark ? Colors.white : Colors.black87,
-              fontSize: 10,
-            ),
-          ),
-          enableTooltip: true,
-        ),
-      ],
-      onTooltipRender: (TooltipArgs args) {
-        final idx = args.pointIndex?.toInt();
-        if (idx == null || idx < 0 || idx >= data.length) {
-          return;
-        }
-        final item = data[idx];
-        final start = _dateFormat.format(item.startTime.toLocal());
-        final use = item.totalUse?.toString() ?? '-';
-        args.text =
-            'Line: ${item.category}\nHours: ${item.hours.toStringAsFixed(2)}\nStencil: ${item.stencilSn}\nStart: $start\nUse: $use';
-      },
-    );
-  }
-
-  Widget _buildActiveLinesPanel(List<StencilDetail> active, bool isDark) {
-    if (active.isEmpty) {
-      return _buildEmptyChart('No stencils are currently on a line.', isDark);
-    }
-
-    return ListView.separated(
-      itemCount: active.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = active[index];
-        final hours = item.runningHours ?? 0.0;
-        final color = _lineHoursColor(hours);
-        final lineLabel = item.lineName?.isNotEmpty == true
-            ? item.lineName!
-            : item.location?.isNotEmpty == true
-                ? item.location!
-                : 'Unknown line';
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(isDark ? 0.15 : 0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withOpacity(0.7), width: 1.2),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      lineLabel,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: isDark ? Colors.white : Colors.blueGrey[900],
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${hours.toStringAsFixed(2)} h',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 12,
-                runSpacing: 6,
-                children: [
-                  _infoChip('Stencil',
-                      item.stencilSn.isEmpty ? '-' : item.stencilSn, isDark),
-                  _infoChip('Location', item.location ?? '-', isDark),
-                  _infoChip(
-                    'Start',
-                    _dateFormat.format(item.startTime!.toLocal()),
-                    isDark,
-                  ),
-                  if (item.totalUseTimes != null)
-                    _infoChip('Use', item.totalUseTimes.toString(), isDark),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCheckTimeChart(List<_PieSlice> data, bool isDark) {
-    if (data.isEmpty) {
-      return _buildEmptyChart('No checking time data.', isDark);
-    }
-
-    return SfCircularChart(
-      margin: EdgeInsets.zero,
-      legend: Legend(
-        isVisible: true,
-        position: LegendPosition.right,
-        overflowMode: LegendItemOverflowMode.wrap,
-        textStyle: TextStyle(
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
-          fontSize: 11,
-        ),
-      ),
-      tooltipBehavior: TooltipBehavior(enable: true, format: 'point.x: point.y'),
-      series: <CircularSeries<_PieSlice, String>>[
-        DoughnutSeries<_PieSlice, String>(
-          dataSource: data,
-          xValueMapper: (slice, _) => slice.label,
-          yValueMapper: (slice, _) => slice.value,
-          dataLabelSettings: DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(
-              color: isDark ? Colors.white : Colors.blueGrey[900],
-              fontSize: 10,
-            ),
-          ),
-          innerRadius: '45%',
-          radius: '70%',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStandardChart(List<_BarDatum> data, bool isDark) {
-    if (data.isEmpty) {
-      return _buildEmptyChart('No standard time data.', isDark);
-    }
-
-    return SfCartesianChart(
-      margin: EdgeInsets.zero,
-      plotAreaBorderWidth: 0,
-      tooltipBehavior: TooltipBehavior(enable: true, header: ''),
-      primaryXAxis: CategoryAxis(
-        labelRotation: 20,
-        labelStyle: TextStyle(
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
-        ),
-        majorGridLines: const MajorGridLines(width: 0),
-      ),
-      primaryYAxis: NumericAxis(
-        minimum: 0,
-        labelStyle: TextStyle(
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
-        ),
-        majorTickLines: const MajorTickLines(size: 0),
-        axisLine: const AxisLine(width: 0),
-      ),
-      series: <CartesianSeries<dynamic, dynamic>>[
-        ColumnSeries<_BarDatum, String>(
-          dataSource: data,
-          xValueMapper: (item, _) => item.label,
-          yValueMapper: (item, _) => item.value,
-          pointColorMapper: (item, index) =>
-              _standardBarColor(index ?? 0),
-          width: 0.55,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-          dataLabelSettings: DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(
-              color: isDark ? Colors.white : Colors.black87,
-              fontSize: 10,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Color _standardBarColor(int index) {
-    final opacity = 0.85 - index * 0.05;
-    final safe = opacity.clamp(0.35, 0.85);
-    return Colors.lightBlueAccent.withOpacity(safe.toDouble());
-  }
-
-  Widget _buildEmptyChart(String message, bool isDark) {
-    return Center(
-      child: Text(
-        message,
-        style: TextStyle(
-          color: isDark ? Colors.white54 : Colors.blueGrey[500],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoChip(String label, String value, bool isDark) {
+  Widget _buildLegendPill(String label, int value, Color accent) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white10 : Colors.blueGrey[50],
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withOpacity(0.5)),
+        color: accent.withOpacity(0.12),
       ),
       child: Text(
-        '$label: $value',
-        style: TextStyle(
-          fontSize: 12,
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
+        '$label • $value',
+        style: GoogleFonts.robotoMono(
+          fontSize: 10,
+          color: Colors.white70,
         ),
       ),
     );
   }
 
-  Widget _buildErrorBanner(bool isDark, String message) {
+  Widget _buildLineTrackingCard(List<_LineTrackingDatum> data) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.purpleAccent.withOpacity(0.45)),
+        gradient: LinearGradient(
+          colors: [
+            Colors.purpleAccent.withOpacity(0.12),
+            Colors.transparent,
+          ],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.purpleAccent.withOpacity(0.25),
+            blurRadius: 20,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, color: Colors.redAccent),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                color: isDark ? Colors.red[200] : Colors.red[800],
-              ),
+          Text(
+            'LINE TRACKING',
+            style: GoogleFonts.orbitron(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.purpleAccent,
+              letterSpacing: 1.1,
             ),
           ),
-          TextButton(
-            onPressed: () => controller.fetchData(force: true),
-            child: const Text('Retry'),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              _buildColorLegend(' < 3.5h', Colors.cyanAccent),
+              const SizedBox(width: 12),
+              _buildColorLegend('3.5 – 4h', Colors.amberAccent),
+              const SizedBox(width: 12),
+              _buildColorLegend('> 4h', Colors.redAccent),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 260,
+            child: SfCartesianChart(
+              backgroundColor: Colors.transparent,
+              primaryXAxis: CategoryAxis(
+                axisLine: const AxisLine(color: Colors.white24),
+                majorGridLines: const MajorGridLines(color: Colors.transparent),
+                labelStyle: GoogleFonts.robotoMono(
+                  color: Colors.white70,
+                  fontSize: 10,
+                ),
+              ),
+              primaryYAxis: NumericAxis(
+                axisLine: const AxisLine(color: Colors.white24),
+                majorGridLines: MajorGridLines(
+                  width: 0.4,
+                  color: Colors.white10,
+                ),
+                labelStyle: GoogleFonts.robotoMono(
+                  color: Colors.white70,
+                  fontSize: 10,
+                ),
+                minimum: 0,
+              ),
+              tooltipBehavior: TooltipBehavior(
+                enable: true,
+                color: const Color(0xFF061F3C),
+                textStyle: GoogleFonts.robotoMono(color: Colors.white, fontSize: 11),
+                header: '',
+              ),
+              series: <ChartSeries<_LineTrackingDatum, String>>[
+                ColumnSeries<_LineTrackingDatum, String>(
+                  dataSource: data,
+                  xValueMapper: (datum, _) => datum.category,
+                  yValueMapper: (datum, _) => datum.hours,
+                  pointColorMapper: (datum, _) => _lineHoursColor(datum.hours),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                  dataLabelSettings: DataLabelSettings(
+                    isVisible: data.length <= 6,
+                    textStyle: GoogleFonts.robotoMono(
+                      color: Colors.white,
+                      fontSize: 9,
+                    ),
+                  ),
+                  enableTooltip: true,
+                  name: 'Hours',
+                  onCreateRenderer: (args) => _NeonColumnSeriesRenderer(),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFullError(bool isDark, String message) {
+  Widget _buildColorLegend(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.6),
+                blurRadius: 6,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: GoogleFonts.robotoMono(
+            color: Colors.white70,
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUsageRow(
+    List<_PieSlice> usingTime,
+    List<_PieSlice> checkTime,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildMiniDonutCard(
+            title: 'USING TIME',
+            accent: const Color(0xFF4DE1FF),
+            slices: usingTime,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildMiniDonutCard(
+            title: 'CHECKING TIME',
+            accent: const Color(0xFFFF6FB7),
+            slices: checkTime,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMiniDonutCard({
+    required String title,
+    required Color accent,
+    required List<_PieSlice> slices,
+  }) {
+    final total = slices.fold<int>(0, (sum, item) => sum + item.value);
+    final display = slices.take(6).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accent.withOpacity(0.5), width: 1.1),
+        gradient: LinearGradient(
+          colors: [accent.withOpacity(0.12), Colors.transparent],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withOpacity(0.25),
+            blurRadius: 18,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.orbitron(
+              color: accent,
+              fontSize: 14,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 160,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SfCircularChart(
+                  margin: EdgeInsets.zero,
+                  backgroundColor: Colors.transparent,
+                  series: <CircularSeries<_PieSlice, String>>[
+                    DoughnutSeries<_PieSlice, String>(
+                      dataSource: display,
+                      xValueMapper: (datum, _) => datum.label,
+                      yValueMapper: (datum, _) => datum.value,
+                      pointColorMapper: (datum, index) =>
+                          _neonPalette[index % _neonPalette.length],
+                      innerRadius: '68%',
+                      radius: '100%',
+                      dataLabelSettings: DataLabelSettings(
+                        isVisible: display.length <= 3,
+                        textStyle: GoogleFonts.robotoMono(
+                          color: Colors.white,
+                          fontSize: 9,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$total',
+                      style: GoogleFonts.orbitron(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Total',
+                      style: GoogleFonts.robotoMono(
+                        fontSize: 10,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: display
+                .map(
+                  (slice) => _buildLegendPill(slice.label, slice.value, accent),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRunningLine(List<StencilDetail> activeLines) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.cyanAccent.withOpacity(0.45)),
+        gradient: LinearGradient(
+          colors: [
+            Colors.cyanAccent.withOpacity(0.15),
+            Colors.transparent,
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.cyanAccent.withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'RUNNING LINE',
+            style: GoogleFonts.orbitron(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.cyanAccent,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 320,
+            child: activeLines.isEmpty
+                ? Center(
+                    child: Text(
+                      'No active stencil lines detected.',
+                      style: GoogleFonts.robotoMono(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      final item = activeLines[index];
+                      return _buildRunningLineTile(item);
+                    },
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemCount: activeLines.length,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRunningLineTile(StencilDetail item) {
+    final now = DateTime.now();
+    final start = item.startTime;
+    final diffHours = start != null
+        ? now.difference(start).inMinutes / 60.0
+        : 0.0;
+    final hoursText = diffHours.toStringAsFixed(2);
+    final color = _lineHoursColor(diffHours);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withOpacity(0.6)),
+        color: color.withOpacity(0.15),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item.lineName ?? item.location ?? item.stencilSn,
+                  style: GoogleFonts.orbitron(
+                    color: Colors.white,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color.withOpacity(0.7)),
+                  color: Colors.black.withOpacity(0.3),
+                ),
+                child: Text(
+                  '$hoursText h',
+                  style: GoogleFonts.robotoMono(
+                    color: Colors.white,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildInfoRow('Stencil SN', item.stencilSn),
+          _buildInfoRow('Start Time',
+              start != null ? _dateFormat.format(start) : 'Unknown'),
+          _buildInfoRow('Use Times', '${item.totalUseTimes ?? 0}'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: GoogleFonts.robotoMono(
+                color: Colors.white60,
+                fontSize: 11,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.robotoMono(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white12),
+        color: Colors.white.withOpacity(0.03),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.sensors_off,
+              size: 48, color: Colors.white.withOpacity(0.5)),
+          const SizedBox(height: 12),
+          Text(
+            'No stencil records match the selected filters.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.robotoMono(
+              color: Colors.white70,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFullError(String message) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -928,25 +1017,25 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.error_outline,
-                size: 48, color: isDark ? Colors.red[200] : Colors.redAccent),
+                size: 52, color: Colors.redAccent.withOpacity(0.8)),
             const SizedBox(height: 12),
             Text(
               'Unable to load stencil monitor data.',
-              style: TextStyle(
+              style: GoogleFonts.orbitron(
+                color: Colors.white,
                 fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.blueGrey[900],
               ),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isDark ? Colors.white70 : Colors.blueGrey[600],
+              style: GoogleFonts.robotoMono(
+                color: Colors.white70,
+                fontSize: 12,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () => controller.fetchData(force: true),
               icon: const Icon(Icons.refresh),
@@ -954,33 +1043,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.blueGrey[700]! : Colors.blueGrey[100]!,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.inbox,
-            size: 48,
-            color: isDark ? Colors.white30 : Colors.blueGrey[300],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'No stencil records match the selected filters.',
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }
@@ -1050,7 +1112,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     return list;
   }
 
-  List<_BarDatum> _buildStandardBuckets(List<StencilDetail> data) {
+  List<_PieSlice> _buildStandardBuckets(List<StencilDetail> data) {
     final buckets = <String, int>{
       '0 – 1K': 0,
       '1K – 3K': 0,
@@ -1084,7 +1146,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     return buckets.entries
         .where((entry) => entry.value > 0)
-        .map((entry) => _BarDatum(entry.key, entry.value))
+        .map((entry) => _PieSlice(entry.key, entry.value))
         .toList();
   }
 
@@ -1139,7 +1201,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       return Colors.redAccent.shade200;
     }
     if (hours >= 3.5) {
-      return Colors.orangeAccent.shade200;
+      return Colors.amberAccent.shade200;
     }
     return Colors.cyanAccent.shade200;
   }
@@ -1147,13 +1209,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
 class _PieSlice {
   _PieSlice(this.label, this.value);
-
-  final String label;
-  final int value;
-}
-
-class _BarDatum {
-  _BarDatum(this.label, this.value);
 
   final String label;
   final int value;
@@ -1175,4 +1230,40 @@ class _LineTrackingDatum {
   final DateTime startTime;
   final String location;
   final int? totalUse;
+}
+
+class _OverviewCardData {
+  const _OverviewCardData({
+    required this.title,
+    required this.slices,
+    required this.accent,
+  });
+
+  final String title;
+  final List<_PieSlice> slices;
+  final Color accent;
+}
+
+class _NeonColumnSeriesRenderer extends ColumnSeriesRenderer {
+  @override
+  void onPaint(Canvas canvas, ChartSeries<dynamic, dynamic> series,
+      ChartPoint<dynamic> point, Paint fillPaint, Paint strokePaint,
+      {double? seriesAnimationFactor}) {
+    final region = point.region;
+    if (region != null) {
+      final shader = LinearGradient(
+        colors: [
+          fillPaint.color.withOpacity(0.9),
+          fillPaint.color.withOpacity(0.5),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(region.outerRect);
+      fillPaint
+        ..shader = shader
+        ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 6);
+    }
+    super.onPaint(canvas, series, point, fillPaint, strokePaint,
+        seriesAnimationFactor: seriesAnimationFactor);
+  }
 }

@@ -9,6 +9,7 @@ class StencilMonitorController extends GetxController {
   final RxList<StencilDetail> stencilData = <StencilDetail>[].obs;
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
+  final Rx<DateTime?> lastUpdated = Rx<DateTime?>(null);
 
   final RxString selectedCustomer = 'ALL'.obs;
   final RxString selectedFloor = 'ALL'.obs;
@@ -46,6 +47,7 @@ class StencilMonitorController extends GetxController {
         error.value = '';
         final results = await StencilMonitorApi.fetchStencilDetails();
         stencilData.assignAll(results);
+        lastUpdated.value = DateTime.now();
         _rebuildCustomers();
         _rebuildFloors();
         print('>> [StencilMonitor] Loaded ${results.length} rows');
