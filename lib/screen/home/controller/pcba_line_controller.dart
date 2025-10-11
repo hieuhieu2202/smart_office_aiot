@@ -50,12 +50,11 @@ class PcbaLineDashboardController extends GetxController {
 
   String _fmt(DateTime dt) => DateFormat('yyyy/MM/dd HH:mm').format(dt);
 
-  /// end = hôm qua 19:30; start = end - 7 ngày 07:30 (8 ngày inclusive)
   void updateDefaultDateRange({bool force = true}) {
     if (!force && rangeDateTime.value.trim().isNotEmpty) return;
 
     final now = DateTime.now();
-    final endDay = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
+    final endDay = DateTime(now.year, now.month, now.day);
     final end = DateTime(endDay.year, endDay.month, endDay.day, 19, 30);
     final startDay = endDay.subtract(const Duration(days: 7));
     final start = DateTime(startDay.year, startDay.month, startDay.day, 7, 30);

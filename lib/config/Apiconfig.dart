@@ -30,7 +30,7 @@ class ApiConfig {
 
   // ========== Chat AI Web API ==========
   static String get chatBaseUrl => isProduction
-      ? 'http://10.220.130.117:2222/ChatAI' // Server thật (virtual folder /ChatAI)
+      ? 'http://192.168.0.75:8080'  // Server thật
       : 'http://192.168.0.197:2323/ChatAI'; // Local/dev
 
   static String get chatEndpoint => '$chatBaseUrl/ai/chat';
@@ -38,7 +38,7 @@ class ApiConfig {
   // ========== Cho phép chứng chỉ tự ký ==========
   static bool allowSelfSignedFor(String host) {
     const allowed = {
-      '10.220.130.117',
+      '192.168.0.75:8080',
       '192.168.0.197',
     };
     return allowed.contains(host);

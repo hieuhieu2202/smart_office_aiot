@@ -24,8 +24,8 @@ class PcbaLineFilterPanel extends StatelessWidget {
 
     DateTime start, end;
     DateTime now = DateTime.now();
-    DateTime endDay = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
-    end   = DateTime(endDay.year, endDay.month, endDay.day, 19, 30);
+    DateTime endDay = DateTime(now.year, now.month, now.day);
+    end = DateTime(endDay.year, endDay.month, endDay.day, 19, 30);
     start = DateTime(endDay.year, endDay.month, endDay.day - 7, 7, 30);
 
     final parts = controller.rangeDateTime.value.split(' - ');

@@ -9,6 +9,7 @@ import 'package:smart_factory/screen/home/widget/PCBA_LINE/CLEAN_SENSOR_ES2/pcba
 import 'package:smart_factory/screen/home/widget/nvidia_lc_switch/Dashboard/Curing_Room_Monitoring_Screen.dart';
 import 'package:smart_factory/screen/home/controller/cdu_controller.dart';
 import 'package:smart_factory/screen/home/widget/nvidia_lc_switch/Cdu_Monitoring/cdu_monitoring_screen.dart';
+import 'package:smart_factory/screen/home/widget/nvidia_lc_switch_kanban/Output_Tracking/output_tracking_screen.dart';
 
 import '../model/AppModel.dart';
 import '../screen/home/widget/project_list_page.dart';
@@ -21,6 +22,7 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
   'clean_room': (project) => CleanRoomScreen(),
   'pcba_line_dashboard': (project) => PcbaLineDashboardScreen(),
   'curing_monitoring_dashboard': (project) => CuringRoomMonitoringScreen(),
+  'output_tracking': (project) => OutputTrackingScreen(),
 
   /// HUB CDU (mặc định F16-3F; có dropdown để đổi)
   'cdu_monitoring': (project) {
