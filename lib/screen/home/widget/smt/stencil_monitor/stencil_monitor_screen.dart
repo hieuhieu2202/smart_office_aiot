@@ -415,7 +415,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       accent: data.accent,
       onTap: null,
       child: SizedBox(
-        height: 260,
+        height: 280,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -426,8 +426,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             Text('Total items', style: subtitleStyle),
             const SizedBox(height: 16),
             Expanded(
-              child: total == 0
-                  ? Center(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  if (total == 0) {
+                    return Center(
                       child: Text(
                         'No data available',
                         textAlign: TextAlign.center,
@@ -438,21 +440,58 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                           color: palette.onSurfaceMuted,
                         ),
                       ),
-                    )
-                  : Scrollbar(
-                      thumbVisibility: false,
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.only(right: 4),
+                    );
+                  }
+
+                  const horizontalSpacing = 12.0;
+                  const verticalSpacing = 12.0;
+                  var maxWidth = constraints.maxWidth;
+                  if (maxWidth.isInfinite || maxWidth.isNaN) {
+                    maxWidth = MediaQuery.of(context).size.width;
+                  }
+
+                  final columns = maxWidth >= 520
+                      ? 3
+                      : maxWidth >= 320
+                          ? 2
+                          : 1;
+                  final availableWidth = maxWidth -
+                      (columns > 1 ? horizontalSpacing * (columns - 1) : 0);
+                  final rawChipWidth = columns == 1
+                      ? maxWidth
+                      : availableWidth / columns;
+                  final chipWidth = math.min(
+                    math.max(rawChipWidth, 140.0),
+                    maxWidth,
+                  );
+
+                  return Scrollbar(
+                    thumbVisibility: false,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Align(
+                        alignment: Alignment.topLeft,
                         child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
+                          alignment: WrapAlignment.start,
+                          spacing: horizontalSpacing,
+                          runSpacing: verticalSpacing,
                           children: [
                             for (final slice in data.slices)
-                              _buildSliceChip(slice, data.accent, palette),
+                              SizedBox(
+                                width: chipWidth.toDouble(),
+                                child: _buildSliceChip(
+                                  slice,
+                                  data.accent,
+                                  palette,
+                                ),
+                              ),
                           ],
                         ),
                       ),
                     ),
+                  );
+                },
+              ),
             ),
           ],
         ),
