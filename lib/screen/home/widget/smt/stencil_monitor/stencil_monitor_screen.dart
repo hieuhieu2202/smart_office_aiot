@@ -450,41 +450,71 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                     maxWidth = MediaQuery.of(context).size.width;
                   }
 
-                  final columns = maxWidth >= 520
+                  final columnCount = maxWidth >= 520
                       ? 3
                       : maxWidth >= 320
                           ? 2
                           : 1;
                   final availableWidth = maxWidth -
-                      (columns > 1 ? horizontalSpacing * (columns - 1) : 0);
-                  final rawChipWidth = columns == 1
-                      ? maxWidth
-                      : availableWidth / columns;
-                  final chipWidth = math.min(
-                    math.max(rawChipWidth, 140.0),
-                    maxWidth,
+                      (columnCount > 1 ? horizontalSpacing * (columnCount - 1) : 0);
+
+                  final approxChipHeight = 40.0;
+                  final approxSpacing = verticalSpacing;
+                  final maxPerColumn = math.max(
+                    1,
+                    ((constraints.maxHeight + approxSpacing) /
+                            (approxChipHeight + approxSpacing))
+                        .floor(),
+                  );
+
+                  final columns = <List<_PieSlice>>[];
+                  for (var i = 0; i < data.slices.length; i += maxPerColumn) {
+                    final end = math.min(i + maxPerColumn, data.slices.length);
+                    columns.add(data.slices.sublist(i, end));
+                  }
+
+                  if (columns.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final visibleColumns = columns.length;
+                  final targetColumns = math.min(visibleColumns, 3);
+                  final computedWidth =
+                      availableWidth / math.max(1, targetColumns);
+                  final columnWidth = math.max(
+                    180.0,
+                    math.min(240.0, computedWidth),
                   );
 
                   return Scrollbar(
                     thumbVisibility: false,
+                    notificationPredicate: (notification) =>
+                        notification.metrics.axis == Axis.horizontal,
                     child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.only(right: 6),
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: Wrap(
-                          alignment: WrapAlignment.start,
-                          spacing: horizontalSpacing,
-                          runSpacing: verticalSpacing,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: constraints.maxWidth,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            for (final slice in data.slices)
+                            for (var index = 0;
+                                index < columns.length;
+                                index++) ...[
+                              if (index > 0)
+                                SizedBox(width: horizontalSpacing),
                               SizedBox(
-                                width: chipWidth.toDouble(),
-                                child: _buildSliceChip(
-                                  slice,
+                                width: columnWidth,
+                                child: _buildSliceColumn(
+                                  columns[index],
                                   data.accent,
                                   palette,
+                                  verticalSpacing,
                                 ),
                               ),
+                            ],
                           ],
                         ),
                       ),
@@ -554,6 +584,29 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           ],
         ),
       ),
+    );
+  }
+
+
+  Widget _buildSliceColumn(
+    List<_PieSlice> slices,
+    Color accent,
+    _StencilColorScheme palette,
+    double spacing,
+  ) {
+    if (slices.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < slices.length; i++) ...[
+          _buildSliceChip(slices[i], accent, palette),
+          if (i != slices.length - 1) SizedBox(height: spacing),
+        ],
+      ],
     );
   }
 
