@@ -1479,7 +1479,7 @@ class _Usage3dChart extends StatelessWidget {
           color: palette.onSurface,
         ),
       ),
-      series: <ChartSeries<_UsageBarDatum, String>>[
+      series: <CartesianSeries<dynamic, dynamic>>[
         ColumnSeries<_UsageBarDatum, String>(
           dataSource: data,
           xValueMapper: (datum, _) => datum.label,
