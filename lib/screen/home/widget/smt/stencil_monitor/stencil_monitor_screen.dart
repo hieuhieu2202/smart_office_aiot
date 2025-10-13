@@ -411,45 +411,51 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       color: palette.onSurfaceMuted,
     );
 
-    final children = <Widget>[
-      Text(data.title, style: titleStyle),
-      const SizedBox(height: 12),
-      Text('$total', style: totalStyle),
-      const SizedBox(height: 2),
-      Text('Total items', style: subtitleStyle),
-      const SizedBox(height: 16),
-    ];
-
-    if (total == 0) {
-      children.add(
-        Text(
-          'No data available',
-          style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-            fontFamily: _StencilTypography.numeric,
-            color: palette.onSurfaceMuted,
-          ),
-        ),
-      );
-    } else {
-      children.add(
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final slice in data.slices)
-              _buildSliceChip(slice, data.accent, palette),
-          ],
-        ),
-      );
-    }
-
     return _buildOverviewContainer(
       accent: data.accent,
       onTap: null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: children,
+      child: SizedBox(
+        height: 260,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(data.title, style: titleStyle),
+            const SizedBox(height: 12),
+            Text('$total', style: totalStyle),
+            const SizedBox(height: 2),
+            Text('Total items', style: subtitleStyle),
+            const SizedBox(height: 16),
+            Expanded(
+              child: total == 0
+                  ? Center(
+                      child: Text(
+                        'No data available',
+                        textAlign: TextAlign.center,
+                        style: GlobalTextStyles.bodySmall(
+                          isDark: palette.isDark,
+                        ).copyWith(
+                          fontFamily: _StencilTypography.numeric,
+                          color: palette.onSurfaceMuted,
+                        ),
+                      ),
+                    )
+                  : Scrollbar(
+                      thumbVisibility: false,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final slice in data.slices)
+                              _buildSliceChip(slice, data.accent, palette),
+                          ],
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
