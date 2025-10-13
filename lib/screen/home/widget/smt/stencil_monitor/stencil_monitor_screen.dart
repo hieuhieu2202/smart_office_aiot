@@ -393,12 +393,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   Widget _buildOverviewCard(BuildContext context, _OverviewCardData data) {
     final palette = _palette;
     final total = data.slices.fold<int>(0, (sum, slice) => sum + slice.value);
-    final displaySlices = data.slices.take(4).toList();
-    final hiddenSlices = data.slices.length > displaySlices.length
-        ? data.slices.skip(displaySlices.length).toList()
-        : <_PieSlice>[];
-    final hiddenCount = hiddenSlices.length;
-    final hiddenTotal = hiddenSlices.fold<int>(0, (sum, slice) => sum + slice.value);
 
     final titleStyle = GoogleFonts.spaceGrotesk(
       color: data.accent,
@@ -437,52 +431,83 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ),
       );
     } else {
-      for (final slice in displaySlices) {
-        children.add(_buildSliceRow(slice.label, slice.value, data.accent));
-      }
-      if (hiddenCount > 0) {
-        children.add(
-          _buildMoreIndicator(
-            context,
-            hiddenCount,
-            hiddenTotal,
-            data.accent,
-            data,
-          ),
-        );
-      } else if (data.slices.length > 1) {
-        children.add(
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () => _showBreakdownDetail(context, data),
-              style: TextButton.styleFrom(
-                foregroundColor: data.accent,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 0),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              icon: const Icon(Icons.open_in_full, size: 16),
-              label: Text(
-                'View breakdown',
-                style: GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
-                  fontFamily: _StencilTypography.numeric,
-                  fontSize: 11,
-                ),
-              ),
-            ),
-          ),
-        );
-      }
+      children.add(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final slice in data.slices)
+              _buildSliceChip(slice, data.accent, palette),
+          ],
+        ),
+      );
     }
 
     return _buildOverviewContainer(
       accent: data.accent,
-      onTap: total > 0 ? () => _showBreakdownDetail(context, data) : null,
+      onTap: null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: children,
+      ),
+    );
+  }
+
+  Widget _buildSliceChip(
+    _PieSlice slice,
+    Color accent,
+    _StencilColorScheme palette,
+  ) {
+    final label = slice.label.trim().isEmpty ? 'Unknown' : slice.label.trim();
+    final baseStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.body,
+      fontSize: 12,
+      color: palette.onSurface,
+    );
+    final valueStyle = baseStyle.copyWith(
+      fontFamily: _StencilTypography.numeric,
+      fontWeight: FontWeight.w600,
+      color: accent,
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      margin: const EdgeInsets.only(right: 4, bottom: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withOpacity(0.45), width: 1),
+        color: palette.surfaceOverlay.withOpacity(palette.isDark ? 0.65 : 0.55),
+        boxShadow: [
+          BoxShadow(
+            color: palette.cardShadow.withOpacity(0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: RichText(
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        text: TextSpan(
+          children: [
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const WidgetSpan(child: SizedBox(width: 8)),
+            TextSpan(text: label, style: baseStyle),
+            const WidgetSpan(child: SizedBox(width: 10)),
+            TextSpan(text: '${slice.value}', style: valueStyle),
+          ],
+        ),
       ),
     );
   }
@@ -621,95 +646,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSliceRow(String label, int value, Color accent) {
-    final palette = _palette;
-    final nameStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-      fontFamily: _StencilTypography.numeric,
-      fontSize: 12,
-      color: palette.onSurface,
-    );
-    final valueStyle = nameStyle.copyWith(
-      fontWeight: FontWeight.w600,
-      color: accent,
-    );
-
-    final normalizedLabel = label.trim().isEmpty ? 'Unknown' : label.trim();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: accent.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              normalizedLabel,
-              style: nameStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text('$value', style: valueStyle),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMoreIndicator(
-    BuildContext context,
-    int hiddenCount,
-    int hiddenTotal,
-    Color accent,
-    _OverviewCardData data,
-  ) {
-    final textStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
-      fontFamily: _StencilTypography.numeric,
-      fontSize: 11,
-      color: _palette.onSurface,
-      fontWeight: FontWeight.w600,
-    );
-
-    final totalLabel = hiddenTotal > 0 ? ' (${hiddenTotal} items)' : '';
-    final groupLabel = hiddenCount == 1 ? 'group' : 'groups';
-
-    return InkWell(
-      onTap: () => _showBreakdownDetail(context, data),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
-                color: accent.withOpacity(0.5),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                '+ $hiddenCount more $groupLabel$totalLabel • View all',
-                style: textStyle,
-              ),
-            ),
-            Icon(Icons.chevron_right, size: 16, color: accent.withOpacity(0.8)),
-          ],
         ),
       ),
     );
