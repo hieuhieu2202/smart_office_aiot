@@ -486,44 +486,108 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       color: accent,
     );
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accent.withOpacity(0.45), width: 1),
-        color: palette.surfaceOverlay.withOpacity(palette.isDark ? 0.65 : 0.55),
-        boxShadow: [
-          BoxShadow(
-            color: palette.cardShadow.withOpacity(0.4),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const horizontalPadding = 18.0;
+        const indicatorSize = 8.0;
+        const indicatorGap = 10.0;
+        const valueGap = 12.0;
+
+        final valuePainter = TextPainter(
+          text: TextSpan(text: '${slice.value}', style: valueStyle),
+          maxLines: 1,
+          textDirection: ui.TextDirection.ltr,
+        )..layout();
+
+        final maxForLabel = constraints.maxWidth.isFinite
+            ? math.max(
+                0.0,
+                constraints.maxWidth -
+                    (horizontalPadding * 2 +
+                        indicatorSize +
+                        indicatorGap +
+                        valueGap +
+                        valuePainter.width),
+              )
+            : double.infinity;
+
+        final labelPainter = TextPainter(
+          text: TextSpan(text: label, style: baseStyle),
+          maxLines: 1,
+          textDirection: ui.TextDirection.ltr,
+          ellipsis: '…',
+        )..layout(maxWidth: maxForLabel.isFinite ? maxForLabel : double.infinity);
+
+        final naturalWidth = horizontalPadding * 2 +
+            indicatorSize +
+            indicatorGap +
+            math.min(labelPainter.width, maxForLabel.isFinite ? maxForLabel : labelPainter.width) +
+            valueGap +
+            valuePainter.width;
+
+        final maxWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : naturalWidth;
+        const minWidth = 150.0;
+        final effectiveMinWidth = maxWidth < minWidth ? maxWidth : minWidth;
+        final width = naturalWidth.clamp(effectiveMinWidth, maxWidth);
+        final labelMaxWidth = math.max(
+          0.0,
+          width -
+              (horizontalPadding * 2 +
+                  indicatorSize +
+                  indicatorGap +
+                  valueGap +
+                  valuePainter.width),
+        );
+
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            width: width,
+            padding:
+                const EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 12),
             decoration: BoxDecoration(
-              color: accent.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: accent.withOpacity(0.45), width: 1),
+              color: palette.surfaceOverlay
+                  .withOpacity(palette.isDark ? 0.65 : 0.55),
+              boxShadow: [
+                BoxShadow(
+                  color: palette.cardShadow.withOpacity(0.4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: indicatorSize,
+                  height: indicatorSize,
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(indicatorSize / 2),
+                  ),
+                ),
+                const SizedBox(width: indicatorGap),
+                SizedBox(
+                  width: labelMaxWidth,
+                  child: Text(
+                    label,
+                    style: baseStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: valueGap),
+                Text('${slice.value}', style: valueStyle),
+              ],
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: baseStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text('${slice.value}', style: valueStyle),
-        ],
-      ),
+        );
+      },
     );
   }
 
