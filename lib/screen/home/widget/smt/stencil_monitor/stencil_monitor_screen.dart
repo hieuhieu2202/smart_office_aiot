@@ -496,36 +496,131 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     final palette = _palette;
     final cardRadius = BorderRadius.circular(24);
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: cardRadius,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
+    return Container(
+      margin: margin ?? EdgeInsets.zero,
+      decoration: BoxDecoration(
         borderRadius: cardRadius,
-        splashColor: accent.withOpacity(0.12),
-        highlightColor: accent.withOpacity(0.08),
-        onTap: onTap,
-        child: Container(
-          margin: margin ?? EdgeInsets.zero,
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            borderRadius: cardRadius,
-            border: Border.all(color: accent.withOpacity(0.45), width: 1.1),
-            color: palette.cardBackground,
-            gradient: LinearGradient(
-              colors: [accent.withOpacity(0.12), Colors.transparent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: palette.cardShadow,
-                blurRadius: 18,
-                offset: const Offset(0, 12),
+        boxShadow: [
+          BoxShadow(
+            color: palette.cardShadow,
+            blurRadius: 20,
+            offset: const Offset(0, 14),
+          ),
+          BoxShadow(
+            color: accent.withOpacity(0.16),
+            blurRadius: 40,
+            offset: const Offset(0, 24),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: cardRadius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: cardRadius,
+          splashColor: accent.withOpacity(0.12),
+          highlightColor: accent.withOpacity(0.08),
+          onTap: onTap,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: cardRadius,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        palette.cardBackground
+                            .withOpacity(palette.isDark ? 0.92 : 0.98),
+                        palette.surfaceOverlay.withOpacity(0.6),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: palette.dividerColor.withOpacity(0.4),
+                      width: 1,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: cardRadius,
+                    gradient: LinearGradient(
+                      colors: [
+                        accent.withOpacity(0.22),
+                        Colors.transparent,
+                      ],
+                      stops: const [0, 1],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                    gradient: LinearGradient(
+                      colors: [
+                        accent.withOpacity(0.75),
+                        accent.withOpacity(0.0),
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: -26,
+                top: -36,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        accent.withOpacity(0.24),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 26,
+                bottom: 20,
+                child: Container(
+                  width: 72,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      colors: [
+                        accent.withOpacity(0.7),
+                        accent.withOpacity(0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
+                child: child,
               ),
             ],
           ),
-          child: child,
         ),
       ),
     );
