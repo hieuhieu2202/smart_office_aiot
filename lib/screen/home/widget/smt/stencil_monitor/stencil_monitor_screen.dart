@@ -414,116 +414,75 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     return _buildOverviewContainer(
       accent: data.accent,
       onTap: null,
-      child: SizedBox(
-        height: 280,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(data.title, style: titleStyle),
-            const SizedBox(height: 12),
-            Text('$total', style: totalStyle),
-            const SizedBox(height: 2),
-            Text('Total items', style: subtitleStyle),
-            const SizedBox(height: 16),
-            Expanded(
-              child: LayoutBuilder(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 340),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(data.title, style: titleStyle),
+              const SizedBox(height: 12),
+              Text('$total', style: totalStyle),
+              const SizedBox(height: 2),
+              Text('Total items', style: subtitleStyle),
+              const SizedBox(height: 20),
+              LayoutBuilder(
                 builder: (context, constraints) {
                   if (total == 0) {
                     return Center(
-                      child: Text(
-                        'No data available',
-                        textAlign: TextAlign.center,
-                        style: GlobalTextStyles.bodySmall(
-                          isDark: palette.isDark,
-                        ).copyWith(
-                          fontFamily: _StencilTypography.numeric,
-                          color: palette.onSurfaceMuted,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Text(
+                          'No data available',
+                          textAlign: TextAlign.center,
+                          style: GlobalTextStyles.bodySmall(
+                            isDark: palette.isDark,
+                          ).copyWith(
+                            fontFamily: _StencilTypography.numeric,
+                            color: palette.onSurfaceMuted,
+                          ),
                         ),
                       ),
                     );
                   }
 
-                  const horizontalSpacing = 12.0;
-                  const verticalSpacing = 12.0;
-                  var maxWidth = constraints.maxWidth;
-                  if (maxWidth.isInfinite || maxWidth.isNaN) {
-                    maxWidth = MediaQuery.of(context).size.width;
-                  }
+                  final maxWidth = constraints.maxWidth.isFinite
+                      ? constraints.maxWidth
+                      : MediaQuery.of(context).size.width;
 
-                  final columnCount = maxWidth >= 520
-                      ? 3
-                      : maxWidth >= 320
-                          ? 2
-                          : 1;
-                  final availableWidth = maxWidth -
-                      (columnCount > 1 ? horizontalSpacing * (columnCount - 1) : 0);
-
-                  final approxChipHeight = 40.0;
-                  final approxSpacing = verticalSpacing;
-                  final maxPerColumn = math.max(
-                    1,
-                    ((constraints.maxHeight + approxSpacing) /
-                            (approxChipHeight + approxSpacing))
-                        .floor(),
+                  final crossAxisCount = math.min(
+                    3,
+                    math.max(1, data.slices.length),
                   );
+                  final horizontalSpacing = 16.0;
+                  final verticalSpacing = 14.0;
+                  final itemWidth = (maxWidth -
+                          (crossAxisCount - 1) * horizontalSpacing) /
+                      crossAxisCount;
+                  final itemHeight = 48.0;
+                  final aspectRatio = itemWidth / itemHeight;
 
-                  final columns = <List<_PieSlice>>[];
-                  for (var i = 0; i < data.slices.length; i += maxPerColumn) {
-                    final end = math.min(i + maxPerColumn, data.slices.length);
-                    columns.add(data.slices.sublist(i, end));
-                  }
-
-                  if (columns.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
-
-                  final visibleColumns = columns.length;
-                  final targetColumns = math.min(visibleColumns, 3);
-                  final computedWidth =
-                      availableWidth / math.max(1, targetColumns);
-                  final columnWidth = math.max(
-                    180.0,
-                    math.min(240.0, computedWidth),
-                  );
-
-                  return Scrollbar(
-                    thumbVisibility: false,
-                    notificationPredicate: (notification) =>
-                        notification.metrics.axis == Axis.horizontal,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.only(right: 6),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: constraints.maxWidth,
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (var index = 0;
-                                index < columns.length;
-                                index++) ...[
-                              if (index > 0)
-                                SizedBox(width: horizontalSpacing),
-                              SizedBox(
-                                width: columnWidth,
-                                child: _buildSliceColumn(
-                                  columns[index],
-                                  data.accent,
-                                  palette,
-                                  verticalSpacing,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: verticalSpacing,
+                      crossAxisSpacing: horizontalSpacing,
+                      childAspectRatio: aspectRatio,
+                    ),
+                    itemCount: data.slices.length,
+                    itemBuilder: (context, index) => _buildSliceChip(
+                      data.slices[index],
+                      data.accent,
+                      palette,
                     ),
                   );
                 },
-              ),
             ),
           ],
+        ),
         ),
       ),
     );
@@ -547,8 +506,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      margin: const EdgeInsets.only(right: 4, bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: accent.withOpacity(0.45), width: 1),
@@ -584,29 +542,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           ],
         ),
       ),
-    );
-  }
-
-
-  Widget _buildSliceColumn(
-    List<_PieSlice> slices,
-    Color accent,
-    _StencilColorScheme palette,
-    double spacing,
-  ) {
-    if (slices.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < slices.length; i++) ...[
-          _buildSliceChip(slices[i], accent, palette),
-          if (i != slices.length - 1) SizedBox(height: spacing),
-        ],
-      ],
     );
   }
 
