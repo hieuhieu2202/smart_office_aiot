@@ -529,6 +529,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     return Container(
       margin: margin ?? EdgeInsets.zero,
+      width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: cardRadius,
         boxShadow: [
@@ -1583,7 +1584,10 @@ class _OverviewTabsState extends State<_OverviewTabs>
           switchOutCurve: Curves.easeIn,
           child: KeyedSubtree(
             key: ValueKey<String>(activeCard.title),
-            child: widget.cardBuilder(context, activeCard),
+            child: SizedBox(
+              width: double.infinity,
+              child: widget.cardBuilder(context, activeCard),
+            ),
           ),
         ),
       ],
