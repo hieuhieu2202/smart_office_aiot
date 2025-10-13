@@ -249,7 +249,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildOverviewGrid(
+        _buildOverviewTabs(
           customerSlices: customerSlices,
           statusSlices: statusSlices,
           vendorSlices: vendorSlices,
@@ -342,7 +342,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     ];
   }
 
-  Widget _buildOverviewGrid({
+  Widget _buildOverviewTabs({
     required List<_PieSlice> customerSlices,
     required List<_PieSlice> statusSlices,
     required List<_PieSlice> vendorSlices,
@@ -379,26 +379,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth > 520 ? 2 : 1;
-        const spacing = 16.0;
-        final itemWidth = columns == 1
-            ? constraints.maxWidth
-            : (constraints.maxWidth - spacing) / 2;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: cards
-              .map(
-                (card) => SizedBox(
-                  width: itemWidth,
-                  child: _buildOverviewCard(context, card),
-                ),
-              )
-              .toList(),
-        );
-      },
+    return _OverviewTabs(
+      cards: cards,
+      palette: _palette,
+      cardBuilder: (context, data) => _buildOverviewCard(context, data),
     );
   }
 
@@ -1322,6 +1306,107 @@ class _OverviewCardData {
   final String title;
   final List<_PieSlice> slices;
   final Color accent;
+}
+
+class _OverviewTabs extends StatefulWidget {
+  const _OverviewTabs({
+    required this.cards,
+    required this.palette,
+    required this.cardBuilder,
+  });
+
+  final List<_OverviewCardData> cards;
+  final _StencilColorScheme palette;
+  final Widget Function(BuildContext, _OverviewCardData) cardBuilder;
+
+  @override
+  State<_OverviewTabs> createState() => _OverviewTabsState();
+}
+
+class _OverviewTabsState extends State<_OverviewTabs>
+    with SingleTickerProviderStateMixin {
+  late final TabController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TabController(length: widget.cards.length, vsync: this);
+    _controller.addListener(_handleTabChange);
+  }
+
+  void _handleTabChange() {
+    if (!_controller.indexIsChanging) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_handleTabChange);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeCard = widget.cards[_controller.index];
+    final palette = widget.palette;
+
+    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark)
+        .copyWith(
+      fontFamily: _StencilTypography.heading,
+      fontWeight: FontWeight.w600,
+      fontSize: 12,
+      letterSpacing: 0.6,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: activeCard.accent.withOpacity(0.45)),
+            color: palette.cardBackground,
+            boxShadow: [
+              BoxShadow(
+                color: palette.cardShadow,
+                blurRadius: 16,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: TabBar(
+            controller: _controller,
+            isScrollable: true,
+            indicator: UnderlineTabIndicator(
+              borderSide: BorderSide(color: activeCard.accent, width: 3),
+              insets: const EdgeInsets.symmetric(horizontal: 18),
+            ),
+            indicatorWeight: 3,
+            labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+            labelColor: activeCard.accent,
+            unselectedLabelColor: palette.onSurfaceMuted,
+            labelStyle: labelStyle,
+            tabs: [
+              for (final card in widget.cards) Tab(text: card.title),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: KeyedSubtree(
+            key: ValueKey<String>(activeCard.title),
+            child: widget.cardBuilder(context, activeCard),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _UsageRange {
