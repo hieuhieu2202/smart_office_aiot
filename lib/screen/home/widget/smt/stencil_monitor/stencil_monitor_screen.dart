@@ -1522,13 +1522,15 @@ class _OverviewTabsState extends State<_OverviewTabs>
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: TabBar(
             controller: _controller,
-            isScrollable: true,
+            isScrollable: false,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicatorPadding: const EdgeInsets.symmetric(horizontal: 24),
             indicator: UnderlineTabIndicator(
               borderSide: BorderSide(color: activeCard.accent, width: 3),
-              insets: const EdgeInsets.symmetric(horizontal: 18),
+              insets: const EdgeInsets.symmetric(horizontal: 24),
             ),
             indicatorWeight: 3,
-            labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+            labelPadding: EdgeInsets.zero,
             labelColor: activeCard.accent,
             unselectedLabelColor: palette.onSurfaceMuted,
             labelStyle: labelStyle,
