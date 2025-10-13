@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -954,9 +956,28 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           height: 220,
           child: _Usage3dChart(
             slices: data.slices,
-            accent: data.accent,
             palette: palette,
           ),
+        ),
+      );
+      children.add(const SizedBox(height: 12));
+      children.add(
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            for (final label in _usageLegendOrder)
+              if (data.slices.any((slice) => slice.label == label))
+                _UsageLegendChip(
+                  label: label,
+                  count: data.slices
+                      .firstWhere((slice) => slice.label == label)
+                      .value,
+                  color: _usageColorForLabel(label, palette),
+                  textStyle: textStyle,
+                  palette: palette,
+                ),
+          ],
         ),
       );
       if (showBreakdownButton && onViewBreakdown != null) {
@@ -1412,12 +1433,10 @@ class _UsageBarDatum {
 class _Usage3dChart extends StatelessWidget {
   const _Usage3dChart({
     required this.slices,
-    required this.accent,
     required this.palette,
   });
 
   final List<_PieSlice> slices;
-  final Color accent;
   final _StencilColorScheme palette;
 
   @override
@@ -1479,7 +1498,7 @@ class _Usage3dChart extends StatelessWidget {
           color: palette.onSurface,
         ),
       ),
-      series: <CartesianSeries<dynamic, dynamic>>[
+      series: <CartesianSeries<_UsageBarDatum, String>>[
         ColumnSeries<_UsageBarDatum, String>(
           dataSource: data,
           xValueMapper: (datum, _) => datum.label,
@@ -1487,22 +1506,12 @@ class _Usage3dChart extends StatelessWidget {
           width: 0.55,
           spacing: 0.2,
           enableTooltip: true,
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-          borderColor: accent.withOpacity(0.85),
-          borderWidth: 0.9,
           animationDuration: 1200,
-          onCreateShader: (ShaderDetails details) {
-            return LinearGradient(
-              colors: [
-                accent.withOpacity(palette.isDark ? 0.95 : 0.9),
-                accent.withOpacity(palette.isDark ? 0.65 : 0.6),
-                accent.withOpacity(0.35),
-              ],
-              stops: const [0.0, 0.6, 1.0],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ).createShader(details.rect);
-          },
+          pointColorMapper: (datum, _) =>
+              _usageColorForLabel(datum.label, palette),
+          onCreateRenderer:
+              (ChartSeries<_UsageBarDatum, String> series) =>
+                  _PrismColumnSeriesRenderer(palette),
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
             labelAlignment: ChartDataLabelAlignment.outer,
@@ -1526,6 +1535,208 @@ class _Usage3dChart extends StatelessWidget {
     if (maxValue <= 200) return 40;
     return (maxValue / 5).ceilToDouble();
   }
+}
+
+class _UsageLegendChip extends StatelessWidget {
+  const _UsageLegendChip({
+    required this.label,
+    required this.count,
+    required this.color,
+    required this.textStyle,
+    required this.palette,
+  });
+
+  final String label;
+  final int count;
+  final Color color;
+  final TextStyle textStyle;
+  final _StencilColorScheme palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseStyle = textStyle.copyWith(
+      fontWeight: FontWeight.w600,
+      color: palette.onSurface,
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(palette.isDark ? 0.22 : 0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.65), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(label, style: baseStyle),
+          const SizedBox(width: 6),
+          Text(
+            '$count',
+            style: baseStyle.copyWith(
+              fontFamily: _StencilTypography.numeric,
+              color: palette.onSurfaceMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrismColumnSeriesRenderer extends ColumnSeriesRenderer {
+  _PrismColumnSeriesRenderer(this.palette);
+
+  final _StencilColorScheme palette;
+
+  @override
+  ColumnSegment createSegment() {
+    return _PrismColumnSegment(palette);
+  }
+}
+
+class _PrismColumnSegment extends ColumnSegment {
+  _PrismColumnSegment(this.palette);
+
+  final _StencilColorScheme palette;
+
+  @override
+  void onPaint(Canvas canvas) {
+    final Rect? rect = segmentRect;
+    if (rect == null || rect.isEmpty) {
+      return;
+    }
+
+    final Color base = color ?? palette.accentPrimary;
+    final double depth = math.min(rect.width * 0.5, rect.height * 0.25);
+
+    final Path rightFace = Path()
+      ..moveTo(rect.right, rect.top)
+      ..lineTo(rect.right + depth, rect.top - depth)
+      ..lineTo(rect.right + depth, rect.bottom - depth)
+      ..lineTo(rect.right, rect.bottom)
+      ..close();
+    final Paint rightPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          _darkenColor(base, 0.05),
+          _darkenColor(base, 0.2),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(rightFace.getBounds());
+    canvas.drawPath(rightFace, rightPaint);
+
+    final Path topFace = Path()
+      ..moveTo(rect.left, rect.top)
+      ..lineTo(rect.right, rect.top)
+      ..lineTo(rect.right + depth, rect.top - depth)
+      ..lineTo(rect.left + depth, rect.top - depth)
+      ..close();
+    final Paint topPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          _lightenColor(base, 0.25),
+          _lightenColor(base, 0.05),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(topFace.getBounds());
+    canvas.drawPath(topFace, topPaint);
+
+    final Path frontFace = Path()..addRect(rect);
+    final Paint frontPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          _lightenColor(base, 0.15),
+          base,
+          _darkenColor(base, 0.12),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(rect);
+    canvas.drawPath(frontFace, frontPaint);
+
+    final Paint outlinePaint = Paint()
+      ..color = _darkenColor(base, palette.isDark ? 0.25 : 0.15)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.6;
+    canvas.drawPath(frontFace, outlinePaint);
+    canvas.drawPath(topFace, outlinePaint);
+    canvas.drawPath(rightFace, outlinePaint);
+  }
+}
+
+const List<String> _usageLegendOrder = [
+  '0',
+  '1 – 20K',
+  '20K – 50K',
+  '50K – 80K',
+  '80K – 90K',
+  '90K – 100K',
+  'Greater than 100K',
+  'Unknown',
+];
+
+Color _usageColorForLabel(String label, _StencilColorScheme palette) {
+  switch (label) {
+    case '0':
+      return palette.isDark
+          ? const Color(0xFF5C6B80)
+          : const Color(0xFF7A8899);
+    case '1 – 20K':
+      return palette.isDark
+          ? const Color(0xFF6C63FF)
+          : const Color(0xFF5146FF);
+    case '20K – 50K':
+      return palette.isDark
+          ? const Color(0xFF1AD29C)
+          : const Color(0xFF00C48C);
+    case '50K – 80K':
+      return palette.isDark
+          ? const Color(0xFFF57C00)
+          : const Color(0xFFFF8A3D);
+    case '80K – 90K':
+      return palette.isDark
+          ? const Color(0xFF42A5F5)
+          : const Color(0xFF1E88E5);
+    case '90K – 100K':
+      return palette.isDark
+          ? const Color(0xFFAA66CC)
+          : const Color(0xFF9C27B0);
+    case 'Greater than 100K':
+      return palette.isDark
+          ? const Color(0xFFEF5350)
+          : const Color(0xFFE53935);
+    case 'Unknown':
+      return palette.isDark
+          ? const Color(0xFF9FA6B2)
+          : const Color(0xFFB0BAC8);
+    default:
+      return palette.accentPrimary;
+  }
+}
+
+Color _darkenColor(Color color, double amount) {
+  final hsl = HSLColor.fromColor(color);
+  final lightness = (hsl.lightness - amount).clamp(0.0, 1.0);
+  return hsl.withLightness(lightness).toColor();
+}
+
+Color _lightenColor(Color color, double amount) {
+  final hsl = HSLColor.fromColor(color);
+  final lightness = (hsl.lightness + amount).clamp(0.0, 1.0);
+  return hsl.withLightness(lightness).toColor();
 }
 
 class _LineTrackingDatum {
