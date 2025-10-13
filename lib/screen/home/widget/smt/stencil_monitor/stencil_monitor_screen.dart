@@ -468,15 +468,18 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               ),
             )
           else
-            Wrap(
-              alignment: WrapAlignment.center,
-              runAlignment: WrapAlignment.center,
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final slice in data.slices)
-                  _buildSliceChip(slice, data.accent, palette),
-              ],
+            Align(
+              alignment: Alignment.center,
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                runAlignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final slice in data.slices)
+                    _buildSliceChip(slice, data.accent, palette),
+                ],
+              ),
             ),
         ],
       ),
