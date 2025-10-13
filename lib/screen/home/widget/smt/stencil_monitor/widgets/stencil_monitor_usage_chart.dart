@@ -12,42 +12,30 @@ const List<String> _usageLegendOrder = [
 ];
 
 Color _usageColorForLabel(String label, _StencilColorScheme palette) {
-  switch (label) {
-    case '0':
-      return palette.isDark
-          ? const Color(0xFF5C6B80)
-          : const Color(0xFF7A8899);
-    case '1 – 20K':
-      return palette.isDark
-          ? const Color(0xFF6C63FF)
-          : const Color(0xFF5146FF);
-    case '20K – 50K':
-      return palette.isDark
-          ? const Color(0xFF1AD29C)
-          : const Color(0xFF00C48C);
-    case '50K – 80K':
-      return palette.isDark
-          ? const Color(0xFFF57C00)
-          : const Color(0xFFFF8A3D);
-    case '80K – 90K':
-      return palette.isDark
-          ? const Color(0xFF42A5F5)
-          : const Color(0xFF1E88E5);
-    case '90K – 100K':
-      return palette.isDark
-          ? const Color(0xFFAA66CC)
-          : const Color(0xFF9C27B0);
-    case 'Greater than 100K':
-      return palette.isDark
-          ? const Color(0xFFEF5350)
-          : const Color(0xFFE53935);
-    case 'Unknown':
-      return palette.isDark
-          ? const Color(0xFF9FA6B2)
-          : const Color(0xFFB0BAC8);
-    default:
-      return palette.accentPrimary;
-  }
+  final darkNeon = <String, Color>{
+    '0': const Color(0xFF56D1FF),
+    '1 – 20K': const Color(0xFF9A7BFF),
+    '20K – 50K': const Color(0xFF3BFFC4),
+    '50K – 80K': const Color(0xFFFFB74D),
+    '80K – 90K': const Color(0xFF4FC3F7),
+    '90K – 100K': const Color(0xFFFF7CE5),
+    'Greater than 100K': const Color(0xFFFF6B6B),
+    'Unknown': const Color(0xFFB0BEC5),
+  };
+
+  final lightVibrant = <String, Color>{
+    '0': const Color(0xFF0284C7),
+    '1 – 20K': const Color(0xFF6D28D9),
+    '20K – 50K': const Color(0xFF0EA5E9),
+    '50K – 80K': const Color(0xFFFF6F00),
+    '80K – 90K': const Color(0xFF0EA293),
+    '90K – 100K': const Color(0xFFEC4899),
+    'Greater than 100K': const Color(0xFFD92D20),
+    'Unknown': const Color(0xFF64748B),
+  };
+
+  final paletteMap = palette.isDark ? darkNeon : lightVibrant;
+  return paletteMap[label] ?? GlobalColors.accentByIsDark(palette.isDark);
 }
 
 class _UsageLegendChip extends StatelessWidget {
@@ -243,32 +231,36 @@ class _UsagePrismBar extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final barHeight = (constraints.maxHeight * ratio).clamp(6.0, constraints.maxHeight);
+
         return Align(
           alignment: Alignment.bottomCenter,
           child: SizedBox(
             width: double.infinity,
             height: barHeight,
             child: Stack(
-              alignment: Alignment.topCenter,
+              clipBehavior: Clip.none,
+              alignment: Alignment.bottomCenter,
               children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _PrismBarPainter(
-                      color: color,
-                      palette: palette,
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SizedBox(
+                    height: barHeight,
+                    child: CustomPaint(
+                      painter: _PrismBarPainter(
+                        color: color,
+                        palette: palette,
+                      ),
                     ),
                   ),
                 ),
                 Positioned(
-                  top: 6,
-                  child: Text(
-                    '$value',
-                    style: TextStyle(
-                      fontFamily: _StencilTypography.numeric,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: palette.onSurface,
-                    ),
+                  top: -26,
+                  child: _UsageValueBadge(
+                    value: value,
+                    color: color,
+                    palette: palette,
                   ),
                 ),
               ],
@@ -276,6 +268,56 @@ class _UsagePrismBar extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _UsageValueBadge extends StatelessWidget {
+  const _UsageValueBadge({
+    required this.value,
+    required this.color,
+    required this.palette,
+  });
+
+  final int value;
+  final Color color;
+  final _StencilColorScheme palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final gradient = LinearGradient(
+      colors: [
+        _lightenColor(color, palette.isDark ? 0.42 : 0.18),
+        _darkenColor(color, palette.isDark ? 0.1 : 0.02),
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _darkenColor(color, 0.12), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.28),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Text(
+        '$value',
+        style: TextStyle(
+          fontFamily: _StencilTypography.numeric,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: palette.isDark ? Colors.black : Colors.white,
+          letterSpacing: 0.2,
+        ),
+      ),
     );
   }
 }
