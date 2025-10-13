@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui show TextDirection;
 
 import 'package:flutter/material.dart';
