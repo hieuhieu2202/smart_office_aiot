@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui show TextDirection;
 
 import 'package:flutter/material.dart';
@@ -427,8 +426,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               const SizedBox(height: 2),
               Text('Total items', style: subtitleStyle),
               const SizedBox(height: 20),
-              LayoutBuilder(
-                builder: (context, constraints) {
+              Builder(
+                builder: (context) {
                   if (total == 0) {
                     return Center(
                       child: Padding(
@@ -447,40 +446,21 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                     );
                   }
 
-                  final maxWidth = constraints.maxWidth.isFinite
-                      ? constraints.maxWidth
-                      : MediaQuery.of(context).size.width;
-
-                  final crossAxisCount = math.min(
-                    3,
-                    math.max(1, data.slices.length),
-                  );
-                  final horizontalSpacing = 16.0;
-                  final verticalSpacing = 14.0;
-                  final itemWidth = (maxWidth -
-                          (crossAxisCount - 1) * horizontalSpacing) /
-                      crossAxisCount;
-                  final itemHeight = 48.0;
-                  final aspectRatio = itemWidth / itemHeight;
-
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: verticalSpacing,
-                      crossAxisSpacing: horizontalSpacing,
-                      childAspectRatio: aspectRatio,
-                    ),
-                    itemCount: data.slices.length,
-                    itemBuilder: (context, index) => _buildSliceChip(
-                      data.slices[index],
-                      data.accent,
-                      palette,
-                    ),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var i = 0; i < data.slices.length; i++) ...[
+                        if (i > 0) const SizedBox(height: 14),
+                        _buildSliceChip(
+                          data.slices[i],
+                          data.accent,
+                          palette,
+                        ),
+                      ],
+                    ],
                   );
                 },
-            ),
+              ),
           ],
         ),
         ),
@@ -506,7 +486,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: accent.withOpacity(0.45), width: 1),
@@ -519,28 +500,28 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           ),
         ],
       ),
-      child: RichText(
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        text: TextSpan(
-          children: [
-            WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(4),
             ),
-            const WidgetSpan(child: SizedBox(width: 8)),
-            TextSpan(text: label, style: baseStyle),
-            const WidgetSpan(child: SizedBox(width: 10)),
-            TextSpan(text: '${slice.value}', style: valueStyle),
-          ],
-        ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: baseStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text('${slice.value}', style: valueStyle),
+        ],
       ),
     );
   }
