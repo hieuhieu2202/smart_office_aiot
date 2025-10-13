@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:smart_factory/config/global_color.dart';
 import 'package:smart_factory/config/global_text_style.dart';
 import 'package:smart_factory/screen/home/controller/stencil_monitor_controller.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../../../../../model/smt/stencil_detail.dart';
 import '../../../../../widget/animation/loading/eva_loading_view.dart';
@@ -472,6 +473,24 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       }
     }
 
+    return _buildOverviewContainer(
+      accent: data.accent,
+      onTap: total > 0 ? () => _showBreakdownDetail(context, data) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildOverviewContainer({
+    required Color accent,
+    required Widget child,
+    VoidCallback? onTap,
+    EdgeInsetsGeometry? margin,
+  }) {
+    final palette = _palette;
     final cardRadius = BorderRadius.circular(24);
 
     return Material(
@@ -480,22 +499,18 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: cardRadius,
-        splashColor: data.accent.withOpacity(0.12),
-        highlightColor: data.accent.withOpacity(0.08),
-        onTap: total > 0
-            ? () => _showBreakdownDetail(
-                  context,
-                  data,
-                )
-            : null,
+        splashColor: accent.withOpacity(0.12),
+        highlightColor: accent.withOpacity(0.08),
+        onTap: onTap,
         child: Container(
+          margin: margin ?? EdgeInsets.zero,
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
             borderRadius: cardRadius,
-            border: Border.all(color: data.accent.withOpacity(0.45), width: 1.1),
+            border: Border.all(color: accent.withOpacity(0.45), width: 1.1),
             color: palette.cardBackground,
             gradient: LinearGradient(
-              colors: [data.accent.withOpacity(0.12), Colors.transparent],
+              colors: [accent.withOpacity(0.12), Colors.transparent],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -507,11 +522,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: children,
-          ),
+          child: child,
         ),
       ),
     );
@@ -852,30 +863,140 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     final checkingAccent =
         _palette.isDark ? GlobalColors.gradientDarkEnd : GlobalColors.gradientLightEnd;
 
-    final cards = [
-      _OverviewCardData(title: 'USING TIME', slices: usingTime, accent: usageAccent),
-      _OverviewCardData(title: 'CHECKING TIME', slices: checkTime, accent: checkingAccent),
-    ];
+    final usingCardData =
+        _OverviewCardData(title: 'USING TIME', slices: usingTime, accent: usageAccent);
+    final checkingCardData =
+        _OverviewCardData(title: 'CHECKING TIME', slices: checkTime, accent: checkingAccent);
+
+    final breakdownHandler =
+        usingTime.isNotEmpty ? () => _showBreakdownDetail(context, usingCardData) : null;
+
+    final usingCard = _buildUsageChartCard(
+      context,
+      data: usingCardData,
+      onViewBreakdown: breakdownHandler,
+      showBreakdownButton: usingTime.length > 1,
+    );
+    final checkingCard = _buildOverviewCard(context, checkingCardData);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 520) {
           return Column(
             children: [
-              _buildOverviewCard(context, cards[0]),
+              usingCard,
               const SizedBox(height: 16),
-              _buildOverviewCard(context, cards[1]),
+              checkingCard,
             ],
           );
         }
         return Row(
           children: [
-            Expanded(child: _buildOverviewCard(context, cards[0])),
+            Expanded(child: usingCard),
             const SizedBox(width: 16),
-            Expanded(child: _buildOverviewCard(context, cards[1])),
+            Expanded(child: checkingCard),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildUsageChartCard(
+    BuildContext context, {
+    required _OverviewCardData data,
+    VoidCallback? onViewBreakdown,
+    bool showBreakdownButton = false,
+  }) {
+    final palette = _palette;
+    final total = data.slices.fold<int>(0, (sum, slice) => sum + slice.value);
+
+    final titleStyle = GoogleFonts.spaceGrotesk(
+      color: data.accent,
+      fontSize: 15,
+      letterSpacing: 1,
+    );
+
+    final totalStyle = GoogleFonts.spaceGrotesk(
+      fontSize: 26,
+      fontWeight: FontWeight.w700,
+      color: palette.onSurface,
+    );
+
+    final subtitleStyle = GoogleFonts.ibmPlexMono(
+      fontSize: 12,
+      color: palette.onSurfaceMuted,
+    );
+
+    final textStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.numeric,
+      color: palette.onSurfaceMuted,
+    );
+
+    final children = <Widget>[
+      Text(data.title, style: titleStyle),
+      const SizedBox(height: 12),
+      Text('$total', style: totalStyle),
+      const SizedBox(height: 2),
+      Text('Total items', style: subtitleStyle),
+      const SizedBox(height: 16),
+    ];
+
+    if (total == 0) {
+      children.add(
+        Text(
+          'No data available',
+          style: textStyle,
+        ),
+      );
+    } else {
+      children.add(
+        SizedBox(
+          height: 220,
+          child: _Usage3dChart(
+            slices: data.slices,
+            accent: data.accent,
+            palette: palette,
+          ),
+        ),
+      );
+      if (showBreakdownButton && onViewBreakdown != null) {
+        children.add(const SizedBox(height: 12));
+        children.add(
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: onViewBreakdown,
+              style: TextButton.styleFrom(
+                foregroundColor: data.accent,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Icon(Icons.open_in_full, size: 16),
+              label: Text(
+                'View breakdown',
+                style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                  fontFamily: _StencilTypography.numeric,
+                  fontSize: 11,
+                  color: data.accent,
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    final canTap = onViewBreakdown != null && total > 0;
+
+    return _buildOverviewContainer(
+      accent: data.accent,
+      onTap: canTap ? onViewBreakdown : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: children,
+      ),
     );
   }
 
@@ -1276,6 +1397,135 @@ class _PieSlice {
 
   final String label;
   final int value;
+}
+
+class _UsageBarDatum {
+  _UsageBarDatum({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final double value;
+}
+
+class _Usage3dChart extends StatelessWidget {
+  const _Usage3dChart({
+    required this.slices,
+    required this.accent,
+    required this.palette,
+  });
+
+  final List<_PieSlice> slices;
+  final Color accent;
+  final _StencilColorScheme palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final data = slices
+        .map((slice) => _UsageBarDatum(label: slice.label, value: slice.value.toDouble()))
+        .toList();
+
+    double maxValue = 0;
+    for (final datum in data) {
+      if (datum.value > maxValue) {
+        maxValue = datum.value;
+      }
+    }
+
+    double interval = _resolveAxisInterval(maxValue);
+    if (interval <= 0) {
+      interval = 1;
+    }
+    final double maxAxis = maxValue == 0
+        ? interval
+        : ((maxValue / interval).ceil().toDouble() * interval);
+
+    final axisLineColor =
+        palette.onSurface.withOpacity(palette.isDark ? 0.25 : 0.18);
+    final gridColor = palette.onSurface.withOpacity(palette.isDark ? 0.12 : 0.08);
+    final axisLabelStyle = TextStyle(
+      fontFamily: _StencilTypography.numeric,
+      fontSize: 11,
+      color: palette.onSurfaceMuted,
+    );
+
+    return SfCartesianChart(
+      plotAreaBorderWidth: 0,
+      enableAxisAnimation: true,
+      primaryXAxis: CategoryAxis(
+        labelStyle: axisLabelStyle,
+        axisLine: AxisLine(color: axisLineColor, width: 0.6),
+        majorGridLines: const MajorGridLines(width: 0),
+        majorTickLines: const MajorTickLines(size: 0),
+      ),
+      primaryYAxis: NumericAxis(
+        minimum: 0,
+        maximum: maxAxis,
+        interval: interval,
+        axisLine: const AxisLine(width: 0),
+        majorTickLines: const MajorTickLines(size: 0),
+        majorGridLines: MajorGridLines(color: gridColor, width: 0.8),
+        labelStyle: axisLabelStyle,
+      ),
+      tooltipBehavior: TooltipBehavior(
+        enable: true,
+        header: '',
+        color: palette.tooltipBackground,
+        format: '{point.x}: {point.y}',
+        textStyle: TextStyle(
+          fontFamily: _StencilTypography.numeric,
+          fontSize: 11,
+          color: palette.onSurface,
+        ),
+      ),
+      series: <ChartSeries<_UsageBarDatum, String>>[
+        ColumnSeries<_UsageBarDatum, String>(
+          dataSource: data,
+          xValueMapper: (datum, _) => datum.label,
+          yValueMapper: (datum, _) => datum.value,
+          width: 0.55,
+          spacing: 0.2,
+          enableTooltip: true,
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          borderColor: accent.withOpacity(0.85),
+          borderWidth: 0.9,
+          animationDuration: 1200,
+          onCreateShader: (ShaderDetails details) {
+            return LinearGradient(
+              colors: [
+                accent.withOpacity(palette.isDark ? 0.95 : 0.9),
+                accent.withOpacity(palette.isDark ? 0.65 : 0.6),
+                accent.withOpacity(0.35),
+              ],
+              stops: const [0.0, 0.6, 1.0],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ).createShader(details.rect);
+          },
+          dataLabelSettings: DataLabelSettings(
+            isVisible: true,
+            labelAlignment: ChartDataLabelAlignment.outer,
+            textStyle: TextStyle(
+              fontFamily: _StencilTypography.numeric,
+              fontSize: 11,
+              color: palette.onSurface,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  double _resolveAxisInterval(double maxValue) {
+    if (maxValue <= 5) return 1;
+    if (maxValue <= 10) return 2;
+    if (maxValue <= 20) return 5;
+    if (maxValue <= 50) return 10;
+    if (maxValue <= 100) return 20;
+    if (maxValue <= 200) return 40;
+    return (maxValue / 5).ceilToDouble();
+  }
 }
 
 class _LineTrackingDatum {
