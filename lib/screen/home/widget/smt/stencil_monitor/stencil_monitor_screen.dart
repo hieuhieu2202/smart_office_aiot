@@ -544,137 +544,72 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     EdgeInsetsGeometry? margin,
   }) {
     final palette = _palette;
-    final cardRadius = BorderRadius.circular(24);
+    final borderRadius = BorderRadius.circular(22);
 
-    return Container(
+    Widget content = Container(
       margin: margin ?? EdgeInsets.zero,
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: cardRadius,
+        borderRadius: borderRadius,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            palette.cardBackground.withOpacity(palette.isDark ? 0.95 : 0.98),
+            palette.surfaceOverlay.withOpacity(palette.isDark ? 0.55 : 0.45),
+          ],
+        ),
+        border: Border.all(
+          color: accent.withOpacity(0.35),
+          width: 1.1,
+        ),
         boxShadow: [
           BoxShadow(
             color: palette.cardShadow,
-            blurRadius: 20,
-            offset: const Offset(0, 14),
+            blurRadius: 18,
+            offset: const Offset(0, 12),
           ),
           BoxShadow(
-            color: accent.withOpacity(0.16),
-            blurRadius: 40,
-            offset: const Offset(0, 24),
+            color: accent.withOpacity(0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 16),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: cardRadius,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          borderRadius: cardRadius,
-          splashColor: accent.withOpacity(0.12),
-          highlightColor: accent.withOpacity(0.08),
-          onTap: onTap,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: cardRadius,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        palette.cardBackground
-                            .withOpacity(palette.isDark ? 0.92 : 0.98),
-                        palette.surfaceOverlay.withOpacity(0.6),
-                      ],
-                    ),
-                    border: Border.all(
-                      color: palette.dividerColor.withOpacity(0.4),
-                      width: 1,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: cardRadius,
-                    gradient: LinearGradient(
-                      colors: [
-                        accent.withOpacity(0.22),
-                        Colors.transparent,
-                      ],
-                      stops: const [0, 1],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 4,
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                    gradient: LinearGradient(
-                      colors: [
-                        accent.withOpacity(0.75),
-                        accent.withOpacity(0.0),
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                right: -26,
-                top: -36,
-                child: Container(
-                  width: 140,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        accent.withOpacity(0.24),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 26,
-                bottom: 20,
-                child: Container(
-                  width: 72,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      colors: [
-                        accent.withOpacity(0.7),
-                        accent.withOpacity(0.0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
-                child: child,
-              ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: borderRadius,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              accent.withOpacity(0.12),
+              Colors.transparent,
             ],
           ),
         ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+          child: child,
+        ),
       ),
     );
+
+    if (onTap != null) {
+      content = Material(
+        color: Colors.transparent,
+        borderRadius: borderRadius,
+        child: InkWell(
+          borderRadius: borderRadius,
+          onTap: onTap,
+          splashColor: accent.withOpacity(0.12),
+          highlightColor: accent.withOpacity(0.08),
+          child: content,
+        ),
+      );
+    }
+
+    return content;
   }
 
   Widget _buildLineTrackingCard(
