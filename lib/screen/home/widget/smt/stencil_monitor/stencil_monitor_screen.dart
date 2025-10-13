@@ -250,26 +250,53 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     final insights = _buildInsightMetrics(activeLines);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildOverviewTabs(
-          customerSlices: customerSlices,
-          statusSlices: statusSlices,
-          vendorSlices: vendorSlices,
-          processSlices: processSlices,
-        ),
-        if (insights.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          _InsightsStrip(items: insights),
-        ],
-        const SizedBox(height: 20),
-        _buildLineTrackingCard(context, lineTracking),
-        const SizedBox(height: 20),
-        _buildUsageRow(usingTimeSlices, checkSlices),
-        const SizedBox(height: 20),
-        _buildRunningLine(context, activeLines),
-      ],
+    const sectionSpacing = 18.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 680;
+        final wrapSpacing = sectionSpacing;
+        final double cardWidth = isWide
+            ? (constraints.maxWidth - wrapSpacing) / 2
+            : constraints.maxWidth;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildOverviewTabs(
+              customerSlices: customerSlices,
+              statusSlices: statusSlices,
+              vendorSlices: vendorSlices,
+              processSlices: processSlices,
+            ),
+            if (insights.isNotEmpty) ...[
+              const SizedBox(height: sectionSpacing),
+              _InsightsStrip(items: insights),
+            ],
+            const SizedBox(height: sectionSpacing),
+            Wrap(
+              spacing: wrapSpacing,
+              runSpacing: wrapSpacing,
+              children: [
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildLineTrackingCard(context, lineTracking),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildUsageAnalyticsCard(
+                    context,
+                    usingTimeSlices,
+                    checkSlices,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: sectionSpacing),
+            _buildRunningLine(context, activeLines),
+          ],
+        );
+      },
     );
   }
 
@@ -396,74 +423,60 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     final titleStyle = GoogleFonts.spaceGrotesk(
       color: data.accent,
-      fontSize: 15,
-      letterSpacing: 1,
+      fontSize: 14,
+      letterSpacing: 0.8,
     );
 
     final totalStyle = GoogleFonts.spaceGrotesk(
-      fontSize: 26,
+      fontSize: 24,
       fontWeight: FontWeight.w700,
       color: palette.onSurface,
     );
 
     final subtitleStyle = GoogleFonts.ibmPlexMono(
-      fontSize: 12,
+      fontSize: 11,
       color: palette.onSurfaceMuted,
     );
 
     return _buildOverviewContainer(
       accent: data.accent,
-      onTap: null,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 340),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(data.title, style: titleStyle),
-              const SizedBox(height: 12),
-              Text('$total', style: totalStyle),
-              const SizedBox(height: 2),
-              Text('Total items', style: subtitleStyle),
-              const SizedBox(height: 20),
-              Builder(
-                builder: (context) {
-                  if (total == 0) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 32),
-                        child: Text(
-                          'No data available',
-                          textAlign: TextAlign.center,
-                          style: GlobalTextStyles.bodySmall(
-                            isDark: palette.isDark,
-                          ).copyWith(
-                            fontFamily: _StencilTypography.numeric,
-                            color: palette.onSurfaceMuted,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Wrap(
-                    spacing: 14,
-                    runSpacing: 14,
-                    children: [
-                      for (final slice in data.slices)
-                        _buildSliceChip(
-                          slice,
-                          data.accent,
-                          palette,
-                        ),
-                    ],
-                  );
-                },
+              Expanded(child: Text(data.title, style: titleStyle)),
+              if (total > 0)
+                Text('$total', style: totalStyle),
+              if (total > 0) ...[
+                const SizedBox(width: 4),
+                Text('items', style: subtitleStyle),
+              ],
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (total == 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'No data available',
+                style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                  fontFamily: _StencilTypography.numeric,
+                  color: palette.onSurfaceMuted,
+                ),
               ),
-          ],
-        ),
-        ),
+            )
+          else
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final slice in data.slices)
+                  _buildSliceChip(slice, data.accent, palette),
+              ],
+            ),
+        ],
       ),
     );
   }
@@ -485,54 +498,39 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       color: accent,
     );
 
-    const horizontalPadding = 18.0;
     const indicatorSize = 8.0;
-    const indicatorGap = 10.0;
-    const valueGap = 12.0;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 160, maxWidth: 280),
-      child: Container(
-        width: double.infinity,
-        padding:
-            const EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: accent.withOpacity(0.45), width: 1),
-          color:
-              palette.surfaceOverlay.withOpacity(palette.isDark ? 0.65 : 0.55),
-          boxShadow: [
-            BoxShadow(
-              color: palette.cardShadow.withOpacity(0.4),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withOpacity(0.4), width: 1),
+        color: palette.surfaceOverlay.withOpacity(palette.isDark ? 0.6 : 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: indicatorSize,
+            height: indicatorSize,
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(indicatorSize / 2),
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Container(
-              width: indicatorSize,
-              height: indicatorSize,
-              decoration: BoxDecoration(
-                color: accent.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(indicatorSize / 2),
-              ),
+          ),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 150),
+            child: Text(
+              label,
+              style: baseStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(width: indicatorGap),
-            Expanded(
-              child: Text(
-                label,
-                style: baseStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: valueGap),
-            Text('${slice.value}', style: valueStyle),
-          ],
-        ),
+          ),
+          const SizedBox(width: 10),
+          Text('${slice.value}', style: valueStyle),
+        ],
       ),
     );
   }
@@ -544,72 +542,53 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     EdgeInsetsGeometry? margin,
   }) {
     final palette = _palette;
-    final borderRadius = BorderRadius.circular(22);
+    final borderRadius = BorderRadius.circular(20);
 
-    Widget content = Container(
+    final container = Container(
       margin: margin ?? EdgeInsets.zero,
-      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
         borderRadius: borderRadius,
+        border: Border.all(color: accent.withOpacity(0.3), width: 1),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            palette.cardBackground.withOpacity(palette.isDark ? 0.95 : 0.98),
-            palette.surfaceOverlay.withOpacity(palette.isDark ? 0.55 : 0.45),
+            palette.cardBackground.withOpacity(palette.isDark ? 0.92 : 0.96),
+            palette.surfaceOverlay.withOpacity(palette.isDark ? 0.5 : 0.4),
           ],
-        ),
-        border: Border.all(
-          color: accent.withOpacity(0.35),
-          width: 1.1,
         ),
         boxShadow: [
           BoxShadow(
-            color: palette.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 12),
+            color: palette.cardShadow.withOpacity(0.55),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: accent.withOpacity(0.18),
-            blurRadius: 24,
-            offset: const Offset(0, 16),
+            color: accent.withOpacity(0.15),
+            blurRadius: 22,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: borderRadius,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              accent.withOpacity(0.12),
-              Colors.transparent,
-            ],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-          child: child,
-        ),
-      ),
+      child: child,
     );
 
-    if (onTap != null) {
-      content = Material(
-        color: Colors.transparent,
-        borderRadius: borderRadius,
-        child: InkWell(
-          borderRadius: borderRadius,
-          onTap: onTap,
-          splashColor: accent.withOpacity(0.12),
-          highlightColor: accent.withOpacity(0.08),
-          child: content,
-        ),
-      );
+    if (onTap == null) {
+      return container;
     }
 
-    return content;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: borderRadius,
+      child: InkWell(
+        borderRadius: borderRadius,
+        onTap: onTap,
+        splashColor: accent.withOpacity(0.12),
+        highlightColor: accent.withOpacity(0.08),
+        child: container,
+      ),
+    );
   }
 
   Widget _buildLineTrackingCard(
@@ -638,27 +617,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     final maxHours = top.fold<double>(0, (max, item) => item.hours > max ? item.hours : max);
     final normalizedMax = maxHours <= 0 ? 1.0 : maxHours + 0.5;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: accent.withOpacity(0.45)),
-        gradient: LinearGradient(
-          colors: [
-            accent.withOpacity(0.12),
-            Colors.transparent,
-          ],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withOpacity(0.25),
-            blurRadius: 20,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
+    return _buildOverviewContainer(
+      accent: accent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -666,7 +626,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
             'LINE TRACKING',
             style: titleStyle,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
@@ -677,10 +637,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               _buildColorLegend('> 4h', dangerColor),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (top.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
+              padding: const EdgeInsets.symmetric(vertical: 18),
               child: Text(
                 'No runtime tracking data available',
                 style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
@@ -753,10 +713,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         ? item.hours.toStringAsFixed(1)
         : item.hours.toStringAsFixed(2);
 
-    final radius = BorderRadius.circular(18);
+    final radius = BorderRadius.circular(16);
     final content = Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: radius,
         border: Border.all(color: _lineHoursColor(item.hours).withOpacity(0.4)),
@@ -786,17 +746,17 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               Text('$formattedHours h', style: valueStyle),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 8,
+              minHeight: 6,
               valueColor: AlwaysStoppedAnimation<Color>(_lineHoursColor(item.hours)),
               backgroundColor: _lineHoursColor(item.hours).withOpacity(0.18),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             '${item.location} • ${_dateFormat.format(item.startTime)}',
             style: metaStyle,
@@ -850,166 +810,150 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildUsageRow(
+  Widget _buildUsageAnalyticsCard(
+    BuildContext context,
     List<_PieSlice> usingTime,
     List<_PieSlice> checkTime,
   ) {
-    final usageAccent = _palette.accentPrimary;
+    final palette = _palette;
+    final usageAccent = palette.accentPrimary;
     final checkingAccent =
-        _palette.isDark ? GlobalColors.gradientDarkEnd : GlobalColors.gradientLightEnd;
+        palette.isDark ? GlobalColors.gradientDarkEnd : GlobalColors.gradientLightEnd;
 
-    final usingCardData =
+    final usageData =
         _OverviewCardData(title: 'USING TIME', slices: usingTime, accent: usageAccent);
-    final checkingCardData =
+    final checkingData =
         _OverviewCardData(title: 'CHECKING TIME', slices: checkTime, accent: checkingAccent);
 
-    final breakdownHandler =
-        usingTime.isNotEmpty ? () => _showBreakdownDetail(context, usingCardData) : null;
-
-    final usingCard = _buildUsageChartCard(
-      context,
-      data: usingCardData,
-      onViewBreakdown: breakdownHandler,
-      showBreakdownButton: usingTime.length > 1,
-    );
-    final checkingCard = _buildOverviewCard(context, checkingCardData);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 520) {
-          return Column(
-            children: [
-              usingCard,
-              const SizedBox(height: 16),
-              checkingCard,
-            ],
-          );
-        }
-        return Row(
-          children: [
-            Expanded(child: usingCard),
-            const SizedBox(width: 16),
-            Expanded(child: checkingCard),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildUsageChartCard(
-    BuildContext context, {
-    required _OverviewCardData data,
-    VoidCallback? onViewBreakdown,
-    bool showBreakdownButton = false,
-  }) {
-    final palette = _palette;
-    final total = data.slices.fold<int>(0, (sum, slice) => sum + slice.value);
+    final usageTotal = usageData.slices.fold<int>(0, (sum, slice) => sum + slice.value);
+    final checkingTotal =
+        checkingData.slices.fold<int>(0, (sum, slice) => sum + slice.value);
 
     final titleStyle = GoogleFonts.spaceGrotesk(
-      color: data.accent,
+      color: usageAccent,
       fontSize: 15,
       letterSpacing: 1,
     );
-
-    final totalStyle = GoogleFonts.spaceGrotesk(
-      fontSize: 26,
-      fontWeight: FontWeight.w700,
-      color: palette.onSurface,
-    );
-
     final subtitleStyle = GoogleFonts.ibmPlexMono(
       fontSize: 12,
       color: palette.onSurfaceMuted,
     );
-
-    final textStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-      fontFamily: _StencilTypography.numeric,
-      color: palette.onSurfaceMuted,
+    final totalStyle = GoogleFonts.spaceGrotesk(
+      fontSize: 24,
+      fontWeight: FontWeight.w700,
+      color: palette.onSurface,
+    );
+    final sectionLabelStyle = GoogleFonts.spaceGrotesk(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: palette.onSurface,
     );
 
-    final children = <Widget>[
-      Text(data.title, style: titleStyle),
-      const SizedBox(height: 12),
-      Text('$total', style: totalStyle),
-      const SizedBox(height: 2),
-      Text('Total items', style: subtitleStyle),
-      const SizedBox(height: 16),
-    ];
-
-    if (total == 0) {
-      children.add(
-        Text(
-          'No data available',
-          style: textStyle,
-        ),
-      );
-    } else {
-      children.add(
-        SizedBox(
-          height: 220,
-          child: _UsagePrismChart(
-            slices: data.slices,
-            palette: palette,
+    return _buildOverviewContainer(
+      accent: usageAccent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(child: Text(usageData.title, style: titleStyle)),
+              if (usageTotal > 0) ...[
+                Text('$usageTotal', style: totalStyle),
+                const SizedBox(width: 4),
+                Text('items', style: subtitleStyle),
+              ],
+            ],
           ),
-        ),
-      );
-      children.add(const SizedBox(height: 12));
-      children.add(
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            for (final label in _usageLegendOrder)
-              if (data.slices.any((slice) => slice.label == label))
-                _UsageLegendChip(
-                  label: label,
-                  count: data.slices
-                      .firstWhere((slice) => slice.label == label)
-                      .value,
-                  color: _usageColorForLabel(label, palette),
-                  textStyle: textStyle,
-                  palette: palette,
-                ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 190,
+            child: _UsagePrismChart(
+              slices: usageData.slices,
+              palette: palette,
+            ),
+          ),
+          if (usageData.slices.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              children: [
+                for (final label in _usageLegendOrder)
+                  if (usageData.slices.any((slice) => slice.label == label))
+                    _UsageLegendChip(
+                      label: label,
+                      count: usageData.slices
+                          .firstWhere((slice) => slice.label == label)
+                          .value,
+                      color: _usageColorForLabel(label, palette),
+                      textStyle: subtitleStyle,
+                      palette: palette,
+                    ),
+              ],
+            ),
           ],
-        ),
-      );
-      if (showBreakdownButton && onViewBreakdown != null) {
-        children.add(const SizedBox(height: 12));
-        children.add(
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: onViewBreakdown,
-              style: TextButton.styleFrom(
-                foregroundColor: data.accent,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 0),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              icon: const Icon(Icons.open_in_full, size: 16),
-              label: Text(
-                'View breakdown',
-                style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                  fontFamily: _StencilTypography.numeric,
-                  fontSize: 11,
-                  color: data.accent,
+          if (usageData.slices.length > 1)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => _showBreakdownDetail(context, usageData),
+                style: TextButton.styleFrom(
+                  foregroundColor: usageAccent,
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: const Icon(Icons.auto_graph_rounded, size: 16),
+                label: Text(
+                  'View breakdown',
+                  style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                    fontFamily: _StencilTypography.numeric,
+                    fontSize: 11,
+                    color: usageAccent,
+                  ),
                 ),
               ),
             ),
+          const SizedBox(height: 12),
+          Divider(color: palette.dividerColor.withOpacity(0.6)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  checkingData.title,
+                  style: sectionLabelStyle.copyWith(color: checkingAccent),
+                ),
+              ),
+              if (checkingTotal > 0)
+                Text(
+                  '$checkingTotal',
+                  style: totalStyle.copyWith(fontSize: 20, color: checkingAccent),
+                ),
+              const SizedBox(width: 4),
+              Text('items', style: subtitleStyle.copyWith(fontSize: 11)),
+            ],
           ),
-        );
-      }
-    }
-
-    final canTap = onViewBreakdown != null && total > 0;
-
-    return _buildOverviewContainer(
-      accent: data.accent,
-      onTap: canTap ? onViewBreakdown : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: children,
+          const SizedBox(height: 10),
+          if (checkingData.slices.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'No checking data recorded',
+                style: subtitleStyle,
+              ),
+            )
+          else
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final slice in checkingData.slices)
+                  _buildSliceChip(slice, checkingAccent, palette),
+              ],
+            ),
+        ],
       ),
     );
   }
