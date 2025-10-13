@@ -420,7 +420,7 @@ class _UsageGridPainter extends CustomPainter {
       final value = (maxValue / gridCount * i).round();
       final painter = TextPainter(
         text: TextSpan(text: '$value', style: labelStyle),
-        textDirection: TextDirection.ltr,
+        textDirection: ui.TextDirection.ltr,
       )..layout();
       painter.paint(
         canvas,
