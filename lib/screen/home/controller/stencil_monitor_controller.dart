@@ -60,7 +60,8 @@ class StencilMonitorController extends GetxController {
         print('>> [StencilMonitor] Loaded ${results.length} rows');
       } catch (e, stack) {
         error.value = _describeError(e);
-        print('>> [StencilMonitor] Fetch error: $e');
+        final formatted = _formatErrorForLog(e);
+        print('>> [StencilMonitor] Fetch error: $formatted');
         print(stack);
       } finally {
         isLoading.value = false;
@@ -186,6 +187,70 @@ class StencilMonitorController extends GetxController {
     }
 
     return message;
+  }
+
+  String _formatErrorForLog(Object error) {
+    if (error is http.ClientException) {
+      final buffer = StringBuffer('ClientException');
+      final inner = error.innerException;
+      if (inner != null) {
+        final innerType = inner.runtimeType;
+        var innerText = _formatErrorForLog(inner);
+        final prefix = '$innerType: ';
+        if (innerText.startsWith(prefix)) {
+          innerText = innerText.substring(prefix.length);
+        }
+        buffer.write(' with $innerType');
+        if (innerText.isNotEmpty) {
+          buffer.write(': $innerText');
+        }
+      } else if (error.message.isNotEmpty) {
+        buffer.write(': ${error.message}');
+      }
+      final uri = error.uri;
+      if (uri != null) {
+        buffer.write(', uri=$uri');
+      }
+      return buffer.toString();
+    }
+
+    if (error is SocketException) {
+      final buffer = StringBuffer('SocketException: ${error.message}');
+      final osError = error.osError;
+      if (osError != null) {
+        buffer.write(
+            ' (OS Error: ${osError.message}, errno = ${osError.errorCode})');
+      }
+      final address = error.address;
+      if (address != null) {
+        buffer.write(', address = ${address.address}');
+      }
+      if (error.port != 0) {
+        buffer.write(', port = ${error.port}');
+      }
+      return buffer.toString();
+    }
+
+    if (error is TimeoutException) {
+      final message = error.message;
+      return message == null || message.isEmpty
+          ? 'TimeoutException'
+          : 'TimeoutException: $message';
+    }
+
+    if (error is HandshakeException) {
+      return 'HandshakeException: ${error.message}';
+    }
+
+    if (error is TlsException) {
+      return 'TlsException: ${error.message}';
+    }
+
+    if (error is IOException) {
+      return error.toString();
+    }
+
+    return error.toString();
   }
 }
 
