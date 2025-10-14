@@ -334,41 +334,43 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                   const SizedBox(height: 24),
                   _DetailInfoSectionGroup(
                     sections: [
-                      _DetailInfoSection(
-                        title: 'Assignment',
-                        rows: [
-                          _DetailInfoRow('Line', lineLabel),
-                          _DetailInfoRow('Location', locationLabel),
-                          _DetailInfoRow(
-                            'Customer',
-                            detail.customerLabel?.trim().isNotEmpty == true
-                                ? detail.customerLabel!.trim()
-                                : '--',
-                          ),
-                          _DetailInfoRow(
-                            'Factory',
-                            detail.floorLabel?.trim().isNotEmpty == true
-                                ? detail.floorLabel!.trim()
-                                : '--',
-                          ),
-                        ],
-                      ),
-                      _DetailInfoSection(
-                        title: 'Specification',
-                        rows: [
-                          _DetailInfoRow(
-                            'Process',
-                            detail.process?.trim().isNotEmpty == true
-                                ? detail.process!.trim()
-                                : 'Unknown',
-                          ),
-                          _DetailInfoRow(
-                            'Vendor',
-                            detail.vendorName.trim().isNotEmpty
-                                ? detail.vendorName.trim()
-                                : 'Unknown',
-                          ),
-                        ],
+                      _DetailInfoSectionPair(
+                        first: _DetailInfoSection(
+                          title: 'Assignment',
+                          rows: [
+                            _DetailInfoRow('Line', lineLabel),
+                            _DetailInfoRow('Location', locationLabel),
+                            _DetailInfoRow(
+                              'Customer',
+                              detail.customerLabel?.trim().isNotEmpty == true
+                                  ? detail.customerLabel!.trim()
+                                  : '--',
+                            ),
+                            _DetailInfoRow(
+                              'Factory',
+                              detail.floorLabel?.trim().isNotEmpty == true
+                                  ? detail.floorLabel!.trim()
+                                  : '--',
+                            ),
+                          ],
+                        ),
+                        second: _DetailInfoSection(
+                          title: 'Specification',
+                          rows: [
+                            _DetailInfoRow(
+                              'Process',
+                              detail.process?.trim().isNotEmpty == true
+                                  ? detail.process!.trim()
+                                  : 'Unknown',
+                            ),
+                            _DetailInfoRow(
+                              'Vendor',
+                              detail.vendorName.trim().isNotEmpty
+                                  ? detail.vendorName.trim()
+                                  : 'Unknown',
+                            ),
+                          ],
+                        ),
                       ),
                       _DetailInfoSection(
                         title: 'Timeline',
@@ -544,37 +546,61 @@ class _DetailStatRow extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 520;
-        final tiles = [
-          buildTile(
-            'Hours running',
-            '${diffHours.toStringAsFixed(2)} h',
-            highlight: true,
-          ),
-          buildTile('Use times', '$useTimes'),
-          buildTile('Standard', standardTimes != null ? '$standardTimes' : 'Unknown'),
-        ];
+        final isVeryTight = constraints.maxWidth < 360;
+        final isWide = constraints.maxWidth >= 520;
+        final hoursTile = buildTile(
+          'Hours running',
+          '${diffHours.toStringAsFixed(2)} h',
+          highlight: true,
+        );
+        final useTile = buildTile('Use times', '$useTimes');
+        final standardTile = buildTile(
+          'Standard',
+          standardTimes != null ? '$standardTimes' : 'Unknown',
+        );
 
-        if (isCompact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        Widget secondaryRow() {
+          if (isVeryTight) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                useTile,
+                const SizedBox(height: 12),
+                standardTile,
+              ],
+            );
+          }
+
+          return Row(
             children: [
-              tiles[0],
-              const SizedBox(height: 12),
-              tiles[1],
-              const SizedBox(height: 12),
-              tiles[2],
+              Expanded(child: useTile),
+              const SizedBox(width: 12),
+              Expanded(child: standardTile),
             ],
           );
         }
 
-        return Row(
+        if (!isWide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              hoursTile,
+              const SizedBox(height: 12),
+              secondaryRow(),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(child: tiles[0]),
-            const SizedBox(width: 12),
-            Expanded(child: tiles[1]),
-            const SizedBox(width: 12),
-            Expanded(child: tiles[2]),
+            Row(
+              children: [
+                Expanded(child: hoursTile),
+              ],
+            ),
+            const SizedBox(height: 12),
+            secondaryRow(),
           ],
         );
       },
@@ -726,6 +752,28 @@ class _DetailInfoSectionGroup extends StatelessWidget {
               .toList(),
         );
       },
+    );
+  }
+}
+
+class _DetailInfoSectionPair extends StatelessWidget {
+  const _DetailInfoSectionPair({
+    required this.first,
+    required this.second,
+  });
+
+  final Widget first;
+  final Widget second;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        first,
+        const SizedBox(height: 16),
+        second,
+      ],
     );
   }
 }
