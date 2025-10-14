@@ -356,34 +356,7 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final maxWidth = constraints.maxWidth;
-                      final isTwoColumn = maxWidth >= 420;
-                      final horizontalSpacing = isTwoColumn ? 20.0 : 0.0;
-                      final runSpacing = 12.0;
-                      final tileWidth = isTwoColumn
-                          ? (maxWidth - horizontalSpacing) / 2
-                          : maxWidth;
-
-                      return Wrap(
-                        spacing: horizontalSpacing,
-                        runSpacing: runSpacing,
-                        children: rows
-                            .map(
-                              (entry) => SizedBox(
-                                width: tileWidth,
-                                child: _DetailRow(
-                                  label: entry.label,
-                                  value: entry.value,
-                                  accent: entry.accent,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      );
-                    },
-                  ),
+                  _DetailInfoTable(entries: rows),
                 ],
               ),
             ),
@@ -406,16 +379,10 @@ class _DetailEntry {
   final Color? accent;
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    this.accent,
-  });
+class _DetailInfoTable extends StatelessWidget {
+  const _DetailInfoTable({required this.entries});
 
-  final String label;
-  final String value;
-  final Color? accent;
+  final List<_DetailEntry> entries;
 
   @override
   Widget build(BuildContext context) {
@@ -427,26 +394,103 @@ class _DetailRow extends StatelessWidget {
       fontFamily: _StencilTypography.numeric,
       fontSize: (baseLabelStyle.fontSize ?? 13) - 1,
       color: palette.onSurfaceMuted,
-      letterSpacing: 0.15,
+      letterSpacing: 0.05,
     );
     final valueStyle = baseValueStyle.copyWith(
       fontFamily: _StencilTypography.numeric,
       fontSize: (baseValueStyle.fontSize ?? 16) - 1,
-      color: accent ?? palette.onSurface,
-      fontWeight: accent != null ? FontWeight.w600 : FontWeight.w500,
-      letterSpacing: 0.1,
+      color: palette.onSurface,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.05,
     );
+    const cellPadding = EdgeInsets.symmetric(vertical: 6, horizontal: 4);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: labelStyle),
-          const SizedBox(height: 4),
-          Text(value, style: valueStyle),
-        ],
-      ),
+    Widget buildLabel(String text) {
+      return Padding(
+        padding: cellPadding,
+        child: Text(
+          text,
+          style: labelStyle,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }
+
+    Widget buildValue(_DetailEntry entry) {
+      final accentStyle = valueStyle.copyWith(
+        color: entry.accent ?? palette.onSurface,
+        fontWeight: entry.accent != null ? FontWeight.w600 : FontWeight.w500,
+      );
+
+      return Padding(
+        padding: cellPadding,
+        child: Text(
+          entry.value,
+          style: accentStyle,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 420;
+        final columnWidths = isWide
+            ? const <int, TableColumnWidth>{
+                0: FlexColumnWidth(1),
+                1: FlexColumnWidth(1.4),
+                2: FlexColumnWidth(1),
+                3: FlexColumnWidth(1.4),
+              }
+            : const <int, TableColumnWidth>{
+                0: FlexColumnWidth(1),
+                1: FlexColumnWidth(1.6),
+              };
+
+        final rows = <TableRow>[];
+
+        if (isWide) {
+          for (var i = 0; i < entries.length; i += 2) {
+            final left = entries[i];
+            final right = i + 1 < entries.length ? entries[i + 1] : null;
+
+            rows.add(
+              TableRow(
+                children: [
+                  buildLabel(left.label),
+                  buildValue(left),
+                  if (right != null) ...[
+                    buildLabel(right.label),
+                    buildValue(right),
+                  ] else ...[
+                    const SizedBox.shrink(),
+                    const SizedBox.shrink(),
+                  ],
+                ],
+              ),
+            );
+          }
+        } else {
+          for (final entry in entries) {
+            rows.add(
+              TableRow(
+                children: [
+                  buildLabel(entry.label),
+                  buildValue(entry),
+                ],
+              ),
+            );
+          }
+        }
+
+        return Table(
+          columnWidths: columnWidths,
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: rows,
+        );
+      },
     );
   }
 }
