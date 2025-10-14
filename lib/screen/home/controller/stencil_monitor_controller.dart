@@ -192,20 +192,9 @@ class StencilMonitorController extends GetxController {
   String _formatErrorForLog(Object error) {
     if (error is http.ClientException) {
       final buffer = StringBuffer('ClientException');
-      final inner = error.innerException;
-      if (inner != null) {
-        final innerType = inner.runtimeType;
-        var innerText = _formatErrorForLog(inner);
-        final prefix = '$innerType: ';
-        if (innerText.startsWith(prefix)) {
-          innerText = innerText.substring(prefix.length);
-        }
-        buffer.write(' with $innerType');
-        if (innerText.isNotEmpty) {
-          buffer.write(': $innerText');
-        }
-      } else if (error.message.isNotEmpty) {
-        buffer.write(': ${error.message}');
+      final message = error.message.trim();
+      if (message.isNotEmpty) {
+        buffer.write(': $message');
       }
       final uri = error.uri;
       if (uri != null) {
