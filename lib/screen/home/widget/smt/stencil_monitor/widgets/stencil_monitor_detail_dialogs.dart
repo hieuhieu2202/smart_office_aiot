@@ -699,7 +699,7 @@ class _DetailInfoTable extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useTwoColumn = constraints.maxWidth >= 560;
+        final useTwoColumn = constraints.maxWidth >= 420;
 
         return Container(
           width: double.infinity,
