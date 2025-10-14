@@ -2,11 +2,11 @@ part of 'package:smart_factory/screen/home/widget/smt/stencil_monitor/stencil_mo
 
 const List<String> _usageLegendOrder = [
   '0',
-  '1 – 20K',
-  '20K – 50K',
-  '50K – 80K',
-  '80K – 90K',
-  '90K – 100K',
+  '1–20K',
+  '20K–50K',
+  '50K–80K',
+  '80K–90K',
+  '90K–100K',
   'Greater than 100K',
   'Unknown',
 ];
@@ -14,22 +14,22 @@ const List<String> _usageLegendOrder = [
 Color _usageColorForLabel(String label, _StencilColorScheme palette) {
   final darkNeon = <String, Color>{
     '0': const Color(0xFF56D1FF),
-    '1 – 20K': const Color(0xFF9A7BFF),
-    '20K – 50K': const Color(0xFF3BFFC4),
-    '50K – 80K': const Color(0xFFFFB74D),
-    '80K – 90K': const Color(0xFF4FC3F7),
-    '90K – 100K': const Color(0xFFFF7CE5),
+    '1–20K': const Color(0xFF9A7BFF),
+    '20K–50K': const Color(0xFF3BFFC4),
+    '50K–80K': const Color(0xFFFFB74D),
+    '80K–90K': const Color(0xFF4FC3F7),
+    '90K–100K': const Color(0xFFFF7CE5),
     'Greater than 100K': const Color(0xFFFF6B6B),
     'Unknown': const Color(0xFFB0BEC5),
   };
 
   final lightVibrant = <String, Color>{
     '0': const Color(0xFF0284C7),
-    '1 – 20K': const Color(0xFF6D28D9),
-    '20K – 50K': const Color(0xFF0EA5E9),
-    '50K – 80K': const Color(0xFFFF6F00),
-    '80K – 90K': const Color(0xFF0EA293),
-    '90K – 100K': const Color(0xFFEC4899),
+    '1–20K': const Color(0xFF6D28D9),
+    '20K–50K': const Color(0xFF0EA5E9),
+    '50K–80K': const Color(0xFFFF6F00),
+    '80K–90K': const Color(0xFF0EA293),
+    '90K–100K': const Color(0xFFEC4899),
     'Greater than 100K': const Color(0xFFD92D20),
     'Unknown': const Color(0xFF64748B),
   };
@@ -41,14 +41,12 @@ Color _usageColorForLabel(String label, _StencilColorScheme palette) {
 class _UsageLegendChip extends StatelessWidget {
   const _UsageLegendChip({
     required this.label,
-    required this.count,
     required this.color,
     required this.textStyle,
     required this.palette,
   });
 
   final String label;
-  final int count;
   final Color color;
   final TextStyle textStyle;
   final _StencilColorScheme palette;

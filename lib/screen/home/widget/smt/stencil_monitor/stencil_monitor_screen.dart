@@ -881,6 +881,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
           if (usageData.slices.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(
+              alignment: WrapAlignment.center,
               spacing: 10,
               runSpacing: 8,
               children: [
@@ -888,9 +889,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
                   if (usageData.slices.any((slice) => slice.label == label))
                     _UsageLegendChip(
                       label: label,
-                      count: usageData.slices
-                          .firstWhere((slice) => slice.label == label)
-                          .value,
                       color: _usageColorForLabel(label, palette),
                       textStyle: subtitleStyle,
                       palette: palette,
@@ -1245,11 +1243,11 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   List<_PieSlice> _buildStandardBuckets(List<StencilDetail> data) {
     final ranges = <_UsageRange>[
       const _UsageRange(min: double.negativeInfinity, max: 0, label: '0'),
-      const _UsageRange(min: 1, max: 20000, label: '1 – 20K'),
-      const _UsageRange(min: 20001, max: 50000, label: '20K – 50K'),
-      const _UsageRange(min: 50001, max: 80000, label: '50K – 80K'),
-      const _UsageRange(min: 80001, max: 90000, label: '80K – 90K'),
-      const _UsageRange(min: 90001, max: 100000, label: '90K – 100K'),
+      const _UsageRange(min: 1, max: 20000, label: '1–20K'),
+      const _UsageRange(min: 20001, max: 50000, label: '20K–50K'),
+      const _UsageRange(min: 50001, max: 80000, label: '50K–80K'),
+      const _UsageRange(min: 80001, max: 90000, label: '80K–90K'),
+      const _UsageRange(min: 90001, max: 100000, label: '90K–100K'),
       const _UsageRange(
         min: 100001,
         max: double.infinity,
