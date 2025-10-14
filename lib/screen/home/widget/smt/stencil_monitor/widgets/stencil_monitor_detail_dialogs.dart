@@ -332,47 +332,45 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                     standardTimes: standardTimes,
                   ),
                   const SizedBox(height: 24),
-                  _DetailInfoSectionGroup(
-                    sections: [
-                      _DetailInfoSectionPair(
-                        first: _DetailInfoSection(
-                          title: 'Assignment',
-                          rows: [
-                            _DetailInfoRow('Line', lineLabel),
-                            _DetailInfoRow('Location', locationLabel),
-                            _DetailInfoRow(
-                              'Customer',
-                              detail.customerLabel?.trim().isNotEmpty == true
-                                  ? detail.customerLabel!.trim()
-                                  : '--',
-                            ),
-                            _DetailInfoRow(
-                              'Factory',
-                              detail.floorLabel?.trim().isNotEmpty == true
-                                  ? detail.floorLabel!.trim()
-                                  : '--',
-                            ),
-                          ],
-                        ),
-                        second: _DetailInfoSection(
-                          title: 'Specification',
-                          rows: [
-                            _DetailInfoRow(
-                              'Process',
-                              detail.process?.trim().isNotEmpty == true
-                                  ? detail.process!.trim()
-                                  : 'Unknown',
-                            ),
-                            _DetailInfoRow(
-                              'Vendor',
-                              detail.vendorName.trim().isNotEmpty
-                                  ? detail.vendorName.trim()
-                                  : 'Unknown',
-                            ),
-                          ],
-                        ),
+                  _DetailInfoTable(
+                    groups: [
+                      _DetailInfoGroup(
+                        title: 'Assignment',
+                        rows: [
+                          _DetailInfoRow('Line', lineLabel),
+                          _DetailInfoRow('Location', locationLabel),
+                          _DetailInfoRow(
+                            'Customer',
+                            detail.customerLabel?.trim().isNotEmpty == true
+                                ? detail.customerLabel!.trim()
+                                : '--',
+                          ),
+                          _DetailInfoRow(
+                            'Factory',
+                            detail.floorLabel?.trim().isNotEmpty == true
+                                ? detail.floorLabel!.trim()
+                                : '--',
+                          ),
+                        ],
                       ),
-                      _DetailInfoSection(
+                      _DetailInfoGroup(
+                        title: 'Specification',
+                        rows: [
+                          _DetailInfoRow(
+                            'Process',
+                            detail.process?.trim().isNotEmpty == true
+                                ? detail.process!.trim()
+                                : 'Unknown',
+                          ),
+                          _DetailInfoRow(
+                            'Vendor',
+                            detail.vendorName.trim().isNotEmpty
+                                ? detail.vendorName.trim()
+                                : 'Unknown',
+                          ),
+                        ],
+                      ),
+                      _DetailInfoGroup(
                         title: 'Timeline',
                         rows: [
                           _DetailInfoRow('Start time', dateText),
@@ -672,158 +670,125 @@ class _DetailSummarySection extends StatelessWidget {
   }
 }
 
-class _DetailInfoSection extends StatelessWidget {
-  const _DetailInfoSection({
+class _DetailInfoRow {
+  const _DetailInfoRow(this.label, this.value);
+
+  final String label;
+  final String value;
+}
+
+class _DetailInfoGroup {
+  const _DetailInfoGroup({
     required this.title,
     required this.rows,
   });
 
   final String title;
   final List<_DetailInfoRow> rows;
+}
+
+class _DetailInfoTable extends StatelessWidget {
+  const _DetailInfoTable({required this.groups});
+
+  final List<_DetailInfoGroup> groups;
 
   @override
   Widget build(BuildContext context) {
     final palette = _StencilColorScheme.of(context);
+    final dividerColor = palette.dividerColor.withOpacity(0.5);
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: palette.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.dividerColor.withOpacity(0.6)),
+        border: Border.all(color: dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
-              fontFamily: _StencilTypography.heading,
-              fontSize: 15,
+          for (var groupIndex = 0; groupIndex < groups.length; groupIndex++) ...[
+            if (groupIndex != 0) ...[
+              const SizedBox(height: 12),
+              Divider(color: dividerColor),
+              const SizedBox(height: 12),
+            ],
+            Text(
+              groups[groupIndex].title,
+              style: GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
+                fontFamily: _StencilTypography.heading,
+                fontSize: 15,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Table(
-            columnWidths: const {
-              0: IntrinsicColumnWidth(),
-              1: FlexColumnWidth(),
-            },
-            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-            border: TableBorder(
-              horizontalInside:
-                  BorderSide(color: palette.dividerColor.withOpacity(0.45)),
-            ),
-            children: rows
-                .map(
-                  (row) => TableRow(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 4,
-                        ),
-                        child: Text(
-                          row.label,
-                          style: GlobalTextStyles.bodySmall(
-                            isDark: palette.isDark,
-                          ).copyWith(
-                            fontFamily: _StencilTypography.numeric,
-                            color: palette.onSurfaceMuted,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 4,
-                        ),
-                        child: Text(
-                          row.value,
-                          style: GlobalTextStyles.bodySmall(
-                            isDark: palette.isDark,
-                          ).copyWith(
-                            fontFamily: _StencilTypography.numeric,
-                            color: palette.onSurface,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-                .toList(),
-          ),
+            const SizedBox(height: 10),
+            ...List.generate(groups[groupIndex].rows.length, (rowIndex) {
+              final row = groups[groupIndex].rows[rowIndex];
+              final isLastRow = rowIndex == groups[groupIndex].rows.length - 1;
+              return _DetailInfoTableRow(
+                label: row.label,
+                value: row.value,
+                showDivider: !isLastRow,
+                dividerColor: dividerColor,
+              );
+            }),
+          ],
         ],
       ),
     );
   }
 }
 
-class _DetailInfoSectionGroup extends StatelessWidget {
-  const _DetailInfoSectionGroup({required this.sections});
-
-  final List<Widget> sections;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const spacing = 16.0;
-        final isWide = constraints.maxWidth >= 600;
-
-        if (!isWide) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < sections.length; i++) ...[
-                sections[i],
-                if (i != sections.length - 1) const SizedBox(height: spacing),
-              ],
-            ],
-          );
-        }
-
-        final tileWidth = (constraints.maxWidth - spacing) / 2;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: sections
-              .map(
-                (section) => SizedBox(
-                  width: tileWidth,
-                  child: section,
-                ),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
-}
-
-class _DetailInfoSectionPair extends StatelessWidget {
-  const _DetailInfoSectionPair({
-    required this.first,
-    required this.second,
+class _DetailInfoTableRow extends StatelessWidget {
+  const _DetailInfoTableRow({
+    required this.label,
+    required this.value,
+    required this.showDivider,
+    required this.dividerColor,
   });
-
-  final Widget first;
-  final Widget second;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        first,
-        const SizedBox(height: 16),
-        second,
-      ],
-    );
-  }
-}
-
-class _DetailInfoRow {
-  const _DetailInfoRow(this.label, this.value);
 
   final String label;
   final String value;
+  final bool showDivider;
+  final Color dividerColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _StencilColorScheme.of(context);
+    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.numeric,
+      color: palette.onSurfaceMuted,
+    );
+    final valueStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.numeric,
+      color: palette.onSurface,
+    );
+
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 96),
+              child: Text(label, style: labelStyle),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                value,
+                style: valueStyle,
+              ),
+            ),
+          ],
+        ),
+        if (showDivider) ...[
+          const SizedBox(height: 10),
+          Divider(color: dividerColor),
+          const SizedBox(height: 10),
+        ] else
+          const SizedBox(height: 4),
+      ],
+    );
+  }
 }
