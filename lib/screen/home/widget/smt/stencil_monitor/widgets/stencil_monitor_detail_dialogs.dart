@@ -313,7 +313,7 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
         return Padding(
           padding: EdgeInsets.only(bottom: bottomPadding),
           child: FractionallySizedBox(
-            heightFactor: 0.7,
+            heightFactor: 0.65,
             child: _DetailSheetContainer(
               title: lineTitle,
               controller: scrollController,
@@ -321,54 +321,33 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  _DetailHeroHeader(
+                  _DetailSummaryCard(
                     accent: accent,
-                    palette: palette,
-                    title: lineLabel,
+                    lineLabel: lineLabel,
                     stencilSn: stencilSn,
                     status: statusLabel,
                     location: locationLabel,
                   ),
-                  const SizedBox(height: 18),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      _DetailMetricCard(
-                        icon: Icons.speed_rounded,
-                        label: 'Hours running',
-                        value: '${diffHours.toStringAsFixed(2)} h',
-                        accent: accent,
-                        emphasize: true,
-                      ),
-                      _DetailMetricCard(
-                        icon: Icons.loop_outlined,
-                        label: 'Use times',
-                        value: '$useTimes',
-                        accent: palette.accentPrimary,
-                      ),
-                      _DetailMetricCard(
-                        icon: Icons.rule_rounded,
-                        label: 'Standard',
-                        value: standardTimes != null ? '$standardTimes' : 'Unknown',
-                        accent: palette.accentSecondary,
-                      ),
-                    ],
+                  const SizedBox(height: 16),
+                  _DetailStatRow(
+                    accent: accent,
+                    diffHours: diffHours,
+                    useTimes: useTimes,
+                    standardTimes: standardTimes,
                   ),
-                  const SizedBox(height: 20),
-                  _DetailSection(
-                    icon: Icons.factory_outlined,
+                  const SizedBox(height: 24),
+                  _DetailInfoSection(
                     title: 'Assignment',
-                    entries: [
-                      _DetailSectionEntry('Line', lineLabel),
-                      _DetailSectionEntry('Location', locationLabel),
-                      _DetailSectionEntry(
+                    rows: [
+                      _DetailInfoRow('Line', lineLabel),
+                      _DetailInfoRow('Location', locationLabel),
+                      _DetailInfoRow(
                         'Customer',
                         detail.customerLabel?.trim().isNotEmpty == true
                             ? detail.customerLabel!.trim()
                             : '--',
                       ),
-                      _DetailSectionEntry(
+                      _DetailInfoRow(
                         'Factory',
                         detail.floorLabel?.trim().isNotEmpty == true
                             ? detail.floorLabel!.trim()
@@ -377,17 +356,16 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _DetailSection(
-                    icon: Icons.insights_outlined,
+                  _DetailInfoSection(
                     title: 'Specification',
-                    entries: [
-                      _DetailSectionEntry(
+                    rows: [
+                      _DetailInfoRow(
                         'Process',
                         detail.process?.trim().isNotEmpty == true
                             ? detail.process!.trim()
                             : 'Unknown',
                       ),
-                      _DetailSectionEntry(
+                      _DetailInfoRow(
                         'Vendor',
                         detail.vendorName.trim().isNotEmpty
                             ? detail.vendorName.trim()
@@ -396,12 +374,11 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _DetailSection(
-                    icon: Icons.schedule_rounded,
+                  _DetailInfoSection(
                     title: 'Timeline',
-                    entries: [
-                      _DetailSectionEntry('Start time', dateText),
-                      _DetailSectionEntry('Check time', checkText),
+                    rows: [
+                      _DetailInfoRow('Start time', dateText),
+                      _DetailInfoRow('Check time', checkText),
                     ],
                   ),
                 ],
@@ -414,112 +391,58 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
   }
 }
 
-class _DetailHeroHeader extends StatelessWidget {
-  const _DetailHeroHeader({
+class _DetailSummaryCard extends StatelessWidget {
+  const _DetailSummaryCard({
     required this.accent,
-    required this.palette,
-    required this.title,
+    required this.lineLabel,
     required this.stencilSn,
     required this.status,
     required this.location,
   });
 
   final Color accent;
-  final _StencilColorScheme palette;
-  final String title;
+  final String lineLabel;
   final String stencilSn;
   final String status;
   final String location;
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = accent.withOpacity(0.9);
+    final palette = _StencilColorScheme.of(context);
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          colors: [
-            accent.withOpacity(palette.isDark ? 0.55 : 0.75),
-            accent.withOpacity(0.25),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withOpacity(0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        color: palette.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.dividerColor.withOpacity(0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
-                        fontFamily: _StencilTypography.heading,
-                        fontSize: 20,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Stencil $stencilSn',
-                      style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                        fontFamily: _StencilTypography.numeric,
-                        color: Colors.white.withOpacity(0.85),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: statusColor,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withOpacity(0.35)),
-                ),
-                child: Text(
-                  status.toUpperCase(),
-                  style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                    fontFamily: _StencilTypography.numeric,
-                    color: Colors.white,
-                    fontSize: 11,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            lineLabel,
+            style: GlobalTextStyles.bodyLarge(isDark: palette.isDark).copyWith(
+              fontFamily: _StencilTypography.heading,
+              fontSize: 18,
+            ),
           ),
-          const SizedBox(height: 16),
-          Row(
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
             children: [
-              Icon(Icons.place_outlined, color: Colors.white.withOpacity(0.8), size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  location,
-                  style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                    fontFamily: _StencilTypography.numeric,
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 12,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              _DetailSummaryChip(
+                icon: Icons.place_outlined,
+                label: location,
+              ),
+              _DetailSummaryChip(
+                icon: Icons.confirmation_number_outlined,
+                label: 'Stencil: $stencilSn',
+              ),
+              _DetailSummaryChip(
+                icon: Icons.verified_rounded,
+                label: status,
+                accent: accent,
               ),
             ],
           ),
@@ -529,182 +452,218 @@ class _DetailHeroHeader extends StatelessWidget {
   }
 }
 
-class _DetailMetricCard extends StatelessWidget {
-  const _DetailMetricCard({
+class _DetailSummaryChip extends StatelessWidget {
+  const _DetailSummaryChip({
     required this.icon,
     required this.label,
-    required this.value,
-    required this.accent,
-    this.emphasize = false,
+    this.accent,
   });
 
   final IconData icon;
   final String label;
-  final String value;
-  final Color accent;
-  final bool emphasize;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) {
     final palette = _StencilColorScheme.of(context);
-    final background = accent.withOpacity(palette.isDark ? 0.18 : 0.12);
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 140),
-      child: Container(
-        padding: const EdgeInsets.all(16),
+    final color = accent ?? palette.onSurfaceMuted;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.4)),
+        color: accent != null
+            ? accent!.withOpacity(palette.isDark ? 0.18 : 0.12)
+            : palette.surfaceOverlay.withOpacity(0.55),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+              fontFamily: _StencilTypography.numeric,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailStatRow extends StatelessWidget {
+  const _DetailStatRow({
+    required this.accent,
+    required this.diffHours,
+    required this.useTimes,
+    required this.standardTimes,
+  });
+
+  final Color accent;
+  final double diffHours;
+  final int useTimes;
+  final int? standardTimes;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _StencilColorScheme.of(context);
+    TextStyle labelStyle(bool highlight) =>
+        GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+          fontFamily: _StencilTypography.numeric,
+          color: highlight ? accent : palette.onSurfaceMuted,
+        );
+    TextStyle valueStyle(bool highlight) =>
+        GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
+          fontFamily: _StencilTypography.heading,
+          color: highlight ? accent : palette.onSurface,
+          fontSize: 16,
+        );
+
+    Widget buildTile(String label, String value, {bool highlight = false}) {
+      return Container(
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: accent.withOpacity(0.45)),
           color: palette.cardBackground,
-          gradient: LinearGradient(
-            colors: [background, Colors.transparent],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: highlight ? accent.withOpacity(0.45) : palette.dividerColor,
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: accent, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                    fontFamily: _StencilTypography.numeric,
-                    color: accent,
-                    fontSize: 12,
-                    letterSpacing: 0.6,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
-                fontFamily: _StencilTypography.heading,
-                color: emphasize ? accent : palette.onSurface,
-                fontSize: 18,
-              ),
-            ),
+            Text(label, style: labelStyle(highlight)),
+            const SizedBox(height: 6),
+            Text(value, style: valueStyle(highlight)),
           ],
         ),
-      ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 520;
+        final tiles = [
+          buildTile(
+            'Hours running',
+            '${diffHours.toStringAsFixed(2)} h',
+            highlight: true,
+          ),
+          buildTile('Use times', '$useTimes'),
+          buildTile('Standard', standardTimes != null ? '$standardTimes' : 'Unknown'),
+        ];
+
+        if (isCompact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              tiles[0],
+              const SizedBox(height: 12),
+              tiles[1],
+              const SizedBox(height: 12),
+              tiles[2],
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: tiles[0]),
+            const SizedBox(width: 12),
+            Expanded(child: tiles[1]),
+            const SizedBox(width: 12),
+            Expanded(child: tiles[2]),
+          ],
+        );
+      },
     );
   }
 }
 
-class _DetailSection extends StatelessWidget {
-  const _DetailSection({
-    required this.icon,
+class _DetailInfoSection extends StatelessWidget {
+  const _DetailInfoSection({
     required this.title,
-    required this.entries,
+    required this.rows,
   });
 
-  final IconData icon;
   final String title;
-  final List<_DetailSectionEntry> entries;
+  final List<_DetailInfoRow> rows;
 
   @override
   Widget build(BuildContext context) {
     final palette = _StencilColorScheme.of(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: palette.dividerColor.withOpacity(0.6)),
         color: palette.cardBackground,
-        boxShadow: [
-          BoxShadow(
-            color: palette.cardShadow.withOpacity(0.4),
-            blurRadius: 16,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.dividerColor.withOpacity(0.6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: palette.surfaceOverlay.withOpacity(0.65),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, size: 18, color: palette.onSurface),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
-                  fontFamily: _StencilTypography.heading,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+          Text(
+            title,
+            style: GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
+              fontFamily: _StencilTypography.heading,
+              fontSize: 15,
+            ),
           ),
-          const SizedBox(height: 14),
-          ...entries
-              .expand((entry) => [
-                    _DetailSectionRow(entry: entry),
-                    if (entry != entries.last)
-                      Divider(
-                        color: palette.dividerColor.withOpacity(0.35),
-                        height: 14,
-                      ),
-                  ])
-              .toList(),
+          const SizedBox(height: 12),
+          ...rows.map(
+            (row) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: _DetailInfoRowWidget(row: row),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _DetailSectionRow extends StatelessWidget {
-  const _DetailSectionRow({required this.entry});
+class _DetailInfoRow {
+  const _DetailInfoRow(this.label, this.value);
 
-  final _DetailSectionEntry entry;
+  final String label;
+  final String value;
+}
+
+class _DetailInfoRowWidget extends StatelessWidget {
+  const _DetailInfoRowWidget({required this.row});
+
+  final _DetailInfoRow row;
 
   @override
   Widget build(BuildContext context) {
     final palette = _StencilColorScheme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            entry.label,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            row.label,
             style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
               fontFamily: _StencilTypography.numeric,
               color: palette.onSurfaceMuted,
-              fontSize: 11,
-              letterSpacing: 0.4,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            entry.value,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            row.value,
             style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
               fontFamily: _StencilTypography.numeric,
               color: palette.onSurface,
-              fontSize: 13,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
-}
-
-class _DetailSectionEntry {
-  const _DetailSectionEntry(this.label, this.value);
-
-  final String label;
-  final String value;
 }
