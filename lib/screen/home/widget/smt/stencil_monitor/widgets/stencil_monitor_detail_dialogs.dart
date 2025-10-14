@@ -333,53 +333,55 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                         useTimes: useTimes,
                         standardTimes: standardTimes,
                       );
-                      final infoTable = _DetailInfoTable(
-                        groups: [
-                          _DetailInfoGroup(
-                            title: 'Assignment',
-                            rows: [
-                              _DetailInfoRow('Line', lineLabel),
-                              _DetailInfoRow('Location', locationLabel),
-                              _DetailInfoRow(
-                                'Customer',
-                                detail.customerLabel?.trim().isNotEmpty == true
-                                    ? detail.customerLabel!.trim()
-                                    : '--',
-                              ),
-                              _DetailInfoRow(
-                                'Factory',
-                                detail.floorLabel?.trim().isNotEmpty == true
-                                    ? detail.floorLabel!.trim()
-                                    : '--',
-                              ),
-                            ],
+                      final assignmentGroup = _DetailInfoGroup(
+                        title: 'Assignment',
+                        rows: [
+                          _DetailInfoRow('Line', lineLabel),
+                          _DetailInfoRow('Location', locationLabel),
+                          _DetailInfoRow(
+                            'Customer',
+                            detail.customerLabel?.trim().isNotEmpty == true
+                                ? detail.customerLabel!.trim()
+                                : '--',
                           ),
-                          _DetailInfoGroup(
-                            title: 'Specification',
-                            rows: [
-                              _DetailInfoRow(
-                                'Process',
-                                detail.process?.trim().isNotEmpty == true
-                                    ? detail.process!.trim()
-                                    : 'Unknown',
-                              ),
-                              _DetailInfoRow(
-                                'Vendor',
-                                detail.vendorName.trim().isNotEmpty
-                                    ? detail.vendorName.trim()
-                                    : 'Unknown',
-                              ),
-                            ],
-                          ),
-                          _DetailInfoGroup(
-                            title: 'Timeline',
-                            rows: [
-                              _DetailInfoRow('Start time', dateText),
-                              _DetailInfoRow('Check time', checkText),
-                            ],
+                          _DetailInfoRow(
+                            'Factory',
+                            detail.floorLabel?.trim().isNotEmpty == true
+                                ? detail.floorLabel!.trim()
+                                : '--',
                           ),
                         ],
                       );
+                      final specificationGroup = _DetailInfoGroup(
+                        title: 'Specification',
+                        rows: [
+                          _DetailInfoRow(
+                            'Process',
+                            detail.process?.trim().isNotEmpty == true
+                                ? detail.process!.trim()
+                                : 'Unknown',
+                          ),
+                          _DetailInfoRow(
+                            'Vendor',
+                            detail.vendorName.trim().isNotEmpty
+                                ? detail.vendorName.trim()
+                                : 'Unknown',
+                          ),
+                        ],
+                      );
+                      final timelineGroup = _DetailInfoGroup(
+                        title: 'Timeline',
+                        rows: [
+                          _DetailInfoRow('Start time', dateText),
+                          _DetailInfoRow('Check time', checkText),
+                        ],
+                      );
+
+                      final assignmentCard = _DetailInfoTable(
+                        groups: [assignmentGroup, timelineGroup],
+                      );
+                      final specificationCard =
+                          _DetailInfoTable(groups: [specificationGroup]);
 
                       if (constraints.maxWidth >= 860) {
                         return Row(
@@ -392,7 +394,34 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                             const SizedBox(width: 20),
                             Expanded(
                               flex: 4,
-                              child: infoTable,
+                              child: LayoutBuilder(
+                                builder: (context, detailConstraints) {
+                                  final shouldStack =
+                                      detailConstraints.maxWidth < 420;
+
+                                  if (shouldStack) {
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        assignmentCard,
+                                        const SizedBox(height: 16),
+                                        specificationCard,
+                                      ],
+                                    );
+                                  }
+
+                                  return Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(child: assignmentCard),
+                                      const SizedBox(width: 16),
+                                      Expanded(child: specificationCard),
+                                    ],
+                                  );
+                                },
+                              ),
                             ),
                           ],
                         );
@@ -403,7 +432,9 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                         children: [
                           summarySection,
                           const SizedBox(height: 24),
-                          infoTable,
+                          assignmentCard,
+                          const SizedBox(height: 16),
+                          specificationCard,
                         ],
                       );
                     },
