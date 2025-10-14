@@ -41,6 +41,16 @@ class StencilDetail {
       return value.toString();
     }
 
+    String? _stringFromKeys(List<String> keys) {
+      for (final key in keys) {
+        final value = _string(key);
+        if (value != null && value.isNotEmpty) {
+          return value;
+        }
+      }
+      return null;
+    }
+
     String _stringOrEmpty(String key) => _string(key) ?? '';
 
     int? _int(String key) {
@@ -69,8 +79,8 @@ class StencilDetail {
       customer: _stringOrEmpty('CUSTOMER'),
       floor: _stringOrEmpty('FLOOR'),
       stencilSn: _stringOrEmpty('STENCIL_SN'),
-      vendorCode: _stringOrEmpty('VENDOR_CODE'),
-      vendorName: _stringOrEmpty('VENDOR_NAME'),
+      vendorCode: _stringFromKeys(['VENDOR_CODE', 'VENDER_CODE']) ?? '',
+      vendorName: _stringFromKeys(['VENDOR_NAME', 'VENDER_NAME']) ?? '',
       mfrTime: _date('MFR_TIME'),
       mfrSn: _string('MFR_SN'),
       stencilVersion: _string('STENCIL_VER'),
@@ -136,6 +146,6 @@ class StencilDetail {
 
   static String _normalizeLabel(String value) {
     final trimmed = value.trim();
-    return trimmed.isEmpty ? 'UNK' : trimmed;
+    return trimmed.isEmpty ? 'UNKNOWN' : trimmed;
   }
 }

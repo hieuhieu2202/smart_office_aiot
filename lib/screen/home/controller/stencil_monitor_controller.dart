@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../model/smt/stencil_detail.dart';
 import '../../../service/stencil_monitor_api.dart';
@@ -6,23 +10,28 @@ import '../../../service/stencil_monitor_api.dart';
 class StencilMonitorController extends GetxController {
   StencilMonitorController();
 
+  static const String networkErrorMessage =
+      'Connection issue detected. Please check your network connection and tap Reload to try again.';
+
   final RxList<StencilDetail> stencilData = <StencilDetail>[].obs;
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
+  final Rx<DateTime?> lastUpdated = Rx<DateTime?>(null);
 
   final RxString selectedCustomer = 'ALL'.obs;
-  final RxString selectedFloor = 'ALL'.obs;
+  final RxString selectedFloor = 'F06'.obs;
 
   final RxList<String> customers = <String>[].obs;
   final RxList<String> floors = <String>[].obs;
 
   Future<void>? _activeFetch;
+  static const Set<String> ignoredCustomers = {'CPEII'};
 
   @override
   void onInit() {
     super.onInit();
     customers.assignAll(['ALL']);
-    floors.assignAll(['ALL']);
+    floors.assignAll(['ALL', 'F06']);
     fetchData();
   }
 
@@ -45,12 +54,14 @@ class StencilMonitorController extends GetxController {
         error.value = '';
         final results = await StencilMonitorApi.fetchStencilDetails();
         stencilData.assignAll(results);
+        lastUpdated.value = DateTime.now();
         _rebuildCustomers();
         _rebuildFloors();
         print('>> [StencilMonitor] Loaded ${results.length} rows');
       } catch (e, stack) {
-        error.value = e.toString();
-        print('>> [StencilMonitor] Fetch error: $e');
+        error.value = _describeError(e);
+        final formatted = _formatErrorForLog(e);
+        print('>> [StencilMonitor] Fetch error: $formatted');
         print(stack);
       } finally {
         isLoading.value = false;
@@ -86,6 +97,7 @@ class StencilMonitorController extends GetxController {
     return stencilData.where((item) {
       final customerLabel = item.customerLabel;
       final floorLabel = item.floorLabel;
+
       final matchCustomer =
           customerFilter == 'ALL' || customerLabel == customerFilter;
       final matchFloor = floorFilter == 'ALL' || floorLabel == floorFilter;
@@ -96,8 +108,15 @@ class StencilMonitorController extends GetxController {
   Map<String, int> statusBreakdown(List<StencilDetail> source) {
     final map = <String, int>{};
     for (final item in source) {
-      final key = item.statusLabel;
-      map[key] = (map[key] ?? 0) + 1;
+      final customer = item.customer.trim().toUpperCase();
+      if (ignoredCustomers.contains(customer)) {
+        continue;
+      }
+      final status = item.statusLabel;
+      if (status.toUpperCase() == 'TOOLROOM') {
+        continue;
+      }
+      map[status] = (map[status] ?? 0) + 1;
     }
     return map;
   }
@@ -105,6 +124,10 @@ class StencilMonitorController extends GetxController {
   Map<String, int> vendorBreakdown(List<StencilDetail> source) {
     final map = <String, int>{};
     for (final item in source) {
+      final customer = item.customer.trim().toUpperCase();
+      if (ignoredCustomers.contains(customer)) {
+        continue;
+      }
       final vendor = _normalizeLabel(item.vendorName);
       map[vendor] = (map[vendor] ?? 0) + 1;
     }
@@ -114,7 +137,8 @@ class StencilMonitorController extends GetxController {
   void _rebuildCustomers() {
     final set = <String>{};
     for (final item in stencilData) {
-      set.add(item.customerLabel);
+      final label = item.customerLabel;
+      set.add(label);
     }
     final sorted = set.toList()..sort();
     customers.assignAll(['ALL', ...sorted]);
@@ -127,7 +151,8 @@ class StencilMonitorController extends GetxController {
     final set = <String>{};
     final customerFilter = selectedCustomer.value;
     for (final item in stencilData) {
-      if (customerFilter != 'ALL' && item.customerLabel != customerFilter) {
+      final label = item.customerLabel;
+      if (customerFilter != 'ALL' && label != customerFilter) {
         continue;
       }
       set.add(item.floorLabel);
@@ -141,6 +166,80 @@ class StencilMonitorController extends GetxController {
 
   String _normalizeLabel(String? value) {
     final raw = value?.trim() ?? '';
-    return raw.isEmpty ? 'UNK' : raw;
+    return raw.isEmpty ? 'UNKNOWN' : raw;
+  }
+
+  String _describeError(Object error) {
+    if (error is SocketException ||
+        error is TimeoutException ||
+        error is http.ClientException ||
+        error is HandshakeException ||
+        error is TlsException) {
+      return networkErrorMessage;
+    }
+
+    final message = error.toString();
+    if (message.contains('Connection closed while receiving data') ||
+        message.contains('Failed host lookup') ||
+        message.contains('Network is unreachable') ||
+        message.contains('Software caused connection abort')) {
+      return networkErrorMessage;
+    }
+
+    return message;
+  }
+
+  String _formatErrorForLog(Object error) {
+    if (error is http.ClientException) {
+      final buffer = StringBuffer('ClientException');
+      final message = error.message.trim();
+      if (message.isNotEmpty) {
+        buffer.write(': $message');
+      }
+      final uri = error.uri;
+      if (uri != null) {
+        buffer.write(', uri=$uri');
+      }
+      return buffer.toString();
+    }
+
+    if (error is SocketException) {
+      final buffer = StringBuffer('SocketException: ${error.message}');
+      final osError = error.osError;
+      if (osError != null) {
+        buffer.write(
+            ' (OS Error: ${osError.message}, errno = ${osError.errorCode})');
+      }
+      final address = error.address;
+      if (address != null) {
+        buffer.write(', address = ${address.address}');
+      }
+      if (error.port != 0) {
+        buffer.write(', port = ${error.port}');
+      }
+      return buffer.toString();
+    }
+
+    if (error is TimeoutException) {
+      final message = error.message;
+      return message == null || message.isEmpty
+          ? 'TimeoutException'
+          : 'TimeoutException: $message';
+    }
+
+    if (error is HandshakeException) {
+      return 'HandshakeException: ${error.message}';
+    }
+
+    if (error is TlsException) {
+      return 'TlsException: ${error.message}';
+    }
+
+    if (error is IOException) {
+      return error.toString();
+    }
+
+    return error.toString();
   }
 }
+

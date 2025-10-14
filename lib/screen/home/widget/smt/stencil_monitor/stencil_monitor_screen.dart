@@ -1,13 +1,23 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui show TextDirection;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
-
+import 'package:smart_factory/config/global_color.dart';
+import 'package:smart_factory/config/global_text_style.dart';
 import 'package:smart_factory/screen/home/controller/stencil_monitor_controller.dart';
 
-import '../../../../../config/global_color.dart';
 import '../../../../../model/smt/stencil_detail.dart';
 import '../../../../../widget/animation/loading/eva_loading_view.dart';
+
+part 'widgets/stencil_monitor_filter_sheet.dart';
+part 'widgets/stencil_monitor_common.dart';
+part 'widgets/stencil_monitor_insights.dart';
+part 'widgets/stencil_monitor_running_line.dart';
+part 'widgets/stencil_monitor_detail_dialogs.dart';
+part 'widgets/stencil_monitor_usage_chart.dart';
 
 class StencilMonitorScreen extends StatefulWidget {
   const StencilMonitorScreen({
@@ -26,7 +36,14 @@ class StencilMonitorScreen extends StatefulWidget {
 class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   late final String _controllerTag;
   late final StencilMonitorController controller;
-  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+
+  late _StencilColorScheme _palette;
+
+  Color get _textPrimary => _palette.onSurface;
+  Color get _textSecondary => _palette.onSurfaceMuted;
+  Color get _axisLineColor => _palette.onSurface
+      .withOpacity(_palette.isDark ? 0.25 : 0.2);
 
   @override
   void initState() {
@@ -45,84 +62,79 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Obx(() {
+      _palette = _StencilColorScheme.of(context);
       final loading = controller.isLoading.value;
       final hasData = controller.stencilData.isNotEmpty;
       final filtered = controller.filteredData;
       final error = controller.error.value;
 
       return Scaffold(
-        backgroundColor:
-            isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
-        appBar: AppBar(
-          title: Text(widget.title ?? 'Stencil Monitor'),
-          centerTitle: true,
-          backgroundColor:
-              isDark ? GlobalColors.appBarDarkBg : GlobalColors.appBarLightBg,
-          iconTheme: IconThemeData(
-            color: isDark
-                ? GlobalColors.appBarDarkText
-                : GlobalColors.appBarLightText,
-          ),
-          actions: [
-            if (loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2.2),
-                ),
-              ),
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () => controller.fetchData(force: true),
-            ),
-          ],
-        ),
-        body: _buildBody(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        appBar: _buildAppBar(
           context,
-          isDark: isDark,
           loading: loading,
-          hasData: hasData,
-          error: error,
-          filtered: filtered,
+        ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: _palette.backgroundGradient,
+            ),
+          ),
+          child: SafeArea(
+            child: loading && !hasData
+                ? const Center(child: EvaLoadingView(size: 140))
+                : _buildContent(
+                    context,
+                    loading: loading,
+                    error: error,
+                    filtered: filtered,
+                    hasData: hasData,
+                  ),
+          ),
         ),
       );
     });
   }
 
-  Widget _buildBody(
+  Widget _buildContent(
     BuildContext context, {
-    required bool isDark,
     required bool loading,
-    required bool hasData,
     required String error,
     required List<StencilDetail> filtered,
+    required bool hasData,
   }) {
-    if (loading && !hasData) {
-      return const Center(child: EvaLoadingView(size: 120));
-    }
-
     if (error.isNotEmpty && !hasData) {
-      return _buildFullError(isDark, error);
+      return _buildFullError(error);
     }
 
     return RefreshIndicator(
-      onRefresh: () => controller.fetchData(force: true),
-      color: Theme.of(context).colorScheme.secondary,
+      onRefresh: controller.refresh,
+      color: _palette.accentPrimary,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: _buildDashboard(
-              context,
-              isDark: isDark,
-              error: error,
-              filtered: filtered,
-              maxWidth: constraints.maxWidth,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (error.isNotEmpty) ...[
+                      _buildErrorChip(error),
+                      const SizedBox(height: 20),
+                    ],
+                    if (filtered.isEmpty)
+                      _buildEmptyState()
+                    else
+                      _buildDashboard(context, filtered),
+                  ],
+                ),
+              ),
             ),
           );
         },
@@ -130,316 +142,93 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildDashboard(
+  PreferredSizeWidget _buildAppBar(
     BuildContext context, {
-    required bool isDark,
-    required String error,
-    required List<StencilDetail> filtered,
-    required double maxWidth,
+    required bool loading,
   }) {
-    if (filtered.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    final lastUpdated = controller.lastUpdated.value;
+    final updateText = lastUpdated != null
+        ? _dateFormat.format(lastUpdated)
+        : 'Waiting for data…';
+    final floorLabel = controller.selectedFloor.value == 'ALL'
+        ? 'F06'
+        : controller.selectedFloor.value;
+    final titleStyle = GlobalTextStyles.bodyMedium(isDark: _palette.isDark)
+        .copyWith(
+      fontFamily: _StencilTypography.heading,
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+      letterSpacing: 1.1,
+      color: _palette.onSurface,
+    );
+    final subtitleStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark)
+        .copyWith(
+      fontFamily: _StencilTypography.numeric,
+      fontSize: 11,
+      color: _palette.onSurfaceMuted,
+    );
+
+    return AppBar(
+      backgroundColor:
+          _palette.isDark ? GlobalColors.appBarDarkBg : GlobalColors.appBarLightBg,
+      elevation: 2,
+      automaticallyImplyLeading: true,
+      iconTheme: IconThemeData(color: _palette.onSurface),
+      titleSpacing: 0,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildFilterCard(isDark),
-          if (error.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _buildErrorBanner(isDark, error),
-          ],
-          const SizedBox(height: 16),
-          _buildEmptyState(isDark),
+          Text(
+            'SMT $floorLabel STENCIL MONITOR',
+            style: titleStyle,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Last update: $updateText',
+            style: subtitleStyle,
+          ),
         ],
-      );
-    }
-
-    final total = filtered.length;
-    final active = filtered.where((item) => item.isActive).length;
-    final statusMap = controller.statusBreakdown(filtered);
-    final vendorMap = controller.vendorBreakdown(filtered);
-
-    final customerSlices = _groupToPie(
-      filtered,
-      (item) => item.customerLabel,
-    );
-    final statusSlices = statusMap.entries
-        .map((entry) => _PieSlice(entry.key, entry.value))
-        .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final vendorSlices = vendorMap.entries
-        .map((entry) => _PieSlice(entry.key, entry.value))
-        .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final processSlices = _groupToPie(
-      filtered,
-      (item) => (item.process == null || item.process!.trim().isEmpty)
-          ? 'Process UNK'
-          : 'Process ${item.process!.trim()}',
-    );
-
-    final lineTracking = _buildLineTracking(filtered);
-    final standardBuckets = _buildStandardBuckets(filtered);
-    final checkBuckets = _buildCheckTimeBuckets(filtered);
-    final activeLines = filtered
-        .where((item) => item.isActive)
-        .toList()
-      ..sort((a, b) =>
-          (a.startTime ?? DateTime.fromMillisecondsSinceEpoch(0))
-              .compareTo(b.startTime ?? DateTime.fromMillisecondsSinceEpoch(0)));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildFilterCard(isDark),
-        if (error.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _buildErrorBanner(isDark, error),
-        ],
-        const SizedBox(height: 16),
-        _buildOverviewRow(
-          context,
-          isDark: isDark,
-          total: total,
-          active: active,
-          status: statusSlices,
-          vendors: vendorSlices,
-          maxWidth: maxWidth,
+      ),
+      actions: [
+        _FilterActionButton(controller: controller),
+        IconButton(
+          tooltip: 'Refresh',
+          icon: Icon(loading ? Icons.sync : Icons.refresh),
+          onPressed: () => controller.fetchData(force: true),
         ),
-        const SizedBox(height: 20),
-        _buildTopCharts(
-          isDark: isDark,
-          maxWidth: maxWidth,
-          customers: customerSlices,
-          status: statusSlices,
-          vendors: vendorSlices,
-          process: processSlices,
-        ),
-        const SizedBox(height: 20),
-        _buildMiddleSection(
-          isDark: isDark,
-          maxWidth: maxWidth,
-          lineTracking: lineTracking,
-          activeLines: activeLines,
-        ),
-        const SizedBox(height: 20),
-        _buildBottomCharts(
-          isDark: isDark,
-          maxWidth: maxWidth,
-          standardBuckets: standardBuckets,
-          checkBuckets: checkBuckets,
-        ),
-        const SizedBox(height: 24),
       ],
     );
   }
 
-  Widget _buildFilterCard(bool isDark) {
-    final customers = controller.customers.toList(growable: false);
-    final floors = controller.floors.toList(growable: false);
-    final customerValue = controller.selectedCustomer.value;
-    final floorValue = controller.selectedFloor.value;
-
-    return Card(
-      color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 6,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Filters',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? Colors.lightBlue[100]
-                        : GlobalColors.appBarLightText,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 16,
-              runSpacing: 12,
-              children: [
-                _buildDropdown(
-                  label: 'Customer',
-                  value: customerValue,
-                  items: customers,
-                  onChanged: controller.selectCustomer,
-                  isDark: isDark,
-                ),
-                _buildDropdown(
-                  label: 'Floor',
-                  value: floorValue,
-                  items: floors,
-                  onChanged: controller.selectFloor,
-                  isDark: isDark,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String> onChanged,
-    required bool isDark,
-  }) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 160, maxWidth: 260),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(
-            color: isDark ? Colors.blueGrey[200] : Colors.blueGrey[700],
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: items.contains(value) ? value : null,
-            isExpanded: true,
-            icon: Icon(
-              Icons.arrow_drop_down,
-              color: isDark ? Colors.white70 : Colors.blueGrey[700],
-            ),
-            onChanged: (val) {
-              if (val != null) onChanged(val);
-            },
-            items: items
-                .map(
-                  (item) => DropdownMenuItem<String>(
-                    value: item,
-                    child: Text(
-                      item,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOverviewRow(
-    BuildContext context, {
-    required bool isDark,
-    required int total,
-    required int active,
-    required List<_PieSlice> status,
-    required List<_PieSlice> vendors,
-    required double maxWidth,
-  }) {
-    final statusTop = status.isNotEmpty ? status.first : null;
-    final vendorTop = vendors.isNotEmpty ? vendors.first : null;
-    final tileWidth = _responsiveTileWidth(maxWidth, preferCount: 4, minWidth: 220);
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: [
-        SizedBox(
-          width: tileWidth,
-          child: _metricCard(
-            title: 'Total Stencils',
-            value: total.toString(),
-            icon: Icons.inventory_2_outlined,
-            color: Colors.cyanAccent,
-            isDark: isDark,
-          ),
-        ),
-        SizedBox(
-          width: tileWidth,
-          child: _metricCard(
-            title: 'Active Lines',
-            value: active.toString(),
-            icon: Icons.precision_manufacturing_outlined,
-            color: Colors.greenAccent,
-            isDark: isDark,
-          ),
-        ),
-        if (statusTop != null)
-          SizedBox(
-            width: tileWidth,
-            child: _metricCard(
-              title: 'Top Status',
-              value: '${statusTop.label} (${statusTop.value})',
-              icon: Icons.stacked_bar_chart,
-              color: Colors.orangeAccent,
-              isDark: isDark,
-            ),
-          ),
-        if (vendorTop != null)
-          SizedBox(
-            width: tileWidth,
-            child: _metricCard(
-              title: 'Top Vendor',
-              value: '${vendorTop.label} (${vendorTop.value})',
-              icon: Icons.local_shipping_outlined,
-              color: Colors.purpleAccent,
-              isDark: isDark,
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _metricCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-    required bool isDark,
-  }) {
-    final bgColor = isDark ? color.withOpacity(0.2) : color.withOpacity(0.12);
-    final textColor = isDark ? Colors.white : Colors.blueGrey[900];
-
+  Widget _buildErrorChip(String message) {
+    final palette = _palette;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.6)),
+        border: Border.all(color: palette.errorBorder),
+        color: palette.errorFill,
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
         children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 12),
+          Icon(Icons.error_outline, color: palette.errorText),
+          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.white70 : Colors.blueGrey[700],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: textColor,
-                  ),
-                ),
-              ],
+            child: Text(
+              message,
+              style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
+                  .copyWith(color: palette.errorText, fontSize: 12),
+            ),
+          ),
+          TextButton(
+            onPressed: () => controller.fetchData(force: true),
+            child: Text(
+              'Retry',
+              style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
+                  .copyWith(color: palette.accentPrimary),
             ),
           ),
         ],
@@ -447,502 +236,876 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildTopCharts({
-    required bool isDark,
-    required double maxWidth,
-    required List<_PieSlice> customers,
-    required List<_PieSlice> status,
-    required List<_PieSlice> vendors,
-    required List<_PieSlice> process,
-  }) {
-    final width = _responsiveTileWidth(maxWidth, preferCount: 4, minWidth: 240);
+  Widget _buildDashboard(BuildContext context, List<StencilDetail> filtered) {
+    final customerSlices = _buildCustomerSlices(filtered);
+    final statusSlices = _buildStatusSlices(filtered);
+    final vendorSlices = _buildVendorSlices(filtered);
+    final processSlices = _buildProcessSlices(filtered);
 
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: [
-        SizedBox(
-          width: width,
-          child: _pieChartCard(
-            title: 'Customer',
-            data: customers,
-            isDark: isDark,
-          ),
-        ),
-        SizedBox(
-          width: width,
-          child: _pieChartCard(
-            title: 'Status',
-            data: status,
-            isDark: isDark,
-          ),
-        ),
-        SizedBox(
-          width: width,
-          child: _pieChartCard(
-            title: 'Vendor',
-            data: vendors,
-            isDark: isDark,
-          ),
-        ),
-        SizedBox(
-          width: width,
-          child: _pieChartCard(
-            title: 'Process',
-            data: process,
-            isDark: isDark,
-          ),
-        ),
-      ],
-    );
-  }
+    final lineTracking = _buildLineTracking(filtered);
+    final usingTimeSlices = _buildStandardBuckets(filtered);
+    final checkSlices = _buildCheckTimeBuckets(filtered);
 
-  Widget _buildMiddleSection({
-    required bool isDark,
-    required double maxWidth,
-    required List<_LineTrackingDatum> lineTracking,
-    required List<StencilDetail> activeLines,
-  }) {
-    const spacing = 16.0;
-    double primaryWidth;
-    double secondaryWidth;
+    final activeLines = _filterActiveLines(filtered);
 
-    if (maxWidth >= 1350) {
-      secondaryWidth = 360;
-      primaryWidth = maxWidth - secondaryWidth - spacing;
-    } else if (maxWidth >= 1100) {
-      secondaryWidth = 320;
-      primaryWidth = maxWidth - secondaryWidth - spacing;
-    } else if (maxWidth >= 900) {
-      primaryWidth = (maxWidth - spacing) / 2;
-      secondaryWidth = primaryWidth;
-    } else {
-      primaryWidth = maxWidth;
-      secondaryWidth = maxWidth;
-    }
+    final insights = _buildInsightMetrics(activeLines);
 
-    if (primaryWidth < 280) primaryWidth = maxWidth;
-    if (secondaryWidth < 280 && maxWidth > 320) secondaryWidth = 320;
+    const sectionSpacing = 18.0;
 
-    return Wrap(
-      spacing: spacing,
-      runSpacing: spacing,
-      children: [
-        SizedBox(
-          width: primaryWidth,
-          child: _chartCard(
-            isDark: isDark,
-            title: 'Line Tracking',
-            height: 320,
-            child: _buildLineTrackingChart(lineTracking, isDark),
-          ),
-        ),
-        SizedBox(
-          width: secondaryWidth,
-          child: _chartCard(
-            isDark: isDark,
-            title: 'Currently Lines',
-            height: 320,
-            child: _buildActiveLinesPanel(activeLines, isDark),
-          ),
-        ),
-      ],
-    );
-  }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 680;
+        final wrapSpacing = sectionSpacing;
+        final double cardWidth = isWide
+            ? (constraints.maxWidth - wrapSpacing) / 2
+            : constraints.maxWidth;
 
-  Widget _buildBottomCharts({
-    required bool isDark,
-    required double maxWidth,
-    required List<_BarDatum> standardBuckets,
-    required List<_PieSlice> checkBuckets,
-  }) {
-    final width = _responsiveTileWidth(maxWidth, preferCount: 2, minWidth: 320);
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: [
-        SizedBox(
-          width: width,
-          child: _chartCard(
-            isDark: isDark,
-            title: 'Standard Use Time',
-            height: 280,
-            child: _buildStandardChart(standardBuckets, isDark),
-          ),
-        ),
-        SizedBox(
-          width: width,
-          child: _pieChartCard(
-            title: 'Check Time',
-            data: checkBuckets,
-            isDark: isDark,
-            height: 280,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _chartCard({
-    required bool isDark,
-    required String title,
-    required Widget child,
-    double height = 260,
-  }) {
-    return Card(
-      color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? Colors.lightBlue[100]
-                        : GlobalColors.appBarLightText,
+            _buildOverviewTabs(
+              customerSlices: customerSlices,
+              statusSlices: statusSlices,
+              vendorSlices: vendorSlices,
+              processSlices: processSlices,
+            ),
+            if (insights.isNotEmpty) ...[
+              const SizedBox(height: sectionSpacing),
+              _InsightsStrip(items: insights),
+            ],
+            const SizedBox(height: sectionSpacing),
+            Wrap(
+              spacing: wrapSpacing,
+              runSpacing: wrapSpacing,
+              children: [
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildUsageAnalyticsCard(
+                    context,
+                    usingTimeSlices,
+                    checkSlices,
                   ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: height,
-              child: child,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _pieChartCard({
-    required String title,
-    required List<_PieSlice> data,
-    required bool isDark,
-    double height = 260,
-  }) {
-    return _chartCard(
-      isDark: isDark,
-      title: title,
-      height: height,
-      child: data.isEmpty
-          ? _buildEmptyChart('No data available.', isDark)
-          : SfCircularChart(
-              margin: EdgeInsets.zero,
-              legend: Legend(
-                isVisible: true,
-                overflowMode: LegendItemOverflowMode.wrap,
-                textStyle: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.blueGrey[700],
-                  fontSize: 11,
                 ),
-              ),
-              tooltipBehavior: TooltipBehavior(enable: true, format: 'point.x: point.y'),
-              series: <CircularSeries<_PieSlice, String>>[
-                DoughnutSeries<_PieSlice, String>(
-                  dataSource: data,
-                  xValueMapper: (slice, _) => slice.label,
-                  yValueMapper: (slice, _) => slice.value,
-                  dataLabelSettings: DataLabelSettings(
-                    isVisible: true,
-                    textStyle: TextStyle(
-                      color: isDark ? Colors.white : Colors.blueGrey[900],
-                      fontSize: 10,
-                    ),
-                  ),
-                  radius: '70%',
-                  innerRadius: '45%',
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildLineTrackingCard(context, lineTracking),
                 ),
               ],
             ),
-    );
-  }
-
-  Widget _buildLineTrackingChart(
-    List<_LineTrackingDatum> data,
-    bool isDark,
-  ) {
-    if (data.isEmpty) {
-      return _buildEmptyChart('No active line tracking data.', isDark);
-    }
-
-    final rotation = data.length > 8
-        ? 60
-        : data.length > 5
-            ? 40
-            : 0;
-
-    return SfCartesianChart(
-      margin: EdgeInsets.zero,
-      plotAreaBorderWidth: 0,
-      tooltipBehavior: TooltipBehavior(enable: true, header: ''),
-      primaryXAxis: CategoryAxis(
-        labelRotation: rotation,
-        labelStyle: TextStyle(
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
-          fontSize: 11,
-        ),
-        majorGridLines: const MajorGridLines(width: 0),
-      ),
-      primaryYAxis: NumericAxis(
-        minimum: 0,
-        labelFormat: '{value}h',
-        labelStyle: TextStyle(
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
-        ),
-        majorTickLines: const MajorTickLines(size: 0),
-        axisLine: const AxisLine(width: 0),
-      ),
-      series: <CartesianSeries<dynamic, dynamic>>[
-        ColumnSeries<_LineTrackingDatum, String>(
-          dataSource: data,
-          width: 0.6,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-          xValueMapper: (item, _) => item.category,
-          yValueMapper: (item, _) => item.hours,
-          pointColorMapper: (item, _) => _lineHoursColor(item.hours),
-          dataLabelSettings: DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(
-              color: isDark ? Colors.white : Colors.black87,
-              fontSize: 10,
-            ),
-          ),
-          enableTooltip: true,
-        ),
-      ],
-      onTooltipRender: (TooltipArgs args) {
-        final idx = args.pointIndex?.toInt();
-        if (idx == null || idx < 0 || idx >= data.length) {
-          return;
-        }
-        final item = data[idx];
-        final start = _dateFormat.format(item.startTime.toLocal());
-        final use = item.totalUse?.toString() ?? '-';
-        args.text =
-            'Line: ${item.category}\nHours: ${item.hours.toStringAsFixed(2)}\nStencil: ${item.stencilSn}\nStart: $start\nUse: $use';
-      },
-    );
-  }
-
-  Widget _buildActiveLinesPanel(List<StencilDetail> active, bool isDark) {
-    if (active.isEmpty) {
-      return _buildEmptyChart('No stencils are currently on a line.', isDark);
-    }
-
-    return ListView.separated(
-      itemCount: active.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = active[index];
-        final hours = item.runningHours ?? 0.0;
-        final color = _lineHoursColor(hours);
-        final lineLabel = item.lineName?.isNotEmpty == true
-            ? item.lineName!
-            : item.location?.isNotEmpty == true
-                ? item.location!
-                : 'Unknown line';
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(isDark ? 0.15 : 0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withOpacity(0.7), width: 1.2),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      lineLabel,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: isDark ? Colors.white : Colors.blueGrey[900],
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${hours.toStringAsFixed(1)} h',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 12,
-                runSpacing: 6,
-                children: [
-                  _infoChip('Stencil',
-                      item.stencilSn.isEmpty ? '-' : item.stencilSn, isDark),
-                  _infoChip('Location', item.location ?? '-', isDark),
-                  _infoChip(
-                    'Start',
-                    _dateFormat.format(item.startTime!.toLocal()),
-                    isDark,
-                  ),
-                  if (item.totalUseTimes != null)
-                    _infoChip('Use', item.totalUseTimes.toString(), isDark),
-                ],
-              ),
-            ],
-          ),
+            const SizedBox(height: sectionSpacing),
+            _buildRunningLine(context, activeLines),
+          ],
         );
       },
     );
   }
 
-  Widget _buildStandardChart(List<_BarDatum> data, bool isDark) {
-    if (data.isEmpty) {
-      return _buildEmptyChart('No standard time data.', isDark);
+  List<_InsightMetric> _buildInsightMetrics(List<StencilDetail> activeLines) {
+    if (activeLines.isEmpty) return const [];
+
+    final accentPrimary = _palette.accentPrimary;
+    final accentSecondary = _palette.accentSecondary;
+    final neutralAccent =
+        _palette.isDark ? GlobalColors.borderDark : GlobalColors.borderLight;
+    final cautionAccent = _palette.isDark
+        ? Colors.amberAccent.shade200
+        : Colors.amberAccent.shade400;
+    final alertAccent = _palette.isDark
+        ? Colors.redAccent.shade200
+        : Colors.redAccent.shade400;
+
+    final total = activeLines.length;
+    int good = 0;
+    int warning = 0;
+    int danger = 0;
+
+    final now = DateTime.now();
+    for (final item in activeLines) {
+      final start = item.startTime;
+      if (start == null) continue;
+      final diff = now.difference(start).inMinutes / 60;
+      if (diff <= 3.5) {
+        good++;
+      } else if (diff <= 4) {
+        warning++;
+      } else {
+        danger++;
+      }
     }
 
-    return SfCartesianChart(
-      margin: EdgeInsets.zero,
-      plotAreaBorderWidth: 0,
-      tooltipBehavior: TooltipBehavior(enable: true, header: ''),
-      primaryXAxis: CategoryAxis(
-        labelRotation: 20,
-        labelStyle: TextStyle(
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
-        ),
-        majorGridLines: const MajorGridLines(width: 0),
+    final checkNow = DateTime.now();
+    final recentCutoff = checkNow.subtract(const Duration(days: 180));
+    final onCheck = activeLines
+        .where((e) => (e.checkTime ?? checkNow).isAfter(recentCutoff))
+        .length;
+
+    return [
+      _InsightMetric(
+        label: 'ACTIVE LINES',
+        value: total.toString(),
+        accent: accentPrimary,
+        description: 'Monitoring right now',
       ),
-      primaryYAxis: NumericAxis(
-        minimum: 0,
-        labelStyle: TextStyle(
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
-        ),
-        majorTickLines: const MajorTickLines(size: 0),
-        axisLine: const AxisLine(width: 0),
+      _InsightMetric(
+        label: 'STABLE',
+        value: good.toString(),
+        accent: accentSecondary,
+        description: '< 3.5 hours runtime',
       ),
-      series: <CartesianSeries<dynamic, dynamic>>[
-        ColumnSeries<_BarDatum, String>(
-          dataSource: data,
-          xValueMapper: (item, _) => item.label,
-          yValueMapper: (item, _) => item.value,
-          pointColorMapper: (item, index) =>
-              _standardBarColor(index ?? 0),
-          width: 0.55,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-          dataLabelSettings: DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(
-              color: isDark ? Colors.white : Colors.black87,
-              fontSize: 10,
+      _InsightMetric(
+        label: 'WATCH',
+        value: warning.toString(),
+        accent: cautionAccent,
+        description: '3.5 – 4 hours runtime',
+      ),
+      _InsightMetric(
+        label: 'ALERT',
+        value: danger.toString(),
+        accent: alertAccent,
+        description: '> 4 hours runtime',
+      ),
+      _InsightMetric(
+        label: 'RECENT CHECK',
+        value: onCheck.toString(),
+        accent: neutralAccent,
+        description: 'Checked in last 6 months',
+      ),
+    ];
+  }
+
+  Widget _buildOverviewTabs({
+    required List<_PieSlice> customerSlices,
+    required List<_PieSlice> statusSlices,
+    required List<_PieSlice> vendorSlices,
+    required List<_PieSlice> processSlices,
+  }) {
+    final accentPrimary = _palette.accentPrimary;
+    final accentSecondary = _palette.accentSecondary;
+    final accentInfo =
+        _palette.isDark ? GlobalColors.borderDark : GlobalColors.borderLight;
+    final accentSuccess = _palette.isDark
+        ? GlobalColors.gradientDarkStart
+        : GlobalColors.gradientLightStart;
+
+    final cards = [
+      _OverviewCardData(
+        title: 'CUSTOMER',
+        slices: customerSlices,
+        accent: accentPrimary,
+      ),
+      _OverviewCardData(
+        title: 'STATUS',
+        slices: statusSlices,
+        accent: accentSecondary,
+      ),
+      _OverviewCardData(
+        title: 'VENDOR',
+        slices: vendorSlices,
+        accent: accentInfo,
+      ),
+      _OverviewCardData(
+        title: 'STENCIL SIDE',
+        slices: processSlices,
+        accent: accentSuccess,
+      ),
+    ];
+
+    return _OverviewTabs(
+      cards: cards,
+      palette: _palette,
+      cardBuilder: (context, data) => _buildOverviewCard(context, data),
+    );
+  }
+
+  Widget _buildOverviewCard(BuildContext context, _OverviewCardData data) {
+    final palette = _palette;
+    final total = data.slices.fold<int>(0, (sum, slice) => sum + slice.value);
+
+    final titleStyle = GoogleFonts.spaceGrotesk(
+      color: data.accent,
+      fontSize: 14,
+      letterSpacing: 0.8,
+    );
+
+    final totalStyle = GoogleFonts.spaceGrotesk(
+      fontSize: 24,
+      fontWeight: FontWeight.w700,
+      color: palette.onSurface,
+    );
+
+    final subtitleStyle = GoogleFonts.ibmPlexMono(
+      fontSize: 11,
+      color: palette.onSurfaceMuted,
+    );
+
+    return _buildOverviewContainer(
+      accent: data.accent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(child: Text(data.title, style: titleStyle)),
+              if (total > 0)
+                Text('$total', style: totalStyle),
+              if (total > 0) ...[
+                const SizedBox(width: 4),
+                Text('items', style: subtitleStyle),
+              ],
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (total == 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'No data available',
+                style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                  fontFamily: _StencilTypography.numeric,
+                  color: palette.onSurfaceMuted,
+                ),
+              ),
+            )
+          else
+            Align(
+              alignment: Alignment.center,
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                runAlignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final slice in data.slices)
+                    _buildSliceChip(slice, data.accent, palette),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSliceChip(
+    _PieSlice slice,
+    Color accent,
+    _StencilColorScheme palette,
+  ) {
+    final label = slice.label.trim().isEmpty ? 'Unknown' : slice.label.trim();
+    final baseStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.body,
+      fontSize: 12,
+      color: palette.onSurface,
+    );
+    final valueStyle = baseStyle.copyWith(
+      fontFamily: _StencilTypography.numeric,
+      fontWeight: FontWeight.w600,
+      color: accent,
+    );
+
+    const indicatorSize = 8.0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withOpacity(0.4), width: 1),
+        color: palette.surfaceOverlay.withOpacity(palette.isDark ? 0.6 : 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: indicatorSize,
+            height: indicatorSize,
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(indicatorSize / 2),
             ),
           ),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 150),
+            child: Text(
+              label,
+              style: baseStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text('${slice.value}', style: valueStyle),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewContainer({
+    required Color accent,
+    required Widget child,
+    VoidCallback? onTap,
+    EdgeInsetsGeometry? margin,
+  }) {
+    final palette = _palette;
+    final borderRadius = BorderRadius.circular(20);
+
+    final container = Container(
+      margin: margin ?? EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      decoration: BoxDecoration(
+        borderRadius: borderRadius,
+        border: Border.all(color: accent.withOpacity(0.3), width: 1),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            palette.cardBackground.withOpacity(palette.isDark ? 0.92 : 0.96),
+            palette.surfaceOverlay.withOpacity(palette.isDark ? 0.5 : 0.4),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: palette.cardShadow.withOpacity(0.55),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: accent.withOpacity(0.15),
+            blurRadius: 22,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: child,
+    );
+
+    if (onTap == null) {
+      return container;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: borderRadius,
+      child: InkWell(
+        borderRadius: borderRadius,
+        onTap: onTap,
+        splashColor: accent.withOpacity(0.12),
+        highlightColor: accent.withOpacity(0.08),
+        child: container,
+      ),
+    );
+  }
+
+  Widget _buildLineTrackingCard(
+    BuildContext context,
+    List<_LineTrackingDatum> data,
+  ) {
+    final palette = _palette;
+    final accent = palette.accentSecondary;
+    final coolColor = palette.accentPrimary;
+    final cautionColor = _palette.isDark
+        ? Colors.amberAccent.shade200
+        : Colors.amberAccent.shade400;
+    final dangerColor = _palette.isDark
+        ? Colors.redAccent.shade200
+        : Colors.redAccent.shade400;
+    final titleStyle = GlobalTextStyles.bodyMedium(isDark: palette.isDark)
+        .copyWith(
+      fontFamily: _StencilTypography.heading,
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.1,
+      color: accent,
+    );
+
+    final top = data.take(8).toList();
+    final maxHours = top.fold<double>(0, (max, item) => item.hours > max ? item.hours : max);
+    final normalizedMax = maxHours <= 0 ? 1.0 : maxHours + 0.5;
+
+    return _buildOverviewContainer(
+      accent: accent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'LINE TRACKING',
+            style: titleStyle,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              _buildColorLegend(' < 3.5h', coolColor),
+              const SizedBox(width: 12),
+              _buildColorLegend('3.5 – 4h', cautionColor),
+              const SizedBox(width: 12),
+              _buildColorLegend('> 4h', dangerColor),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (top.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              child: Text(
+                'No runtime tracking data available',
+                style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                  fontFamily: _StencilTypography.numeric,
+                  color: _textSecondary,
+                ),
+              ),
+            )
+          else ...[
+            for (final item in top)
+              _buildLineProgressRow(
+                item,
+                normalizedMax,
+                onTap: () {
+                  final detail = _findDetailBySn(item.stencilSn);
+                  if (detail != null) {
+                    _showSingleDetail(context, detail, item.hours);
+                  }
+                },
+              ),
+            if (data.length > top.length)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _showLineTrackingDetail(context, data),
+                  style: TextButton.styleFrom(
+                    foregroundColor: accent,
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: const Icon(Icons.auto_graph_rounded, size: 16),
+                  label: Text(
+                    'View all ${data.length} lines',
+                    style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                      fontFamily: _StencilTypography.numeric,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLineProgressRow(
+    _LineTrackingDatum item,
+    double maxHours, {
+    VoidCallback? onTap,
+  }) {
+    final palette = _palette;
+    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.numeric,
+      fontSize: 12,
+      color: palette.onSurface,
+    );
+    final valueStyle = labelStyle.copyWith(
+      fontWeight: FontWeight.w600,
+      color: _lineHoursColor(item.hours),
+    );
+    final metaStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.numeric,
+      fontSize: 11,
+      color: _textSecondary,
+    );
+
+    final progress = (item.hours / maxHours).clamp(0.0, 1.0).toDouble();
+    final formattedHours = item.hours >= 10
+        ? item.hours.toStringAsFixed(1)
+        : item.hours.toStringAsFixed(2);
+
+    final radius = BorderRadius.circular(16);
+    final content = Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        border: Border.all(color: _lineHoursColor(item.hours).withOpacity(0.4)),
+        gradient: LinearGradient(
+          colors: [
+            _lineHoursColor(item.hours).withOpacity(0.14),
+            palette.cardBackground.withOpacity(0.9),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item.category,
+                  style: labelStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('$formattedHours h', style: valueStyle),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              valueColor: AlwaysStoppedAnimation<Color>(_lineHoursColor(item.hours)),
+              backgroundColor: _lineHoursColor(item.hours).withOpacity(0.18),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${item.location} • ${_dateFormat.format(item.startTime)}',
+            style: metaStyle,
+          ),
+        ],
+      ),
+    );
+
+    if (onTap == null) {
+      return content;
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: radius,
+      child: content,
+    );
+  }
+
+  Widget _buildColorLegend(String label, Color color) {
+    final textStyle = GlobalTextStyles.bodySmall(isDark: _palette.isDark)
+        .copyWith(
+      fontFamily: _StencilTypography.numeric,
+      fontSize: 11,
+      color: _textSecondary,
+    );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.6),
+                blurRadius: 6,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: textStyle,
         ),
       ],
     );
   }
 
-  Color _standardBarColor(int index) {
-    final opacity = 0.85 - index * 0.05;
-    final safe = opacity.clamp(0.35, 0.85);
-    return Colors.lightBlueAccent.withOpacity(safe.toDouble());
-  }
+  Widget _buildUsageAnalyticsCard(
+    BuildContext context,
+    List<_PieSlice> usingTime,
+    List<_PieSlice> checkTime,
+  ) {
+    final palette = _palette;
+    final usageAccent = palette.accentPrimary;
+    final checkingAccent =
+        palette.isDark ? GlobalColors.gradientDarkEnd : GlobalColors.gradientLightEnd;
 
-  Widget _buildEmptyChart(String message, bool isDark) {
-    return Center(
-      child: Text(
-        message,
-        style: TextStyle(
-          color: isDark ? Colors.white54 : Colors.blueGrey[500],
-        ),
-      ),
+    final usageData =
+        _OverviewCardData(title: 'USING TIME', slices: usingTime, accent: usageAccent);
+    final checkingData =
+        _OverviewCardData(title: 'CHECKING TIME', slices: checkTime, accent: checkingAccent);
+
+    final usageTotal = usageData.slices.fold<int>(0, (sum, slice) => sum + slice.value);
+    final checkingTotal =
+        checkingData.slices.fold<int>(0, (sum, slice) => sum + slice.value);
+
+    final titleStyle = GoogleFonts.spaceGrotesk(
+      color: usageAccent,
+      fontSize: 15,
+      letterSpacing: 1,
     );
-  }
-
-  Widget _infoChip(String label, String value, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white10 : Colors.blueGrey[50],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(
-          fontSize: 12,
-          color: isDark ? Colors.white70 : Colors.blueGrey[700],
-        ),
-      ),
+    final subtitleStyle = GoogleFonts.ibmPlexMono(
+      fontSize: 12,
+      color: palette.onSurfaceMuted,
     );
-  }
+    final totalStyle = GoogleFonts.spaceGrotesk(
+      fontSize: 24,
+      fontWeight: FontWeight.w700,
+      color: palette.onSurface,
+    );
+    final sectionLabelStyle = GoogleFonts.spaceGrotesk(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: palette.onSurface,
+    );
 
-  Widget _buildErrorBanner(bool isDark, String message) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
-      ),
-      child: Row(
+    return _buildOverviewContainer(
+      accent: usageAccent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, color: Colors.redAccent),
-          const SizedBox(width: 12),
-          Expanded(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(child: Text(usageData.title, style: titleStyle)),
+              if (usageTotal > 0) ...[
+                Text('$usageTotal', style: totalStyle),
+                const SizedBox(width: 4),
+                Text('items', style: subtitleStyle),
+              ],
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 190,
+            child: _UsagePrismChart(
+              slices: usageData.slices,
+              palette: palette,
+            ),
+          ),
+          if (usageData.slices.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 8,
+              children: [
+                for (final label in _usageLegendOrder)
+                  if (usageData.slices.any((slice) => slice.label == label))
+                    _UsageLegendChip(
+                      label: label,
+                      color: _usageColorForLabel(label, palette),
+                      textStyle: subtitleStyle,
+                      palette: palette,
+                    ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          Divider(color: palette.dividerColor.withOpacity(0.6)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  checkingData.title,
+                  style: sectionLabelStyle.copyWith(color: checkingAccent),
+                ),
+              ),
+              if (checkingTotal > 0)
+                Text(
+                  '$checkingTotal',
+                  style: totalStyle.copyWith(fontSize: 20, color: checkingAccent),
+                ),
+              const SizedBox(width: 4),
+              Text('items', style: subtitleStyle.copyWith(fontSize: 11)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (checkingData.slices.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'No checking data recorded',
+                style: subtitleStyle,
+              ),
+            )
+          else
+            Wrap(
+              alignment: WrapAlignment.center,
+              runAlignment: WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final slice in checkingData.slices)
+                  _buildSliceChip(slice, checkingAccent, palette),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRunningLine(BuildContext context, List<StencilDetail> activeLines) {
+    if (activeLines.isEmpty) {
+      return _GlassCard(
+        accent: _palette.accentPrimary,
+        title: 'RUNNING LINE',
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48),
             child: Text(
-              message,
-              style: TextStyle(
-                color: isDark ? Colors.red[200] : Colors.red[800],
+              'No active stencil on line',
+              style: GoogleFonts.ibmPlexMono(
+                color: _textSecondary,
+                fontSize: 14,
               ),
             ),
           ),
-          TextButton(
-            onPressed: () => controller.fetchData(force: true),
-            child: const Text('Retry'),
+        ),
+      );
+    }
+
+    final now = DateTime.now();
+    final limited = activeLines.take(8).toList();
+    final accent = _palette.accentPrimary;
+    final cautionColor = _palette.isDark
+        ? Colors.amberAccent.shade200
+        : Colors.amberAccent.shade400;
+    final dangerColor = _palette.isDark
+        ? Colors.redAccent.shade200
+        : Colors.redAccent.shade400;
+
+    return _GlassCard(
+      accent: accent,
+      title: 'RUNNING LINE',
+      action: TextButton.icon(
+        onPressed: () => _showRunningLineDetail(context, activeLines),
+        style: TextButton.styleFrom(foregroundColor: accent),
+        icon: Icon(Icons.list_alt_rounded, color: accent, size: 18),
+        label: Text(
+          'View all',
+          style: GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
+            fontFamily: _StencilTypography.numeric,
+            fontSize: 12,
+            color: accent,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          ...limited.map((item) {
+            final diffHours = item.startTime == null
+                ? 0.0
+                : now.difference(item.startTime!).inMinutes / 60.0;
+            final color = diffHours <= 3.5
+                ? accent
+                : diffHours <= 4
+                    ? cautionColor
+                    : dangerColor;
+
+            return _RunningLineTile(
+              detail: item,
+              hourDiff: diffHours,
+              accent: color,
+              onTap: () => _showSingleDetail(context, item, diffHours),
+            );
+          }),
+          if (activeLines.length > limited.length) ...[
+            const SizedBox(height: 12),
+            Text(
+              '+${activeLines.length - limited.length} more lines running',
+              style: GoogleFonts.ibmPlexMono(
+                color: _textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _axisLineColor),
+        color: _palette.surfaceOverlay,
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.sensors_off, size: 48, color: _textSecondary.withOpacity(0.7)),
+          const SizedBox(height: 12),
+          Text(
+            'No stencil records match the selected filters.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.ibmPlexMono(
+              color: _textSecondary,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFullError(bool isDark, String message) {
+  Widget _buildFullError(String message) {
+    final isNetworkError =
+        message.trim() == StencilMonitorController.networkErrorMessage;
+    final detailText =
+        isNetworkError ? message : 'Error details: $message';
+
+    final descriptionStyle = GlobalTextStyles.bodyMedium(isDark: _palette.isDark)
+        .copyWith(
+      fontFamily: _StencilTypography.body,
+      color: _textSecondary,
+      fontSize: 13,
+      height: 1.45,
+    );
+
+    final buttonStyle = FilledButton.styleFrom(
+      backgroundColor: _palette.accentPrimary,
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      textStyle: GlobalTextStyles.bodyMedium(isDark: _palette.isDark).copyWith(
+        fontFamily: _StencilTypography.heading,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.4,
+      ),
+    );
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline,
-                size: 48, color: isDark ? Colors.red[200] : Colors.redAccent),
-            const SizedBox(height: 12),
-            Text(
-              'Unable to load stencil monitor data.',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.blueGrey[900],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isDark ? Colors.white70 : Colors.blueGrey[600],
-              ),
+            Icon(
+              isNetworkError ? Icons.wifi_off_rounded : Icons.error_outline,
+              size: 56,
+              color: _palette.errorText.withOpacity(0.9),
             ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
+            Text(
+              'Unable to load stencil monitor data',
+              textAlign: TextAlign.center,
+              style: GlobalTextStyles.bodyLarge(isDark: _palette.isDark).copyWith(
+                fontFamily: _StencilTypography.heading,
+                color: _textPrimary,
+                letterSpacing: 0.6,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              detailText,
+              textAlign: TextAlign.center,
+              style: descriptionStyle,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              style: buttonStyle,
               onPressed: () => controller.fetchData(force: true),
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Reload'),
             ),
           ],
         ),
@@ -950,82 +1113,85 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.blueGrey[700]! : Colors.blueGrey[100]!,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.inbox,
-            size: 48,
-            color: isDark ? Colors.white30 : Colors.blueGrey[300],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'No stencil records match the selected filters.',
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  double _responsiveTileWidth(
-    double maxWidth, {
-    int preferCount = 4,
-    double minWidth = 220,
-  }) {
-    const spacing = 16.0;
-    if (maxWidth <= 0) return 0;
-    if (maxWidth < minWidth) return maxWidth;
-
-    double width;
-    if (maxWidth >= 1400) {
-      width = (maxWidth - spacing * (preferCount - 1)) / preferCount;
-    } else if (maxWidth >= 1000) {
-      width = (maxWidth - spacing) / 2;
-    } else {
-      width = maxWidth;
-    }
-
-    if (width < minWidth && maxWidth >= minWidth) {
-      width = minWidth;
-    }
-    if (width > maxWidth) {
-      width = maxWidth;
-    }
-    return width;
-  }
-
-  List<_PieSlice> _groupToPie(
-    List<StencilDetail> source,
-    String Function(StencilDetail item) selector,
-  ) {
+  List<_PieSlice> _buildCustomerSlices(List<StencilDetail> data) {
     final map = <String, int>{};
-    for (final item in source) {
-      final key = selector(item).trim();
-      final normalized = key.isEmpty ? 'UNK' : key;
-      map[normalized] = (map[normalized] ?? 0) + 1;
+    for (final item in data) {
+      final label = item.customerLabel;
+      map[label] = (map[label] ?? 0) + 1;
+    }
+
+    final entries = map.entries.toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+    return entries.map((entry) => _PieSlice(entry.key, entry.value)).toList();
+  }
+
+  List<_PieSlice> _buildStatusSlices(List<StencilDetail> data) {
+    final map = <String, int>{};
+    for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
+      final status = item.status?.trim() ?? '';
+      if (status.toUpperCase() == 'TOOLROOM') {
+        continue;
+      }
+      final label = status.isEmpty ? 'UNKNOWN' : status;
+      map[label] = (map[label] ?? 0) + 1;
+    }
+
+    final entries = map.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return entries.map((entry) => _PieSlice(entry.key, entry.value)).toList();
+  }
+
+  List<_PieSlice> _buildVendorSlices(List<StencilDetail> data) {
+    final map = <String, int>{};
+    for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
+      final vendor = item.vendorName.trim();
+      final label = vendor.isEmpty ? 'UNKNOWN' : vendor;
+      map[label] = (map[label] ?? 0) + 1;
+    }
+
+    final entries = map.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return entries.map((entry) => _PieSlice(entry.key, entry.value)).toList();
+  }
+
+  List<_PieSlice> _buildProcessSlices(List<StencilDetail> data) {
+    final map = <String, int>{};
+    for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
+      final label = _mapProcess(item.process);
+      map[label] = (map[label] ?? 0) + 1;
     }
 
     final entries = map.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
+    return entries.map((entry) => _PieSlice(entry.key, entry.value)).toList();
+  }
 
-    if (entries.length <= 8) {
-      return entries.map((e) => _PieSlice(e.key, e.value)).toList();
-    }
+  List<StencilDetail> _filterActiveLines(List<StencilDetail> data) {
+    final list = data
+        .where((item) => item.isActive && !_isIgnoredCustomer(item))
+        .toList();
+    list.sort((a, b) =>
+        (a.startTime ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(
+            b.startTime ?? DateTime.fromMillisecondsSinceEpoch(0)));
+    return list;
+  }
 
-    final top = entries.take(7).map((e) => _PieSlice(e.key, e.value)).toList();
-    final otherTotal = entries.skip(7).fold<int>(0, (sum, e) => sum + e.value);
-    top.add(_PieSlice('Other', otherTotal));
-    return top;
+  String _mapProcess(String? raw) {
+    final value = raw?.trim().toUpperCase() ?? '';
+    if (value == 'T' || value == 'TOP') return 'TOP';
+    if (value == 'B' || value == 'BOTTOM') return 'BOTTOM';
+    if (value == 'D' || value == 'DOUBLE') return 'DOUBLE';
+    if (value.isEmpty) return 'DOUBLE';
+    return value;
   }
 
   List<_LineTrackingDatum> _buildLineTracking(List<StencilDetail> data) {
@@ -1033,6 +1199,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     final list = <_LineTrackingDatum>[];
 
     for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
       final start = item.startTime;
       if (start == null) continue;
       final diff = now.difference(start).inMinutes / 60.0;
@@ -1057,48 +1226,82 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     return list;
   }
 
-  List<_BarDatum> _buildStandardBuckets(List<StencilDetail> data) {
-    final buckets = <String, int>{
-      '0 – 1K': 0,
-      '1K – 3K': 0,
-      '3K – 5K': 0,
-      '5K – 8K': 0,
-      '8K – 10K': 0,
-      '> 10K': 0,
-      'Unknown': 0,
-    };
+  bool _isIgnoredCustomer(StencilDetail detail) {
+    final raw = detail.customer.trim().toUpperCase();
+    return StencilMonitorController.ignoredCustomers.contains(raw);
+  }
+
+  StencilDetail? _findDetailBySn(String? sn) {
+    if (sn == null || sn.isEmpty) return null;
+    for (final detail in controller.stencilData) {
+      final stencilSn = detail.stencilSn;
+      if (stencilSn != null && stencilSn.isNotEmpty && stencilSn == sn) {
+        return detail;
+      }
+    }
+    return null;
+  }
+
+  List<_PieSlice> _buildStandardBuckets(List<StencilDetail> data) {
+    final ranges = <_UsageRange>[
+      const _UsageRange(min: double.negativeInfinity, max: 0, label: '0'),
+      const _UsageRange(min: 1, max: 20000, label: '1–20K'),
+      const _UsageRange(min: 20001, max: 50000, label: '20K–50K'),
+      const _UsageRange(min: 50001, max: 80000, label: '50K–80K'),
+      const _UsageRange(min: 80001, max: 90000, label: '80K–90K'),
+      const _UsageRange(min: 90001, max: 100000, label: '90K–100K'),
+      const _UsageRange(
+        min: 100001,
+        max: double.infinity,
+        label: 'Greater than 100K',
+      ),
+    ];
+
+    final counts = <String, int>{for (final range in ranges) range.label: 0};
+    var unknownCount = 0;
 
     for (final item in data) {
-      final value = item.standardTimes;
-      if (value == null) {
-        buckets['Unknown'] = buckets['Unknown']! + 1;
+      if (_isIgnoredCustomer(item)) {
         continue;
       }
-      if (value <= 1000) {
-        buckets['0 – 1K'] = buckets['0 – 1K']! + 1;
-      } else if (value <= 3000) {
-        buckets['1K – 3K'] = buckets['1K – 3K']! + 1;
-      } else if (value <= 5000) {
-        buckets['3K – 5K'] = buckets['3K – 5K']! + 1;
-      } else if (value <= 8000) {
-        buckets['5K – 8K'] = buckets['5K – 8K']! + 1;
-      } else if (value <= 10000) {
-        buckets['8K – 10K'] = buckets['8K – 10K']! + 1;
+      final value = item.totalUseTimes;
+      if (value == null) {
+        unknownCount++;
+        continue;
+      }
+
+      final matched = ranges.firstWhere(
+        (range) => range.matches(value),
+        orElse: () => const _UsageRange(
+          min: double.nan,
+          max: double.nan,
+          label: 'Unknown',
+        ),
+      );
+
+      if (matched.label == 'Unknown') {
+        unknownCount++;
       } else {
-        buckets['> 10K'] = buckets['> 10K']! + 1;
+        counts[matched.label] = (counts[matched.label] ?? 0) + 1;
       }
     }
 
-    return buckets.entries
+    final slices = counts.entries
         .where((entry) => entry.value > 0)
-        .map((entry) => _BarDatum(entry.key, entry.value))
+        .map((entry) => _PieSlice(entry.key, entry.value))
         .toList();
+
+    if (unknownCount > 0) {
+      slices.add(_PieSlice('Unknown', unknownCount));
+    }
+
+    return slices;
   }
 
   List<_PieSlice> _buildCheckTimeBuckets(List<StencilDetail> data) {
     final map = <String, int>{
       '0 – 6 Months': 0,
-      '6 – 12 Months': 0,
+      '6 Months – 1 Year': 0,
       '1 – 2 Years': 0,
       'Over 2 Years': 0,
       'Unknown': 0,
@@ -1106,6 +1309,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     final now = DateTime.now();
     for (final item in data) {
+      if (_isIgnoredCustomer(item)) {
+        continue;
+      }
       final check = item.checkTime;
       if (check == null) {
         map['Unknown'] = map['Unknown']! + 1;
@@ -1116,7 +1322,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
       if (months <= 6) {
         map['0 – 6 Months'] = map['0 – 6 Months']! + 1;
       } else if (months <= 12) {
-        map['6 – 12 Months'] = map['6 – 12 Months']! + 1;
+        map['6 Months – 1 Year'] = map['6 Months – 1 Year']! + 1;
       } else if (months <= 24) {
         map['1 – 2 Years'] = map['1 – 2 Years']! + 1;
       } else {
@@ -1126,7 +1332,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     final order = {
       '0 – 6 Months': 0,
-      '6 – 12 Months': 1,
+      '6 Months – 1 Year': 1,
       '1 – 2 Years': 2,
       'Over 2 Years': 3,
       'Unknown': 4,
@@ -1143,24 +1349,21 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
   Color _lineHoursColor(double hours) {
     if (hours >= 4) {
-      return Colors.redAccent.shade200;
+      return _palette.isDark
+          ? Colors.redAccent.shade200
+          : Colors.redAccent.shade400;
     }
     if (hours >= 3.5) {
-      return Colors.orangeAccent.shade200;
+      return _palette.isDark
+          ? Colors.amberAccent.shade200
+          : Colors.amberAccent.shade400;
     }
-    return Colors.cyanAccent.shade200;
+    return _palette.accentPrimary;
   }
 }
 
 class _PieSlice {
   _PieSlice(this.label, this.value);
-
-  final String label;
-  final int value;
-}
-
-class _BarDatum {
-  _BarDatum(this.label, this.value);
 
   final String label;
   final int value;
@@ -1183,3 +1386,139 @@ class _LineTrackingDatum {
   final String location;
   final int? totalUse;
 }
+
+class _OverviewCardData {
+  const _OverviewCardData({
+    required this.title,
+    required this.slices,
+    required this.accent,
+  });
+
+  final String title;
+  final List<_PieSlice> slices;
+  final Color accent;
+}
+
+class _OverviewTabs extends StatefulWidget {
+  const _OverviewTabs({
+    required this.cards,
+    required this.palette,
+    required this.cardBuilder,
+  });
+
+  final List<_OverviewCardData> cards;
+  final _StencilColorScheme palette;
+  final Widget Function(BuildContext, _OverviewCardData) cardBuilder;
+
+  @override
+  State<_OverviewTabs> createState() => _OverviewTabsState();
+}
+
+class _OverviewTabsState extends State<_OverviewTabs>
+    with SingleTickerProviderStateMixin {
+  late final TabController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TabController(length: widget.cards.length, vsync: this);
+    _controller.addListener(_handleTabChange);
+  }
+
+  void _handleTabChange() {
+    if (!_controller.indexIsChanging) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_handleTabChange);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeCard = widget.cards[_controller.index];
+    final palette = widget.palette;
+
+    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark)
+        .copyWith(
+      fontFamily: _StencilTypography.heading,
+      fontWeight: FontWeight.w600,
+      fontSize: 12,
+      letterSpacing: 0.6,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: activeCard.accent.withOpacity(0.45)),
+            color: palette.cardBackground,
+            boxShadow: [
+              BoxShadow(
+                color: palette.cardShadow,
+                blurRadius: 16,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: TabBar(
+            controller: _controller,
+            isScrollable: false,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicatorPadding: const EdgeInsets.symmetric(horizontal: 24),
+            indicator: UnderlineTabIndicator(
+              borderSide: BorderSide(color: activeCard.accent, width: 3),
+              insets: const EdgeInsets.symmetric(horizontal: 24),
+            ),
+            indicatorWeight: 3,
+            labelPadding: EdgeInsets.zero,
+            labelColor: activeCard.accent,
+            unselectedLabelColor: palette.onSurfaceMuted,
+            labelStyle: labelStyle,
+            tabs: [
+              for (final card in widget.cards) Tab(text: card.title),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: KeyedSubtree(
+            key: ValueKey<String>(activeCard.title),
+            child: SizedBox(
+              width: double.infinity,
+              child: widget.cardBuilder(context, activeCard),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UsageRange {
+  const _UsageRange({
+    required this.min,
+    required this.max,
+    required this.label,
+  });
+
+  final double min;
+  final double max;
+  final String label;
+
+  bool matches(num value) {
+    final doubleVal = value.toDouble();
+    return doubleVal >= min && doubleVal <= max;
+  }
+}
+
