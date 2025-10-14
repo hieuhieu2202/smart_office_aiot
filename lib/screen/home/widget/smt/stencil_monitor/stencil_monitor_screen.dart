@@ -33,12 +33,16 @@ class StencilMonitorScreen extends StatefulWidget {
   State<StencilMonitorScreen> createState() => _StencilMonitorScreenState();
 }
 
-class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
+class _StencilMonitorScreenState extends State<StencilMonitorScreen>
+    with TickerProviderStateMixin {
   late final String _controllerTag;
   late final StencilMonitorController controller;
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
   late _StencilColorScheme _palette;
+
+  TabController? _overviewTabController;
+  int _overviewTabIndex = 0;
 
   Color get _textPrimary => _palette.onSurface;
   Color get _textSecondary => _palette.onSurfaceMuted;
@@ -54,10 +58,46 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
   @override
   void dispose() {
+    _overviewTabController?.removeListener(_handleOverviewTabChange);
+    _overviewTabController?.dispose();
     if (Get.isRegistered<StencilMonitorController>(tag: _controllerTag)) {
       Get.delete<StencilMonitorController>(tag: _controllerTag);
     }
     super.dispose();
+  }
+
+  void _ensureOverviewTabController(int length) {
+    assert(length > 0, 'Overview tab controller requires at least one tab');
+    final controller = _overviewTabController;
+    final desiredIndex = math.min(math.max(_overviewTabIndex, 0), length - 1);
+
+    if (controller == null || controller.length != length) {
+      controller?.removeListener(_handleOverviewTabChange);
+      controller?.dispose();
+
+      _overviewTabController = TabController(
+        length: length,
+        vsync: this,
+        initialIndex: desiredIndex,
+      )..addListener(_handleOverviewTabChange);
+    } else if (controller.index != desiredIndex) {
+      controller.index = desiredIndex;
+    }
+
+    _overviewTabIndex = _overviewTabController!.index;
+  }
+
+  void _handleOverviewTabChange() {
+    final controller = _overviewTabController;
+    if (controller == null || controller.indexIsChanging) {
+      return;
+    }
+
+    if (_overviewTabIndex != controller.index) {
+      setState(() {
+        _overviewTabIndex = controller.index;
+      });
+    }
   }
 
   @override
@@ -113,31 +153,30 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     return RefreshIndicator(
       onRefresh: controller.refresh,
       color: _palette.accentPrimary,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (error.isNotEmpty) ...[
-                      _buildErrorChip(error),
-                      const SizedBox(height: 20),
-                    ],
-                    if (filtered.isEmpty)
-                      _buildEmptyState()
-                    else
-                      _buildDashboard(context, filtered),
-                  ],
-                ),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (error.isNotEmpty)
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, filtered.isEmpty ? 16 : 20),
+              sliver: SliverToBoxAdapter(
+                child: _buildErrorChip(error),
               ),
             ),
-          );
-        },
+          if (filtered.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildEmptyState(),
+              ),
+            )
+          else ..._buildDashboardSlivers(
+              context,
+              filtered,
+              includeTopPadding: error.isEmpty,
+            ),
+        ],
       ),
     );
   }
@@ -236,7 +275,11 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
     );
   }
 
-  Widget _buildDashboard(BuildContext context, List<StencilDetail> filtered) {
+  List<Widget> _buildDashboardSlivers(
+    BuildContext context,
+    List<StencilDetail> filtered, {
+    required bool includeTopPadding,
+  }) {
     final customerSlices = _buildCustomerSlices(filtered);
     final statusSlices = _buildStatusSlices(filtered);
     final vendorSlices = _buildVendorSlices(filtered);
@@ -250,54 +293,118 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
 
     final insights = _buildInsightMetrics(activeLines);
 
+    final cards = [
+      _OverviewCardData(
+        title: 'CUSTOMER',
+        slices: customerSlices,
+        accent: _palette.accentPrimary,
+      ),
+      _OverviewCardData(
+        title: 'STATUS',
+        slices: statusSlices,
+        accent: _palette.accentSecondary,
+      ),
+      _OverviewCardData(
+        title: 'VENDOR',
+        slices: vendorSlices,
+        accent: _palette.isDark
+            ? GlobalColors.borderDark
+            : GlobalColors.borderLight,
+      ),
+      _OverviewCardData(
+        title: 'STENCIL SIDE',
+        slices: processSlices,
+        accent: _palette.isDark
+            ? GlobalColors.gradientDarkStart
+            : GlobalColors.gradientLightStart,
+      ),
+    ];
+
+    _ensureOverviewTabController(cards.length);
+    final controller = _overviewTabController!;
+    final activeIndex = math.min(math.max(controller.index, 0), cards.length - 1);
+    final activeCard = cards[activeIndex];
+
     const sectionSpacing = 18.0;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 680;
-        final wrapSpacing = sectionSpacing;
-        final double cardWidth = isWide
-            ? (constraints.maxWidth - wrapSpacing) / 2
-            : constraints.maxWidth;
+    return [
+      SliverPadding(
+        padding: EdgeInsets.fromLTRB(16, includeTopPadding ? 16 : 0, 16, 0),
+        sliver: SliverPersistentHeader(
+          pinned: true,
+          delegate: _OverviewTabHeaderDelegate(
+            palette: _palette,
+            controller: controller,
+            cards: cards,
+          ),
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, sectionSpacing, 16, 0),
+        sliver: SliverToBoxAdapter(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            child: KeyedSubtree(
+              key: ValueKey<String>(activeCard.title),
+              child: _buildOverviewCard(context, activeCard),
+            ),
+          ),
+        ),
+      ),
+      if (insights.isNotEmpty)
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, sectionSpacing, 16, 0),
+          sliver: SliverToBoxAdapter(
+            child: _InsightsStrip(items: insights),
+          ),
+        ),
+      SliverPadding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          sectionSpacing,
+          16,
+          0,
+        ),
+        sliver: SliverToBoxAdapter(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 680;
+              final wrapSpacing = sectionSpacing;
+              final double cardWidth = isWide
+                  ? (constraints.maxWidth - wrapSpacing) / 2
+                  : constraints.maxWidth;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildOverviewTabs(
-              customerSlices: customerSlices,
-              statusSlices: statusSlices,
-              vendorSlices: vendorSlices,
-              processSlices: processSlices,
-            ),
-            if (insights.isNotEmpty) ...[
-              const SizedBox(height: sectionSpacing),
-              _InsightsStrip(items: insights),
-            ],
-            const SizedBox(height: sectionSpacing),
-            Wrap(
-              spacing: wrapSpacing,
-              runSpacing: wrapSpacing,
-              children: [
-                SizedBox(
-                  width: cardWidth,
-                  child: _buildUsageAnalyticsCard(
-                    context,
-                    usingTimeSlices,
-                    checkSlices,
+              return Wrap(
+                spacing: wrapSpacing,
+                runSpacing: wrapSpacing,
+                children: [
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildUsageAnalyticsCard(
+                      context,
+                      usingTimeSlices,
+                      checkSlices,
+                    ),
                   ),
-                ),
-                SizedBox(
-                  width: cardWidth,
-                  child: _buildLineTrackingCard(context, lineTracking),
-                ),
-              ],
-            ),
-            const SizedBox(height: sectionSpacing),
-            _buildRunningLine(context, activeLines),
-          ],
-        );
-      },
-    );
+                  SizedBox(
+                    width: cardWidth,
+                    child: _buildLineTrackingCard(context, lineTracking),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, sectionSpacing, 16, 16),
+        sliver: SliverToBoxAdapter(
+          child: _buildRunningLine(context, activeLines),
+        ),
+      ),
+    ];
   }
 
   List<_InsightMetric> _buildInsightMetrics(List<StencilDetail> activeLines) {
@@ -371,50 +478,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
         description: 'Checked in last 6 months',
       ),
     ];
-  }
-
-  Widget _buildOverviewTabs({
-    required List<_PieSlice> customerSlices,
-    required List<_PieSlice> statusSlices,
-    required List<_PieSlice> vendorSlices,
-    required List<_PieSlice> processSlices,
-  }) {
-    final accentPrimary = _palette.accentPrimary;
-    final accentSecondary = _palette.accentSecondary;
-    final accentInfo =
-        _palette.isDark ? GlobalColors.borderDark : GlobalColors.borderLight;
-    final accentSuccess = _palette.isDark
-        ? GlobalColors.gradientDarkStart
-        : GlobalColors.gradientLightStart;
-
-    final cards = [
-      _OverviewCardData(
-        title: 'CUSTOMER',
-        slices: customerSlices,
-        accent: accentPrimary,
-      ),
-      _OverviewCardData(
-        title: 'STATUS',
-        slices: statusSlices,
-        accent: accentSecondary,
-      ),
-      _OverviewCardData(
-        title: 'VENDOR',
-        slices: vendorSlices,
-        accent: accentInfo,
-      ),
-      _OverviewCardData(
-        title: 'STENCIL SIDE',
-        slices: processSlices,
-        accent: accentSuccess,
-      ),
-    ];
-
-    return _OverviewTabs(
-      cards: cards,
-      palette: _palette,
-      cardBuilder: (context, data) => _buildOverviewCard(context, data),
-    );
   }
 
   Widget _buildOverviewCard(BuildContext context, _OverviewCardData data) {
@@ -1399,109 +1462,75 @@ class _OverviewCardData {
   final Color accent;
 }
 
-class _OverviewTabs extends StatefulWidget {
-  const _OverviewTabs({
-    required this.cards,
+class _OverviewTabHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _OverviewTabHeaderDelegate({
     required this.palette,
-    required this.cardBuilder,
+    required this.controller,
+    required this.cards,
   });
 
-  final List<_OverviewCardData> cards;
   final _StencilColorScheme palette;
-  final Widget Function(BuildContext, _OverviewCardData) cardBuilder;
+  final TabController controller;
+  final List<_OverviewCardData> cards;
 
   @override
-  State<_OverviewTabs> createState() => _OverviewTabsState();
-}
-
-class _OverviewTabsState extends State<_OverviewTabs>
-    with SingleTickerProviderStateMixin {
-  late final TabController _controller;
+  double get minExtent => kTextTabBarHeight + 12;
 
   @override
-  void initState() {
-    super.initState();
-    _controller = TabController(length: widget.cards.length, vsync: this);
-    _controller.addListener(_handleTabChange);
-  }
-
-  void _handleTabChange() {
-    if (!_controller.indexIsChanging) {
-      setState(() {});
-    }
-  }
+  double get maxExtent => kTextTabBarHeight + 12;
 
   @override
-  void dispose() {
-    _controller.removeListener(_handleTabChange);
-    _controller.dispose();
-    super.dispose();
-  }
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final activeIndex = math.min(math.max(controller.index, 0), cards.length - 1);
+    final activeCard = cards[activeIndex];
 
-  @override
-  Widget build(BuildContext context) {
-    final activeCard = widget.cards[_controller.index];
-    final palette = widget.palette;
-
-    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark)
-        .copyWith(
+    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
       fontFamily: _StencilTypography.heading,
       fontWeight: FontWeight.w600,
       fontSize: 12,
       letterSpacing: 0.6,
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: activeCard.accent.withOpacity(0.45)),
-            color: palette.cardBackground,
-            boxShadow: [
-              BoxShadow(
-                color: palette.cardShadow,
-                blurRadius: 16,
-                offset: const Offset(0, 10),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: activeCard.accent.withOpacity(0.45)),
+        color: palette.cardBackground,
+        boxShadow: [
+          BoxShadow(
+            color: palette.cardShadow,
+            blurRadius: 16,
+            offset: const Offset(0, 10),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: TabBar(
-            controller: _controller,
-            isScrollable: false,
-            indicatorSize: TabBarIndicatorSize.tab,
-            indicatorPadding: const EdgeInsets.symmetric(horizontal: 24),
-            indicator: UnderlineTabIndicator(
-              borderSide: BorderSide(color: activeCard.accent, width: 3),
-              insets: const EdgeInsets.symmetric(horizontal: 24),
-            ),
-            indicatorWeight: 3,
-            labelPadding: EdgeInsets.zero,
-            labelColor: activeCard.accent,
-            unselectedLabelColor: palette.onSurfaceMuted,
-            labelStyle: labelStyle,
-            tabs: [
-              for (final card in widget.cards) Tab(text: card.title),
-            ],
-          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: TabBar(
+        controller: controller,
+        isScrollable: false,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicatorPadding: const EdgeInsets.symmetric(horizontal: 24),
+        indicator: UnderlineTabIndicator(
+          borderSide: BorderSide(color: activeCard.accent, width: 3),
+          insets: const EdgeInsets.symmetric(horizontal: 24),
         ),
-        const SizedBox(height: 18),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          child: KeyedSubtree(
-            key: ValueKey<String>(activeCard.title),
-            child: SizedBox(
-              width: double.infinity,
-              child: widget.cardBuilder(context, activeCard),
-            ),
-          ),
-        ),
-      ],
+        indicatorWeight: 3,
+        labelPadding: EdgeInsets.zero,
+        labelColor: activeCard.accent,
+        unselectedLabelColor: palette.onSurfaceMuted,
+        labelStyle: labelStyle,
+        tabs: [
+          for (final card in cards) Tab(text: card.title),
+        ],
+      ),
     );
+  }
+
+  @override
+  bool shouldRebuild(covariant _OverviewTabHeaderDelegate oldDelegate) {
+    return palette != oldDelegate.palette ||
+        controller != oldDelegate.controller ||
+        cards != oldDelegate.cards;
   }
 }
 
