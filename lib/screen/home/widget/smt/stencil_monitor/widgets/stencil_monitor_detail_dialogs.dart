@@ -321,64 +321,62 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  _DetailSummaryCard(
+                  _DetailSummarySection(
                     accent: accent,
                     lineLabel: lineLabel,
                     stencilSn: stencilSn,
                     status: statusLabel,
                     location: locationLabel,
-                  ),
-                  const SizedBox(height: 16),
-                  _DetailStatRow(
-                    accent: accent,
                     diffHours: diffHours,
                     useTimes: useTimes,
                     standardTimes: standardTimes,
                   ),
                   const SizedBox(height: 24),
-                  _DetailInfoSection(
-                    title: 'Assignment',
-                    rows: [
-                      _DetailInfoRow('Line', lineLabel),
-                      _DetailInfoRow('Location', locationLabel),
-                      _DetailInfoRow(
-                        'Customer',
-                        detail.customerLabel?.trim().isNotEmpty == true
-                            ? detail.customerLabel!.trim()
-                            : '--',
+                  _DetailInfoSectionGroup(
+                    sections: [
+                      _DetailInfoSection(
+                        title: 'Assignment',
+                        rows: [
+                          _DetailInfoRow('Line', lineLabel),
+                          _DetailInfoRow('Location', locationLabel),
+                          _DetailInfoRow(
+                            'Customer',
+                            detail.customerLabel?.trim().isNotEmpty == true
+                                ? detail.customerLabel!.trim()
+                                : '--',
+                          ),
+                          _DetailInfoRow(
+                            'Factory',
+                            detail.floorLabel?.trim().isNotEmpty == true
+                                ? detail.floorLabel!.trim()
+                                : '--',
+                          ),
+                        ],
                       ),
-                      _DetailInfoRow(
-                        'Factory',
-                        detail.floorLabel?.trim().isNotEmpty == true
-                            ? detail.floorLabel!.trim()
-                            : '--',
+                      _DetailInfoSection(
+                        title: 'Specification',
+                        rows: [
+                          _DetailInfoRow(
+                            'Process',
+                            detail.process?.trim().isNotEmpty == true
+                                ? detail.process!.trim()
+                                : 'Unknown',
+                          ),
+                          _DetailInfoRow(
+                            'Vendor',
+                            detail.vendorName.trim().isNotEmpty
+                                ? detail.vendorName.trim()
+                                : 'Unknown',
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _DetailInfoSection(
-                    title: 'Specification',
-                    rows: [
-                      _DetailInfoRow(
-                        'Process',
-                        detail.process?.trim().isNotEmpty == true
-                            ? detail.process!.trim()
-                            : 'Unknown',
+                      _DetailInfoSection(
+                        title: 'Timeline',
+                        rows: [
+                          _DetailInfoRow('Start time', dateText),
+                          _DetailInfoRow('Check time', checkText),
+                        ],
                       ),
-                      _DetailInfoRow(
-                        'Vendor',
-                        detail.vendorName.trim().isNotEmpty
-                            ? detail.vendorName.trim()
-                            : 'Unknown',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _DetailInfoSection(
-                    title: 'Timeline',
-                    rows: [
-                      _DetailInfoRow('Start time', dateText),
-                      _DetailInfoRow('Check time', checkText),
                     ],
                   ),
                 ],
@@ -410,6 +408,7 @@ class _DetailSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = _StencilColorScheme.of(context);
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: palette.cardBackground,
@@ -583,6 +582,70 @@ class _DetailStatRow extends StatelessWidget {
   }
 }
 
+class _DetailSummarySection extends StatelessWidget {
+  const _DetailSummarySection({
+    required this.accent,
+    required this.lineLabel,
+    required this.stencilSn,
+    required this.status,
+    required this.location,
+    required this.diffHours,
+    required this.useTimes,
+    required this.standardTimes,
+  });
+
+  final Color accent;
+  final String lineLabel;
+  final String stencilSn;
+  final String status;
+  final String location;
+  final double diffHours;
+  final int useTimes;
+  final int? standardTimes;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = _DetailSummaryCard(
+      accent: accent,
+      lineLabel: lineLabel,
+      stencilSn: stencilSn,
+      status: status,
+      location: location,
+    );
+    final stats = _DetailStatRow(
+      accent: accent,
+      diffHours: diffHours,
+      useTimes: useTimes,
+      standardTimes: standardTimes,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 640;
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 3, child: summary),
+              const SizedBox(width: 16),
+              Expanded(flex: 2, child: stats),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            summary,
+            const SizedBox(height: 16),
+            stats,
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _DetailInfoSection extends StatelessWidget {
   const _DetailInfoSection({
     required this.title,
@@ -621,6 +684,48 @@ class _DetailInfoSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DetailInfoSectionGroup extends StatelessWidget {
+  const _DetailInfoSectionGroup({required this.sections});
+
+  final List<Widget> sections;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 16.0;
+        final isWide = constraints.maxWidth >= 600;
+
+        if (!isWide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < sections.length; i++) ...[
+                sections[i],
+                if (i != sections.length - 1) const SizedBox(height: spacing),
+              ],
+            ],
+          );
+        }
+
+        final tileWidth = (constraints.maxWidth - spacing) / 2;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: sections
+              .map(
+                (section) => SizedBox(
+                  width: tileWidth,
+                  child: section,
+                ),
+              )
+              .toList(),
+        );
+      },
     );
   }
 }
