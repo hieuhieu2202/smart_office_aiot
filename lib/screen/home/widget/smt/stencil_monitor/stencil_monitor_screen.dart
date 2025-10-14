@@ -280,15 +280,15 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               children: [
                 SizedBox(
                   width: cardWidth,
-                  child: _buildLineTrackingCard(context, lineTracking),
-                ),
-                SizedBox(
-                  width: cardWidth,
                   child: _buildUsageAnalyticsCard(
                     context,
                     usingTimeSlices,
                     checkSlices,
                   ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildLineTrackingCard(context, lineTracking),
                 ),
               ],
             ),
