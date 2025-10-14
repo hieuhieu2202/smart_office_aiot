@@ -702,11 +702,54 @@ class _DetailInfoSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ...rows.map(
-            (row) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: _DetailInfoRowWidget(row: row),
+          Table(
+            columnWidths: const {
+              0: IntrinsicColumnWidth(),
+              1: FlexColumnWidth(),
+            },
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            border: TableBorder(
+              horizontalInside:
+                  BorderSide(color: palette.dividerColor.withOpacity(0.45)),
             ),
+            children: rows
+                .map(
+                  (row) => TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 4,
+                        ),
+                        child: Text(
+                          row.label,
+                          style: GlobalTextStyles.bodySmall(
+                            isDark: palette.isDark,
+                          ).copyWith(
+                            fontFamily: _StencilTypography.numeric,
+                            color: palette.onSurfaceMuted,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 4,
+                        ),
+                        child: Text(
+                          row.value,
+                          style: GlobalTextStyles.bodySmall(
+                            isDark: palette.isDark,
+                          ).copyWith(
+                            fontFamily: _StencilTypography.numeric,
+                            color: palette.onSurface,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                .toList(),
           ),
         ],
       ),
@@ -783,40 +826,4 @@ class _DetailInfoRow {
 
   final String label;
   final String value;
-}
-
-class _DetailInfoRowWidget extends StatelessWidget {
-  const _DetailInfoRowWidget({required this.row});
-
-  final _DetailInfoRow row;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = _StencilColorScheme.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(
-            row.label,
-            style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-              fontFamily: _StencilTypography.numeric,
-              color: palette.onSurfaceMuted,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            row.value,
-            style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-              fontFamily: _StencilTypography.numeric,
-              color: palette.onSurface,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }
