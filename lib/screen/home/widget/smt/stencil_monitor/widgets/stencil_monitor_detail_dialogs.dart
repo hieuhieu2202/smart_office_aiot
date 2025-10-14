@@ -127,8 +127,9 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
 
   Future<void> _showLineTrackingDetail(
     BuildContext context,
-    List<_LineTrackingDatum> items,
-  ) async {
+    List<_LineTrackingDatum> items, {
+    String initialQuery = '',
+  }) async {
     if (items.isEmpty) return;
 
     final sorted = items.toList()
@@ -136,21 +137,12 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
     final maxHours = sorted.fold<double>(0, (max, item) => item.hours > max ? item.hours : max);
     final normalizedMax = maxHours <= 0 ? 1.0 : maxHours + 0.5;
     final scrollController = ScrollController();
-    final queryController = TextEditingController();
-    final filteredNotifier = ValueNotifier<List<_LineTrackingDatum>>(sorted);
+    final queryController = TextEditingController(text: initialQuery);
+    final filteredNotifier =
+        ValueNotifier<List<_LineTrackingDatum>>(_filterLineTrackingData(sorted, initialQuery));
 
     List<_LineTrackingDatum> _applyFilter(String raw) {
-      final needle = raw.trim().toLowerCase();
-      if (needle.isEmpty) {
-        return sorted;
-      }
-      return sorted
-          .where(
-            (datum) => datum.category.toLowerCase().contains(needle) ||
-                datum.stencilSn.toLowerCase().contains(needle) ||
-                datum.location.toLowerCase().contains(needle),
-          )
-          .toList();
+      return _filterLineTrackingData(sorted, raw);
     }
 
     await showModalBottomSheet<void>(

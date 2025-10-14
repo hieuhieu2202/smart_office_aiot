@@ -39,6 +39,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
   late _StencilColorScheme _palette;
+  late final TextEditingController _lineTrackingSearchController;
+  String _lineTrackingQuery = '';
 
   TabController? _overviewTabController;
   int _overviewTabIndex = 0;
@@ -53,12 +55,16 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     super.initState();
     _controllerTag = widget.controllerTag ?? 'stencil_monitor_default';
     controller = Get.put(StencilMonitorController(), tag: _controllerTag);
+    _lineTrackingSearchController = TextEditingController()
+      ..addListener(_handleLineTrackingQueryChanged);
   }
 
   @override
   void dispose() {
     _overviewTabController?.removeListener(_handleOverviewTabChange);
     _overviewTabController?.dispose();
+    _lineTrackingSearchController.removeListener(_handleLineTrackingQueryChanged);
+    _lineTrackingSearchController.dispose();
     if (Get.isRegistered<StencilMonitorController>(tag: _controllerTag)) {
       Get.delete<StencilMonitorController>(tag: _controllerTag);
     }
@@ -95,6 +101,15 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     if (_overviewTabIndex != controller.index) {
       setState(() {
         _overviewTabIndex = controller.index;
+      });
+    }
+  }
+
+  void _handleLineTrackingQueryChanged() {
+    final query = _lineTrackingSearchController.text;
+    if (query != _lineTrackingQuery) {
+      setState(() {
+        _lineTrackingQuery = query;
       });
     }
   }
@@ -678,20 +693,69 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
       color: _textSecondary,
     );
 
-    final top = data.take(8).toList();
+    final filtered = _filterLineTrackingData(data, _lineTrackingQuery);
+    final top = filtered.take(8).toList();
     final maxHours = top.fold<double>(0, (max, item) => item.hours > max ? item.hours : max);
     final normalizedMax = maxHours <= 0 ? 1.0 : maxHours + 0.5;
+    final query = _lineTrackingQuery.trim();
+    final hasQuery = query.isNotEmpty;
 
     return _buildOverviewContainer(
       accent: accent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'LINE TRACKING',
-            style: titleStyle,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'LINE TRACKING',
+                  style: titleStyle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 260),
+                  child: TextField(
+                    controller: _lineTrackingSearchController,
+                    style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                      fontFamily: _StencilTypography.numeric,
+                      color: palette.onSurface,
+                      fontSize: 12,
+                    ),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: 'Search line, location, or stencil SN',
+                      hintStyle: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                        fontFamily: _StencilTypography.numeric,
+                        color: palette.onSurfaceMuted,
+                        fontSize: 12,
+                      ),
+                      prefixIcon: Icon(Icons.search, color: _textSecondary, size: 18),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      filled: true,
+                      fillColor: palette.surfaceOverlay.withOpacity(0.6),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: palette.dividerColor.withOpacity(0.6)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: palette.dividerColor.withOpacity(0.6)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: accent),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
@@ -702,19 +766,24 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               _buildColorLegend('> 4h', dangerColor),
             ],
           ),
-          if (data.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Top ${math.min(top.length, data.length)} of ${data.length} active lines by runtime',
-              style: metaStyle,
+          if (filtered.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                hasQuery
+                    ? 'Showing ${top.length} of ${filtered.length} matches for "$query"'
+                    : 'Top ${math.min(top.length, data.length)} of ${data.length} active lines by runtime',
+                style: metaStyle,
+              ),
             ),
-          ],
           const SizedBox(height: 12),
           if (top.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 18),
               child: Text(
-                'No active line runtime data available',
+                hasQuery
+                    ? 'No lines found for "$query"'
+                    : 'No active line runtime data available',
                 style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
                   fontFamily: _StencilTypography.numeric,
                   color: _textSecondary,
@@ -733,11 +802,15 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
                   }
                 },
               ),
-            if (data.length > top.length)
+            if ((hasQuery ? filtered.length : data.length) > top.length)
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: () => _showLineTrackingDetail(context, data),
+                  onPressed: () => _showLineTrackingDetail(
+                    context,
+                    data,
+                    initialQuery: _lineTrackingQuery,
+                  ),
                   style: TextButton.styleFrom(
                     foregroundColor: accent,
                     padding: EdgeInsets.zero,
@@ -745,7 +818,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
                   ),
                   icon: const Icon(Icons.auto_graph_rounded, size: 16),
                   label: Text(
-                    'View & search all ${data.length} lines',
+                    hasQuery
+                        ? 'View all ${filtered.length} matches'
+                        : 'View & search all ${data.length} lines',
                     style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
                       fontFamily: _StencilTypography.numeric,
                       fontSize: 11,
@@ -1221,6 +1296,24 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
 
     list.sort((a, b) => b.hours.compareTo(a.hours));
     return list;
+  }
+
+  List<_LineTrackingDatum> _filterLineTrackingData(
+    List<_LineTrackingDatum> items,
+    String query,
+  ) {
+    final needle = query.trim().toLowerCase();
+    if (needle.isEmpty) {
+      return items;
+    }
+
+    return items
+        .where(
+          (datum) => datum.category.toLowerCase().contains(needle) ||
+              datum.stencilSn.toLowerCase().contains(needle) ||
+              datum.location.toLowerCase().contains(needle),
+        )
+        .toList();
   }
 
   bool _isIgnoredCustomer(StencilDetail detail) {
