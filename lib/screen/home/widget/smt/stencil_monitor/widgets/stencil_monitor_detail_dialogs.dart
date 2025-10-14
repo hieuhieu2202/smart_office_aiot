@@ -438,6 +438,7 @@ class _DetailInfoTable extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 420;
+        final rowDividerColor = palette.dividerColor.withOpacity(0.7);
         final columnWidths = isWide
             ? const <int, TableColumnWidth>{
                 0: FlexColumnWidth(1),
@@ -459,6 +460,11 @@ class _DetailInfoTable extends StatelessWidget {
 
             rows.add(
               TableRow(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: rowDividerColor, width: 1),
+                  ),
+                ),
                 children: [
                   buildLabel(left.label),
                   buildValue(left),
@@ -477,6 +483,11 @@ class _DetailInfoTable extends StatelessWidget {
           for (final entry in entries) {
             rows.add(
               TableRow(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: rowDividerColor, width: 1),
+                  ),
+                ),
                 children: [
                   buildLabel(entry.label),
                   buildValue(entry),
