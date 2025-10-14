@@ -697,44 +697,57 @@ class _DetailInfoTable extends StatelessWidget {
     final palette = _StencilColorScheme.of(context);
     final dividerColor = palette.dividerColor.withOpacity(0.5);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: palette.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var groupIndex = 0; groupIndex < groups.length; groupIndex++) ...[
-            if (groupIndex != 0) ...[
-              const SizedBox(height: 12),
-              Divider(color: dividerColor),
-              const SizedBox(height: 12),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useTwoColumn = constraints.maxWidth >= 560;
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: palette.cardBackground,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: dividerColor),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var groupIndex = 0; groupIndex < groups.length; groupIndex++) ...[
+                if (groupIndex != 0) ...[
+                  const SizedBox(height: 12),
+                  Divider(color: dividerColor),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  groups[groupIndex].title,
+                  style:
+                      GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
+                    fontFamily: _StencilTypography.heading,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (useTwoColumn)
+                  _DetailInfoTwoColumnGroup(
+                    rows: groups[groupIndex].rows,
+                    dividerColor: dividerColor,
+                  )
+                else
+                  ...List.generate(groups[groupIndex].rows.length, (rowIndex) {
+                    final row = groups[groupIndex].rows[rowIndex];
+                    final isLastRow = rowIndex == groups[groupIndex].rows.length - 1;
+                    return _DetailInfoTableRow(
+                      label: row.label,
+                      value: row.value,
+                      showDivider: !isLastRow,
+                      dividerColor: dividerColor,
+                    );
+                  }),
+              ],
             ],
-            Text(
-              groups[groupIndex].title,
-              style: GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
-                fontFamily: _StencilTypography.heading,
-                fontSize: 15,
-              ),
-            ),
-            const SizedBox(height: 10),
-            ...List.generate(groups[groupIndex].rows.length, (rowIndex) {
-              final row = groups[groupIndex].rows[rowIndex];
-              final isLastRow = rowIndex == groups[groupIndex].rows.length - 1;
-              return _DetailInfoTableRow(
-                label: row.label,
-                value: row.value,
-                showDivider: !isLastRow,
-                dividerColor: dividerColor,
-              );
-            }),
-          ],
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -788,6 +801,84 @@ class _DetailInfoTableRow extends StatelessWidget {
           const SizedBox(height: 10),
         ] else
           const SizedBox(height: 4),
+      ],
+    );
+  }
+}
+
+class _DetailInfoTwoColumnGroup extends StatelessWidget {
+  const _DetailInfoTwoColumnGroup({
+    required this.rows,
+    required this.dividerColor,
+  });
+
+  final List<_DetailInfoRow> rows;
+  final Color dividerColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var index = 0; index < rows.length; index += 2) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _DetailInfoTableCell(
+                  label: rows[index].label,
+                  value: rows[index].value,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: index + 1 < rows.length
+                    ? _DetailInfoTableCell(
+                        label: rows[index + 1].label,
+                        value: rows[index + 1].value,
+                      )
+                    : const SizedBox(),
+              ),
+            ],
+          ),
+          if (index + 2 < rows.length) ...[
+            const SizedBox(height: 12),
+            Divider(color: dividerColor),
+            const SizedBox(height: 12),
+          ] else
+            const SizedBox(height: 4),
+        ],
+      ],
+    );
+  }
+}
+
+class _DetailInfoTableCell extends StatelessWidget {
+  const _DetailInfoTableCell({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _StencilColorScheme.of(context);
+    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.numeric,
+      color: palette.onSurfaceMuted,
+    );
+    final valueStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.numeric,
+      color: palette.onSurface,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: labelStyle),
+        const SizedBox(height: 6),
+        Text(value, style: valueStyle),
       ],
     );
   }
