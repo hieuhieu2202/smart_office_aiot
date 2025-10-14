@@ -377,52 +377,21 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                         ],
                       );
 
-                      final assignmentCard = _DetailInfoTable(
-                        groups: [assignmentGroup, timelineGroup],
+                      final infoCard = _DetailInfoTable(
+                        groups: [
+                          assignmentGroup,
+                          specificationGroup,
+                          timelineGroup,
+                        ],
                       );
-                      final specificationCard =
-                          _DetailInfoTable(groups: [specificationGroup]);
 
-                      if (constraints.maxWidth >= 860) {
+                      if (constraints.maxWidth >= 720) {
                         return Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              flex: 5,
-                              child: summarySection,
-                            ),
+                            Expanded(child: summarySection),
                             const SizedBox(width: 20),
-                            Expanded(
-                              flex: 4,
-                              child: LayoutBuilder(
-                                builder: (context, detailConstraints) {
-                                  final shouldStack =
-                                      detailConstraints.maxWidth < 420;
-
-                                  if (shouldStack) {
-                                    return Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        assignmentCard,
-                                        const SizedBox(height: 16),
-                                        specificationCard,
-                                      ],
-                                    );
-                                  }
-
-                                  return Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(child: assignmentCard),
-                                      const SizedBox(width: 16),
-                                      Expanded(child: specificationCard),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
+                            Expanded(child: infoCard),
                           ],
                         );
                       }
@@ -432,9 +401,7 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                         children: [
                           summarySection,
                           const SizedBox(height: 24),
-                          assignmentCard,
-                          const SizedBox(height: 16),
-                          specificationCard,
+                          infoCard,
                         ],
                       );
                     },
@@ -467,46 +434,37 @@ class _DetailSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = _StencilColorScheme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: palette.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.dividerColor.withOpacity(0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            lineLabel,
-            style: GlobalTextStyles.bodyLarge(isDark: palette.isDark).copyWith(
-              fontFamily: _StencilTypography.heading,
-              fontSize: 18,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          lineLabel,
+          style: GlobalTextStyles.bodyLarge(isDark: palette.isDark).copyWith(
+            fontFamily: _StencilTypography.heading,
+            fontSize: 18,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            _DetailSummaryChip(
+              icon: Icons.place_outlined,
+              label: location,
             ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              _DetailSummaryChip(
-                icon: Icons.place_outlined,
-                label: location,
-              ),
-              _DetailSummaryChip(
-                icon: Icons.confirmation_number_outlined,
-                label: 'Stencil: $stencilSn',
-              ),
-              _DetailSummaryChip(
-                icon: Icons.verified_rounded,
-                label: status,
-                accent: accent,
-              ),
-            ],
-          ),
-        ],
-      ),
+            _DetailSummaryChip(
+              icon: Icons.confirmation_number_outlined,
+              label: 'Stencil: $stencilSn',
+            ),
+            _DetailSummaryChip(
+              icon: Icons.verified_rounded,
+              label: status,
+              accent: accent,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -684,6 +642,7 @@ class _DetailSummarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _StencilColorScheme.of(context);
     final summary = _DetailSummaryCard(
       accent: accent,
       lineLabel: lineLabel,
@@ -698,29 +657,21 @@ class _DetailSummarySection extends StatelessWidget {
       standardTimes: standardTimes,
     );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 640;
-        if (isWide) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 3, child: summary),
-              const SizedBox(width: 16),
-              Expanded(flex: 2, child: stats),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            summary,
-            const SizedBox(height: 16),
-            stats,
-          ],
-        );
-      },
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: palette.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.dividerColor.withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          summary,
+          const SizedBox(height: 16),
+          stats,
+        ],
+      ),
     );
   }
 }
