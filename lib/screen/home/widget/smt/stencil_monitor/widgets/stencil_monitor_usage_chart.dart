@@ -80,14 +80,6 @@ class _UsageLegendChip extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(label, style: baseStyle),
-          const SizedBox(width: 6),
-          Text(
-            '$count',
-            style: baseStyle.copyWith(
-              fontFamily: _StencilTypography.numeric,
-              color: palette.onSurfaceMuted,
-            ),
-          ),
         ],
       ),
     );
