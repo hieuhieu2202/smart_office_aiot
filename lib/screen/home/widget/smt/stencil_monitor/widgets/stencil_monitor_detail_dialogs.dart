@@ -278,22 +278,49 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
   ) async {
     final scrollController = ScrollController();
     final accent = _lineHoursColor(diffHours);
-    final lineTitle =
-        (detail.lineName?.trim().isNotEmpty == true ? detail.lineName!.trim() : null) ??
-            (detail.location?.trim().isNotEmpty == true ? detail.location!.trim() : null) ??
-            (detail.stencilSn?.trim().isNotEmpty == true ? detail.stencilSn!.trim() : 'Detail');
-    final locationLabel =
-        detail.location?.trim().isNotEmpty == true ? detail.location!.trim() : '--';
-    final lineLabel =
-        detail.lineName?.trim().isNotEmpty == true ? detail.lineName!.trim() : locationLabel;
     final stencilSn = detail.stencilSn?.trim().isNotEmpty == true
         ? detail.stencilSn!.trim()
         : '--';
+    final lineNameLabel = detail.lineName?.trim().isNotEmpty == true
+        ? detail.lineName!.trim()
+        : null;
+    final locationLabel = detail.location?.trim().isNotEmpty == true
+        ? detail.location!.trim()
+        : null;
+    final lineTitle = lineNameLabel ?? locationLabel ?? (stencilSn != '--' ? stencilSn : 'Detail');
+    final lineLocationParts = [
+      if (lineNameLabel != null) lineNameLabel,
+      if (locationLabel != null) locationLabel,
+    ];
+    final lineLocationText = lineLocationParts.isEmpty
+        ? '--'
+        : lineLocationParts.join(' • ');
     final statusLabel = detail.statusLabel?.trim().isNotEmpty == true
         ? detail.statusLabel!.trim()
         : 'Unknown';
+    final customerLabel = detail.customerLabel?.trim().isNotEmpty == true
+        ? detail.customerLabel!.trim()
+        : '--';
+    final factoryLabel = detail.floorLabel?.trim().isNotEmpty == true
+        ? detail.floorLabel!.trim()
+        : '--';
+    final processLabel = detail.process?.trim().isNotEmpty == true
+        ? detail.process!.trim()
+        : 'Unknown';
+    final vendorLabel = detail.vendorName.trim().isNotEmpty
+        ? detail.vendorName.trim()
+        : 'Unknown';
     final useTimes = detail.totalUseTimes ?? 0;
-    final standardTimes = detail.standardTimes;
+    final standardText = detail.standardTimes != null
+        ? '${detail.standardTimes}'
+        : 'Unknown';
+    final hoursText = '${diffHours.toStringAsFixed(2)} h';
+    final dateText = detail.startTime != null
+        ? _dateFormat.format(detail.startTime!)
+        : 'Unknown';
+    final checkText = detail.checkTime != null
+        ? _dateFormat.format(detail.checkTime!)
+        : 'Unknown';
 
     await showModalBottomSheet<void>(
       context: context,
@@ -302,18 +329,11 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
       builder: (ctx) {
         final media = MediaQuery.of(ctx);
         final bottomPadding = media.viewPadding.bottom;
-        final palette = _StencilColorScheme.of(ctx);
-        final dateText = detail.startTime != null
-            ? _dateFormat.format(detail.startTime!)
-            : 'Unknown';
-        final checkText = detail.checkTime != null
-            ? _dateFormat.format(detail.checkTime!)
-            : 'Unknown';
 
         return Padding(
           padding: EdgeInsets.only(bottom: bottomPadding),
           child: FractionallySizedBox(
-            heightFactor: 0.65,
+            heightFactor: 0.7,
             child: _DetailSheetContainer(
               title: lineTitle,
               controller: scrollController,
@@ -321,91 +341,18 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final summarySection = _DetailSummarySection(
-                        accent: accent,
-                        lineLabel: lineLabel,
-                        stencilSn: stencilSn,
-                        status: statusLabel,
-                        location: locationLabel,
-                        diffHours: diffHours,
-                        useTimes: useTimes,
-                        standardTimes: standardTimes,
-                      );
-                      final assignmentGroup = _DetailInfoGroup(
-                        title: 'Assignment',
-                        rows: [
-                          _DetailInfoRow('Line', lineLabel),
-                          _DetailInfoRow('Location', locationLabel),
-                          _DetailInfoRow(
-                            'Customer',
-                            detail.customerLabel?.trim().isNotEmpty == true
-                                ? detail.customerLabel!.trim()
-                                : '--',
-                          ),
-                          _DetailInfoRow(
-                            'Factory',
-                            detail.floorLabel?.trim().isNotEmpty == true
-                                ? detail.floorLabel!.trim()
-                                : '--',
-                          ),
-                        ],
-                      );
-                      final specificationGroup = _DetailInfoGroup(
-                        title: 'Specification',
-                        rows: [
-                          _DetailInfoRow(
-                            'Process',
-                            detail.process?.trim().isNotEmpty == true
-                                ? detail.process!.trim()
-                                : 'Unknown',
-                          ),
-                          _DetailInfoRow(
-                            'Vendor',
-                            detail.vendorName.trim().isNotEmpty
-                                ? detail.vendorName.trim()
-                                : 'Unknown',
-                          ),
-                        ],
-                      );
-                      final timelineGroup = _DetailInfoGroup(
-                        title: 'Timeline',
-                        rows: [
-                          _DetailInfoRow('Start time', dateText),
-                          _DetailInfoRow('Check time', checkText),
-                        ],
-                      );
-
-                      final infoCard = _DetailInfoTable(
-                        groups: [
-                          assignmentGroup,
-                          specificationGroup,
-                          timelineGroup,
-                        ],
-                      );
-
-                      if (constraints.maxWidth >= 720) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: summarySection),
-                            const SizedBox(width: 20),
-                            Expanded(child: infoCard),
-                          ],
-                        );
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          summarySection,
-                          const SizedBox(height: 24),
-                          infoCard,
-                        ],
-                      );
-                    },
-                  ),
+                  _DetailRow(label: 'Stencil SN', value: stencilSn, accent: accent),
+                  _DetailRow(label: 'Line / Location', value: lineLocationText),
+                  _DetailRow(label: 'Customer', value: customerLabel),
+                  _DetailRow(label: 'Factory', value: factoryLabel),
+                  _DetailRow(label: 'Status', value: statusLabel),
+                  _DetailRow(label: 'Hours running', value: hoursText, accent: accent),
+                  _DetailRow(label: 'Start time', value: dateText),
+                  _DetailRow(label: 'Check time', value: checkText),
+                  _DetailRow(label: 'Use times', value: '$useTimes'),
+                  _DetailRow(label: 'Standard times', value: standardText),
+                  _DetailRow(label: 'Process', value: processLabel),
+                  _DetailRow(label: 'Vendor', value: vendorLabel),
                 ],
               ),
             ),
@@ -416,476 +363,40 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
   }
 }
 
-class _DetailSummaryCard extends StatelessWidget {
-  const _DetailSummaryCard({
-    required this.accent,
-    required this.lineLabel,
-    required this.stencilSn,
-    required this.status,
-    required this.location,
-  });
-
-  final Color accent;
-  final String lineLabel;
-  final String stencilSn;
-  final String status;
-  final String location;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = _StencilColorScheme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          lineLabel,
-          style: GlobalTextStyles.bodyLarge(isDark: palette.isDark).copyWith(
-            fontFamily: _StencilTypography.heading,
-            fontSize: 18,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            _DetailSummaryChip(
-              icon: Icons.place_outlined,
-              label: location,
-            ),
-            _DetailSummaryChip(
-              icon: Icons.confirmation_number_outlined,
-              label: 'Stencil: $stencilSn',
-            ),
-            _DetailSummaryChip(
-              icon: Icons.verified_rounded,
-              label: status,
-              accent: accent,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _DetailSummaryChip extends StatelessWidget {
-  const _DetailSummaryChip({
-    required this.icon,
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
     required this.label,
+    required this.value,
     this.accent,
   });
 
-  final IconData icon;
   final String label;
+  final String value;
   final Color? accent;
 
   @override
   Widget build(BuildContext context) {
     final palette = _StencilColorScheme.of(context);
-    final color = accent ?? palette.onSurfaceMuted;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.4)),
-        color: accent != null
-            ? accent!.withOpacity(palette.isDark ? 0.18 : 0.12)
-            : palette.surfaceOverlay.withOpacity(0.55),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-              fontFamily: _StencilTypography.numeric,
-              color: color,
-            ),
-          ),
-        ],
-      ),
+    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.numeric,
+      color: palette.onSurfaceMuted,
     );
-  }
-}
-
-class _DetailStatRow extends StatelessWidget {
-  const _DetailStatRow({
-    required this.accent,
-    required this.diffHours,
-    required this.useTimes,
-    required this.standardTimes,
-  });
-
-  final Color accent;
-  final double diffHours;
-  final int useTimes;
-  final int? standardTimes;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = _StencilColorScheme.of(context);
-    TextStyle labelStyle(bool highlight) =>
-        GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-          fontFamily: _StencilTypography.numeric,
-          color: highlight ? accent : palette.onSurfaceMuted,
-        );
-    TextStyle valueStyle(bool highlight) =>
-        GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
-          fontFamily: _StencilTypography.heading,
-          color: highlight ? accent : palette.onSurface,
-          fontSize: 16,
-        );
-
-    Widget buildTile(String label, String value, {bool highlight = false}) {
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: palette.cardBackground,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: highlight ? accent.withOpacity(0.45) : palette.dividerColor,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: labelStyle(highlight)),
-            const SizedBox(height: 6),
-            Text(value, style: valueStyle(highlight)),
-          ],
-        ),
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 360;
-        final isThreeAcross = constraints.maxWidth >= 520;
-        final hoursTile = buildTile(
-          'Hours running',
-          '${diffHours.toStringAsFixed(2)} h',
-          highlight: true,
-        );
-        final useTile = buildTile('Use times', '$useTimes');
-        final standardTile = buildTile(
-          'Standard',
-          standardTimes != null ? '$standardTimes' : 'Unknown',
-        );
-
-        if (isThreeAcross) {
-          return Row(
-            children: [
-              Expanded(child: hoursTile),
-              const SizedBox(width: 12),
-              Expanded(child: useTile),
-              const SizedBox(width: 12),
-              Expanded(child: standardTile),
-            ],
-          );
-        }
-
-        if (isCompact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              hoursTile,
-              const SizedBox(height: 12),
-              useTile,
-              const SizedBox(height: 12),
-              standardTile,
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            hoursTile,
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: useTile),
-                const SizedBox(width: 12),
-                Expanded(child: standardTile),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _DetailSummarySection extends StatelessWidget {
-  const _DetailSummarySection({
-    required this.accent,
-    required this.lineLabel,
-    required this.stencilSn,
-    required this.status,
-    required this.location,
-    required this.diffHours,
-    required this.useTimes,
-    required this.standardTimes,
-  });
-
-  final Color accent;
-  final String lineLabel;
-  final String stencilSn;
-  final String status;
-  final String location;
-  final double diffHours;
-  final int useTimes;
-  final int? standardTimes;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = _StencilColorScheme.of(context);
-    final summary = _DetailSummaryCard(
-      accent: accent,
-      lineLabel: lineLabel,
-      stencilSn: stencilSn,
-      status: status,
-      location: location,
-    );
-    final stats = _DetailStatRow(
-      accent: accent,
-      diffHours: diffHours,
-      useTimes: useTimes,
-      standardTimes: standardTimes,
+    final valueStyle = GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.numeric,
+      color: accent ?? palette.onSurface,
+      fontWeight: accent != null ? FontWeight.w600 : FontWeight.w500,
     );
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: palette.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.dividerColor.withOpacity(0.5)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          summary,
-          const SizedBox(height: 16),
-          stats,
+          Text(label, style: labelStyle),
+          const SizedBox(height: 6),
+          Text(value, style: valueStyle),
         ],
       ),
-    );
-  }
-}
-
-class _DetailInfoRow {
-  const _DetailInfoRow(this.label, this.value);
-
-  final String label;
-  final String value;
-}
-
-class _DetailInfoGroup {
-  const _DetailInfoGroup({
-    required this.title,
-    required this.rows,
-  });
-
-  final String title;
-  final List<_DetailInfoRow> rows;
-}
-
-class _DetailInfoTable extends StatelessWidget {
-  const _DetailInfoTable({required this.groups});
-
-  final List<_DetailInfoGroup> groups;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = _StencilColorScheme.of(context);
-    final dividerColor = palette.dividerColor.withOpacity(0.5);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final useTwoColumn = constraints.maxWidth >= 420;
-
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: palette.cardBackground,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: dividerColor),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var groupIndex = 0; groupIndex < groups.length; groupIndex++) ...[
-                if (groupIndex != 0) ...[
-                  const SizedBox(height: 12),
-                  Divider(color: dividerColor),
-                  const SizedBox(height: 12),
-                ],
-                Text(
-                  groups[groupIndex].title,
-                  style:
-                      GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
-                    fontFamily: _StencilTypography.heading,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                if (useTwoColumn)
-                  _DetailInfoTwoColumnGroup(
-                    rows: groups[groupIndex].rows,
-                    dividerColor: dividerColor,
-                  )
-                else
-                  ...List.generate(groups[groupIndex].rows.length, (rowIndex) {
-                    final row = groups[groupIndex].rows[rowIndex];
-                    final isLastRow = rowIndex == groups[groupIndex].rows.length - 1;
-                    return _DetailInfoTableRow(
-                      label: row.label,
-                      value: row.value,
-                      showDivider: !isLastRow,
-                      dividerColor: dividerColor,
-                    );
-                  }),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _DetailInfoTableRow extends StatelessWidget {
-  const _DetailInfoTableRow({
-    required this.label,
-    required this.value,
-    required this.showDivider,
-    required this.dividerColor,
-  });
-
-  final String label;
-  final String value;
-  final bool showDivider;
-  final Color dividerColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = _StencilColorScheme.of(context);
-    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-      fontFamily: _StencilTypography.numeric,
-      color: palette.onSurfaceMuted,
-    );
-    final valueStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-      fontFamily: _StencilTypography.numeric,
-      color: palette.onSurface,
-    );
-
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 96),
-              child: Text(label, style: labelStyle),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                value,
-                style: valueStyle,
-              ),
-            ),
-          ],
-        ),
-        if (showDivider) ...[
-          const SizedBox(height: 10),
-          Divider(color: dividerColor),
-          const SizedBox(height: 10),
-        ] else
-          const SizedBox(height: 4),
-      ],
-    );
-  }
-}
-
-class _DetailInfoTwoColumnGroup extends StatelessWidget {
-  const _DetailInfoTwoColumnGroup({
-    required this.rows,
-    required this.dividerColor,
-  });
-
-  final List<_DetailInfoRow> rows;
-  final Color dividerColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (var index = 0; index < rows.length; index += 2) ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _DetailInfoTableCell(
-                  label: rows[index].label,
-                  value: rows[index].value,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: index + 1 < rows.length
-                    ? _DetailInfoTableCell(
-                        label: rows[index + 1].label,
-                        value: rows[index + 1].value,
-                      )
-                    : const SizedBox(),
-              ),
-            ],
-          ),
-          if (index + 2 < rows.length) ...[
-            const SizedBox(height: 12),
-            Divider(color: dividerColor),
-            const SizedBox(height: 12),
-          ] else
-            const SizedBox(height: 4),
-        ],
-      ],
-    );
-  }
-}
-
-class _DetailInfoTableCell extends StatelessWidget {
-  const _DetailInfoTableCell({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = _StencilColorScheme.of(context);
-    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-      fontFamily: _StencilTypography.numeric,
-      color: palette.onSurfaceMuted,
-    );
-    final valueStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-      fontFamily: _StencilTypography.numeric,
-      color: palette.onSurface,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: labelStyle),
-        const SizedBox(height: 6),
-        Text(value, style: valueStyle),
-      ],
     );
   }
 }
