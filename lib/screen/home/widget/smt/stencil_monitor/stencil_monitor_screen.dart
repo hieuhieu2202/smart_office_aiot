@@ -898,28 +898,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
               ],
             ),
           ],
-          if (usageData.slices.length > 1)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () => _showBreakdownDetail(context, usageData),
-                style: TextButton.styleFrom(
-                  foregroundColor: usageAccent,
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 0),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: const Icon(Icons.auto_graph_rounded, size: 16),
-                label: Text(
-                  'View breakdown',
-                  style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                    fontFamily: _StencilTypography.numeric,
-                    fontSize: 11,
-                    color: usageAccent,
-                  ),
-                ),
-              ),
-            ),
           const SizedBox(height: 12),
           Divider(color: palette.dividerColor.withOpacity(0.6)),
           const SizedBox(height: 12),
