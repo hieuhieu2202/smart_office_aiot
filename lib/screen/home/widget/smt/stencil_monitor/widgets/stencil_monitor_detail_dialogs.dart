@@ -391,19 +391,20 @@ class _DetailInfoTable extends StatelessWidget {
     final baseValueStyle = GlobalTextStyles.bodyMedium(isDark: palette.isDark);
 
     final labelStyle = baseLabelStyle.copyWith(
-      fontFamily: _StencilTypography.numeric,
-      fontSize: (baseLabelStyle.fontSize ?? 13) - 1,
+      fontFamily: _StencilTypography.body,
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
       color: palette.onSurfaceMuted,
-      letterSpacing: 0.05,
+      letterSpacing: 0.2,
     );
     final valueStyle = baseValueStyle.copyWith(
-      fontFamily: _StencilTypography.numeric,
-      fontSize: (baseValueStyle.fontSize ?? 16) - 1,
+      fontFamily: _StencilTypography.body,
+      fontSize: 18,
       color: palette.onSurface,
-      fontWeight: FontWeight.w500,
-      letterSpacing: 0.05,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.2,
     );
-    const cellPadding = EdgeInsets.symmetric(vertical: 6, horizontal: 4);
+    const cellPadding = EdgeInsets.symmetric(vertical: 8, horizontal: 6);
 
     Widget buildLabel(String text) {
       return Padding(
@@ -420,7 +421,7 @@ class _DetailInfoTable extends StatelessWidget {
     Widget buildValue(_DetailEntry entry) {
       final accentStyle = valueStyle.copyWith(
         color: entry.accent ?? palette.onSurface,
-        fontWeight: entry.accent != null ? FontWeight.w600 : FontWeight.w500,
+        fontWeight: entry.accent != null ? FontWeight.w700 : valueStyle.fontWeight,
       );
 
       return Padding(
