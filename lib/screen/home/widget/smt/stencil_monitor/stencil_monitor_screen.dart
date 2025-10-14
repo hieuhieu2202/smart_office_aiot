@@ -15,7 +15,6 @@ import '../../../../../widget/animation/loading/eva_loading_view.dart';
 part 'widgets/stencil_monitor_filter_sheet.dart';
 part 'widgets/stencil_monitor_common.dart';
 part 'widgets/stencil_monitor_insights.dart';
-part 'widgets/stencil_monitor_running_line.dart';
 part 'widgets/stencil_monitor_detail_dialogs.dart';
 part 'widgets/stencil_monitor_usage_chart.dart';
 
@@ -285,11 +284,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     final vendorSlices = _buildVendorSlices(filtered);
     final processSlices = _buildProcessSlices(filtered);
 
-    final lineTracking = _buildLineTracking(filtered);
+    final activeLines = _filterActiveLines(filtered);
+    final lineTracking = _buildLineTracking(activeLines);
     final usingTimeSlices = _buildStandardBuckets(filtered);
     final checkSlices = _buildCheckTimeBuckets(filtered);
-
-    final activeLines = _filterActiveLines(filtered);
 
     final insights = _buildInsightMetrics(activeLines);
 
@@ -396,12 +394,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               );
             },
           ),
-        ),
-      ),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, sectionSpacing, 16, 16),
-        sliver: SliverToBoxAdapter(
-          child: _buildRunningLine(context, activeLines),
         ),
       ),
     ];
@@ -680,6 +672,11 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
       letterSpacing: 1.1,
       color: accent,
     );
+    final metaStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+      fontFamily: _StencilTypography.numeric,
+      fontSize: 11,
+      color: _textSecondary,
+    );
 
     final top = data.take(8).toList();
     final maxHours = top.fold<double>(0, (max, item) => item.hours > max ? item.hours : max);
@@ -705,12 +702,19 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               _buildColorLegend('> 4h', dangerColor),
             ],
           ),
+          if (data.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Top ${math.min(top.length, data.length)} of ${data.length} active lines by runtime',
+              style: metaStyle,
+            ),
+          ],
           const SizedBox(height: 12),
           if (top.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 18),
               child: Text(
-                'No runtime tracking data available',
+                'No active line runtime data available',
                 style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
                   fontFamily: _StencilTypography.numeric,
                   color: _textSecondary,
@@ -741,7 +745,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
                   ),
                   icon: const Icon(Icons.auto_graph_rounded, size: 16),
                   label: Text(
-                    'View all ${data.length} lines',
+                    'View & search all ${data.length} lines',
                     style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
                       fontFamily: _StencilTypography.numeric,
                       fontSize: 11,
@@ -780,6 +784,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     final formattedHours = item.hours >= 10
         ? item.hours.toStringAsFixed(1)
         : item.hours.toStringAsFixed(2);
+    final usesText =
+        item.totalUse != null ? '${item.totalUse} uses' : 'Uses unknown';
+    final snText = item.stencilSn.isNotEmpty ? item.stencilSn : 'Unknown';
 
     final radius = BorderRadius.circular(16);
     final content = Container(
@@ -829,6 +836,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
             '${item.location} • ${_dateFormat.format(item.startTime)}',
             style: metaStyle,
           ),
+          const SizedBox(height: 2),
+          Text('SN $snText • $usesText', style: metaStyle),
         ],
       ),
     );
@@ -999,86 +1008,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
                   _buildSliceChip(slice, checkingAccent, palette),
               ],
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRunningLine(BuildContext context, List<StencilDetail> activeLines) {
-    if (activeLines.isEmpty) {
-      return _GlassCard(
-        accent: _palette.accentPrimary,
-        title: 'RUNNING LINE',
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 48),
-            child: Text(
-              'No active stencil on line',
-              style: GoogleFonts.ibmPlexMono(
-                color: _textSecondary,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    final now = DateTime.now();
-    final limited = activeLines.take(8).toList();
-    final accent = _palette.accentPrimary;
-    final cautionColor = _palette.isDark
-        ? Colors.amberAccent.shade200
-        : Colors.amberAccent.shade400;
-    final dangerColor = _palette.isDark
-        ? Colors.redAccent.shade200
-        : Colors.redAccent.shade400;
-
-    return _GlassCard(
-      accent: accent,
-      title: 'RUNNING LINE',
-      action: TextButton.icon(
-        onPressed: () => _showRunningLineDetail(context, activeLines),
-        style: TextButton.styleFrom(foregroundColor: accent),
-        icon: Icon(Icons.list_alt_rounded, color: accent, size: 18),
-        label: Text(
-          'View all',
-          style: GlobalTextStyles.bodySmall(isDark: _palette.isDark).copyWith(
-            fontFamily: _StencilTypography.numeric,
-            fontSize: 12,
-            color: accent,
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          ...limited.map((item) {
-            final diffHours = item.startTime == null
-                ? 0.0
-                : now.difference(item.startTime!).inMinutes / 60.0;
-            final color = diffHours <= 3.5
-                ? accent
-                : diffHours <= 4
-                    ? cautionColor
-                    : dangerColor;
-
-            return _RunningLineTile(
-              detail: item,
-              hourDiff: diffHours,
-              accent: color,
-              onTap: () => _showSingleDetail(context, item, diffHours),
-            );
-          }),
-          if (activeLines.length > limited.length) ...[
-            const SizedBox(height: 12),
-            Text(
-              '+${activeLines.length - limited.length} more lines running',
-              style: GoogleFonts.ibmPlexMono(
-                color: _textSecondary,
-                fontSize: 12,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -1267,25 +1196,30 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
       }
       final start = item.startTime;
       if (start == null) continue;
-      final diff = now.difference(start).inMinutes / 60.0;
-      final category = item.lineName?.isNotEmpty == true
-          ? item.lineName!
-          : item.location?.isNotEmpty == true
-              ? item.location!
-              : item.stencilSn;
+
+      final hours = now.difference(start).inMinutes / 60.0;
+      final lineName = item.lineName?.trim() ?? '';
+      final location = item.location?.trim() ?? '';
+      final stencilSn = item.stencilSn?.trim() ?? '';
+      final category = lineName.isNotEmpty
+          ? lineName
+          : location.isNotEmpty
+              ? location
+              : (stencilSn.isNotEmpty ? stencilSn : 'Unknown');
+
       list.add(
         _LineTrackingDatum(
           category: category,
-          hours: diff < 0 ? 0.0 : diff,
-          stencilSn: item.stencilSn,
+          hours: hours < 0 ? 0.0 : hours,
+          stencilSn: stencilSn,
           startTime: start,
-          location: item.location ?? '-',
+          location: location.isNotEmpty ? location : '-',
           totalUse: item.totalUseTimes,
         ),
       );
     }
 
-    list.sort((a, b) => a.startTime.compareTo(b.startTime));
+    list.sort((a, b) => b.hours.compareTo(a.hours));
     return list;
   }
 

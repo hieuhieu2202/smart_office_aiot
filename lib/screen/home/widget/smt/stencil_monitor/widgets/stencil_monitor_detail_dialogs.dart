@@ -136,6 +136,22 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
     final maxHours = sorted.fold<double>(0, (max, item) => item.hours > max ? item.hours : max);
     final normalizedMax = maxHours <= 0 ? 1.0 : maxHours + 0.5;
     final scrollController = ScrollController();
+    final queryController = TextEditingController();
+    final filteredNotifier = ValueNotifier<List<_LineTrackingDatum>>(sorted);
+
+    List<_LineTrackingDatum> _applyFilter(String raw) {
+      final needle = raw.trim().toLowerCase();
+      if (needle.isEmpty) {
+        return sorted;
+      }
+      return sorted
+          .where(
+            (datum) => datum.category.toLowerCase().contains(needle) ||
+                datum.stencilSn.toLowerCase().contains(needle) ||
+                datum.location.toLowerCase().contains(needle),
+          )
+          .toList();
+    }
 
     await showModalBottomSheet<void>(
       context: context,
@@ -156,25 +172,99 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
               child: _DetailSheetContainer(
                 title: 'Line tracking (${sorted.length})',
                 controller: scrollController,
-                child: ListView.separated(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                  itemCount: sorted.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (_, index) {
-                    final datum = sorted[index];
-                    return _buildLineProgressRow(
-                      datum,
-                      normalizedMax,
-                      onTap: () {
-                        final detail = _findDetailBySn(datum.stencilSn);
-                        if (detail != null) {
-                          Navigator.of(ctx).pop();
-                          _showSingleDetail(context, detail, datum.hours);
-                        }
-                      },
-                    );
-                  },
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                      child: TextField(
+                        controller: queryController,
+                        onChanged: (value) =>
+                            filteredNotifier.value = _applyFilter(value),
+                        style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
+                            .copyWith(
+                          fontFamily: _StencilTypography.numeric,
+                          color: palette.onSurface,
+                        ),
+                        decoration: InputDecoration(
+                          prefixIcon: Icon(Icons.search, color: _textSecondary),
+                          hintText: 'Search line, location, or stencil SN',
+                          hintStyle:
+                              GlobalTextStyles.bodySmall(isDark: palette.isDark)
+                                  .copyWith(
+                            fontFamily: _StencilTypography.numeric,
+                            color: palette.onSurfaceMuted,
+                          ),
+                          filled: true,
+                          fillColor: palette.surfaceOverlay.withOpacity(0.6),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: palette.dividerColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: palette.dividerColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: palette.accentSecondary),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: ValueListenableBuilder<List<_LineTrackingDatum>>(
+                        valueListenable: filteredNotifier,
+                        builder: (_, filtered, __) {
+                          if (filtered.isEmpty) {
+                            final query = queryController.text.trim();
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text(
+                                  query.isEmpty
+                                      ? 'No line tracking data to display'
+                                      : 'No lines found for "$query"',
+                                  style: GlobalTextStyles.bodySmall(
+                                          isDark: palette.isDark)
+                                      .copyWith(
+                                    fontFamily: _StencilTypography.numeric,
+                                    color: _textSecondary,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            );
+                          }
+
+                          return ListView.separated(
+                            controller: scrollController,
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (_, index) {
+                              final datum = filtered[index];
+                              return _buildLineProgressRow(
+                                datum,
+                                normalizedMax,
+                                onTap: () {
+                                  final detail = _findDetailBySn(datum.stencilSn);
+                                  if (detail != null) {
+                                    Navigator.of(ctx).pop();
+                                    _showSingleDetail(context, detail, datum.hours);
+                                  }
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -185,61 +275,8 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
       },
     );
     scrollController.dispose();
-  }
-
-  Future<void> _showRunningLineDetail(
-    BuildContext context,
-    List<StencilDetail> items,
-  ) async {
-    if (items.isEmpty) return;
-
-    final scrollController = ScrollController();
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final media = MediaQuery.of(ctx);
-        final bottomPadding = media.viewPadding.bottom;
-        return Padding(
-          padding: EdgeInsets.only(bottom: bottomPadding),
-          child: FractionallySizedBox(
-            heightFactor: 0.85,
-            child: _DetailSheetContainer(
-              title: 'Running line (${items.length})',
-              controller: scrollController,
-              child: ListView.separated(
-                controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (_, index) {
-                  final detail = items[index];
-                  final diffHours = detail.startTime == null
-                      ? 0.0
-                      : DateTime.now()
-                              .difference(detail.startTime!)
-                              .inMinutes /
-                          60.0;
-                  final accent = _lineHoursColor(diffHours);
-                  return _RunningLineTile(
-                    detail: detail,
-                    hourDiff: diffHours,
-                    accent: accent,
-                    dense: false,
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      _showSingleDetail(context, detail, diffHours);
-                    },
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-      },
-    );
+    queryController.dispose();
+    filteredNotifier.dispose();
   }
 
   Future<void> _showSingleDetail(
