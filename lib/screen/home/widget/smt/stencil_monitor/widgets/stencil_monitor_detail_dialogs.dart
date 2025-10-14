@@ -322,6 +322,21 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
         ? _dateFormat.format(detail.checkTime!)
         : 'Unknown';
 
+    final rows = [
+      _DetailEntry(label: 'Stencil SN', value: stencilSn, accent: accent),
+      _DetailEntry(label: 'Line / Location', value: lineLocationText),
+      _DetailEntry(label: 'Customer', value: customerLabel),
+      _DetailEntry(label: 'Factory', value: factoryLabel),
+      _DetailEntry(label: 'Status', value: statusLabel),
+      _DetailEntry(label: 'Hours running', value: hoursText, accent: accent),
+      _DetailEntry(label: 'Start time', value: dateText),
+      _DetailEntry(label: 'Check time', value: checkText),
+      _DetailEntry(label: 'Use times', value: '$useTimes'),
+      _DetailEntry(label: 'Standard times', value: standardText),
+      _DetailEntry(label: 'Process', value: processLabel),
+      _DetailEntry(label: 'Vendor', value: vendorLabel),
+    ];
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -341,18 +356,34 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  _DetailRow(label: 'Stencil SN', value: stencilSn, accent: accent),
-                  _DetailRow(label: 'Line / Location', value: lineLocationText),
-                  _DetailRow(label: 'Customer', value: customerLabel),
-                  _DetailRow(label: 'Factory', value: factoryLabel),
-                  _DetailRow(label: 'Status', value: statusLabel),
-                  _DetailRow(label: 'Hours running', value: hoursText, accent: accent),
-                  _DetailRow(label: 'Start time', value: dateText),
-                  _DetailRow(label: 'Check time', value: checkText),
-                  _DetailRow(label: 'Use times', value: '$useTimes'),
-                  _DetailRow(label: 'Standard times', value: standardText),
-                  _DetailRow(label: 'Process', value: processLabel),
-                  _DetailRow(label: 'Vendor', value: vendorLabel),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final maxWidth = constraints.maxWidth;
+                      final isTwoColumn = maxWidth >= 420;
+                      final horizontalSpacing = isTwoColumn ? 20.0 : 0.0;
+                      final runSpacing = 12.0;
+                      final tileWidth = isTwoColumn
+                          ? (maxWidth - horizontalSpacing) / 2
+                          : maxWidth;
+
+                      return Wrap(
+                        spacing: horizontalSpacing,
+                        runSpacing: runSpacing,
+                        children: rows
+                            .map(
+                              (entry) => SizedBox(
+                                width: tileWidth,
+                                child: _DetailRow(
+                                  label: entry.label,
+                                  value: entry.value,
+                                  accent: entry.accent,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -361,6 +392,18 @@ extension _StencilMonitorDetailDialogs on _StencilMonitorScreenState {
       },
     );
   }
+}
+
+class _DetailEntry {
+  const _DetailEntry({
+    required this.label,
+    required this.value,
+    this.accent,
+  });
+
+  final String label;
+  final String value;
+  final Color? accent;
 }
 
 class _DetailRow extends StatelessWidget {
@@ -377,23 +420,30 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = _StencilColorScheme.of(context);
-    final labelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+    final baseLabelStyle = GlobalTextStyles.bodySmall(isDark: palette.isDark);
+    final baseValueStyle = GlobalTextStyles.bodyMedium(isDark: palette.isDark);
+
+    final labelStyle = baseLabelStyle.copyWith(
       fontFamily: _StencilTypography.numeric,
+      fontSize: (baseLabelStyle.fontSize ?? 13) - 1,
       color: palette.onSurfaceMuted,
+      letterSpacing: 0.15,
     );
-    final valueStyle = GlobalTextStyles.bodyMedium(isDark: palette.isDark).copyWith(
+    final valueStyle = baseValueStyle.copyWith(
       fontFamily: _StencilTypography.numeric,
+      fontSize: (baseValueStyle.fontSize ?? 16) - 1,
       color: accent ?? palette.onSurface,
       fontWeight: accent != null ? FontWeight.w600 : FontWeight.w500,
+      letterSpacing: 0.1,
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: labelStyle),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(value, style: valueStyle),
         ],
       ),
