@@ -1,10 +1,17 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../model/smt/stencil_detail.dart';
 import '../../../service/stencil_monitor_api.dart';
 
 class StencilMonitorController extends GetxController {
   StencilMonitorController();
+
+  static const String networkErrorMessage =
+      'Connection issue detected. Please check your network connection and tap Reload to try again.';
 
   final RxList<StencilDetail> stencilData = <StencilDetail>[].obs;
   final RxBool isLoading = false.obs;
@@ -52,7 +59,7 @@ class StencilMonitorController extends GetxController {
         _rebuildFloors();
         print('>> [StencilMonitor] Loaded ${results.length} rows');
       } catch (e, stack) {
-        error.value = e.toString();
+        error.value = _describeError(e);
         print('>> [StencilMonitor] Fetch error: $e');
         print(stack);
       } finally {
@@ -159,6 +166,26 @@ class StencilMonitorController extends GetxController {
   String _normalizeLabel(String? value) {
     final raw = value?.trim() ?? '';
     return raw.isEmpty ? 'UNKNOWN' : raw;
+  }
+
+  String _describeError(Object error) {
+    if (error is SocketException ||
+        error is TimeoutException ||
+        error is http.ClientException ||
+        error is HandshakeException ||
+        error is TlsException) {
+      return networkErrorMessage;
+    }
+
+    final message = error.toString();
+    if (message.contains('Connection closed while receiving data') ||
+        message.contains('Failed host lookup') ||
+        message.contains('Network is unreachable') ||
+        message.contains('Software caused connection abort')) {
+      return networkErrorMessage;
+    }
+
+    return message;
   }
 }
 

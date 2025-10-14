@@ -1069,36 +1069,65 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen> {
   }
 
   Widget _buildFullError(String message) {
+    final isNetworkError =
+        message.trim() == StencilMonitorController.networkErrorMessage;
+    final detailText =
+        isNetworkError ? message : 'Error details: $message';
+
+    final descriptionStyle = GlobalTextStyles.bodyMedium(isDark: _palette.isDark)
+        .copyWith(
+      fontFamily: _StencilTypography.body,
+      color: _textSecondary,
+      fontSize: 13,
+      height: 1.45,
+    );
+
+    final buttonStyle = FilledButton.styleFrom(
+      backgroundColor: _palette.accentPrimary,
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      textStyle: GlobalTextStyles.bodyMedium(isDark: _palette.isDark).copyWith(
+        fontFamily: _StencilTypography.heading,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.4,
+      ),
+    );
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline,
-                size: 52, color: _palette.errorText.withOpacity(0.9)),
-            const SizedBox(height: 12),
-            Text(
-              'Unable to load stencil monitor data.',
-              style: GoogleFonts.spaceGrotesk(
-                color: _textPrimary,
-                fontSize: 16,
-              ),
+            Icon(
+              isNetworkError ? Icons.wifi_off_rounded : Icons.error_outline,
+              size: 56,
+              color: _palette.errorText.withOpacity(0.9),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Text(
-              message,
+              'Unable to load stencil monitor data',
               textAlign: TextAlign.center,
-              style: GoogleFonts.ibmPlexMono(
-                color: _textSecondary,
-                fontSize: 12,
+              style: GlobalTextStyles.bodyLarge(isDark: _palette.isDark).copyWith(
+                fontFamily: _StencilTypography.heading,
+                color: _textPrimary,
+                letterSpacing: 0.6,
               ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
+            const SizedBox(height: 10),
+            Text(
+              detailText,
+              textAlign: TextAlign.center,
+              style: descriptionStyle,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              style: buttonStyle,
               onPressed: () => controller.fetchData(force: true),
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Reload'),
             ),
           ],
         ),
