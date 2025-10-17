@@ -121,19 +121,20 @@ class MyApp extends StatelessWidget {
           final Color backgroundColor = settingController.isDarkMode.value
               ? const Color(0xFF0F172A)
               : const Color(0xFFF8FAFC);
-          return ResponsiveBreakpoints.builder(
-            background: Container(color: backgroundColor),
-            defaultScale: true,
-            child: BouncingScrollWrapper.builder(
-              context,
-              effectiveWidget,
+          return Container(
+            color: backgroundColor,
+            child: ResponsiveBreakpoints.builder(
+              child: BouncingScrollWrapper.builder(
+                context,
+                effectiveWidget,
+              ),
+              breakpoints: const [
+                Breakpoint(start: 0, end: 599, name: MOBILE),
+                Breakpoint(start: 600, end: 1023, name: TABLET),
+                Breakpoint(start: 1024, end: 1439, name: DESKTOP),
+                Breakpoint(start: 1440, end: double.infinity, name: 'XL'),
+              ],
             ),
-            breakpoints: const [
-              ResponsiveBreakpoint.resize(360, name: MOBILE),
-              ResponsiveBreakpoint.autoScale(600, name: TABLET),
-              ResponsiveBreakpoint.autoScale(900, name: DESKTOP),
-              ResponsiveBreakpoint.autoScale(1440, name: 'XL'),
-            ],
           );
         },
         initialRoute: '/splash',
