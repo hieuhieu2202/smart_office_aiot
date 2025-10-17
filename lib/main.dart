@@ -1,19 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:responsive_framework/responsive_framework.dart';
 import 'package:smart_factory/config/global_color.dart';
-import 'package:smart_factory/screen/login/controller/login_controller.dart';
-import 'package:smart_factory/screen/login/controller/user_profile_manager.dart';
-import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
-import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
-import 'package:smart_factory/screen/splash/splash.dart';
-import 'package:smart_factory/screen/login/login.dart';
-import 'package:smart_factory/screen/navbar/navbar.dart';
+import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/lang/controller/language_controller.dart';
 import 'package:smart_factory/lang/language_selection_screen.dart';
-import 'package:smart_factory/generated/l10n.dart';
+import 'package:smart_factory/screen/login/controller/login_controller.dart';
+import 'package:smart_factory/screen/login/controller/user_profile_manager.dart';
+import 'package:smart_factory/screen/login/login.dart';
+import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
+import 'package:smart_factory/screen/navbar/navbar.dart';
+import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
+import 'package:smart_factory/screen/splash/splash.dart';
 import 'package:smart_factory/service/auth/token_manager.dart';
 import 'package:syncfusion_flutter_core/core.dart';
 
@@ -44,7 +46,7 @@ void main() async {
   Get.put(NotificationController(), permanent: true);
   // // key SyncfusionLicense để đọc file pdf
   // SyncfusionLicense.registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF1cWWhAYVppR2Nbek5xdF9HZlZRRmY/P1ZhSXxWdkxjW31ccXJVRGZcWUF9XEI=');
-  runApp(const MyApp());
+  runApp(const AppInitializer());
 
   // runApp(
   //   DevicePreview(
@@ -52,6 +54,20 @@ void main() async {
   //     builder: (context) => const MyApp(),
   //   ),
   // );
+}
+
+class AppInitializer extends StatelessWidget {
+  const AppInitializer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ScreenUtilInit(
+      designSize: const Size(430, 932),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) => const MyApp(),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -65,6 +81,7 @@ class MyApp extends StatelessWidget {
 
     return Obx(
       () => GetMaterialApp(
+        useInheritedMediaQuery: true,
         debugShowCheckedModeBanner: false,
         themeMode:
             settingController.isDarkMode.value
@@ -99,6 +116,26 @@ class MyApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
+        builder: (context, widget) {
+          final Widget effectiveWidget = widget ?? const SizedBox.shrink();
+          final Color backgroundColor = settingController.isDarkMode.value
+              ? const Color(0xFF0F172A)
+              : const Color(0xFFF8FAFC);
+          return ResponsiveBreakpoints.builder(
+            background: Container(color: backgroundColor),
+            defaultScale: true,
+            child: BouncingScrollWrapper.builder(
+              context,
+              effectiveWidget,
+            ),
+            breakpoints: const [
+              ResponsiveBreakpoint.resize(360, name: MOBILE),
+              ResponsiveBreakpoint.autoScale(600, name: TABLET),
+              ResponsiveBreakpoint.autoScale(900, name: DESKTOP),
+              ResponsiveBreakpoint.autoScale(1440, name: 'XL'),
+            ],
+          );
+        },
         initialRoute: '/splash',
         getPages: [
           GetPage(name: '/splash', page: () => const SplashScreen()),

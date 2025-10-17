@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LoginTitle extends StatelessWidget {
   final bool isDark;
@@ -10,10 +11,10 @@ class LoginTitle extends StatelessWidget {
     return Text(
       'MBD Factory Platform',
       style: TextStyle(
-        fontSize: 24,
+        fontSize: 24.sp,
         fontWeight: FontWeight.bold,
         color: isDark ? Colors.white : const Color(0xFF153962),
-        letterSpacing: 1,
+        letterSpacing: 1.1.sp,
         shadows: [
           Shadow(
             color:

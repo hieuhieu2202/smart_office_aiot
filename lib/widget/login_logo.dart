@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LoginLogo extends StatelessWidget {
   final bool isDark;
@@ -8,12 +9,12 @@ class LoginLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!isDark) {
-      return Image.asset('assets/images/logo.png', width: 80, height: 80);
+      return Image.asset('assets/images/logo.png', width: 80.w, height: 80.w);
     }
     // Dark: có halo
     return Container(
-      width: 88,
-      height: 88,
+      width: 88.w,
+      height: 88.w,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
@@ -27,7 +28,7 @@ class LoginLogo extends StatelessWidget {
           BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 7),
         ],
       ),
-      child: Image.asset('assets/images/logo.png', width: 72, height: 72),
+      child: Image.asset('assets/images/logo.png', width: 72.w, height: 72.w),
     );
   }
 }

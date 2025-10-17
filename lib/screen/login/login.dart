@@ -1,10 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:responsive_framework/responsive_framework.dart';
 import 'package:smart_factory/generated/l10n.dart';
-import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 import 'package:smart_factory/screen/login/controller/login_controller.dart';
+import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 
 import '../../widget/login_logo.dart';
 import '../../widget/login_title.dart';
@@ -38,6 +40,31 @@ class LoginScreen extends StatelessWidget {
     final S text = S.of(context);
 
     final bool isDark = settingController.isDarkMode.value;
+    final ResponsiveBreakpointsData breakpoints =
+        ResponsiveBreakpoints.of(context);
+    final bool isTablet = breakpoints.largerOrEqualTo(TABLET);
+    final bool isDesktop = breakpoints.largerOrEqualTo(DESKTOP);
+
+    final double maxCardWidth = isDesktop
+        ? 580
+        : isTablet
+            ? 500
+            : 430;
+    final double maxCardHeight = isDesktop
+        ? 560
+        : isTablet
+            ? 520
+            : 470;
+    final double horizontalInset = isDesktop
+        ? 180
+        : isTablet
+            ? 80
+            : 20;
+    final double verticalInset = isDesktop
+        ? 80
+        : isTablet
+            ? 60
+            : 40;
 
     // Style
     final List<Color> cardGradient = isDark
@@ -91,18 +118,25 @@ class LoginScreen extends StatelessWidget {
               alignment: Alignment.center,
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                  left: 20,
-                  right: 20,
-                  top: 40,
+                padding: EdgeInsets.fromLTRB(
+                  horizontalInset,
+                  verticalInset,
+                  horizontalInset,
+                  verticalInset + MediaQuery.of(context).viewInsets.bottom,
                 ),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 430, maxHeight: 450),
+                  constraints: BoxConstraints(
+                    maxWidth: maxCardWidth,
+                    maxHeight: maxCardHeight,
+                  ),
                   child: FractionallySizedBox(
-                    widthFactor: 0.97,
+                    widthFactor: isDesktop
+                        ? 0.65
+                        : isTablet
+                            ? 0.75
+                            : 0.97,
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(18.r),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                         child: Container(
@@ -113,7 +147,7 @@ class LoginScreen extends StatelessWidget {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(18.r),
                             border: Border.all(
                               color: borderColor,
                               width: 1.3,
@@ -130,16 +164,28 @@ class LoginScreen extends StatelessWidget {
                             ],
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(22.0),
+                            padding: EdgeInsets.all(
+                              isDesktop
+                                  ? 32.w
+                                  : isTablet
+                                      ? 28.w
+                                      : 22.w,
+                            ),
                             child: Obx(() {
                               final bool loginFrozen = controller.isLoginFrozen.value;
                               return Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   LoginLogo(isDark: isDark),
-                                  const SizedBox(height: 4),
+                                  SizedBox(height: 6.h),
                                   LoginTitle(isDark: isDark),
-                                  const SizedBox(height: 17),
+                                  SizedBox(
+                                    height: isDesktop
+                                        ? 28.h
+                                        : isTablet
+                                            ? 22.h
+                                            : 17.h,
+                                  ),
                                   // Username field or stored username label
                                   if (!loginFrozen) ...[
                                     TextField(
@@ -148,20 +194,20 @@ class LoginScreen extends StatelessWidget {
                                         labelStyle: TextStyle(
                                           color: labelColor,
                                           fontWeight: FontWeight.w600,
-                                          fontSize: 16,
+                                          fontSize: 16.sp,
                                         ),
                                         filled: true,
                                         fillColor: inputFill,
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(12.r),
                                           borderSide: BorderSide.none,
                                         ),
                                         enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(12.r),
                                           borderSide: BorderSide(color: borderColor),
                                         ),
                                         focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(12.r),
                                           borderSide: BorderSide(
                                             color: borderColor,
                                             width: 2,
@@ -171,23 +217,30 @@ class LoginScreen extends StatelessWidget {
                                       style: TextStyle(
                                         color: textColor,
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 16,
+                                        fontSize: 16.sp,
                                       ),
                                       onChanged: controller.setUsername,
                                     ),
-                                    const SizedBox(height: 15),
+                                    SizedBox(
+                                      height: isDesktop
+                                          ? 24.h
+                                          : isTablet
+                                              ? 20.h
+                                              : 15.h,
+                                    ),
                                   ] else ...[
                                     Row(
                                       children: [
-                                        Icon(Icons.person, color: iconColor, size: 22),
-                                        const SizedBox(width: 7),
+                                        Icon(Icons.person,
+                                            color: iconColor, size: 22.sp),
+                                        SizedBox(width: 8.w),
                                         Expanded(
                                           child: Text(
                                             controller.username.value,
                                             style: TextStyle(
                                               color: iconColor,
                                               fontWeight: FontWeight.w600,
-                                              fontSize: 18,
+                                              fontSize: 18.sp,
                                             ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -195,7 +248,13 @@ class LoginScreen extends StatelessWidget {
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 18),
+                                    SizedBox(
+                                      height: isDesktop
+                                          ? 26.h
+                                          : isTablet
+                                              ? 22.h
+                                              : 18.h,
+                                    ),
                                   ],
                                   Obx(() => TextField(
                                     decoration: InputDecoration(
@@ -203,20 +262,20 @@ class LoginScreen extends StatelessWidget {
                                       labelStyle: TextStyle(
                                         color: labelColor,
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 16,
+                                        fontSize: 16.sp,
                                       ),
                                       filled: true,
                                       fillColor: inputFill,
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(12.r),
                                         borderSide: BorderSide.none,
                                       ),
                                       enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(12.r),
                                         borderSide: BorderSide(color: borderColor),
                                       ),
                                       focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(12.r),
                                         borderSide: BorderSide(
                                           color: borderColor,
                                           width: 2,
@@ -225,25 +284,32 @@ class LoginScreen extends StatelessWidget {
                                       suffixIcon: GestureDetector(
                                         onTap: () {
                                           controller.showPassword.value =
-                                          !controller.showPassword.value;
+                                              !controller.showPassword.value;
                                         },
                                         child: Icon(
                                           controller.showPassword.value
                                               ? Icons.visibility
                                               : Icons.visibility_off,
                                           color: iconColor,
+                                          size: 22.sp,
                                         ),
                                       ),
                                     ),
                                     style: TextStyle(
                                       color: textColor,
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 16,
+                                      fontSize: 16.sp,
                                     ),
                                     obscureText: !controller.showPassword.value,
                                     onChanged: controller.setPassword,
                                   )),
-                                  const SizedBox(height: 24),
+                                  SizedBox(
+                                    height: isDesktop
+                                        ? 34.h
+                                        : isTablet
+                                            ? 28.h
+                                            : 24.h,
+                                  ),
                                   // --- Nút Đăng nhập + icon FaceID ngang hàng ---
                                   Row(
                                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -256,49 +322,76 @@ class LoginScreen extends StatelessWidget {
                                                 color: borderColor,
                                               ))
                                             : SizedBox(
-                                          height: 50,
-                                          child: ElevatedButton(
-                                            onPressed: controller.login,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.transparent,
-                                              shadowColor: Colors.transparent,
-                                              minimumSize: const Size.fromHeight(50),
-                                              padding: EdgeInsets.zero,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(25),
-                                              ),
-                                              elevation: 0,
-                                            ),
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                gradient: LinearGradient(
-                                                  colors: [
-                                                    buttonGradientStart,
-                                                    buttonGradientEnd,
-                                                  ],
+                                                height: isDesktop
+                                                    ? 58.h
+                                                    : isTablet
+                                                        ? 54.h
+                                                        : 50.h,
+                                                child: ElevatedButton(
+                                                  onPressed: controller.login,
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.transparent,
+                                                    shadowColor: Colors.transparent,
+                                                    minimumSize: Size.fromHeight(
+                                                      isDesktop
+                                                          ? 58.h
+                                                          : isTablet
+                                                              ? 54.h
+                                                              : 50.h,
+                                                    ),
+                                                    padding: EdgeInsets.zero,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(25.r),
+                                                    ),
+                                                    elevation: 0,
+                                                  ),
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      gradient: LinearGradient(
+                                                        colors: [
+                                                          buttonGradientStart,
+                                                          buttonGradientEnd,
+                                                        ],
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(25.r),
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      text.login,
+                                                      style: TextStyle(
+                                                        fontSize: isDesktop
+                                                            ? 20.sp
+                                                            : 18.sp,
+                                                        color: Colors.white,
+                                                        fontWeight: FontWeight.w600,
+                                                        letterSpacing: 1.1,
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
-                                                borderRadius:
-                                                BorderRadius.circular(25),
-                                              ),
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                text.login,
-                                                style: const TextStyle(
-                                                  fontSize: 18,
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w600,
-                                                  letterSpacing: 1.1,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        )),
+                                              )),
                                       ),
-                                      const SizedBox(width: 12),
+                                      SizedBox(
+                                        width: isDesktop
+                                            ? 20.w
+                                            : isTablet
+                                                ? 16.w
+                                                : 12.w,
+                                      ),
                                       // Icon FaceID
                                       Container(
-                                        width: 48,
-                                        height: 48,
+                                        width: isDesktop
+                                            ? 58.w
+                                            : isTablet
+                                                ? 52.w
+                                                : 48.w,
+                                        height: isDesktop
+                                            ? 58.h
+                                            : isTablet
+                                                ? 52.h
+                                                : 48.h,
                                         decoration: BoxDecoration(
                                           border: Border.all(
                                             color: isDark
@@ -306,13 +399,13 @@ class LoginScreen extends StatelessWidget {
                                                 : Colors.blue[300]!.withOpacity(0.6),
                                             width: 1.7,
                                           ),
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(12.r),
                                           color: isDark
                                               ? Colors.white.withOpacity(0.08)
                                               : Colors.white.withOpacity(0.85),
                                         ),
                                         child: IconButton(
-                                          splashRadius: 23,
+                                          splashRadius: 23.r,
                                           onPressed: () {
                                             if (controller.isFaceIdEnabled.value) {
                                               _faceIdLogin(context, controller);
@@ -339,8 +432,8 @@ class LoginScreen extends StatelessWidget {
                                           },
                                           icon: Image.asset(
                                             'assets/icons/faceid.png',
-                                            width: 29,
-                                            height: 29,
+                                            width: 29.w,
+                                            height: 29.h,
                                             color: iconColor,
                                           ),
                                         ),
@@ -350,14 +443,20 @@ class LoginScreen extends StatelessWidget {
                                   // Dòng "Đăng nhập bằng tài khoản khác"
                                   if (loginFrozen)
                                     Padding(
-                                      padding: const EdgeInsets.only(top: 24),
+                                      padding: EdgeInsets.only(
+                                        top: isDesktop
+                                            ? 32.h
+                                            : isTablet
+                                                ? 28.h
+                                                : 24.h,
+                                      ),
                                       child: GestureDetector(
                                         onTap: () => controller.clearUserForNewLogin(),
                                         child: Text(
                                           'Đăng nhập bằng tài khoản khác',
                                           style: TextStyle(
                                             color: iconColor,
-                                            fontSize: 16,
+                                            fontSize: 16.sp,
                                             fontWeight: FontWeight.w600,
                                             decoration: TextDecoration.underline,
                                           ),

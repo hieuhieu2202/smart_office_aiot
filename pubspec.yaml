@@ -65,6 +65,8 @@ dependencies:
   package_info_plus: ^8.0.0
   path_provider: ^2.1.4
   open_filex: ^4.5.0
+  responsive_framework: ^1.1.1
+  flutter_screenutil: ^5.9.0
   #  device_preview: ^1.2.0
   syncfusion_flutter_charts: ^30.2.7
   syncfusion_flutter_pdfviewer: ^30.2.7
