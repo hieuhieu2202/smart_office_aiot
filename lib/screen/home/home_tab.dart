@@ -107,13 +107,15 @@ class _HomeTabState extends State<HomeTab> {
     return 36;
   }
 
-  double _cardSpacing(bool isDesktop) => isDesktop ? 32 : 24;
+  double _cardSpacing(bool isDesktop) => isDesktop ? 36 : 24;
 
   int _columnsFor(double maxWidth, bool isDesktop) {
-    if (isDesktop) {
-      return maxWidth >= 1500 ? 4 : 3;
+    if (!isDesktop) {
+      return 2;
     }
-    return 2;
+
+    final int idealColumns = (maxWidth / 520).floor();
+    return idealColumns.clamp(2, 4);
   }
 
   double _cardWidth(double maxWidth, int columns, double spacing) {
@@ -186,13 +188,14 @@ class _HomeTabState extends State<HomeTab> {
             builder: (context, constraints) {
               final projects = homeController.projects;
               final double availableWidth = constraints.maxWidth;
+              final double targetMaxWidth = isDesktop
+                  ? 1960
+                  : isTablet
+                      ? 1200
+                      : availableWidth;
               final double maxContentWidth = math.min(
                 availableWidth,
-                isDesktop
-                    ? 1600
-                    : isTablet
-                        ? 1100
-                        : availableWidth,
+                targetMaxWidth,
               );
               final EdgeInsets contentPadding = EdgeInsets.symmetric(
                 horizontal: horizontalPadding,
@@ -241,8 +244,12 @@ class _HomeTabState extends State<HomeTab> {
                                 spacing,
                               );
 
+                              final bool centerWrap =
+                                  isDesktop && projects.length <= columns;
+
                               return Wrap(
-                                alignment: WrapAlignment.start,
+                                alignment:
+                                    centerWrap ? WrapAlignment.center : WrapAlignment.start,
                                 runAlignment: WrapAlignment.start,
                                 spacing: spacing,
                                 runSpacing: spacing,
