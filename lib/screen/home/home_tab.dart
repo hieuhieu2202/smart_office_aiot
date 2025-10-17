@@ -114,8 +114,11 @@ class _HomeTabState extends State<HomeTab> {
       return 2;
     }
 
-    final int idealColumns = (maxWidth / 520).floor();
-    return idealColumns.clamp(2, 4);
+    if (maxWidth < 900) {
+      return 1;
+    }
+
+    return 2;
   }
 
   double _cardWidth(double maxWidth, int columns, double spacing) {
