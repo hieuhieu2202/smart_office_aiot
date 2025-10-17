@@ -531,24 +531,40 @@ class _HomeTabState extends State<HomeTab> {
     required bool isDark,
     required bool isDesktop,
   }) {
-    final int crossAxisCount = isDesktop ? 4 : 3;
-    final double spacing = isDesktop ? 20 : 16;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final int crossAxisCount = isDesktop ? 4 : 3;
+        final double spacing = isDesktop ? 24 : 18;
+        final double availableWidth = constraints.maxWidth;
+        final double usableWidth = math.max(
+          availableWidth - spacing * (crossAxisCount - 1),
+          0,
+        );
+        final double tileWidth = crossAxisCount > 0
+            ? usableWidth / crossAxisCount
+            : availableWidth;
+        final double minTileHeight = isDesktop ? 188 : 176;
+        final double aspectRatio = tileWidth > 0
+            ? tileWidth / minTileHeight
+            : 1.2;
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: subProjects.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        mainAxisSpacing: spacing,
-        crossAxisSpacing: spacing,
-        childAspectRatio: isDesktop ? 1.9 : 1.7,
-      ),
-      itemBuilder: (context, index) {
-        return _buildSubProjectTile(
-          context: context,
-          sub: subProjects[index],
-          isDark: isDark,
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: subProjects.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: spacing,
+            crossAxisSpacing: spacing,
+            childAspectRatio: aspectRatio,
+          ),
+          itemBuilder: (context, index) {
+            return _buildSubProjectTile(
+              context: context,
+              sub: subProjects[index],
+              isDark: isDark,
+            );
+          },
         );
       },
     );

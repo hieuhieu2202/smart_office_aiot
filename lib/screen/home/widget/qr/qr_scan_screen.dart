@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -18,16 +19,13 @@ class QRScanScreen extends StatefulWidget {
 
 class _QRScanScreenState extends State<QRScanScreen>
     with SingleTickerProviderStateMixin {
-  final MobileScannerController controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
-    detectionTimeoutMs: 700,
-    formats: const [BarcodeFormat.qrCode],
-  );
+  MobileScannerController? _controller;
 
   final navbarController = Get.find<NavbarController>();
 
   bool _isProcessing = false;
   bool _showScanner = true;
+  late final bool _scannerSupported;
 
   late final AnimationController _scanAnim;
   late final Animation<double> _scanTween;
@@ -35,6 +33,18 @@ class _QRScanScreenState extends State<QRScanScreen>
   @override
   void initState() {
     super.initState();
+    _scannerSupported = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+    if (_scannerSupported) {
+      _controller = MobileScannerController(
+        detectionSpeed: DetectionSpeed.normal,
+        detectionTimeoutMs: 700,
+        formats: const [BarcodeFormat.qrCode],
+      );
+    } else {
+      _showScanner = false;
+    }
     _scanAnim = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -45,7 +55,7 @@ class _QRScanScreenState extends State<QRScanScreen>
   @override
   void dispose() {
     _scanAnim.dispose();
-    controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -190,7 +200,9 @@ class _QRScanScreenState extends State<QRScanScreen>
       }
 
       setState(() => _showScanner = false);
-      await controller.stop();
+      if (_controller != null) {
+        await _controller!.stop();
+      }
 
       if (target == 'fixture') {
         await Navigator.push(
@@ -218,7 +230,9 @@ class _QRScanScreenState extends State<QRScanScreen>
 
       if (!mounted) return;
       setState(() => _showScanner = true);
-      await controller.start();
+      if (_controller != null) {
+        await _controller!.start();
+      }
     } catch (e) {
       _showSnack("Lỗi kết nối: $e");
     } finally {
@@ -240,21 +254,24 @@ class _QRScanScreenState extends State<QRScanScreen>
             icon: const Icon(Icons.arrow_back),
             onPressed: () => navbarController.changTab(0),
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.flash_on),
-              onPressed: () => controller.toggleTorch(),
-              tooltip: 'Bật/tắt đèn',
-            ),
-            IconButton(
-              icon: const Icon(Icons.cameraswitch),
-              onPressed: () => controller.switchCamera(),
-              tooltip: 'Đổi camera',
-            ),
-          ],
+          actions: _scannerSupported
+              ? [
+                  IconButton(
+                    icon: const Icon(Icons.flash_on),
+                    onPressed: () => _controller?.toggleTorch(),
+                    tooltip: 'Bật/tắt đèn',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.cameraswitch),
+                    onPressed: () => _controller?.switchCamera(),
+                    tooltip: 'Đổi camera',
+                  ),
+                ]
+              : null,
         ),
-        body:
-            _showScanner
+        body: !_scannerSupported
+            ? _buildUnsupportedView()
+            : _showScanner
                 ? LayoutBuilder(
                   builder: (context, constraints) {
                     final size = constraints.biggest;
@@ -268,7 +285,7 @@ class _QRScanScreenState extends State<QRScanScreen>
                     return Stack(
                       children: [
                         MobileScanner(
-                          controller: controller,
+                          controller: _controller!,
                           scanWindow: scanRect,
                           onDetect: (capture) async {
                             if (_isProcessing) return;
@@ -280,7 +297,9 @@ class _QRScanScreenState extends State<QRScanScreen>
                               final parsed = _parseQr(value);
                               if (parsed == null) continue;
 
-                              await controller.stop();
+                              if (_controller != null) {
+                                await _controller!.stop();
+                              }
                               await _handleCode(value);
                               break;
                             }
@@ -305,6 +324,32 @@ class _QRScanScreenState extends State<QRScanScreen>
                   },
                 )
                 : const Center(child: Text("Đang tạm dừng camera...")),
+      ),
+    );
+  }
+
+  Widget _buildUnsupportedView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: const [
+            Icon(Icons.desktop_windows_rounded, size: 64, color: Colors.blueGrey),
+            SizedBox(height: 20),
+            Text(
+              'Tính năng quét QR hiện chỉ hỗ trợ trên điện thoại.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Vui lòng sử dụng ứng dụng trên Android hoặc iOS để tiếp tục.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
