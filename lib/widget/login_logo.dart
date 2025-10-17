@@ -3,18 +3,26 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LoginLogo extends StatelessWidget {
   final bool isDark;
+  final double size;
 
-  const LoginLogo({super.key, required this.isDark});
+  const LoginLogo({
+    super.key,
+    required this.isDark,
+    this.size = 80,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final double haloSize = (size * 1.12).w;
+    final double logoSize = size.w;
+
     if (!isDark) {
-      return Image.asset('assets/images/logo.png', width: 80.w, height: 80.w);
+      return Image.asset('assets/images/logo.png', width: logoSize, height: logoSize);
     }
     // Dark: có halo
     return Container(
-      width: 88.w,
-      height: 88.w,
+      width: haloSize,
+      height: haloSize,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
@@ -28,7 +36,11 @@ class LoginLogo extends StatelessWidget {
           BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 7),
         ],
       ),
-      child: Image.asset('assets/images/logo.png', width: 72.w, height: 72.w),
+      child: Image.asset(
+        'assets/images/logo.png',
+        width: logoSize,
+        height: logoSize,
+      ),
     );
   }
 }

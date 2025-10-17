@@ -3,15 +3,22 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LoginTitle extends StatelessWidget {
   final bool isDark;
+  final TextAlign textAlign;
+  final double? fontSize;
 
-  const LoginTitle({super.key, required this.isDark});
+  const LoginTitle({
+    super.key,
+    required this.isDark,
+    this.textAlign = TextAlign.center,
+    this.fontSize,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Text(
       'MBD Factory Platform',
       style: TextStyle(
-        fontSize: 24.sp,
+        fontSize: (fontSize ?? 24).sp,
         fontWeight: FontWeight.bold,
         color: isDark ? Colors.white : const Color(0xFF153962),
         letterSpacing: 1.1.sp,
@@ -26,7 +33,7 @@ class LoginTitle extends StatelessWidget {
           ),
         ],
       ),
-      textAlign: TextAlign.center,
+      textAlign: textAlign,
     );
   }
 }
