@@ -155,7 +155,7 @@ class NavbarScreen extends StatelessWidget {
       final breakpoints = ResponsiveBreakpoints.of(context);
       final bool isMobile = breakpoints.smallerThan(TABLET);
       final bool isTablet = breakpoints.between(TABLET, DESKTOP);
-      final bool isDesktop = breakpoints.largerThanOrEqualTo(DESKTOP);
+      final bool isDesktop = breakpoints.largerOrEqualTo(DESKTOP);
       final int unread = notificationController.unreadCount.value;
 
       final Widget stack = IndexedStack(
