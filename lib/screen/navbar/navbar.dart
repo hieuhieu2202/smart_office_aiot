@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:responsive_framework/responsive_framework.dart';
-import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
+import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/screen/home/home_tab.dart';
+import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
+import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
+import 'package:smart_factory/screen/notification/controller/notification_controller.dart';
 import 'package:smart_factory/screen/notification/notification_tab.dart';
+import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 import 'package:smart_factory/screen/setting/setting_tab.dart';
 import 'package:smart_factory/screen/stp/stp_tab.dart';
+
 import '../home/controller/home_controller.dart';
-import '../setting/controller/setting_controller.dart';
-import 'package:smart_factory/generated/l10n.dart';
-import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
-import '../notification/controller/notification_controller.dart';
 
 final NavbarController navbarController = Get.put(NavbarController());
 
@@ -26,59 +27,33 @@ class NavbarScreen extends StatelessWidget {
         Get.find<NotificationController>();
     final S text = S.of(context);
 
-    final ResponsiveBreakpointsData breakpoints =
-        ResponsiveBreakpoints.of(context);
-    final bool useNavigationRail = breakpoints.largerOrEqualTo(DESKTOP);
-    final bool isTabletLayout = breakpoints.largerOrEqualTo(TABLET);
-    final bool extendNavigationRail = breakpoints.largerOrEqualTo('XL');
-
-    // Danh sách nhãn (hỗ trợ đa ngôn ngữ)
     final List<String> tabLabels = [
       text.home,
-      "WinSCP",
+      'WinSCP',
       'QR Scan',
       text.notification,
       text.settings,
     ];
 
-    // Lazy cache cho QRScreen để tránh rebuild liên tục
+    final List<IconData> tabIcons = const [
+      Icons.dashboard_rounded,
+      Icons.storage_rounded,
+      Icons.qr_code_scanner_rounded,
+      Icons.notifications_rounded,
+      Icons.settings_rounded,
+    ];
+
+    final ResponsiveBreakpointsData breakpoints =
+        ResponsiveBreakpoints.of(context);
+    final bool useNavigationRail = breakpoints.largerOrEqualTo(DESKTOP);
+    final bool extendNavigationRail = breakpoints.largerOrEqualTo('XL');
+    final bool showBottomLabels = breakpoints.largerOrEqualTo(TABLET);
+
     Widget? qrScreenCache;
 
     return Obx(() {
       final int currentIndex = navbarController.currentIndex.value;
       final int unreadCount = notificationController.unreadCount.value;
-
-      Widget buildNotificationIcon() {
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            const Icon(Icons.notifications_active_rounded),
-            if (unreadCount > 0)
-              Positioned(
-                right: -8.w,
-                top: -6.h,
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 6.w,
-                    vertical: 2.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent,
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Text(
-                    unreadCount > 99 ? '99+' : '$unreadCount',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      }
 
       final Widget stackedBody = IndexedStack(
         index: currentIndex,
@@ -93,40 +68,25 @@ class NavbarScreen extends StatelessWidget {
         ],
       );
 
-      final Color selectedColor = settingController.isDarkMode.value
-          ? Colors.blue[200]!
-          : Colors.blue;
-      final Color unselectedColor = settingController.isDarkMode.value
-          ? Colors.grey[400]!
-          : Colors.grey[600]!;
+      final bool isDark = settingController.isDarkMode.value;
+      final Color accentColor =
+          isDark ? Colors.cyanAccent : const Color(0xFF1E88E5);
 
       if (useNavigationRail) {
-        final bool isDarkTheme = settingController.isDarkMode.value;
-
         return Scaffold(
           body: Container(
-            decoration: BoxDecoration(
-              gradient: isDarkTheme
-                  ? const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFF0B1220), Color(0xFF111D32)],
-                    )
-                  : const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF8FAFF), Color(0xFFE6EEFF)],
-                    ),
-            ),
+            color: isDark ? const Color(0xFF0B1220) : const Color(0xFFF2F5FA),
             child: Row(
               children: [
-                _DesktopSidebar(
-                  isDark: isDarkTheme,
-                  compact: !extendNavigationRail,
-                  labels: tabLabels,
+                _AdaptiveRail(
                   currentIndex: currentIndex,
-                  unreadCount: unreadCount,
                   onDestinationSelected: navbarController.changTab,
+                  labels: tabLabels,
+                  icons: tabIcons,
+                  extend: extendNavigationRail,
+                  unreadCount: unreadCount,
+                  isDark: isDark,
+                  accentColor: accentColor,
                 ),
                 Expanded(
                   child: Padding(
@@ -136,22 +96,22 @@ class NavbarScreen extends StatelessWidget {
                     ),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isDarkTheme
-                            ? const Color(0xFF101B2D)
+                        color: isDark
+                            ? const Color(0xFF101B2E)
                             : Colors.white,
-                        borderRadius: BorderRadius.circular(28.r),
+                        borderRadius: BorderRadius.circular(26.r),
                         boxShadow: [
                           BoxShadow(
-                            color: isDarkTheme
-                                ? Colors.black.withOpacity(0.22)
-                                : Colors.blueGrey.withOpacity(0.12),
-                            blurRadius: 30,
-                            offset: const Offset(0, 24),
+                            color: isDark
+                                ? Colors.black.withOpacity(0.24)
+                                : Colors.blueGrey.withOpacity(0.14),
+                            blurRadius: 32,
+                            offset: const Offset(0, 26),
                           ),
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(28.r),
+                        borderRadius: BorderRadius.circular(26.r),
                         child: stackedBody,
                       ),
                     ),
@@ -163,378 +123,217 @@ class NavbarScreen extends StatelessWidget {
         );
       }
 
-      final Color navBackground = settingController.isDarkMode.value
-          ? Colors.grey[900]!
-          : Colors.white;
-
       return Scaffold(
+        extendBody: true,
         body: stackedBody,
-        bottomNavigationBar: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isTabletLayout ? 32.w : 0,
-            vertical: isTabletLayout ? 12.h : 8.h,
-          ),
-          decoration: BoxDecoration(
-            color: navBackground,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(18.r)),
-            boxShadow: [
-              BoxShadow(
-                color: settingController.isDarkMode.value
-                    ? Colors.black.withOpacity(0.13)
-                    : Colors.grey.withOpacity(0.10),
-                blurRadius: 12,
-                offset: const Offset(0, -4),
-              )
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16.r),
-            child: BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              showSelectedLabels: true,
-              showUnselectedLabels: true,
-              selectedItemColor: selectedColor,
-              unselectedItemColor: unselectedColor,
-              selectedLabelStyle: TextStyle(
-                fontSize: isTabletLayout ? 14.sp : 12.sp,
-                fontWeight: FontWeight.w600,
-              ),
-              unselectedLabelStyle: TextStyle(
-                fontSize: isTabletLayout ? 12.sp : 11.sp,
-              ),
-              selectedIconTheme: IconThemeData(
-                size: isTabletLayout ? 28.sp : 24.sp,
-              ),
-              unselectedIconTheme: IconThemeData(
-                size: isTabletLayout ? 26.sp : 22.sp,
-              ),
-              currentIndex: currentIndex,
-              onTap: (index) {
-                navbarController.changTab(index);
-              },
-              items: [
-                BottomNavigationBarItem(
-                  icon: const Icon(Icons.home_rounded),
-                  label: tabLabels[0],
-                ),
-                BottomNavigationBarItem(
-                  icon: const Icon(Icons.public_rounded),
-                  label: tabLabels[1],
-                ),
-                BottomNavigationBarItem(
-                  icon: const Icon(Icons.qr_code_scanner),
-                  label: tabLabels[2],
-                ),
-                BottomNavigationBarItem(
-                  icon: buildNotificationIcon(),
-                  label: tabLabels[3],
-                ),
-                BottomNavigationBarItem(
-                  icon: const Icon(Icons.settings),
-                  label: tabLabels[4],
-                ),
-              ],
-            ),
-          ),
+        bottomNavigationBar: _AdaptiveBottomBar(
+          currentIndex: currentIndex,
+          onDestinationSelected: navbarController.changTab,
+          labels: tabLabels,
+          icons: tabIcons,
+          unreadCount: unreadCount,
+          isDark: isDark,
+          accentColor: accentColor,
+          showLabels: showBottomLabels,
         ),
       );
     });
   }
 }
 
-class _DesktopSidebar extends StatelessWidget {
-  final bool isDark;
-  final bool compact;
-  final List<String> labels;
+class _AdaptiveRail extends StatelessWidget {
   final int currentIndex;
-  final int unreadCount;
   final ValueChanged<int> onDestinationSelected;
-
-  const _DesktopSidebar({
-    required this.isDark,
-    required this.compact,
-    required this.labels,
-    required this.currentIndex,
-    required this.unreadCount,
-    required this.onDestinationSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final double sidebarWidth = compact ? 240.w : 300.w;
-    final double horizontalPadding = compact ? 20.w : 28.w;
-    final double topPadding = 32.h;
-
-    final List<_SidebarDestinationData> destinations = [
-      _SidebarDestinationData(icon: Icons.home_rounded, label: labels[0]),
-      _SidebarDestinationData(icon: Icons.cloud_outlined, label: labels[1]),
-      _SidebarDestinationData(icon: Icons.qr_code_scanner, label: labels[2]),
-      _SidebarDestinationData(
-        icon: Icons.notifications_active_outlined,
-        label: labels[3],
-        badge: unreadCount,
-      ),
-      _SidebarDestinationData(icon: Icons.settings_suggest_rounded, label: labels[4]),
-    ];
-
-    final List<Color> gradient = isDark
-        ? [const Color(0xFF0B0F2A), const Color(0xFF1C2A4A)]
-        : [const Color(0xFF0047FF), const Color(0xFF091C54)];
-
-    return SizedBox(
-      width: sidebarWidth,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          horizontalPadding,
-          topPadding,
-          horizontalPadding,
-          28.h,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: gradient,
-            ),
-            borderRadius: BorderRadius.circular(32.r),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.45 : 0.25),
-                blurRadius: 36,
-                offset: const Offset(0, 20),
-              ),
-            ],
-            border: Border.all(
-              color: Colors.white.withOpacity(isDark ? 0.18 : 0.28),
-              width: 1.1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: compact ? 16.w : 20.w,
-                  vertical: 12.h,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: compact ? 48.w : 58.w,
-                          height: compact ? 48.w : 58.w,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(18.r),
-                          ),
-                          child: Padding(
-                            padding: EdgeInsets.all(8.w),
-                            child: Image.asset('assets/images/logo.png'),
-                          ),
-                        ),
-                        SizedBox(width: 14.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Smart Factory',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: compact ? 18.sp : 20.sp,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.4,
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                'MBD-Factory Dashboard',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.72),
-                                  fontSize: compact ? 12.sp : 13.sp,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 20.h),
-                    Text(
-                      'Chọn một khu vực để theo dõi dữ liệu theo thời gian thực.',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.78),
-                        fontSize: compact ? 12.5.sp : 13.5.sp,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.separated(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: compact ? 12.w : 18.w,
-                  ),
-                  physics: const BouncingScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final destination = destinations[index];
-                    return _SidebarMenuButton(
-                      data: destination,
-                      selected: currentIndex == index,
-                      isDark: isDark,
-                      compact: compact,
-                      onTap: () => onDestinationSelected(index),
-                    );
-                  },
-                  separatorBuilder: (_, __) => SizedBox(height: 12.h),
-                  itemCount: destinations.length,
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  compact ? 16.w : 20.w,
-                  20.h,
-                  compact ? 16.w : 20.w,
-                  24.h,
-                ),
-                child: Container(
-                  padding: EdgeInsets.all(compact ? 16.w : 20.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(24.r),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Trạng thái hệ thống',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: compact ? 14.sp : 15.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 10.h),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.wifi_tethering,
-                            color: Colors.lightGreenAccent.withOpacity(0.9),
-                            size: 20.sp,
-                          ),
-                          SizedBox(width: 10.w),
-                          Expanded(
-                            child: Text(
-                              'Online • Đồng bộ dữ liệu thành công',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.78),
-                                fontSize: compact ? 12.sp : 12.5.sp,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SidebarDestinationData {
-  final IconData icon;
-  final String label;
-  final int badge;
-
-  const _SidebarDestinationData({
-    required this.icon,
-    required this.label,
-    this.badge = 0,
-  });
-}
-
-class _SidebarMenuButton extends StatelessWidget {
-  final _SidebarDestinationData data;
-  final bool selected;
+  final List<String> labels;
+  final List<IconData> icons;
+  final bool extend;
+  final int unreadCount;
   final bool isDark;
-  final bool compact;
-  final VoidCallback onTap;
+  final Color accentColor;
 
-  const _SidebarMenuButton({
-    required this.data,
-    required this.selected,
+  const _AdaptiveRail({
+    required this.currentIndex,
+    required this.onDestinationSelected,
+    required this.labels,
+    required this.icons,
+    required this.extend,
+    required this.unreadCount,
     required this.isDark,
-    required this.compact,
-    required this.onTap,
+    required this.accentColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final Color baseColor = Colors.white;
-    final Color iconColor = baseColor.withOpacity(selected ? 1 : 0.82);
+    final BorderRadius borderRadius = BorderRadius.circular(28.r);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(22.r),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 16.w : 20.w,
-            vertical: compact ? 12.h : 14.h,
+    return Padding(
+      padding: EdgeInsets.all(24.w),
+      child: Container(
+        width: extend ? 260.w : 84.w,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF101B2E) : Colors.white,
+          borderRadius: borderRadius,
+          border: Border.all(
+            color:
+                isDark ? Colors.white.withOpacity(0.08) : Colors.blueGrey.withOpacity(0.1),
           ),
-          decoration: BoxDecoration(
-            color: selected
-                ? Colors.white.withOpacity(isDark ? 0.18 : 0.26)
-                : Colors.white.withOpacity(isDark ? 0.08 : 0.14),
-            borderRadius: BorderRadius.circular(22.r),
-            border: Border.all(
-              color: selected
-                  ? Colors.white.withOpacity(isDark ? 0.55 : 0.75)
-                  : Colors.white.withOpacity(0.05),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withOpacity(0.28)
+                  : Colors.blueGrey.withOpacity(0.14),
+              blurRadius: 32,
+              offset: const Offset(0, 26),
             ),
+          ],
+        ),
+        child: NavigationRail(
+          backgroundColor: Colors.transparent,
+          extended: extend,
+          selectedIndex: currentIndex,
+          onDestinationSelected: onDestinationSelected,
+          labelType:
+              extend ? NavigationRailLabelType.none : NavigationRailLabelType.selected,
+          minExtendedWidth: 240.w,
+          leading: Padding(
+            padding: EdgeInsets.only(top: 24.h, bottom: 16.h),
+            child: extend
+                ? ListTile(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
+                    leading: CircleAvatar(
+                      radius: 18.r,
+                      backgroundColor: accentColor.withOpacity(0.12),
+                      child: Icon(
+                        Icons.factory_outlined,
+                        color: accentColor,
+                        size: 20.sp,
+                      ),
+                    ),
+                    title: Text(
+                      'Smart Office',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF153B65),
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'MBD Platform',
+                      style: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.blueGrey,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: CircleAvatar(
+                      radius: 22.r,
+                      backgroundColor: accentColor.withOpacity(0.16),
+                      child: Icon(
+                        Icons.factory_rounded,
+                        color: accentColor,
+                        size: 20.sp,
+                      ),
+                    ),
+                  ),
           ),
-          child: Row(
-            children: [
-              Icon(
-                data.icon,
-                color: iconColor,
-                size: compact ? 22.sp : 24.sp,
-              ),
-              SizedBox(width: compact ? 14.w : 16.w),
-              Expanded(
-                child: Text(
-                  data.label,
+            destinations: List.generate(labels.length, (index) {
+              return NavigationRailDestination(
+                icon: _NavIcon(
+                  icon: icons[index],
+                  accentColor: accentColor,
+                  unreadCount: index == 3 ? unreadCount : 0,
+                  selected: false,
+                ),
+                selectedIcon: _NavIcon(
+                  icon: icons[index],
+                  accentColor: accentColor,
+                  unreadCount: index == 3 ? unreadCount : 0,
+                  selected: true,
+                ),
+                label: Text(
+                  labels[index],
                   style: TextStyle(
-                    color: baseColor,
+                    fontSize: 13.sp,
                     fontWeight: FontWeight.w600,
-                    fontSize: compact ? 14.sp : 15.sp,
-                    letterSpacing: 0.2,
                   ),
                 ),
-              ),
-              if (data.badge > 0)
-                _SidebarBadge(
-                  value: data.badge,
+              );
+            }),
+        ),
+      ),
+    );
+  }
+}
+
+class _AdaptiveBottomBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final List<String> labels;
+  final List<IconData> icons;
+  final int unreadCount;
+  final bool isDark;
+  final Color accentColor;
+  final bool showLabels;
+
+  const _AdaptiveBottomBar({
+    required this.currentIndex,
+    required this.onDestinationSelected,
+    required this.labels,
+    required this.icons,
+    required this.unreadCount,
+    required this.isDark,
+    required this.accentColor,
+    required this.showLabels,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h + MediaQuery.of(context).padding.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF101B2E) : Colors.white,
+          borderRadius: BorderRadius.circular(28.r),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withOpacity(0.24)
+                  : Colors.blueGrey.withOpacity(0.12),
+              blurRadius: 24,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28.r),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: currentIndex,
+            onTap: onDestinationSelected,
+            backgroundColor: Colors.transparent,
+            selectedItemColor: accentColor,
+            unselectedItemColor:
+                isDark ? Colors.white70 : Colors.blueGrey,
+            showSelectedLabels: showLabels,
+            showUnselectedLabels: showLabels,
+            items: List.generate(labels.length, (index) {
+              return BottomNavigationBarItem(
+                icon: _NavIcon(
+                  icon: icons[index],
+                  accentColor: accentColor,
+                  unreadCount: index == 3 ? unreadCount : 0,
+                  selected: false,
                 ),
-            ],
+                activeIcon: _NavIcon(
+                  icon: icons[index],
+                  accentColor: accentColor,
+                  unreadCount: index == 3 ? unreadCount : 0,
+                  selected: true,
+                ),
+                label: labels[index],
+              );
+            }),
           ),
         ),
       ),
@@ -542,32 +341,60 @@ class _SidebarMenuButton extends StatelessWidget {
   }
 }
 
-class _SidebarBadge extends StatelessWidget {
-  final int value;
+class _NavIcon extends StatelessWidget {
+  final IconData icon;
+  final Color accentColor;
+  final int unreadCount;
+  final bool selected;
 
-  const _SidebarBadge({required this.value});
+  const _NavIcon({
+    required this.icon,
+    required this.accentColor,
+    required this.unreadCount,
+    required this.selected,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final String label = value > 99 ? '99+' : '$value';
+    final Widget baseIcon = Icon(
+      icon,
+      size: selected ? 24.sp : 22.sp,
+      color: selected ? accentColor : null,
+    );
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 10.w,
-        vertical: 4.h,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.redAccent,
-        borderRadius: BorderRadius.circular(14.r),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 11.sp,
-          fontWeight: FontWeight.bold,
+    if (unreadCount <= 0) {
+      return baseIcon;
+    }
+
+    final String badgeText = unreadCount > 99 ? '99+' : '$unreadCount';
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        baseIcon,
+        Positioned(
+          right: -10.w,
+          top: -6.h,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 6.w,
+              vertical: 2.h,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.redAccent,
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Text(
+              badgeText,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

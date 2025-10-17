@@ -1,9 +1,8 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:responsive_framework/responsive_framework.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/screen/login/controller/login_controller.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
@@ -44,134 +43,82 @@ class LoginScreen extends StatelessWidget {
     final LoginController controller = Get.find<LoginController>();
     final SettingController settingController = Get.find<SettingController>();
     final S text = S.of(context);
-
     final bool isDark = settingController.isDarkMode.value;
+
+    final ResponsiveBreakpointsData breakpoints =
+        ResponsiveBreakpoints.of(context);
+    final bool isTablet = breakpoints.largerOrEqualTo(TABLET);
+    final bool isDesktop = breakpoints.largerOrEqualTo(DESKTOP);
 
     return Scaffold(
       body: Stack(
         children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage(
-                    isDark
-                        ? 'assets/images/background_dark.png'
-                        : 'assets/images/background_light.png',
-                  ),
-                  fit: BoxFit.cover,
-                  colorFilter: ColorFilter.mode(
-                    isDark
-                        ? Colors.black.withOpacity(0.32)
-                        : Colors.white.withOpacity(0.12),
-                    BlendMode.srcOver,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: isDark
-                      ? [
-                          const Color(0xAA0F172A),
-                          const Color(0x660F172A),
-                        ]
-                      : [
-                          const Color(0x66F8FAFC),
-                          const Color(0x88EEF5FF),
-                        ],
-                ),
-              ),
-            ),
-          ),
+          _LoginBackground(isDark: isDark),
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final double maxWidth = constraints.maxWidth;
-                final bool showTabletLayout = maxWidth >= 720;
-                final bool showDesktopLayout = maxWidth >= 1120;
-                final bool isTabletFieldLayout = maxWidth >= 600;
+                final double bottomInset =
+                    MediaQuery.of(context).viewInsets.bottom;
 
-                final double horizontalPadding = showDesktopLayout
-                    ? 56
-                    : showTabletLayout
-                        ? 36
-                        : 20;
-                final double verticalPadding = showDesktopLayout ? 40 : 24;
+                final double horizontalPadding =
+                    isDesktop ? 72 : isTablet ? 48 : 20;
+                final double verticalPadding = isDesktop ? 56 : isTablet ? 40 : 24;
 
-                final Widget loginCard = _LoginFormCard(
+                final EdgeInsets scrollPadding = EdgeInsets.fromLTRB(
+                  horizontalPadding.w,
+                  verticalPadding.h,
+                  horizontalPadding.w,
+                  verticalPadding.h + bottomInset,
+                );
+
+                final double maxContentWidth =
+                    isDesktop ? 1200 : isTablet ? 760 : double.infinity;
+
+                final Widget formCard = _LoginFormCard(
                   controller: controller,
                   text: text,
                   isDark: isDark,
-                  isTablet: isTabletFieldLayout,
-                  isDesktop: showDesktopLayout,
+                  size: isDesktop
+                      ? _LoginFormSize.large
+                      : isTablet
+                          ? _LoginFormSize.medium
+                          : _LoginFormSize.small,
                   onRequestFaceId: () => _faceIdLogin(context, controller, text),
                 );
 
-                final Widget heroPanel = _LoginHeroPanel(
+                final Widget welcomePanel = _WelcomePanel(
                   isDark: isDark,
-                  expanded: showDesktopLayout,
+                  compact: !isDesktop,
+                  tabletLayout: isTablet && !isDesktop,
                 );
 
-                if (showDesktopLayout) {
-                  return Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding.w,
-                      vertical: verticalPadding.h,
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1400),
-                        child: Row(
-                          children: [
-                            Expanded(child: heroPanel),
-                            SizedBox(width: 42.w),
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: loginCard,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                final double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-                final double sidePadding = horizontalPadding.w;
-                final double topPadding = verticalPadding.h;
-                final double bottomPadding = topPadding + bottomInset;
-
                 return SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    sidePadding,
-                    topPadding,
-                    sidePadding,
-                    bottomPadding,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      if (showTabletLayout) ...[
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 780),
-                          child: heroPanel,
-                        ),
-                        SizedBox(height: 28.h),
-                      ],
-                      Align(
-                        alignment: Alignment.center,
-                        child: loginCard,
-                      ),
-                    ],
+                  padding: scrollPadding,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxContentWidth),
+                      child: isDesktop
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(child: welcomePanel),
+                                SizedBox(width: 48.w),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 440),
+                                  child: formCard,
+                                ),
+                              ],
+                            )
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                welcomePanel,
+                                SizedBox(height: isTablet ? 36.h : 24.h),
+                                formCard,
+                              ],
+                            ),
+                    ),
                   ),
                 );
               },
@@ -183,505 +130,474 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
+class _LoginBackground extends StatelessWidget {
+  final bool isDark;
+
+  const _LoginBackground({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? const [Color(0xFF090E1C), Color(0xFF13203A)]
+              : const [Color(0xFFF3F7FF), Color(0xFFE6F1FF)],
+        ),
+      ),
+      child: Align(
+        alignment: Alignment.bottomRight,
+        child: IgnorePointer(
+          child: Padding(
+            padding: EdgeInsets.only(right: 24.w, bottom: 24.h),
+            child: Opacity(
+              opacity: isDark ? 0.18 : 0.12,
+              child: Container(
+                width: 220.w,
+                height: 220.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: isDark
+                        ? [const Color(0xFF36D1DC).withOpacity(0.7), Colors.transparent]
+                        : [const Color(0xFF1E88E5).withOpacity(0.45), Colors.transparent],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _LoginFormSize { small, medium, large }
+
 class _LoginFormCard extends StatelessWidget {
   final LoginController controller;
   final S text;
   final bool isDark;
-  final bool isTablet;
-  final bool isDesktop;
+  final _LoginFormSize size;
   final Future<void> Function() onRequestFaceId;
 
   const _LoginFormCard({
     required this.controller,
     required this.text,
     required this.isDark,
-    required this.isTablet,
-    required this.isDesktop,
+    required this.size,
     required this.onRequestFaceId,
   });
 
+  double _select(double small, double medium, double large) {
+    switch (size) {
+      case _LoginFormSize.large:
+        return large;
+      case _LoginFormSize.medium:
+        return medium;
+      case _LoginFormSize.small:
+      default:
+        return small;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final double cardHorizontalPadding = (isDesktop ? 36.0 : isTablet ? 32.0 : 22.0).w;
-    final double cardVerticalPadding = (isDesktop ? 36.0 : isTablet ? 32.0 : 26.0).h;
-    final double headerSpacing = (isDesktop ? 28.0 : isTablet ? 24.0 : 20.0).h;
-    final double fieldSpacing = (isDesktop ? 22.0 : isTablet ? 18.0 : 16.0).h;
-    final double actionSpacing = (isDesktop ? 20.0 : isTablet ? 16.0 : 12.0).w;
-    final double buttonHeight = (isDesktop ? 56.0 : isTablet ? 54.0 : 50.0).h;
-    final double faceButtonSize = (isDesktop ? 56.0 : isTablet ? 52.0 : 48.0).w;
+    final double horizontalPadding = _select(22, 30, 36).w;
+    final double verticalPadding = _select(24, 30, 36).h;
+    final double headerSpacing = _select(18, 22, 26).h;
+    final double fieldSpacing = _select(16, 18, 20).h;
+    final double buttonHeight = _select(50, 54, 56).h;
 
-    final List<Color> cardGradient = isDark
-        ? [
-            const Color(0xDD0F172A),
-            const Color(0xAA1E293B),
-          ]
-        : [
-            Colors.white.withOpacity(0.96),
-            const Color(0xE6F1F5FF),
-          ];
+    final Color cardColor = isDark
+        ? const Color(0xFF101B2E).withOpacity(0.92)
+        : Colors.white;
     final Color borderColor = isDark
-        ? Colors.cyanAccent.withOpacity(0.35)
-        : Colors.blue[400]!.withOpacity(0.55);
-    final Color labelColor = isDark ? Colors.cyanAccent : Colors.blueGrey[700]!;
-    final Color inputFill = isDark
-        ? Colors.white.withOpacity(0.10)
-        : Colors.white.withOpacity(0.9);
-    final Color textColor = isDark ? Colors.white : Colors.grey[900]!;
-    final Color iconColor = isDark ? Colors.cyanAccent : Colors.blue[700]!;
-    final Color buttonGradientStart =
-        isDark ? Colors.cyanAccent : const Color(0xFF1E88E5);
-    final Color buttonGradientEnd =
-        isDark ? Colors.blueAccent : const Color(0xFF0D47A1);
+        ? Colors.white.withOpacity(0.14)
+        : Colors.blueGrey.withOpacity(0.12);
+    final Color accentColor = isDark ? const Color(0xFF67E8F9) : const Color(0xFF1E88E5);
 
-    final BorderRadius cardRadius = BorderRadius.circular(isDesktop ? 28.r : 24.r);
-
-    return Align(
-      alignment: Alignment.center,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: isDesktop ? 460 : 440,
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(_select(22, 26, 30).r),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.35)
+                : Colors.blueGrey.withOpacity(0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 22),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: verticalPadding,
         ),
-        child: _GlassPanel(
-          borderRadius: cardRadius,
-          gradient: cardGradient,
-          borderColor: borderColor,
-          blurSigma: 20,
-          shadows: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withOpacity(0.35)
-                  : Colors.blueGrey.withOpacity(0.16),
-              blurRadius: 30,
-              offset: const Offset(0, 26),
-            ),
-          ],
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: cardHorizontalPadding,
-              vertical: cardVerticalPadding,
-            ),
-            child: Obx(() {
-              final bool loginFrozen = controller.isLoginFrozen.value;
-              final bool showPassword = controller.showPassword.value;
-              final bool isLoading = controller.isLoading.value;
-              final bool faceIdEnabled = controller.isFaceIdEnabled.value;
+        child: Obx(() {
+          final bool loginFrozen = controller.isLoginFrozen.value;
+          final bool showPassword = controller.showPassword.value;
+          final bool isLoading = controller.isLoading.value;
+          final bool faceIdEnabled = controller.isFaceIdEnabled.value;
 
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment:
-                    isDesktop ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
-                children: [
-                  Align(
-                    alignment:
-                        isDesktop ? Alignment.centerLeft : Alignment.center,
-                    child: LoginLogo(
-                      isDark: isDark,
-                      size: isDesktop ? 88 : 80,
-                    ),
+          final TextStyle captionStyle = TextStyle(
+            color: isDark ? Colors.white70 : Colors.blueGrey[600],
+            fontSize: _select(12.5, 13, 13.5).sp,
+          );
+
+          final InputBorder inputBorder = OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14.r),
+            borderSide: BorderSide(color: borderColor.withOpacity(isDark ? 0.6 : 0.8)),
+          );
+
+          Widget buildFaceButton() {
+            return Tooltip(
+              message: faceIdEnabled
+                  ? text.quick_login_faceid
+                  : text.need_login_first_to_activate_faceid,
+              child: OutlinedButton(
+                onPressed: () async {
+                  if (faceIdEnabled) {
+                    await onRequestFaceId();
+                  } else if (controller.username.value.isEmpty ||
+                      controller.password.value.isEmpty) {
+                    Get.snackbar(
+                      text.login,
+                      text.need_login_first_to_activate_faceid,
+                      backgroundColor: Colors.redAccent,
+                      colorText: Colors.white,
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  } else {
+                    Get.snackbar(
+                      text.login,
+                      text.activate_faceid_note,
+                      backgroundColor: Colors.blueAccent,
+                      colorText: Colors.white,
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: accentColor,
+                  side: BorderSide(color: accentColor.withOpacity(0.6)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
                   ),
-                  SizedBox(height: headerSpacing * 0.55),
-                  Align(
-                    alignment:
-                        isDesktop ? Alignment.centerLeft : Alignment.center,
-                    child: LoginTitle(
-                      isDark: isDark,
-                      textAlign:
-                          isDesktop ? TextAlign.left : TextAlign.center,
-                      fontSize: isDesktop ? 28 : 24,
-                    ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: _select(12, 14, 16).w,
+                    vertical: _select(10, 10, 12).h,
                   ),
-                  SizedBox(height: 12.h),
-                  Align(
-                    alignment:
-                        isDesktop ? Alignment.centerLeft : Alignment.center,
-                    child: Text(
-                      'Tăng tốc giám sát dây chuyền với báo cáo theo thời gian thực.',
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.face_6, size: _select(18, 20, 20).sp),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Face ID',
                       style: TextStyle(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.85)
-                            : Colors.blueGrey[600],
-                        fontSize: isDesktop ? 16.sp : 14.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: isDesktop ? TextAlign.left : TextAlign.center,
-                    ),
-                  ),
-                  SizedBox(height: headerSpacing),
-                  if (!loginFrozen) ...[
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: text.username,
-                        labelStyle: TextStyle(
-                          color: labelColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15.sp,
-                        ),
-                        filled: true,
-                        fillColor: inputFill,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 14.h,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                          borderSide: BorderSide(color: borderColor.withOpacity(0.6)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                          borderSide: BorderSide(
-                            color: borderColor,
-                            width: 1.6,
-                          ),
-                        ),
-                      ),
-                      style: TextStyle(
-                        color: textColor,
+                        fontSize: _select(13, 13.5, 14).sp,
                         fontWeight: FontWeight.w600,
-                        fontSize: 16.sp,
-                      ),
-                      textInputAction: TextInputAction.next,
-                      onChanged: controller.setUsername,
-                    ),
-                    SizedBox(height: fieldSpacing),
-                  ] else ...[
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 14.w,
-                        vertical: 12.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: inputFill,
-                        borderRadius: BorderRadius.circular(14.r),
-                        border: Border.all(color: borderColor.withOpacity(0.6)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.person, color: iconColor, size: 22.sp),
-                          SizedBox(width: 10.w),
-                          Expanded(
-                            child: Text(
-                              controller.username.value,
-                              style: TextStyle(
-                                color: iconColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 17.sp,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
                       ),
                     ),
-                    SizedBox(height: fieldSpacing),
                   ],
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: text.password,
-                      labelStyle: TextStyle(
-                        color: labelColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15.sp,
-                      ),
-                      filled: true,
-                      fillColor: inputFill,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 14.h,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14.r),
-                        borderSide: BorderSide(color: borderColor.withOpacity(0.6)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14.r),
-                        borderSide: BorderSide(
-                          color: borderColor,
-                          width: 1.6,
-                        ),
-                      ),
-                      suffixIcon: GestureDetector(
-                        onTap: () {
-                          controller.showPassword.value = !showPassword;
-                        },
-                        child: Icon(
-                          showPassword ? Icons.visibility : Icons.visibility_off,
-                          color: iconColor,
-                          size: 22.sp,
-                        ),
-                      ),
-                    ),
-                    style: TextStyle(
-                      color: textColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16.sp,
-                    ),
-                    obscureText: !showPassword,
-                    onChanged: controller.setPassword,
-                    onSubmitted: (_) => controller.login(),
+                ),
+              ),
+            );
+          }
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment:
+                size == _LoginFormSize.large ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: size == _LoginFormSize.large
+                    ? Alignment.centerLeft
+                    : Alignment.center,
+                child: LoginLogo(
+                  isDark: isDark,
+                  size: size == _LoginFormSize.large ? 92 : 80,
+                ),
+              ),
+              SizedBox(height: headerSpacing * 0.6),
+              Align(
+                alignment: size == _LoginFormSize.large
+                    ? Alignment.centerLeft
+                    : Alignment.center,
+                child: LoginTitle(
+                  isDark: isDark,
+                  textAlign:
+                      size == _LoginFormSize.large ? TextAlign.left : TextAlign.center,
+                  fontSize: size == _LoginFormSize.large ? 30 : 26,
+                ),
+              ),
+              SizedBox(height: 12.h),
+              Align(
+                alignment: size == _LoginFormSize.large
+                    ? Alignment.centerLeft
+                    : Alignment.center,
+                child: Text(
+                  'Nền tảng điều hành nhà máy thông minh',
+                  style: captionStyle.copyWith(
+                    fontSize: _select(13, 13.5, 14).sp,
+                    fontWeight: FontWeight.w600,
                   ),
-                  SizedBox(height: headerSpacing),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                  textAlign: size == _LoginFormSize.large ? TextAlign.left : TextAlign.center,
+                ),
+              ),
+              SizedBox(height: headerSpacing),
+              if (!loginFrozen)
+                TextField(
+                  decoration: InputDecoration(
+                    labelText: text.username,
+                    filled: true,
+                    fillColor: isDark ? Colors.white.withOpacity(0.06) : Colors.blueGrey.withOpacity(0.05),
+                    border: inputBorder,
+                    enabledBorder: inputBorder,
+                    focusedBorder: inputBorder.copyWith(
+                      borderSide: BorderSide(color: accentColor, width: 1.6),
+                    ),
+                  ),
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  textInputAction: TextInputAction.next,
+                  onChanged: controller.setUsername,
+                )
+              else
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 14.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.blueGrey.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(color: accentColor.withOpacity(0.5)),
+                  ),
+                  child: Row(
                     children: [
+                      Icon(Icons.person, color: accentColor, size: 20.sp),
+                      SizedBox(width: 12.w),
                       Expanded(
-                        child: isLoading
-                            ? Center(
-                                child: SizedBox(
-                                  width: 26.w,
-                                  height: 26.w,
-                                  child: CircularProgressIndicator(
-                                    color: borderColor,
-                                    strokeWidth: 2.8,
-                                  ),
-                                ),
-                              )
-                            : SizedBox(
-                                height: buttonHeight,
-                                child: ElevatedButton(
-                                  onPressed: controller.login,
-                                  style: ElevatedButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(26.r),
-                                    ),
-                                    elevation: 0,
-                                    backgroundColor: Colors.transparent,
-                                  ),
-                                  child: Ink(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          buttonGradientStart,
-                                          buttonGradientEnd,
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(26.r),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        text.login,
-                                        style: TextStyle(
-                                          fontSize: isDesktop ? 18.sp : 17.sp,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.8,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                      ),
-                      SizedBox(width: actionSpacing),
-                      Container(
-                        width: faceButtonSize,
-                        height: faceButtonSize,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16.r),
-                          border: Border.all(
-                            color: isDark
-                                ? Colors.cyanAccent.withOpacity(0.42)
-                                : Colors.blue[200]!.withOpacity(0.7),
-                            width: 1.4,
+                        child: Text(
+                          controller.username.value,
+                          style: TextStyle(
+                            color: accentColor,
+                            fontSize: 15.5.sp,
+                            fontWeight: FontWeight.w600,
                           ),
-                          color: isDark
-                              ? Colors.white.withOpacity(0.08)
-                              : Colors.white.withOpacity(0.88),
-                        ),
-                        child: IconButton(
-                          splashRadius: 24.r,
-                          onPressed: () async {
-                            if (faceIdEnabled) {
-                              await onRequestFaceId();
-                            } else if (controller.username.value.isEmpty ||
-                                controller.password.value.isEmpty) {
-                              Get.snackbar(
-                                text.login,
-                                text.need_login_first_to_activate_faceid,
-                                backgroundColor: Colors.redAccent,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.BOTTOM,
-                              );
-                            } else {
-                              Get.snackbar(
-                                text.login,
-                                text.activate_faceid_note,
-                                backgroundColor: Colors.blueAccent,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.BOTTOM,
-                              );
-                            }
-                          },
-                          icon: Image.asset(
-                            'assets/icons/faceid.png',
-                            width: 28.w,
-                            height: 28.h,
-                            color: iconColor,
-                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  if (loginFrozen)
-                    Padding(
-                      padding: EdgeInsets.only(top: headerSpacing),
-                      child: GestureDetector(
-                        onTap: () => controller.clearUserForNewLogin(),
-                        child: Text(
-                          'Đăng nhập bằng tài khoản khác',
-                          style: TextStyle(
-                            color: iconColor,
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.underline,
+                ),
+              SizedBox(height: fieldSpacing),
+              TextField(
+                decoration: InputDecoration(
+                  labelText: text.password,
+                  filled: true,
+                  fillColor: isDark ? Colors.white.withOpacity(0.06) : Colors.blueGrey.withOpacity(0.05),
+                  border: inputBorder,
+                  enabledBorder: inputBorder,
+                  focusedBorder: inputBorder.copyWith(
+                    borderSide: BorderSide(color: accentColor, width: 1.6),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      showPassword ? Icons.visibility : Icons.visibility_off,
+                      color: accentColor,
+                    ),
+                    onPressed: () {
+                      controller.showPassword.value = !showPassword;
+                    },
+                  ),
+                ),
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+                obscureText: !showPassword,
+                onChanged: controller.setPassword,
+                onSubmitted: (_) => controller.login(),
+              ),
+              SizedBox(height: fieldSpacing),
+              Text(
+                text.quick_login_faceid,
+                style: captionStyle,
+              ),
+              SizedBox(height: headerSpacing * 0.7),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: buttonHeight,
+                      child: ElevatedButton(
+                        onPressed: controller.login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18.r),
                           ),
-                          textAlign: TextAlign.center,
+                          textStyle: TextStyle(
+                            fontSize: _select(16, 16.5, 17).sp,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
+                        child: isLoading
+                            ? SizedBox(
+                                width: 22.w,
+                                height: 22.w,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Text(text.login),
                       ),
                     ),
+                  ),
+                  SizedBox(width: _select(12, 14, 16).w),
+                  buildFaceButton(),
                 ],
-              );
-            }),
-          ),
-        ),
+              ),
+            ],
+          );
+        }),
       ),
     );
   }
 }
 
-class _LoginHeroPanel extends StatelessWidget {
+class _WelcomePanel extends StatelessWidget {
   final bool isDark;
-  final bool expanded;
+  final bool compact;
+  final bool tabletLayout;
 
-  const _LoginHeroPanel({
+  const _WelcomePanel({
     required this.isDark,
-    required this.expanded,
+    required this.compact,
+    required this.tabletLayout,
   });
 
   @override
   Widget build(BuildContext context) {
-    final BorderRadius radius = BorderRadius.circular(expanded ? 34.r : 26.r);
-    final double horizontal = (expanded ? 42.0 : 26.0).w;
-    final double vertical = (expanded ? 40.0 : 26.0).h;
-    final TextStyle subtitleStyle = TextStyle(
-      color: Colors.white.withOpacity(0.82),
-      fontSize: expanded ? 15.sp : 13.sp,
-      fontWeight: FontWeight.w500,
-      height: 1.45,
-    );
+    final BorderRadius radius = BorderRadius.circular(compact ? 26.r : 32.r);
 
-    final List<_HeroBulletData> bulletData = [
-      _HeroBulletData(
-        icon: Icons.analytics_outlined,
-        title: 'Giám sát dây chuyền sản xuất',
-        subtitle: 'Theo dõi công suất, cảnh báo ngừng máy và tình trạng vận hành ngay lập tức.',
+    final List<_WelcomeHighlight> highlights = const [
+      _WelcomeHighlight(
+        icon: Icons.speed,
+        title: 'Giám sát thời gian thực',
+        description: 'Cập nhật tình trạng dây chuyền tức thì.',
       ),
-      _HeroBulletData(
-        icon: Icons.dashboard_customize,
-        title: 'Bảng điều khiển đa màn hình',
-        subtitle: 'Tối ưu cho tablet & desktop với bố cục linh hoạt và điều hướng nhanh.',
+      _WelcomeHighlight(
+        icon: Icons.auto_graph,
+        title: 'Phân tích trực quan',
+        description: 'Dashboard đa lớp cho mọi vai trò.',
       ),
-      _HeroBulletData(
-        icon: Icons.verified_user_outlined,
-        title: 'Bảo mật xác thực sinh trắc học',
-        subtitle: 'Đăng nhập nhanh bằng FaceID/TouchID dành cho người vận hành.',
+      _WelcomeHighlight(
+        icon: Icons.security,
+        title: 'Bảo mật chuẩn doanh nghiệp',
+        description: 'Xác thực sinh trắc và phân quyền linh hoạt.',
       ),
     ];
 
-    final List<Color> gradient = isDark
-        ? [
-            const Color(0xF01B1E35),
-            const Color(0xD01F2937),
-          ]
-        : [
-            const Color(0xE61F4AC8),
-            const Color(0xE6006CFF),
-          ];
+    final EdgeInsets padding = EdgeInsets.symmetric(
+      horizontal: compact ? 24.w : 36.w,
+      vertical: compact ? 28.h : 40.h,
+    );
 
-    final Color borderColor = isDark
-        ? Colors.cyanAccent.withOpacity(0.35)
-        : Colors.white.withOpacity(0.55);
+    final TextStyle bodyStyle = TextStyle(
+      color: isDark ? Colors.white.withOpacity(0.85) : const Color(0xFF1A365D),
+      fontSize: compact ? 14.sp : 15.5.sp,
+      height: 1.45,
+      fontWeight: FontWeight.w500,
+    );
 
-    return _GlassPanel(
-      borderRadius: radius,
-      gradient: gradient,
-      borderColor: borderColor,
-      blurSigma: 22,
-      shadows: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.28),
-          blurRadius: 38,
-          offset: const Offset(0, 28),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? const [Color(0xFF10203B), Color(0xFF081222)]
+              : const [Color(0xFFEAF4FF), Color(0xFFFFFFFF)],
         ),
-      ],
+        borderRadius: radius,
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.08) : Colors.blueGrey.withOpacity(0.15),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.28)
+                : Colors.blueGrey.withOpacity(0.14),
+            blurRadius: 30,
+            offset: const Offset(0, 22),
+          )
+        ],
+      ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: horizontal, vertical: vertical),
+        padding: padding,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment:
+              compact ? CrossAxisAlignment.center : CrossAxisAlignment.start,
           children: [
-            LoginLogo(isDark: true, size: expanded ? 92 : 80),
-            SizedBox(height: expanded ? 26.h : 20.h),
-            LoginTitle(
-              isDark: true,
-              textAlign: TextAlign.left,
-              fontSize: expanded ? 32 : 26,
+            Align(
+              alignment:
+                  compact ? Alignment.center : Alignment.centerLeft,
+              child: LoginLogo(
+                isDark: isDark,
+                size: compact ? 76 : 88,
+              ),
             ),
-            SizedBox(height: 12.h),
+            SizedBox(height: 18.h),
+            Align(
+              alignment:
+                  compact ? Alignment.center : Alignment.centerLeft,
+              child: LoginTitle(
+                isDark: isDark,
+                textAlign: compact ? TextAlign.center : TextAlign.left,
+                fontSize: compact ? 26 : 30,
+              ),
+            ),
+            SizedBox(height: 16.h),
             Text(
-              'Chào mừng đến với MBD-Factory – nền tảng tự động hóa giúp bạn nắm bắt mọi chuyển động của nhà máy.',
-              style: subtitleStyle,
+              'Quản lý nhà máy trên mọi thiết bị. Giao diện thích ứng giúp đội ngũ vận hành làm việc liền mạch từ điện thoại đến màn hình lớn.',
+              style: bodyStyle,
+              textAlign: compact ? TextAlign.center : TextAlign.left,
             ),
-            SizedBox(height: expanded ? 28.h : 22.h),
-            ...bulletData.map(
-              (data) => Padding(
-                padding: EdgeInsets.only(bottom: 12.h),
-                child: _HeroBullet(
-                  data: data,
-                  expanded: expanded,
-                ),
-              ),
-            ),
-            SizedBox(height: expanded ? 20.h : 12.h),
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 18.w,
-                vertical: 16.h,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.18),
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.25),
-                  width: 1.1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.security_rounded, color: Colors.white70),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Text(
-                      'Dữ liệu được mã hóa và đồng bộ trên mọi thiết bị.',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.78),
-                        fontSize: expanded ? 14.sp : 13.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
+            SizedBox(height: compact ? 24.h : 32.h),
+            Wrap(
+              spacing: 16.w,
+              runSpacing: 16.h,
+              alignment: compact ? WrapAlignment.center : WrapAlignment.start,
+              children: highlights
+                  .map(
+                    (item) => _HighlightCard(
+                      data: item,
+                      compact: compact && !tabletLayout,
+                      isDark: isDark,
                     ),
-                  ),
-                ],
-              ),
+                  )
+                  .toList(),
             ),
           ],
         ),
@@ -690,131 +606,85 @@ class _LoginHeroPanel extends StatelessWidget {
   }
 }
 
-class _HeroBulletData {
+class _WelcomeHighlight {
   final IconData icon;
   final String title;
-  final String subtitle;
+  final String description;
 
-  const _HeroBulletData({
+  const _WelcomeHighlight({
     required this.icon,
     required this.title,
-    required this.subtitle,
+    required this.description,
   });
 }
 
-class _HeroBullet extends StatelessWidget {
-  final _HeroBulletData data;
-  final bool expanded;
+class _HighlightCard extends StatelessWidget {
+  final _WelcomeHighlight data;
+  final bool compact;
+  final bool isDark;
 
-  const _HeroBullet({
+  const _HighlightCard({
     required this.data,
-    required this.expanded,
+    required this.compact,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: BoxConstraints(
+        minWidth: compact ? 160.w : 180.w,
+        maxWidth: compact ? 220.w : 240.w,
+      ),
       padding: EdgeInsets.symmetric(
-        horizontal: 18.w,
-        vertical: expanded ? 16.h : 14.h,
+        horizontal: compact ? 16.w : 20.w,
+        vertical: compact ? 16.h : 20.h,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(18.r),
+        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.18),
+          color: isDark ? Colors.white.withOpacity(0.08) : Colors.blueGrey.withOpacity(0.15),
         ),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: expanded ? 34.w : 30.w,
-            height: expanded ? 34.w : 30.w,
+            width: 36.w,
+            height: 36.w,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
+              color: isDark
+                  ? Colors.cyanAccent.withOpacity(0.18)
+                  : const Color(0xFF1E88E5).withOpacity(0.12),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Icon(
               data.icon,
-              color: Colors.white,
-              size: expanded ? 20.sp : 18.sp,
+              color: isDark ? Colors.cyanAccent : const Color(0xFF1E88E5),
+              size: 20.sp,
             ),
           ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data.title,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: expanded ? 16.sp : 14.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  data.subtitle,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.78),
-                    fontSize: expanded ? 13.5.sp : 12.5.sp,
-                    height: 1.35,
-                  ),
-                ),
-              ],
+          SizedBox(height: 12.h),
+          Text(
+            data.title,
+            style: TextStyle(
+              fontSize: compact ? 14.sp : 15.sp,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF153B65),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            data.description,
+            style: TextStyle(
+              fontSize: compact ? 12.5.sp : 13.sp,
+              height: 1.4,
+              color: isDark ? Colors.white70 : Colors.blueGrey[600],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _GlassPanel extends StatelessWidget {
-  final BorderRadius borderRadius;
-  final List<Color> gradient;
-  final Color borderColor;
-  final Widget child;
-  final double blurSigma;
-  final List<BoxShadow>? shadows;
-
-  const _GlassPanel({
-    required this.borderRadius,
-    required this.gradient,
-    required this.borderColor,
-    required this.child,
-    this.blurSigma = 18,
-    this.shadows,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: borderRadius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: borderRadius,
-            gradient: LinearGradient(
-              colors: gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border.all(color: borderColor, width: 1.2),
-            boxShadow: shadows ??
-                [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.18),
-                    blurRadius: 32,
-                    offset: const Offset(0, 20),
-                  ),
-                ],
-          ),
-          child: child,
-        ),
       ),
     );
   }
