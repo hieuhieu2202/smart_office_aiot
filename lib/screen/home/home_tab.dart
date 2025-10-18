@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_framework/responsive_framework.dart';
@@ -107,39 +108,19 @@ class _HomeTabState extends State<HomeTab> {
     return 36;
   }
 
-  double _cardSpacing(bool isDesktop) => isDesktop ? 32 : 24;
+  double _cardSpacing(bool isDesktop) => isDesktop ? 24 : 20;
 
   double _maxCardWidth({
     required bool isDesktop,
     required bool isTablet,
   }) {
     if (isDesktop) {
-      return 640;
-    }
-    if (isTablet) {
       return 520;
     }
+    if (isTablet) {
+      return 480;
+    }
     return double.infinity;
-  }
-
-  int _columnsFor(double maxWidth, bool isDesktop) {
-    if (!isDesktop) {
-      return 2;
-    }
-
-    if (maxWidth < 900) {
-      return 1;
-    }
-
-    return 2;
-  }
-
-  double _cardWidth(double maxWidth, int columns, double spacing) {
-    if (columns <= 1) {
-      return maxWidth;
-    }
-    final totalSpacing = spacing * (columns - 1);
-    return (maxWidth - totalSpacing) / columns;
   }
 
   @override
@@ -218,6 +199,11 @@ class _HomeTabState extends State<HomeTab> {
                 vertical: verticalPadding,
               );
 
+              final double horizontalRailPadding = math.max(
+                horizontalPadding - (isDesktop ? 16 : 12),
+                20,
+              );
+
               final Widget view = isMobile
                   ? ListView.separated(
                       key: const ValueKey('home-mobile'),
@@ -240,65 +226,28 @@ class _HomeTabState extends State<HomeTab> {
                     )
                   : SingleChildScrollView(
                       key: const ValueKey('home-expanded'),
-                      padding: contentPadding,
+                      padding: EdgeInsets.symmetric(
+                        vertical: verticalPadding,
+                      ),
                       child: Align(
                         alignment: Alignment.topCenter,
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
                             maxWidth: maxContentWidth,
                           ),
-                          child: Builder(
-                            builder: (context) {
-                              final int columns = _columnsFor(
-                                maxContentWidth,
-                                isDesktop,
-                              );
-                              final double spacing = _cardSpacing(isDesktop);
-                              final double naturalCardWidth = _cardWidth(
-                                maxContentWidth,
-                                columns,
-                                spacing,
-                              );
-                              final double cardWidth = math.min(
-                                naturalCardWidth,
-                                _maxCardWidth(
-                                  isDesktop: isDesktop,
-                                  isTablet: isTablet,
-                                ),
-                              );
-
-                              final double occupiedWidth = columns <= 0
-                                  ? 0
-                                  : (cardWidth * columns) +
-                                      spacing * (columns - 1);
-                              final bool centerWrap = occupiedWidth <
-                                  maxContentWidth - (spacing * 0.5);
-
-                              return Wrap(
-                                alignment:
-                                    centerWrap ? WrapAlignment.center : WrapAlignment.start,
-                                runAlignment: WrapAlignment.start,
-                                spacing: spacing,
-                                runSpacing: spacing,
-                                children: [
-                                  for (int idx = 0;
-                                      idx < projects.length;
-                                      idx++)
-                                    SizedBox(
-                                      width: cardWidth,
-                                      child: _buildProjectCard(
-                                        context: context,
-                                        project: projects[idx],
-                                        projectIndex: idx,
-                                        isDark: isDark,
-                                        isMobile: false,
-                                        isTablet: isTablet,
-                                        isDesktop: isDesktop,
-                                      ),
-                                    ),
-                                ],
-                              );
-                            },
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: horizontalRailPadding,
+                            ),
+                            child: _buildHorizontalProjectRail(
+                              context: context,
+                              projects: projects,
+                              isDark: isDark,
+                              isTablet: isTablet,
+                              isDesktop: isDesktop,
+                              maxContentWidth: maxContentWidth -
+                                  (horizontalRailPadding * 2),
+                            ),
                           ),
                         ),
                       ),
@@ -330,15 +279,11 @@ class _HomeTabState extends State<HomeTab> {
   }) {
     final subProjects = project.subProjects;
     final bool showPagedView = isMobile && subProjects.isNotEmpty;
-    final double cardPadding = isDesktop
-        ? 22
-        : isTablet
-            ? 20
-            : 18;
+    const double cardPadding = 18;
     final double headerSpacing = isDesktop
-        ? 20
+        ? 18
         : isTablet
-            ? 18
+            ? 17
             : 16;
     final double iconSize = isDesktop
         ? 36
@@ -468,6 +413,59 @@ class _HomeTabState extends State<HomeTab> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHorizontalProjectRail({
+    required BuildContext context,
+    required List<AppProject> projects,
+    required bool isDark,
+    required bool isTablet,
+    required bool isDesktop,
+    required double maxContentWidth,
+  }) {
+    final double spacing = _cardSpacing(isDesktop);
+    final double availableWidth = math.max(maxContentWidth, 360);
+    final double cardWidth = math.min(
+      _maxCardWidth(
+        isDesktop: isDesktop,
+        isTablet: isTablet,
+      ),
+      math.max(availableWidth - spacing, 360),
+    );
+
+    final ScrollBehavior behavior = ScrollConfiguration.of(context).copyWith(
+      dragDevices: {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+      },
+    );
+
+    return ScrollConfiguration(
+      behavior: behavior,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (int idx = 0; idx < projects.length; idx++) ...[
+              SizedBox(
+                width: cardWidth,
+                child: _buildProjectCard(
+                  context: context,
+                  project: projects[idx],
+                  projectIndex: idx,
+                  isDark: isDark,
+                  isMobile: false,
+                  isTablet: isTablet,
+                  isDesktop: isDesktop,
+                ),
+              ),
+              if (idx != projects.length - 1) SizedBox(width: spacing),
+            ],
+          ],
         ),
       ),
     );
