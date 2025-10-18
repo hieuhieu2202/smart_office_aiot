@@ -4,7 +4,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:smart_factory/config/global_color.dart';
-import 'package:responsive_framework/responsive_framework.dart';
 import 'package:smart_factory/screen/login/controller/login_controller.dart';
 import 'package:smart_factory/screen/login/controller/user_profile_manager.dart';
 import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
@@ -100,15 +99,6 @@ class MyApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        builder: (context, child) => ResponsiveBreakpoints.builder(
-          child: child!,
-          breakpoints: const [
-            Breakpoint(start: 0, end: 599, name: MOBILE),
-            Breakpoint(start: 600, end: 1023, name: TABLET),
-            Breakpoint(start: 1024, end: 1440, name: DESKTOP),
-            Breakpoint(start: 1441, end: double.infinity, name: '4K'),
-          ],
-        ),
         initialRoute: '/splash',
         getPages: [
           GetPage(name: '/splash', page: () => const SplashScreen()),

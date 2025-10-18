@@ -70,8 +70,6 @@ dependencies:
   syncfusion_flutter_pdfviewer: ^30.2.7
   mobile_scanner: ^7.0.1
   syncfusion_flutter_core: ^30.2.7
-  responsive_framework: ^1.1.1
-  auto_size_text: ^3.0.0
 
 icons_launcher:
   image_path: 'assets/images/icon_app.png'
