@@ -239,58 +239,303 @@ class _HomeTabState extends State<HomeTab> {
     required bool isTablet,
     required bool isDesktop,
   }) {
-    final double spacing = isDesktop ? 32 : 24;
+    final double targetSpacing = isDesktop ? 28 : 22;
+    final double horizontalInset = padding.horizontal / 2;
+    final double verticalInset = padding.vertical / 2;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double maxWidth = constraints.maxWidth;
-        final double effectiveSpacing =
-            crossAxisCount > 1 ? spacing * (crossAxisCount - 1) : 0;
-        final double tileWidth =
-            (maxWidth - effectiveSpacing) / crossAxisCount;
+        final bool showSidebar = constraints.maxWidth >= 1100;
+        final double sidebarWidth = isDesktop ? 260 : 220;
+
         return Scrollbar(
           controller: _wideScrollController,
           thumbVisibility: isDesktop,
           child: SingleChildScrollView(
             controller: _wideScrollController,
-            padding: padding,
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalInset,
+              vertical: verticalInset,
+            ),
             physics: const BouncingScrollPhysics(),
             child: Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: isDesktop ? 1600 : double.infinity,
+                  maxWidth: isDesktop ? 1720 : 1400,
                 ),
-                child: Wrap(
-                  spacing: spacing,
-                  runSpacing: spacing,
-                  alignment: WrapAlignment.start,
-                  children: List.generate(
-                    homeController.projects.length,
-                    (idx) {
-                      final project = homeController.projects[idx];
-                      final double constrainedWidth =
-                          tileWidth.clamp(280.0, 420.0).toDouble();
-                      return SizedBox(
-                        width: constrainedWidth,
-                        child: _buildProjectCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (showSidebar)
+                      SizedBox(
+                        width: sidebarWidth,
+                        child: _buildWideSidebar(
                           context: context,
-                          isDark: isDark,
                           text: text,
-                          project: project,
-                          index: idx,
-                          isMobile: false,
-                          isTablet: isTablet,
+                          isDark: isDark,
                           isDesktop: isDesktop,
+                          spacing: targetSpacing,
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    if (showSidebar) SizedBox(width: targetSpacing),
+                    Expanded(
+                      child: _buildWideContentPanel(
+                        context: context,
+                        text: text,
+                        isDark: isDark,
+                        isTablet: isTablet,
+                        isDesktop: isDesktop,
+                        spacing: targetSpacing,
+                        crossAxisCount: crossAxisCount,
+                        showSidebar: showSidebar,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildWideSidebar({
+    required BuildContext context,
+    required S text,
+    required bool isDark,
+    required bool isDesktop,
+    required double spacing,
+  }) {
+    final Color accent = GlobalColors.accentByIsDark(isDark);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 28 : 22,
+        vertical: isDesktop ? 34 : 26,
+      ),
+      decoration: BoxDecoration(
+        color: isDark
+            ? GlobalColors.cardDarkBg.withOpacity(0.72)
+            : Colors.white.withOpacity(0.82),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: isDark
+              ? GlobalColors.primaryButtonDark.withOpacity(0.14)
+              : GlobalColors.primaryButtonLight.withOpacity(0.12),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.35)
+                : Colors.blueGrey.withOpacity(0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 22),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AutoSizeText(
+            text.home,
+            maxLines: 1,
+            style: GlobalTextStyles.bodyLarge(isDark: isDark).copyWith(
+              fontWeight: FontWeight.w800,
+              fontSize: isDesktop ? 22 : 20,
+              color: accent,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text.welcome_factory,
+            style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
+              color: isDark ? Colors.grey[300] : Colors.blueGrey[600],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.04)
+                  : Colors.blueGrey.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.desktop_windows_rounded,
+                  color: accent,
+                  size: 24,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Windows dashboard',
+                    style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          ...homeController.projects.asMap().entries.map((entry) {
+            final project = entry.value;
+            return Padding(
+              padding: EdgeInsets.only(bottom: entry.key == homeController.projects.length - 1 ? 0 : spacing),
+              child: _SidebarModuleChip(
+                icon: project.icon ?? Icons.dashboard,
+                title: getModuleLabel(context, project.name),
+                status: getStatusText(context, project.status),
+                isDark: isDark,
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWideContentPanel({
+    required BuildContext context,
+    required S text,
+    required bool isDark,
+    required bool isTablet,
+    required bool isDesktop,
+    required double spacing,
+    required int crossAxisCount,
+    required bool showSidebar,
+  }) {
+    final double minTileWidth = isDesktop ? 310 : 280;
+    final double maxTileWidth = isDesktop ? 420 : 360;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double availableWidth = constraints.maxWidth;
+        final double computedWidth = crossAxisCount > 0
+            ? (availableWidth - spacing * (crossAxisCount - 1)) / crossAxisCount
+            : availableWidth;
+        final double tileWidth = computedWidth.isFinite && computedWidth > 0
+            ? computedWidth.clamp(minTileWidth, maxTileWidth)
+            : minTileWidth;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.all(isDesktop ? 36 : 28),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            gradient: isDark
+                ? LinearGradient(
+                    colors: [
+                      GlobalColors.bodyDarkBg.withOpacity(0.95),
+                      Colors.blueGrey[900]!.withOpacity(0.82),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.92),
+                      Colors.blueGrey[50]!.withOpacity(0.88),
+                      Colors.blue[50]!.withOpacity(0.86),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withOpacity(0.28)
+                    : Colors.blueGrey.withOpacity(0.18),
+                blurRadius: 32,
+                offset: const Offset(0, 26),
+              ),
+            ],
+            border: Border.all(
+              color: isDark
+                  ? GlobalColors.primaryButtonDark.withOpacity(0.12)
+                  : GlobalColors.primaryButtonLight.withOpacity(0.1),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildWideHeader(
+                context: context,
+                text: text,
+                isDark: isDark,
+                showSidebar: showSidebar,
+              ),
+              const SizedBox(height: 28),
+              Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: List.generate(
+                  homeController.projects.length,
+                  (index) {
+                    final project = homeController.projects[index];
+                    return ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: tileWidth,
+                        maxWidth: tileWidth,
+                      ),
+                      child: _buildProjectCard(
+                        context: context,
+                        isDark: isDark,
+                        text: text,
+                        project: project,
+                        index: index,
+                        isMobile: false,
+                        isTablet: isTablet,
+                        isDesktop: isDesktop,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildWideHeader({
+    required BuildContext context,
+    required S text,
+    required bool isDark,
+    required bool showSidebar,
+  }) {
+    final Color accent = GlobalColors.accentByIsDark(isDark);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AutoSizeText(
+          text.welcome_factory,
+          maxLines: 1,
+          style: GlobalTextStyles.bodyLarge(isDark: isDark).copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: showSidebar ? 26 : 28,
+            color: accent,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          text.home,
+          style: GlobalTextStyles.bodyMedium(isDark: isDark).copyWith(
+            color: isDark ? Colors.grey[300] : Colors.blueGrey[600],
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 
@@ -354,6 +599,7 @@ class _HomeTabState extends State<HomeTab> {
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -652,6 +898,101 @@ class _HomeTabState extends State<HomeTab> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SidebarModuleChip extends StatelessWidget {
+  const _SidebarModuleChip({
+    required this.icon,
+    required this.title,
+    required this.status,
+    required this.isDark,
+  });
+
+  final IconData icon;
+  final String title;
+  final String status;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color accent = isDark
+        ? GlobalColors.primaryButtonDark
+        : GlobalColors.primaryButtonLight;
+    final bool hasStatus = status.trim().isNotEmpty;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.blueGrey.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: accent.withOpacity(0.18),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.18)
+                : Colors.blueGrey.withOpacity(0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: accent.withOpacity(0.14),
+            ),
+            child: Icon(
+              icon,
+              color: accent,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AutoSizeText(
+                  title,
+                  maxLines: 1,
+                  style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+                if (hasStatus) ...[
+                  const SizedBox(height: 4),
+                  AutoSizeText(
+                    status,
+                    maxLines: 1,
+                    minFontSize: 11,
+                    style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
+                      color: accent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: Colors.grey,
+          ),
+        ],
       ),
     );
   }
