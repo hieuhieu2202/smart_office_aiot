@@ -379,14 +379,10 @@ class _QRScanScreenState extends State<QRScanScreen>
                           errorBuilder: (
                             BuildContext context,
                             MobileScannerException error,
-                            Widget? child,
                           ) {
-                            final code = (error.errorCode == null)
-                                ? ''
-                                : error.errorCode.toString().trim();
-                            final details = (error.errorDetails == null)
-                                ? ''
-                                : error.errorDetails.toString().trim();
+                            final code = error.errorCode?.toString().trim() ?? '';
+                            final details =
+                                error.errorDetails?.toString().trim() ?? '';
                             final joined = [code, details]
                                 .where((element) => element.isNotEmpty)
                                 .join(' - ');
