@@ -114,10 +114,10 @@ class _HomeTabState extends State<HomeTab> {
     required bool isTablet,
   }) {
     if (isDesktop) {
-      return 760;
+      return 640;
     }
     if (isTablet) {
-      return 560;
+      return 520;
     }
     return double.infinity;
   }
@@ -331,20 +331,20 @@ class _HomeTabState extends State<HomeTab> {
     final subProjects = project.subProjects;
     final bool showPagedView = isMobile && subProjects.isNotEmpty;
     final double cardPadding = isDesktop
-        ? 24
-        : isTablet
-            ? 22
-            : 20;
-    final double headerSpacing = isDesktop
         ? 22
         : isTablet
             ? 20
             : 18;
-    final double iconSize = isDesktop
-        ? 40
+    final double headerSpacing = isDesktop
+        ? 20
         : isTablet
-            ? 38
-            : 36;
+            ? 18
+            : 16;
+    final double iconSize = isDesktop
+        ? 36
+        : isTablet
+            ? 34
+            : 32;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
