@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_framework/responsive_framework.dart';
@@ -110,19 +109,6 @@ class _HomeTabState extends State<HomeTab> {
 
   double _cardSpacing(bool isDesktop) => isDesktop ? 24 : 20;
 
-  double _maxCardWidth({
-    required bool isDesktop,
-    required bool isTablet,
-  }) {
-    if (isDesktop) {
-      return 520;
-    }
-    if (isTablet) {
-      return 480;
-    }
-    return double.infinity;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -200,8 +186,8 @@ class _HomeTabState extends State<HomeTab> {
               );
 
               final double horizontalRailPadding = math.max(
-                horizontalPadding - (isDesktop ? 16 : 12),
-                20,
+                horizontalPadding - (isDesktop ? 8 : 6),
+                12,
               );
 
               final Widget view = isMobile
@@ -239,7 +225,7 @@ class _HomeTabState extends State<HomeTab> {
                             padding: EdgeInsets.symmetric(
                               horizontal: horizontalRailPadding,
                             ),
-                            child: _buildHorizontalProjectRail(
+                            child: _buildExpandedProjectList(
                               context: context,
                               projects: projects,
                               isDark: isDark,
@@ -279,7 +265,11 @@ class _HomeTabState extends State<HomeTab> {
   }) {
     final subProjects = project.subProjects;
     final bool showPagedView = isMobile && subProjects.isNotEmpty;
-    const double cardPadding = 18;
+    final double cardPadding = isDesktop
+        ? 16
+        : isTablet
+            ? 16
+            : 18;
     final double headerSpacing = isDesktop
         ? 18
         : isTablet
@@ -418,7 +408,7 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  Widget _buildHorizontalProjectRail({
+  Widget _buildExpandedProjectList({
     required BuildContext context,
     required List<AppProject> projects,
     required bool isDark,
@@ -427,47 +417,32 @@ class _HomeTabState extends State<HomeTab> {
     required double maxContentWidth,
   }) {
     final double spacing = _cardSpacing(isDesktop);
-    final double availableWidth = math.max(maxContentWidth, 360);
-    final double cardWidth = math.min(
-      _maxCardWidth(
-        isDesktop: isDesktop,
-        isTablet: isTablet,
-      ),
-      math.max(availableWidth - spacing, 360),
-    );
+    final double clampedWidth = math.max(maxContentWidth, 360);
 
-    final ScrollBehavior behavior = ScrollConfiguration.of(context).copyWith(
-      dragDevices: {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-      },
-    );
-
-    return ScrollConfiguration(
-      behavior: behavior,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (int idx = 0; idx < projects.length; idx++) ...[
-              SizedBox(
-                width: cardWidth,
-                child: _buildProjectCard(
-                  context: context,
-                  project: projects[idx],
-                  projectIndex: idx,
-                  isDark: isDark,
-                  isMobile: false,
-                  isTablet: isTablet,
-                  isDesktop: isDesktop,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int idx = 0; idx < projects.length; idx++) ...[
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: clampedWidth,
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: _buildProjectCard(
+                context: context,
+                project: projects[idx],
+                projectIndex: idx,
+                isDark: isDark,
+                isMobile: false,
+                isTablet: isTablet,
+                isDesktop: isDesktop,
               ),
-              if (idx != projects.length - 1) SizedBox(width: spacing),
-            ],
-          ],
-        ),
-      ),
+            ),
+          ),
+          if (idx != projects.length - 1) SizedBox(height: spacing),
+        ],
+      ],
     );
   }
 
