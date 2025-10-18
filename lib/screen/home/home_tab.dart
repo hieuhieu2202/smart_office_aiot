@@ -1,4 +1,3 @@
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_builder/responsive_builder.dart';
@@ -39,7 +38,6 @@ class _HomeTabState extends State<HomeTab> {
   // Map để lưu PageController cho từng module
   final Map<int, PageController> _pageControllers = {};
   final Map<int, int> _currentPageIndexes = {};
-  final ScrollController _wideScrollController = ScrollController();
 
   bool _isCheckingUpdate = false;
   bool _hasPromptedUpdate = false;
@@ -104,7 +102,6 @@ class _HomeTabState extends State<HomeTab> {
     for (final controller in _pageControllers.values) {
       controller.dispose();
     }
-    _wideScrollController.dispose();
     super.dispose();
   }
 
@@ -115,10 +112,10 @@ class _HomeTabState extends State<HomeTab> {
       final bool isDark = settingController.isDarkMode.value;
       return ResponsiveBuilder(
         builder: (context, sizingInfo) {
-          final DeviceScreenType type = sizingInfo.deviceScreenType;
-          final bool isMobile = type == DeviceScreenType.mobile;
-          final bool isTablet = type == DeviceScreenType.tablet;
-          final bool isDesktop = type == DeviceScreenType.desktop;
+          final DeviceScreenType deviceType = sizingInfo.deviceScreenType;
+          final bool isMobile = deviceType == DeviceScreenType.mobile;
+          final bool isTablet = deviceType == DeviceScreenType.tablet;
+          final bool isDesktop = deviceType == DeviceScreenType.desktop;
           final double horizontalPadding = isMobile
               ? 16
               : isTablet
@@ -129,13 +126,6 @@ class _HomeTabState extends State<HomeTab> {
             horizontal: horizontalPadding,
             vertical: verticalPadding,
           );
-          final int crossAxisCount = isMobile
-              ? 1
-              : isTablet
-                  ? 2
-                  : sizingInfo.screenSize.width >= 1600
-                      ? 4
-                      : 3;
 
           return Scaffold(
             appBar: CustomAppBar(
@@ -166,7 +156,7 @@ class _HomeTabState extends State<HomeTab> {
                       ),
               ),
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
+                duration: const Duration(milliseconds: 250),
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeInCubic,
                 child: isMobile
@@ -175,11 +165,10 @@ class _HomeTabState extends State<HomeTab> {
                         text: text,
                         padding: contentPadding,
                       )
-                    : _buildWideCanvas(
+                    : _buildAdaptiveGrid(
                         isDark: isDark,
                         text: text,
                         padding: contentPadding,
-                        crossAxisCount: crossAxisCount,
                         isTablet: isTablet,
                         isDesktop: isDesktop,
                       ),
@@ -210,7 +199,7 @@ class _HomeTabState extends State<HomeTab> {
     required EdgeInsets padding,
   }) {
     return ListView.separated(
-      key: const ValueKey('mobile-list'),
+      key: const ValueKey('home-mobile'),
       padding: padding,
       physics: const BouncingScrollPhysics(),
       itemCount: homeController.projects.length,
@@ -231,311 +220,63 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  Widget _buildWideCanvas({
+  Widget _buildAdaptiveGrid({
     required bool isDark,
     required S text,
     required EdgeInsets padding,
-    required int crossAxisCount,
     required bool isTablet,
     required bool isDesktop,
   }) {
-    final double targetSpacing = isDesktop ? 28 : 22;
-    final double horizontalInset = padding.horizontal / 2;
-    final double verticalInset = padding.vertical / 2;
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bool showSidebar = constraints.maxWidth >= 1100;
-        final double sidebarWidth = isDesktop ? 260 : 220;
+        final double availableWidth =
+            (constraints.maxWidth - padding.horizontal).clamp(0.0, double.infinity);
+        final double spacing = isDesktop ? 28 : 22;
+        final double targetCardWidth = isDesktop ? 340 : 320;
+        int columns = ((availableWidth + spacing) / (targetCardWidth + spacing))
+            .floor();
+        columns = columns.clamp(1, isDesktop ? 4 : 3);
+        if (columns < 1) {
+          columns = 1;
+        }
+        final double totalSpacing = spacing * (columns - 1);
+        final double tileWidth = columns == 0
+            ? availableWidth
+            : (availableWidth - totalSpacing) / columns;
+        final double maxCardWidth = isDesktop ? 380 : 340;
+        final double resolvedWidth = tileWidth > maxCardWidth
+            ? maxCardWidth
+            : tileWidth;
 
-        return Scrollbar(
-          controller: _wideScrollController,
-          thumbVisibility: isDesktop,
-          child: SingleChildScrollView(
-            controller: _wideScrollController,
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalInset,
-              vertical: verticalInset,
-            ),
-            physics: const BouncingScrollPhysics(),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: isDesktop ? 1720 : 1400,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (showSidebar)
-                      SizedBox(
-                        width: sidebarWidth,
-                        child: _buildWideSidebar(
-                          context: context,
-                          text: text,
-                          isDark: isDark,
-                          isDesktop: isDesktop,
-                          spacing: targetSpacing,
-                        ),
-                      ),
-                    if (showSidebar) SizedBox(width: targetSpacing),
-                    Expanded(
-                      child: _buildWideContentPanel(
-                        context: context,
-                        text: text,
-                        isDark: isDark,
-                        isTablet: isTablet,
-                        isDesktop: isDesktop,
-                        spacing: targetSpacing,
-                        crossAxisCount: crossAxisCount,
-                        showSidebar: showSidebar,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildWideSidebar({
-    required BuildContext context,
-    required S text,
-    required bool isDark,
-    required bool isDesktop,
-    required double spacing,
-  }) {
-    final Color accent = GlobalColors.accentByIsDark(isDark);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeOutCubic,
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 28 : 22,
-        vertical: isDesktop ? 34 : 26,
-      ),
-      decoration: BoxDecoration(
-        color: isDark
-            ? GlobalColors.cardDarkBg.withOpacity(0.72)
-            : Colors.white.withOpacity(0.82),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: isDark
-              ? GlobalColors.primaryButtonDark.withOpacity(0.14)
-              : GlobalColors.primaryButtonLight.withOpacity(0.12),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.35)
-                : Colors.blueGrey.withOpacity(0.18),
-            blurRadius: 28,
-            offset: const Offset(0, 22),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AutoSizeText(
-            text.home,
-            maxLines: 1,
-            style: GlobalTextStyles.bodyLarge(isDark: isDark).copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: isDesktop ? 22 : 20,
-              color: accent,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            text.welcome_factory,
-            style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
-              color: isDark ? Colors.grey[300] : Colors.blueGrey[600],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withOpacity(0.04)
-                  : Colors.blueGrey.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Row(
+        return SingleChildScrollView(
+          key: const ValueKey('home-wide'),
+          padding: padding,
+          physics: const BouncingScrollPhysics(),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
               children: [
-                Icon(
-                  Icons.desktop_windows_rounded,
-                  color: accent,
-                  size: 24,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Windows dashboard',
-                    style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
-                      fontWeight: FontWeight.w600,
+                for (int idx = 0; idx < homeController.projects.length; idx++)
+                  SizedBox(
+                    width: resolvedWidth,
+                    child: _buildProjectCard(
+                      context: context,
+                      isDark: isDark,
+                      text: text,
+                      project: homeController.projects[idx],
+                      index: idx,
+                      isMobile: false,
+                      isTablet: isTablet,
+                      isDesktop: isDesktop,
                     ),
                   ),
-                ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          ...homeController.projects.asMap().entries.map((entry) {
-            final project = entry.value;
-            return Padding(
-              padding: EdgeInsets.only(bottom: entry.key == homeController.projects.length - 1 ? 0 : spacing),
-              child: _SidebarModuleChip(
-                icon: project.icon ?? Icons.dashboard,
-                title: getModuleLabel(context, project.name),
-                status: getStatusText(context, project.status),
-                isDark: isDark,
-              ),
-            );
-          }).toList(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWideContentPanel({
-    required BuildContext context,
-    required S text,
-    required bool isDark,
-    required bool isTablet,
-    required bool isDesktop,
-    required double spacing,
-    required int crossAxisCount,
-    required bool showSidebar,
-  }) {
-    final double minTileWidth = isDesktop ? 310 : 280;
-    final double maxTileWidth = isDesktop ? 420 : 360;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final double availableWidth = constraints.maxWidth;
-        final double computedWidth = crossAxisCount > 0
-            ? (availableWidth - spacing * (crossAxisCount - 1)) / crossAxisCount
-            : availableWidth;
-        final double tileWidth = computedWidth.isFinite && computedWidth > 0
-            ? computedWidth.clamp(minTileWidth, maxTileWidth)
-            : minTileWidth;
-
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 320),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.all(isDesktop ? 36 : 28),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-            gradient: isDark
-                ? LinearGradient(
-                    colors: [
-                      GlobalColors.bodyDarkBg.withOpacity(0.95),
-                      Colors.blueGrey[900]!.withOpacity(0.82),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : LinearGradient(
-                    colors: [
-                      Colors.white.withOpacity(0.92),
-                      Colors.blueGrey[50]!.withOpacity(0.88),
-                      Colors.blue[50]!.withOpacity(0.86),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withOpacity(0.28)
-                    : Colors.blueGrey.withOpacity(0.18),
-                blurRadius: 32,
-                offset: const Offset(0, 26),
-              ),
-            ],
-            border: Border.all(
-              color: isDark
-                  ? GlobalColors.primaryButtonDark.withOpacity(0.12)
-                  : GlobalColors.primaryButtonLight.withOpacity(0.1),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildWideHeader(
-                context: context,
-                text: text,
-                isDark: isDark,
-                showSidebar: showSidebar,
-              ),
-              const SizedBox(height: 28),
-              Wrap(
-                spacing: spacing,
-                runSpacing: spacing,
-                children: List.generate(
-                  homeController.projects.length,
-                  (index) {
-                    final project = homeController.projects[index];
-                    return ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: tileWidth,
-                        maxWidth: tileWidth,
-                      ),
-                      child: _buildProjectCard(
-                        context: context,
-                        isDark: isDark,
-                        text: text,
-                        project: project,
-                        index: index,
-                        isMobile: false,
-                        isTablet: isTablet,
-                        isDesktop: isDesktop,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
         );
       },
-    );
-  }
-
-  Widget _buildWideHeader({
-    required BuildContext context,
-    required S text,
-    required bool isDark,
-    required bool showSidebar,
-  }) {
-    final Color accent = GlobalColors.accentByIsDark(isDark);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AutoSizeText(
-          text.welcome_factory,
-          maxLines: 1,
-          style: GlobalTextStyles.bodyLarge(isDark: isDark).copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: showSidebar ? 26 : 28,
-            color: accent,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          text.home,
-          style: GlobalTextStyles.bodyMedium(isDark: isDark).copyWith(
-            color: isDark ? Colors.grey[300] : Colors.blueGrey[600],
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 
@@ -549,15 +290,11 @@ class _HomeTabState extends State<HomeTab> {
     required bool isTablet,
     required bool isDesktop,
   }) {
-    final subProjects = project.subProjects;
-    final pages = chunk(subProjects, 4);
-    final initialPage = _currentPageIndexes[index] ?? 0;
-    final pageController = _pageControllers.putIfAbsent(
-      index,
-      () => PageController(initialPage: initialPage),
-    );
-    final double headerSpacing = isMobile ? 18 : 22;
-    final double iconSize = isMobile ? 36 : 42;
+    final subProjects = project.subProjects as List<dynamic>;
+    final List<List<dynamic>> pages = isMobile ? chunk(subProjects, 4) : [];
+    final PageController? pageController = isMobile
+        ? _pageControllers.putIfAbsent(index, () => PageController())
+        : null;
     final double cardPadding = isDesktop
         ? 26
         : isTablet
@@ -565,223 +302,209 @@ class _HomeTabState extends State<HomeTab> {
             : 18;
 
     return Card(
-      elevation: isDesktop ? 6 : 4,
-      shadowColor: isDark
-          ? Colors.black.withOpacity(0.35)
-          : Colors.blueGrey.withOpacity(0.18),
-      margin: EdgeInsets.zero,
-      color: Colors.transparent,
+      elevation: 3,
+      color: isDark
+          ? GlobalColors.cardDarkBg
+          : Colors.white.withOpacity(0.95),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+      child: Padding(
         padding: EdgeInsets.all(cardPadding),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: isDark
-              ? GlobalColors.cardDarkBg.withOpacity(isMobile ? 0.98 : 0.94)
-              : Colors.white.withOpacity(isDesktop ? 0.78 : 0.9),
-          border: Border.all(
-            color: isDark
-                ? GlobalColors.primaryButtonDark.withOpacity(0.16)
-                : GlobalColors.primaryButtonLight.withOpacity(0.12),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withOpacity(0.28)
-                  : Colors.blueGrey.withOpacity(0.12),
-              blurRadius: 18,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  height: iconSize,
-                  width: iconSize,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: (isDark
-                            ? GlobalColors.primaryButtonDark
-                            : GlobalColors.primaryButtonLight)
-                        .withOpacity(0.12),
-                  ),
-                  child: FittedBox(
-                    child: Icon(
-                      project.icon ?? Icons.dashboard,
-                      color: isDark
-                          ? GlobalColors.primaryButtonDark
-                          : GlobalColors.primaryButtonLight,
+                Icon(
+                  project.icon ?? Icons.dashboard,
+                  size: isDesktop
+                      ? 40
+                      : isTablet
+                          ? 36
+                          : 36,
+                  color: isDark
+                      ? GlobalColors.primaryButtonDark
+                      : GlobalColors.primaryButtonLight,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    getModuleLabel(context, project.name),
+                    style: GlobalTextStyles.bodyLarge(
+                      isDark: isDark,
+                    ).copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: isDesktop
+                          ? 21
+                          : isTablet
+                              ? 20
+                              : 19,
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AutoSizeText(
-                        getModuleLabel(context, project.name),
-                        style: GlobalTextStyles.bodyLarge(
-                          isDark: isDark,
-                        ).copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 19,
-                        ),
-                        maxLines: 1,
-                        minFontSize: 16,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? GlobalColors.primaryButtonDark
-                                  .withOpacity(0.16)
-                              : GlobalColors.primaryButtonLight
-                                  .withOpacity(0.11),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: AutoSizeText(
-                          getStatusText(context, project.status),
-                          style: GlobalTextStyles.bodySmall(
-                            isDark: isDark,
-                          ).copyWith(
-                            color: isDark
-                                ? GlobalColors.primaryButtonDark
-                                : GlobalColors.primaryButtonLight,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          minFontSize: 11,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? GlobalColors.primaryButtonDark.withOpacity(0.16)
+                        : GlobalColors.primaryButtonLight.withOpacity(0.11),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    getStatusText(context, project.status),
+                    style: GlobalTextStyles.bodySmall(
+                      isDark: isDark,
+                    ).copyWith(
+                      color: isDark
+                          ? GlobalColors.primaryButtonDark
+                          : GlobalColors.primaryButtonLight,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: headerSpacing),
-            subProjects.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 28),
-                    child: Center(
-                      child: Text(
-                        text.no_id,
-                        style: GlobalTextStyles.bodySmall(
-                          isDark: isDark,
-                        ),
-                      ),
+            const SizedBox(height: 18),
+            if (subProjects.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 28),
+                child: Center(
+                  child: Text(
+                    text.no_id,
+                    style: GlobalTextStyles.bodySmall(
+                      isDark: isDark,
                     ),
-                  )
-                : isMobile
-                    ? Column(
-                        children: [
-                          SizedBox(
-                            height: isMobile ? 130 : 140,
-                            child: PageView.builder(
-                              controller: pageController,
-                              itemCount: pages.length,
-                              onPageChanged: (page) {
-                                setState(() {
-                                  _currentPageIndexes[index] = page;
-                                });
-                              },
-                              itemBuilder: (context, pageIdx) {
-                                final pageSubs = pages[pageIdx];
-                                return Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: List.generate(4, (i) {
-                                    if (i >= pageSubs.length) {
-                                      return const Expanded(
-                                        child: SizedBox.shrink(),
-                                      );
-                                    }
-                                    final sub = pageSubs[i];
-                                    return Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 4,
-                                        ),
-                                        child: _buildSubProjectTile(
-                                          context: context,
-                                          isDark: isDark,
-                                          sub: sub,
-                                          isMobile: true,
-                                          isTablet: false,
-                                          isDesktop: false,
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          SmoothPageIndicator(
-                            controller: pageController,
-                            count: pages.length,
-                            effect: WormEffect(
-                              dotColor: isDark
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade400,
-                              activeDotColor: isDark
-                                  ? GlobalColors.primaryButtonDark
-                                  : GlobalColors.primaryButtonLight,
-                              dotHeight: 8,
-                              dotWidth: 8,
-                              spacing: 8,
-                            ),
-                          ),
-                        ],
-                      )
-                    : LayoutBuilder(
-                        builder: (context, constraints) {
-                          final int wrapCount = isDesktop
-                              ? (constraints.maxWidth >= 1400 ? 4 : 3)
-                              : 2;
-                          final double spacing = isDesktop ? 20 : 16;
-                          final double tileWidth = (constraints.maxWidth -
-                                  spacing * (wrapCount - 1)) /
-                              wrapCount;
-                          return Wrap(
-                            spacing: spacing,
-                            runSpacing: spacing,
-                            children: subProjects.map<Widget>((sub) {
-                              return SizedBox(
-                                width: tileWidth.clamp(180.0, 320.0),
-                                child: _buildSubProjectTile(
-                                  context: context,
-                                  isDark: isDark,
-                                  sub: sub,
-                                  isMobile: false,
-                                  isTablet: isTablet,
-                                  isDesktop: isDesktop,
-                                ),
-                              );
-                            }).toList(),
-                          );
-                        },
-                      ),
+                  ),
+                ),
+              )
+            else if (isMobile)
+              _buildMobileSubProjectPager(
+                context: context,
+                isDark: isDark,
+                index: index,
+                pages: pages,
+                pageController: pageController!,
+              )
+            else
+              _buildWideSubProjectWrap(
+                context: context,
+                isDark: isDark,
+                subProjects: subProjects,
+                isTablet: isTablet,
+                isDesktop: isDesktop,
+              ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMobileSubProjectPager({
+    required BuildContext context,
+    required bool isDark,
+    required int index,
+    required List<List<dynamic>> pages,
+    required PageController pageController,
+  }) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 122,
+          child: PageView.builder(
+            controller: pageController,
+            itemCount: pages.length,
+            onPageChanged: (page) {
+              setState(() {
+                _currentPageIndexes[index] = page;
+              });
+            },
+            itemBuilder: (context, pageIdx) {
+              final pageSubs = pages[pageIdx];
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(4, (slot) {
+                  if (slot >= pageSubs.length) {
+                    return const Expanded(child: SizedBox());
+                  }
+                  final sub = pageSubs[slot];
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: _buildSubProjectTile(
+                        context: context,
+                        isDark: isDark,
+                        sub: sub,
+                        isMobile: true,
+                        isTablet: false,
+                        isDesktop: false,
+                      ),
+                    ),
+                  );
+                }),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        SmoothPageIndicator(
+          controller: pageController,
+          count: pages.length,
+          effect: WormEffect(
+            dotColor: isDark ? Colors.grey.shade700 : Colors.grey.shade400,
+            activeDotColor: isDark
+                ? GlobalColors.primaryButtonDark
+                : GlobalColors.primaryButtonLight,
+            dotHeight: 8,
+            dotWidth: 8,
+            spacing: 8,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWideSubProjectWrap({
+    required BuildContext context,
+    required bool isDark,
+    required List<dynamic> subProjects,
+    required bool isTablet,
+    required bool isDesktop,
+  }) {
+    final double spacing = isDesktop ? 18 : 16;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxWidth = constraints.maxWidth;
+        final double targetWidth = isDesktop ? 200 : 180;
+        int columns = ((maxWidth + spacing) / (targetWidth + spacing)).floor();
+        columns = columns.clamp(1, isDesktop ? 4 : 3);
+        final double totalSpacing = spacing * (columns - 1);
+        final double tileWidth = columns == 0
+            ? maxWidth
+            : (maxWidth - totalSpacing) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: subProjects.map((sub) {
+            return SizedBox(
+              width: tileWidth,
+              child: _buildSubProjectTile(
+                context: context,
+                isDark: isDark,
+                sub: sub,
+                isMobile: false,
+                isTablet: isTablet,
+                isDesktop: isDesktop,
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -797,17 +520,35 @@ class _HomeTabState extends State<HomeTab> {
         ? 18
         : isTablet
             ? 16
-            : 12;
+            : isMobile
+                ? 11
+                : 14;
     final double horizontalPadding = isDesktop
         ? 14
         : isTablet
             ? 12
-            : 8;
+            : isMobile
+                ? 6
+                : 10;
     final double iconSize = isDesktop
-        ? 36
+        ? 32
         : isTablet
-            ? 32
-            : 28;
+            ? 30
+            : isMobile
+                ? 27
+                : 28;
+    final double titleSize = isDesktop
+        ? 14
+        : isTablet
+            ? 12.5
+            : isMobile
+                ? 10.5
+                : 11.5;
+    final double statusSize = isDesktop
+        ? 12.5
+        : isTablet
+            ? 11.2
+            : 10.2;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -818,181 +559,81 @@ class _HomeTabState extends State<HomeTab> {
       decoration: BoxDecoration(
         color: isDark
             ? GlobalColors.cardDarkBg.withOpacity(0.94)
-            : Colors.white.withOpacity(0.96),
-        borderRadius: BorderRadius.circular(18),
+            : Colors.white.withOpacity(0.98),
+        borderRadius: BorderRadius.circular(13),
         border: Border.all(
           color: isDark
               ? GlobalColors.primaryButtonDark.withOpacity(0.14)
               : GlobalColors.primaryButtonLight.withOpacity(0.12),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.18)
-                : Colors.blueGrey.withOpacity(0.12),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: isDark ? Colors.black.withOpacity(0.06) : Colors.black12,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            if (sub.subProjects.isNotEmpty) {
-              Get.to(
-                () => ProjectListPage(
-                  project: sub,
-                ),
-              );
-            } else {
-              Get.to(() => buildProjectScreen(sub));
-            }
-          },
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(
-                sub.icon ?? Icons.widgets,
-                size: iconSize,
-                color: isDark
-                    ? GlobalColors.primaryButtonDark
-                    : GlobalColors.primaryButtonLight,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          if (sub.subProjects.isNotEmpty) {
+            Get.to(
+              () => ProjectListPage(
+                project: sub,
               ),
-              const SizedBox(height: 8),
-              AutoSizeText(
-                getCardLabel(context, sub.name),
+            );
+          } else {
+            Get.to(
+              () => buildProjectScreen(sub),
+            );
+          }
+        },
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              sub.icon ?? Icons.widgets,
+              size: iconSize,
+              color: isDark
+                  ? GlobalColors.primaryButtonDark
+                  : GlobalColors.primaryButtonLight,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              getCardLabel(context, sub.name),
+              style: GlobalTextStyles.bodySmall(
+                isDark: isDark,
+              ).copyWith(
+                fontWeight: FontWeight.bold,
+                color: isDark
+                    ? GlobalColors.darkPrimaryText
+                    : GlobalColors.lightPrimaryText,
+                fontSize: titleSize,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (sub.status.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                getStatusText(context, sub.status),
                 style: GlobalTextStyles.bodySmall(
                   isDark: isDark,
                 ).copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
+                  fontSize: statusSize,
                   color: isDark
-                      ? GlobalColors.darkPrimaryText
-                      : GlobalColors.lightPrimaryText,
+                      ? GlobalColors.primaryButtonDark
+                      : GlobalColors.primaryButtonLight,
                 ),
                 textAlign: TextAlign.center,
-                maxLines: 2,
-                minFontSize: 11,
               ),
-              if (sub.status.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                AutoSizeText(
-                  getStatusText(context, sub.status),
-                  style: GlobalTextStyles.bodySmall(
-                    isDark: isDark,
-                  ).copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? GlobalColors.primaryButtonDark
-                        : GlobalColors.primaryButtonLight,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  minFontSize: 10,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
             ],
-          ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-class _SidebarModuleChip extends StatelessWidget {
-  const _SidebarModuleChip({
-    required this.icon,
-    required this.title,
-    required this.status,
-    required this.isDark,
-  });
-
-  final IconData icon;
-  final String title;
-  final String status;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color accent = isDark
-        ? GlobalColors.primaryButtonDark
-        : GlobalColors.primaryButtonLight;
-    final bool hasStatus = status.trim().isNotEmpty;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.blueGrey.withOpacity(0.07),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: accent.withOpacity(0.18),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.18)
-                : Colors.blueGrey.withOpacity(0.12),
-            blurRadius: 14,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: accent.withOpacity(0.14),
-            ),
-            child: Icon(
-              icon,
-              color: accent,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AutoSizeText(
-                  title,
-                  maxLines: 1,
-                  style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-                if (hasStatus) ...[
-                  const SizedBox(height: 4),
-                  AutoSizeText(
-                    status,
-                    maxLines: 1,
-                    minFontSize: 11,
-                    style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
-                      color: accent,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: Colors.grey,
-          ),
-        ],
       ),
     );
   }
