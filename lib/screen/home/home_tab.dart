@@ -39,6 +39,7 @@ class _HomeTabState extends State<HomeTab> {
   // Map để lưu PageController cho từng module
   final Map<int, PageController> _pageControllers = {};
   final Map<int, int> _currentPageIndexes = {};
+  final ScrollController _wideScrollController = ScrollController();
 
   bool _isCheckingUpdate = false;
   bool _hasPromptedUpdate = false;
@@ -103,6 +104,7 @@ class _HomeTabState extends State<HomeTab> {
     for (final controller in _pageControllers.values) {
       controller.dispose();
     }
+    _wideScrollController.dispose();
     super.dispose();
   }
 
@@ -173,7 +175,7 @@ class _HomeTabState extends State<HomeTab> {
                         text: text,
                         padding: contentPadding,
                       )
-                    : _buildWideGrid(
+                    : _buildWideCanvas(
                         isDark: isDark,
                         text: text,
                         padding: contentPadding,
@@ -229,7 +231,7 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  Widget _buildWideGrid({
+  Widget _buildWideCanvas({
     required bool isDark,
     required S text,
     required EdgeInsets padding,
@@ -238,29 +240,55 @@ class _HomeTabState extends State<HomeTab> {
     required bool isDesktop,
   }) {
     final double spacing = isDesktop ? 32 : 24;
-    final double aspectRatio = isDesktop ? 1.4 : 1.25;
-    return GridView.builder(
-      key: ValueKey('grid-$crossAxisCount'),
-      padding: padding,
-      physics: const BouncingScrollPhysics(),
-      itemCount: homeController.projects.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: spacing,
-        mainAxisSpacing: spacing,
-        childAspectRatio: aspectRatio,
-      ),
-      itemBuilder: (context, idx) {
-        final project = homeController.projects[idx];
-        return _buildProjectCard(
-          context: context,
-          isDark: isDark,
-          text: text,
-          project: project,
-          index: idx,
-          isMobile: false,
-          isTablet: isTablet,
-          isDesktop: isDesktop,
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxWidth = constraints.maxWidth;
+        final double effectiveSpacing =
+            crossAxisCount > 1 ? spacing * (crossAxisCount - 1) : 0;
+        final double tileWidth =
+            (maxWidth - effectiveSpacing) / crossAxisCount;
+        return Scrollbar(
+          controller: _wideScrollController,
+          thumbVisibility: isDesktop,
+          child: SingleChildScrollView(
+            controller: _wideScrollController,
+            padding: padding,
+            physics: const BouncingScrollPhysics(),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isDesktop ? 1600 : double.infinity,
+                ),
+                child: Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  alignment: WrapAlignment.start,
+                  children: List.generate(
+                    homeController.projects.length,
+                    (idx) {
+                      final project = homeController.projects[idx];
+                      final double constrainedWidth =
+                          tileWidth.clamp(280.0, 420.0).toDouble();
+                      return SizedBox(
+                        width: constrainedWidth,
+                        child: _buildProjectCard(
+                          context: context,
+                          isDark: isDark,
+                          text: text,
+                          project: project,
+                          index: idx,
+                          isMobile: false,
+                          isTablet: isTablet,
+                          isDesktop: isDesktop,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
         );
       },
     );
