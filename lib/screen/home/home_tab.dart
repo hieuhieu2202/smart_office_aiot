@@ -229,24 +229,11 @@ class _HomeTabState extends State<HomeTab> {
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double availableWidth =
+        final double maxContentWidth = isDesktop ? 1100 : 900;
+        final double computedWidth =
             (constraints.maxWidth - padding.horizontal).clamp(0.0, double.infinity);
-        final double spacing = isDesktop ? 28 : 22;
-        final double targetCardWidth = isDesktop ? 340 : 320;
-        int columns = ((availableWidth + spacing) / (targetCardWidth + spacing))
-            .floor();
-        columns = columns.clamp(1, isDesktop ? 4 : 3);
-        if (columns < 1) {
-          columns = 1;
-        }
-        final double totalSpacing = spacing * (columns - 1);
-        final double tileWidth = columns == 0
-            ? availableWidth
-            : (availableWidth - totalSpacing) / columns;
-        final double maxCardWidth = isDesktop ? 380 : 340;
-        final double resolvedWidth = tileWidth > maxCardWidth
-            ? maxCardWidth
-            : tileWidth;
+        final double cardWidth = computedWidth.clamp(0.0, maxContentWidth);
+        final double spacing = isDesktop ? 24 : 20;
 
         return SingleChildScrollView(
           key: const ValueKey('home-wide'),
@@ -254,25 +241,34 @@ class _HomeTabState extends State<HomeTab> {
           physics: const BouncingScrollPhysics(),
           child: Align(
             alignment: Alignment.topCenter,
-            child: Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                for (int idx = 0; idx < homeController.projects.length; idx++)
-                  SizedBox(
-                    width: resolvedWidth,
-                    child: _buildProjectCard(
-                      context: context,
-                      isDark: isDark,
-                      text: text,
-                      project: homeController.projects[idx],
-                      index: idx,
-                      isMobile: false,
-                      isTablet: isTablet,
-                      isDesktop: isDesktop,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: maxContentWidth,
+                minWidth: (isTablet || isDesktop) ? cardWidth : 0.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (int idx = 0; idx < homeController.projects.length; idx++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: idx == homeController.projects.length - 1
+                            ? 0
+                            : spacing,
+                      ),
+                      child: _buildProjectCard(
+                        context: context,
+                        isDark: isDark,
+                        text: text,
+                        project: homeController.projects[idx],
+                        index: idx,
+                        isMobile: false,
+                        isTablet: isTablet,
+                        isDesktop: isDesktop,
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         );
