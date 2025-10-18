@@ -395,10 +395,11 @@ class _HomeTabState extends State<HomeTab> {
                   isDark: isDark,
                 )
               else
-                _buildGridSubProjects(
+                _buildHorizontalSubProjects(
                   context: context,
                   subProjects: subProjects,
                   isDark: isDark,
+                  isTablet: isTablet,
                   isDesktop: isDesktop,
                 ),
             ],
@@ -552,46 +553,52 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  Widget _buildGridSubProjects({
+  Widget _buildHorizontalSubProjects({
     required BuildContext context,
     required List<AppProject> subProjects,
     required bool isDark,
+    required bool isTablet,
     required bool isDesktop,
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final int crossAxisCount = isDesktop ? 4 : 3;
-        final double spacing = isDesktop ? 24 : 18;
         final double availableWidth = constraints.maxWidth;
-        final double usableWidth = math.max(
-          availableWidth - spacing * (crossAxisCount - 1),
-          0,
-        );
-        final double tileWidth = crossAxisCount > 0
-            ? usableWidth / crossAxisCount
-            : availableWidth;
-        final double minTileHeight = isDesktop ? 188 : 176;
-        final double aspectRatio = tileWidth > 0
-            ? tileWidth / minTileHeight
-            : 1.2;
+        final double spacing = isDesktop
+            ? 22
+            : isTablet
+                ? 18
+                : 16;
+        final double idealVisibleCount = isDesktop
+            ? 5
+            : isTablet
+                ? 4
+                : 3;
+        final double idealWidth = (availableWidth - (spacing * (idealVisibleCount - 1))) /
+            idealVisibleCount;
+        final double tileWidth = idealWidth.clamp(120, isDesktop ? 170 : 160);
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: subProjects.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            mainAxisSpacing: spacing,
-            crossAxisSpacing: spacing,
-            childAspectRatio: aspectRatio,
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: [
+              for (int index = 0; index < subProjects.length; index++) ...[
+                if (index == 0) SizedBox(width: spacing * 0.5),
+                SizedBox(
+                  width: tileWidth,
+                  child: _buildSubProjectTile(
+                    context: context,
+                    sub: subProjects[index],
+                    isDark: isDark,
+                  ),
+                ),
+                if (index == subProjects.length - 1)
+                  SizedBox(width: spacing * 0.5)
+                else
+                  SizedBox(width: spacing),
+              ],
+            ],
           ),
-          itemBuilder: (context, index) {
-            return _buildSubProjectTile(
-              context: context,
-              sub: subProjects[index],
-              isDark: isDark,
-            );
-          },
         );
       },
     );
