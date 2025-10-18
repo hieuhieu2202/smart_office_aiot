@@ -312,9 +312,9 @@ class _HomeTabState extends State<HomeTab> {
         ? _widePageControllers.putIfAbsent(index, () => PageController())
         : null;
     final double cardPadding = isDesktop
-        ? 21
+        ? 23
         : isTablet
-            ? 18
+            ? 20
             : 18;
 
     final header = Row(
@@ -323,9 +323,9 @@ class _HomeTabState extends State<HomeTab> {
         Icon(
           project.icon ?? Icons.dashboard,
           size: isDesktop
-              ? 32
+              ? 35
               : isTablet
-                  ? 30
+                  ? 33
                   : 36,
           color: isDark
               ? GlobalColors.primaryButtonDark
@@ -340,9 +340,9 @@ class _HomeTabState extends State<HomeTab> {
             ).copyWith(
               fontWeight: FontWeight.bold,
               fontSize: isDesktop
-                  ? 17
+                  ? 18.5
                   : isTablet
-                      ? 16
+                      ? 17.5
                       : 19,
             ),
           ),
@@ -513,8 +513,8 @@ class _HomeTabState extends State<HomeTab> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double spacing = isDesktop ? 16 : 14;
-        final double tileWidth = isDesktop ? 164 : 148;
+        final double spacing = isDesktop ? 18 : 15;
+        final double tileWidth = isDesktop ? 180 : 163;
         final int visibleCount = math.min(8, subProjects.length);
         final double requiredWidth = visibleCount * tileWidth +
             (visibleCount > 1 ? (visibleCount - 1) * spacing : 0);
@@ -550,9 +550,9 @@ class _HomeTabState extends State<HomeTab> {
     required bool isTablet,
     required bool isDesktop,
   }) {
-    final double spacing = isDesktop ? 16 : 14;
-    final double tileWidth = isDesktop ? 164 : 148;
-    final double tileHeight = isDesktop ? 126 : 118;
+    final double spacing = isDesktop ? 18 : 15;
+    final double tileWidth = isDesktop ? 180 : 163;
+    final double tileHeight = isDesktop ? 138 : 130;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -606,9 +606,9 @@ class _HomeTabState extends State<HomeTab> {
     required bool isTablet,
     required bool isDesktop,
   }) {
-    final double spacing = isDesktop ? 16 : 14;
-    final double tileWidth = isDesktop ? 164 : 148;
-    final double tileHeight = isDesktop ? 126 : 118;
+    final double spacing = isDesktop ? 18 : 15;
+    final double tileWidth = isDesktop ? 180 : 163;
+    final double tileHeight = isDesktop ? 138 : 130;
     final int currentPage = _wideCurrentPageIndexes[index] ?? 0;
 
     return Column(
@@ -782,37 +782,37 @@ class _HomeTabState extends State<HomeTab> {
     required bool isDesktop,
   }) {
     final double verticalPadding = isDesktop
-        ? 14.0
+        ? 15.5
         : isTablet
-            ? 12.5
+            ? 13.8
             : isMobile
                 ? 11
-                : 14;
+                : 15;
     final double horizontalPadding = isDesktop
-        ? 11.0
+        ? 12.1
         : isTablet
-            ? 9.5
+            ? 10.5
             : isMobile
                 ? 6
-                : 10;
+                : 11;
     final double iconSize = isDesktop
-        ? 26
+        ? 28.5
         : isTablet
-            ? 24
+            ? 26.0
             : isMobile
                 ? 27
-                : 28;
+                : 29;
     final double titleSize = isDesktop
-        ? 11.0
+        ? 12.1
         : isTablet
-            ? 10.0
+            ? 11.0
             : isMobile
                 ? 10.5
-                : 11.5;
+                : 12.0;
     final double statusSize = isDesktop
-        ? 10.0
+        ? 11.0
         : isTablet
-            ? 9.0
+            ? 9.9
             : 10.2;
 
     return AnimatedContainer(
