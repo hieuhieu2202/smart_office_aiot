@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -28,6 +31,8 @@ class _QRScanScreenState extends State<QRScanScreen>
 
   bool _isProcessing = false;
   bool _showScanner = true;
+  bool _scannerAvailable = true;
+  String? _scannerUnavailableMsg;
 
   late final AnimationController _scanAnim;
   late final Animation<double> _scanTween;
@@ -38,8 +43,16 @@ class _QRScanScreenState extends State<QRScanScreen>
     _scanAnim = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+    );
     _scanTween = CurvedAnimation(parent: _scanAnim, curve: Curves.linear);
+
+    _scannerAvailable = _isSupportedScannerPlatform();
+    if (_scannerAvailable) {
+      _scanAnim.repeat(reverse: true);
+    } else {
+      _scannerUnavailableMsg =
+          'Thiết bị này không hỗ trợ camera để quét QR. Vui lòng sử dụng thiết bị có camera.';
+    }
   }
 
   @override
@@ -47,6 +60,87 @@ class _QRScanScreenState extends State<QRScanScreen>
     _scanAnim.dispose();
     controller.dispose();
     super.dispose();
+  }
+
+  bool _isSupportedScannerPlatform() {
+    if (kIsWeb) return true;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  void _handleScannerUnavailable([String? message]) {
+    if (!_scannerAvailable || !mounted) return;
+    setState(() {
+      _scannerAvailable = false;
+      _showScanner = false;
+      _scannerUnavailableMsg = message ??
+          'Không thể truy cập camera trên thiết bị này. Vui lòng kiểm tra lại.';
+    });
+    if (_scanAnim.isAnimating) {
+      _scanAnim.stop();
+    }
+  }
+
+  Future<bool> _tryStopScanner() async {
+    if (!_scannerAvailable) return false;
+    try {
+      await controller.stop();
+      return true;
+    } on MissingPluginException {
+      _handleScannerUnavailable(
+          'Thiết bị không hỗ trợ chức năng quét QR hoặc chưa cài đặt camera.');
+      return false;
+    } on PlatformException catch (e) {
+      _handleScannerUnavailable(
+          'Không thể tạm dừng camera: ${e.message ?? e.code}');
+      return false;
+    }
+  }
+
+  Future<bool> _tryStartScanner() async {
+    if (!_scannerAvailable) return false;
+    try {
+      await controller.start();
+      return true;
+    } on MissingPluginException {
+      _handleScannerUnavailable(
+          'Thiết bị không hỗ trợ chức năng quét QR hoặc chưa cài đặt camera.');
+      return false;
+    } on PlatformException catch (e) {
+      _handleScannerUnavailable(
+          'Không thể khởi động camera: ${e.message ?? e.code}');
+      return false;
+    }
+  }
+
+  Future<void> _toggleTorch() async {
+    if (!_scannerAvailable) return;
+    try {
+      await controller.toggleTorch();
+    } on MissingPluginException {
+      _handleScannerUnavailable(
+          'Thiết bị không hỗ trợ bật/tắt đèn flash cho chức năng quét QR.');
+    } on PlatformException catch (e) {
+      _showSnack('Không thể bật/tắt đèn: ${e.message ?? e.code}');
+    }
+  }
+
+  Future<void> _switchCamera() async {
+    if (!_scannerAvailable) return;
+    try {
+      await controller.switchCamera();
+    } on MissingPluginException {
+      _handleScannerUnavailable(
+          'Thiết bị không hỗ trợ đổi camera cho chức năng quét QR.');
+    } on PlatformException catch (e) {
+      _showSnack('Không thể đổi camera: ${e.message ?? e.code}');
+    }
   }
 
   void _showSnack(String msg) {
@@ -190,7 +284,7 @@ class _QRScanScreenState extends State<QRScanScreen>
       }
 
       setState(() => _showScanner = false);
-      await controller.stop();
+      await _tryStopScanner();
 
       if (target == 'fixture') {
         await Navigator.push(
@@ -217,8 +311,10 @@ class _QRScanScreenState extends State<QRScanScreen>
       }
 
       if (!mounted) return;
-      setState(() => _showScanner = true);
-      await controller.start();
+      if (_scannerAvailable) {
+        setState(() => _showScanner = true);
+        await _tryStartScanner();
+      }
     } catch (e) {
       _showSnack("Lỗi kết nối: $e");
     } finally {
@@ -243,68 +339,430 @@ class _QRScanScreenState extends State<QRScanScreen>
           actions: [
             IconButton(
               icon: const Icon(Icons.flash_on),
-              onPressed: () => controller.toggleTorch(),
+              onPressed: _scannerAvailable ? _toggleTorch : null,
               tooltip: 'Bật/tắt đèn',
             ),
             IconButton(
               icon: const Icon(Icons.cameraswitch),
-              onPressed: () => controller.switchCamera(),
+              onPressed: _scannerAvailable ? _switchCamera : null,
               tooltip: 'Đổi camera',
             ),
           ],
         ),
-        body:
-            _showScanner
-                ? LayoutBuilder(
-                  builder: (context, constraints) {
-                    final size = constraints.biggest;
-                    final double boxSize = size.shortestSide * 0.68;
-                    final Rect scanRect = Rect.fromCenter(
-                      center: Offset(size.width / 2, size.height / 2),
-                      width: boxSize,
-                      height: boxSize,
-                    );
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            if (!_scannerAvailable) {
+              return _buildUnavailableState(context, constraints);
+            }
+            if (!_showScanner) {
+              return _buildPausedState(context, constraints);
+            }
+            return _buildResponsiveScanner(context, constraints);
+          },
+        ),
+      ),
+    );
+  }
 
-                    return Stack(
+  Widget _buildResponsiveScanner(
+    BuildContext context,
+    BoxConstraints constraints,
+  ) {
+    if (constraints.maxWidth < 600) {
+      return _buildCompactScanner(context);
+    }
+    return _buildExpandedScanner(context, constraints);
+  }
+
+  Widget _buildCompactScanner(BuildContext context) {
+    return _buildScannerStack();
+  }
+
+  Widget _buildExpandedScanner(
+    BuildContext context,
+    BoxConstraints constraints,
+  ) {
+    final double scannerWidth = math.max(
+      math.min(constraints.maxWidth * 0.5, 560),
+      360,
+    );
+    final double aspectRatio = 3 / 4;
+    final theme = Theme.of(context);
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 32.0),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: scannerWidth,
+                child: AspectRatio(
+                  aspectRatio: aspectRatio,
+                  child: _buildFramedScanner(),
+                ),
+              ),
+              const SizedBox(width: 32),
+              Expanded(
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        MobileScanner(
-                          controller: controller,
-                          scanWindow: scanRect,
-                          onDetect: (capture) async {
-                            if (_isProcessing) return;
-
-                            for (final b in capture.barcodes) {
-                              final String? value = b.rawValue;
-                              if (value == null || value.isEmpty) continue;
-
-                              final parsed = _parseQr(value);
-                              if (parsed == null) continue;
-
-                              await controller.stop();
-                              await _handleCode(value);
-                              break;
-                            }
-                          },
+                        Text(
+                          'Quét QR trên màn hình lớn',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                        AnimatedBuilder(
-                          animation: _scanTween,
-                          builder: (context, _) {
-                            return IgnorePointer(
-                              child: CustomPaint(
-                                size: Size.infinite,
-                                painter: _ScanOverlayPainter(
-                                  rect: scanRect,
-                                  t: _scanTween.value,
-                                ),
-                              ),
-                            );
-                          },
+                        const SizedBox(height: 12),
+                        Text(
+                          'Giữ mã QR trước camera ở khoảng cách 15-20cm và đảm bảo khu vực quét được chiếu sáng tốt.',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 24),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            _buildInfoChip(
+                              context,
+                              icon: Icons.flash_on,
+                              label: 'Bật/Tắt đèn',
+                              onPressed: _scannerAvailable ? _toggleTorch : null,
+                            ),
+                            _buildInfoChip(
+                              context,
+                              icon: Icons.cameraswitch,
+                              label: 'Đổi camera',
+                              onPressed: _scannerAvailable ? _switchCamera : null,
+                            ),
+                            _buildInfoChip(
+                              context,
+                              icon: Icons.qr_code_scanner,
+                              label: 'Tự động nhận diện',
+                              onPressed: null,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Divider(color: theme.dividerColor.withOpacity(0.4)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Mẹo quét thành công:',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildHintRow(
+                          context,
+                          icon: Icons.check_circle_outline,
+                          text: 'Giữ tay chắc và tránh rung lắc khi đưa mã QR vào khung.',
+                        ),
+                        const SizedBox(height: 8),
+                        _buildHintRow(
+                          context,
+                          icon: Icons.light_mode_outlined,
+                          text: 'Đảm bảo khu vực đủ sáng hoặc bật đèn flash nếu cần.',
+                        ),
+                        const SizedBox(height: 8),
+                        _buildHintRow(
+                          context,
+                          icon: Icons.phonelink_setup,
+                          text: 'Nếu không thấy camera, hãy kiểm tra lại quyền truy cập thiết bị.',
                         ),
                       ],
-                    );
-                  },
-                )
-                : const Center(child: Text("Đang tạm dừng camera...")),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFramedScanner() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF3C72FF), Color(0xFF7A33FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33212121),
+            blurRadius: 18,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14.0),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              color: Colors.black,
+            ),
+            child: _buildScannerStack(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScannerStack() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest;
+        final double boxSize = size.shortestSide * 0.68;
+        final Rect scanRect = Rect.fromCenter(
+          center: Offset(size.width / 2, size.height / 2),
+          width: boxSize,
+          height: boxSize,
+        );
+
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            MobileScanner(
+              controller: controller,
+              scanWindow: scanRect,
+              errorBuilder: (
+                BuildContext context,
+                MobileScannerException error,
+              ) {
+                final code = error.errorCode?.toString().trim() ?? '';
+                final details = error.errorDetails?.toString().trim() ?? '';
+                final joined = [code, details]
+                    .where((element) => element.isNotEmpty)
+                    .join(' - ');
+                final message = joined.isEmpty
+                    ? 'Không thể khởi tạo camera trên thiết bị này.'
+                    : 'Không thể khởi tạo camera: $joined';
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                );
+              },
+              onDetect: (capture) async {
+                if (_isProcessing) return;
+
+                for (final b in capture.barcodes) {
+                  final String? value = b.rawValue;
+                  if (value == null || value.isEmpty) continue;
+
+                  final parsed = _parseQr(value);
+                  if (parsed == null) continue;
+
+                  final stopped = await _tryStopScanner();
+                  if (!stopped) return;
+                  await _handleCode(value);
+                  break;
+                }
+              },
+            ),
+            AnimatedBuilder(
+              animation: _scanTween,
+              builder: (context, _) {
+                return IgnorePointer(
+                  child: CustomPaint(
+                    size: Size.infinite,
+                    painter: _ScanOverlayPainter(
+                      rect: scanRect,
+                      t: _scanTween.value,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoChip(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    VoidCallback? onPressed,
+  }) {
+    final theme = Theme.of(context);
+    final buttonStyle = OutlinedButton.styleFrom(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    );
+
+    if (onPressed == null) {
+      return Chip(
+        avatar: Icon(icon, size: 18, color: theme.colorScheme.primary),
+        label: Text(label, style: theme.textTheme.bodyMedium),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        backgroundColor:
+            theme.colorScheme.primary.withOpacity(theme.brightness == Brightness.dark ? 0.12 : 0.08),
+      );
+    }
+
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label, style: theme.textTheme.bodyMedium),
+      style: buttonStyle,
+    );
+  }
+
+  Widget _buildHintRow(
+    BuildContext context, {
+    required IconData icon,
+    required String text,
+  }) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: theme.colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnavailableState(
+    BuildContext context,
+    BoxConstraints constraints,
+  ) {
+    final theme = Theme.of(context);
+    final message = _scannerUnavailableMsg ??
+        'Camera không khả dụng trên thiết bị này.';
+
+    final card = Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(28.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.videocam_off_outlined,
+              size: 48,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Không tìm thấy camera',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Vui lòng kết nối camera ngoài hoặc chuyển sang thiết bị di động để tiếp tục quét.',
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (constraints.maxWidth < 600) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyLarge,
+          ),
+        ),
+      );
+    }
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: card,
+      ),
+    );
+  }
+
+  Widget _buildPausedState(
+    BuildContext context,
+    BoxConstraints constraints,
+  ) {
+    final theme = Theme.of(context);
+    final message = 'Đang tạm dừng camera...';
+
+    final content = Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(28.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.pause_circle_filled,
+                size: 48, color: theme.colorScheme.primary),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Nhấn vào biểu tượng quay lại để trở về trang chủ hoặc chờ hệ thống xử lý dữ liệu.',
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (constraints.maxWidth < 600) {
+      return const Center(child: Text('Đang tạm dừng camera...'));
+    }
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: content,
       ),
     );
   }
