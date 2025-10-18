@@ -357,9 +357,6 @@ class _HomeTabState extends State<HomeTab> {
       ],
     );
 
-    final bool useHorizontalLayout = !isMobile && subProjects.isNotEmpty;
-    final double horizontalGap = isDesktop ? 28 : 22;
-
     return Card(
       elevation: 3,
       color: isDark
@@ -370,67 +367,41 @@ class _HomeTabState extends State<HomeTab> {
       ),
       child: Padding(
         padding: EdgeInsets.all(cardPadding),
-        child: useHorizontalLayout
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        header,
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: horizontalGap),
-                  Expanded(
-                    flex: 3,
-                    child: _buildWideSubProjectWrap(
-                      context: context,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            header,
+            const SizedBox(height: 18),
+            if (subProjects.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 28),
+                child: Center(
+                  child: Text(
+                    text.no_id,
+                    style: GlobalTextStyles.bodySmall(
                       isDark: isDark,
-                      subProjects: subProjects,
-                      isTablet: isTablet,
-                      isDesktop: isDesktop,
                     ),
                   ),
-                ],
+                ),
               )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  header,
-                  const SizedBox(height: 18),
-                  if (subProjects.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 28),
-                      child: Center(
-                        child: Text(
-                          text.no_id,
-                          style: GlobalTextStyles.bodySmall(
-                            isDark: isDark,
-                          ),
-                        ),
-                      ),
-                    )
-                  else if (isMobile)
-                    _buildMobileSubProjectPager(
-                      context: context,
-                      isDark: isDark,
-                      index: index,
-                      pages: pages,
-                      pageController: pageController!,
-                    )
-                  else
-                    _buildWideSubProjectWrap(
-                      context: context,
-                      isDark: isDark,
-                      subProjects: subProjects,
-                      isTablet: isTablet,
-                      isDesktop: isDesktop,
-                    ),
-                ],
+            else if (isMobile)
+              _buildMobileSubProjectPager(
+                context: context,
+                isDark: isDark,
+                index: index,
+                pages: pages,
+                pageController: pageController!,
+              )
+            else
+              _buildWideSubProjectWrap(
+                context: context,
+                isDark: isDark,
+                subProjects: subProjects,
+                isTablet: isTablet,
+                isDesktop: isDesktop,
               ),
+          ],
+        ),
       ),
     );
   }
@@ -507,36 +478,30 @@ class _HomeTabState extends State<HomeTab> {
     required bool isDesktop,
   }) {
     final double spacing = isDesktop ? 18 : 16;
+    final double tileWidth = isDesktop ? 190 : 176;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final double maxWidth = constraints.maxWidth;
-        final double targetWidth = isDesktop ? 200 : 180;
-        int columns = ((maxWidth + spacing) / (targetWidth + spacing)).floor();
-        columns = columns.clamp(1, isDesktop ? 4 : 3);
-        final double totalSpacing = spacing * (columns - 1);
-        final double tileWidth = columns == 0
-            ? maxWidth
-            : (maxWidth - totalSpacing) / columns;
-
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: subProjects.map((sub) {
-            return SizedBox(
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < subProjects.length; i++) ...[
+            SizedBox(
               width: tileWidth,
               child: _buildSubProjectTile(
                 context: context,
                 isDark: isDark,
-                sub: sub,
+                sub: subProjects[i],
                 isMobile: false,
                 isTablet: isTablet,
                 isDesktop: isDesktop,
               ),
-            );
-          }).toList(),
-        );
-      },
+            ),
+            if (i != subProjects.length - 1) SizedBox(width: spacing),
+          ],
+        ],
+      ),
     );
   }
 
