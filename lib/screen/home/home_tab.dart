@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_builder/responsive_builder.dart';
@@ -229,10 +231,14 @@ class _HomeTabState extends State<HomeTab> {
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double maxContentWidth = isDesktop ? 1100 : 900;
-        final double computedWidth =
-            (constraints.maxWidth - padding.horizontal).clamp(0.0, double.infinity);
-        final double cardWidth = computedWidth.clamp(0.0, maxContentWidth);
+        final double availableWidth =
+            math.max(0, constraints.maxWidth - padding.horizontal).toDouble();
+        final double maxWidthLimit = isDesktop ? 1600 : 900;
+        final double contentWidth =
+            math.min(availableWidth, maxWidthLimit).toDouble();
+        final double rawWidth = contentWidth > 0 ? contentWidth : availableWidth;
+        final double effectiveWidth =
+            rawWidth > 0 ? rawWidth : maxWidthLimit;
         final double spacing = isDesktop ? 24 : 20;
 
         return SingleChildScrollView(
@@ -243,8 +249,10 @@ class _HomeTabState extends State<HomeTab> {
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: maxContentWidth,
-                minWidth: (isTablet || isDesktop) ? cardWidth : 0.0,
+                maxWidth: effectiveWidth,
+                minWidth: (isTablet || isDesktop)
+                    ? effectiveWidth
+                    : 0.0,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
