@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -28,6 +30,8 @@ class _QRScanScreenState extends State<QRScanScreen>
 
   bool _isProcessing = false;
   bool _showScanner = true;
+  bool _scannerAvailable = true;
+  String? _scannerUnavailableMsg;
 
   late final AnimationController _scanAnim;
   late final Animation<double> _scanTween;
@@ -38,8 +42,16 @@ class _QRScanScreenState extends State<QRScanScreen>
     _scanAnim = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+    );
     _scanTween = CurvedAnimation(parent: _scanAnim, curve: Curves.linear);
+
+    _scannerAvailable = _isSupportedScannerPlatform();
+    if (_scannerAvailable) {
+      _scanAnim.repeat(reverse: true);
+    } else {
+      _scannerUnavailableMsg =
+          'Thiết bị này không hỗ trợ camera để quét QR. Vui lòng sử dụng thiết bị có camera.';
+    }
   }
 
   @override
@@ -47,6 +59,87 @@ class _QRScanScreenState extends State<QRScanScreen>
     _scanAnim.dispose();
     controller.dispose();
     super.dispose();
+  }
+
+  bool _isSupportedScannerPlatform() {
+    if (kIsWeb) return true;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  void _handleScannerUnavailable([String? message]) {
+    if (!_scannerAvailable || !mounted) return;
+    setState(() {
+      _scannerAvailable = false;
+      _showScanner = false;
+      _scannerUnavailableMsg = message ??
+          'Không thể truy cập camera trên thiết bị này. Vui lòng kiểm tra lại.';
+    });
+    if (_scanAnim.isAnimating) {
+      _scanAnim.stop();
+    }
+  }
+
+  Future<bool> _tryStopScanner() async {
+    if (!_scannerAvailable) return false;
+    try {
+      await controller.stop();
+      return true;
+    } on MissingPluginException {
+      _handleScannerUnavailable(
+          'Thiết bị không hỗ trợ chức năng quét QR hoặc chưa cài đặt camera.');
+      return false;
+    } on PlatformException catch (e) {
+      _handleScannerUnavailable(
+          'Không thể tạm dừng camera: ${e.message ?? e.code}');
+      return false;
+    }
+  }
+
+  Future<bool> _tryStartScanner() async {
+    if (!_scannerAvailable) return false;
+    try {
+      await controller.start();
+      return true;
+    } on MissingPluginException {
+      _handleScannerUnavailable(
+          'Thiết bị không hỗ trợ chức năng quét QR hoặc chưa cài đặt camera.');
+      return false;
+    } on PlatformException catch (e) {
+      _handleScannerUnavailable(
+          'Không thể khởi động camera: ${e.message ?? e.code}');
+      return false;
+    }
+  }
+
+  Future<void> _toggleTorch() async {
+    if (!_scannerAvailable) return;
+    try {
+      await controller.toggleTorch();
+    } on MissingPluginException {
+      _handleScannerUnavailable(
+          'Thiết bị không hỗ trợ bật/tắt đèn flash cho chức năng quét QR.');
+    } on PlatformException catch (e) {
+      _showSnack('Không thể bật/tắt đèn: ${e.message ?? e.code}');
+    }
+  }
+
+  Future<void> _switchCamera() async {
+    if (!_scannerAvailable) return;
+    try {
+      await controller.switchCamera();
+    } on MissingPluginException {
+      _handleScannerUnavailable(
+          'Thiết bị không hỗ trợ đổi camera cho chức năng quét QR.');
+    } on PlatformException catch (e) {
+      _showSnack('Không thể đổi camera: ${e.message ?? e.code}');
+    }
   }
 
   void _showSnack(String msg) {
@@ -190,7 +283,7 @@ class _QRScanScreenState extends State<QRScanScreen>
       }
 
       setState(() => _showScanner = false);
-      await controller.stop();
+      await _tryStopScanner();
 
       if (target == 'fixture') {
         await Navigator.push(
@@ -217,8 +310,10 @@ class _QRScanScreenState extends State<QRScanScreen>
       }
 
       if (!mounted) return;
-      setState(() => _showScanner = true);
-      await controller.start();
+      if (_scannerAvailable) {
+        setState(() => _showScanner = true);
+        await _tryStartScanner();
+      }
     } catch (e) {
       _showSnack("Lỗi kết nối: $e");
     } finally {
@@ -243,18 +338,29 @@ class _QRScanScreenState extends State<QRScanScreen>
           actions: [
             IconButton(
               icon: const Icon(Icons.flash_on),
-              onPressed: () => controller.toggleTorch(),
+              onPressed: _scannerAvailable ? _toggleTorch : null,
               tooltip: 'Bật/tắt đèn',
             ),
             IconButton(
               icon: const Icon(Icons.cameraswitch),
-              onPressed: () => controller.switchCamera(),
+              onPressed: _scannerAvailable ? _switchCamera : null,
               tooltip: 'Đổi camera',
             ),
           ],
         ),
-        body:
-            _showScanner
+        body: !_scannerAvailable
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    _scannerUnavailableMsg ??
+                        'Camera không khả dụng trên thiết bị này.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+              )
+            : _showScanner
                 ? LayoutBuilder(
                   builder: (context, constraints) {
                     final size = constraints.biggest;
@@ -270,6 +376,25 @@ class _QRScanScreenState extends State<QRScanScreen>
                         MobileScanner(
                           controller: controller,
                           scanWindow: scanRect,
+                          errorBuilder: (context, error, child) {
+                            final code = (error.errorCode ?? '').trim();
+                            final details = (error.errorDetails ?? '').trim();
+                            final joined = [code, details]
+                                .where((element) => element.isNotEmpty)
+                                .join(' - ');
+                            final message = joined.isEmpty
+                                ? 'Không thể khởi tạo camera trên thiết bị này.'
+                                : 'Không thể khởi tạo camera: $joined';
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Text(
+                                  message,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            );
+                          },
                           onDetect: (capture) async {
                             if (_isProcessing) return;
 
@@ -280,7 +405,8 @@ class _QRScanScreenState extends State<QRScanScreen>
                               final parsed = _parseQr(value);
                               if (parsed == null) continue;
 
-                              await controller.stop();
+                              final stopped = await _tryStopScanner();
+                              if (!stopped) return;
                               await _handleCode(value);
                               break;
                             }
