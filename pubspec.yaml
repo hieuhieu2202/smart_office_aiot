@@ -53,7 +53,7 @@ dependencies:
   table_calendar: ^3.0.9
   fl_chart: ^1.0.0
   responsive_builder: ^0.7.0
-  flutter_localizations:
+  flutter_loons:
     sdk: flutter
   intl: ^0.19.0
   smooth_page_indicator: ^1.1.0
