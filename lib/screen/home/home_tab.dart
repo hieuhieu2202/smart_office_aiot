@@ -186,8 +186,8 @@ class _HomeTabState extends State<HomeTab> {
               );
 
               final double horizontalRailPadding = math.max(
-                horizontalPadding - (isDesktop ? 8 : 6),
-                12,
+                horizontalPadding - (isDesktop ? 18 : 14),
+                8,
               );
 
               final Widget view = isMobile
@@ -417,32 +417,52 @@ class _HomeTabState extends State<HomeTab> {
     required double maxContentWidth,
   }) {
     final double spacing = _cardSpacing(isDesktop);
-    final double clampedWidth = math.max(maxContentWidth, 360);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (int idx = 0; idx < projects.length; idx++) ...[
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: clampedWidth,
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: _buildProjectCard(
-                context: context,
-                project: projects[idx],
-                projectIndex: idx,
-                isDark: isDark,
-                isMobile: false,
-                isTablet: isTablet,
-                isDesktop: isDesktop,
-              ),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double viewportWidth = constraints.maxWidth;
+        final double minCardWidth = isDesktop ? 360 : 320;
+        final double maxPreferredWidth = math.min(
+          viewportWidth,
+          isDesktop ? 560 : 500,
+        );
+        final double suggestedWidth = math.min(
+          viewportWidth * (isDesktop ? 0.58 : 0.68),
+          maxPreferredWidth,
+        );
+        final double cardWidth = projects.length == 1
+            ? maxPreferredWidth
+            : math.max(minCardWidth, suggestedWidth);
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: spacing * 0.5),
+              for (int idx = 0; idx < projects.length; idx++) ...[
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildProjectCard(
+                    context: context,
+                    project: projects[idx],
+                    projectIndex: idx,
+                    isDark: isDark,
+                    isMobile: false,
+                    isTablet: isTablet,
+                    isDesktop: isDesktop,
+                  ),
+                ),
+                if (idx != projects.length - 1)
+                  SizedBox(width: spacing)
+                else
+                  SizedBox(width: spacing * 0.5),
+              ],
+            ],
           ),
-          if (idx != projects.length - 1) SizedBox(height: spacing),
-        ],
-      ],
+        );
+      },
     );
   }
 
