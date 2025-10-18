@@ -616,30 +616,30 @@ class _HomeTabState extends State<HomeTab> {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 FittedBox(
                   child: Icon(
                     sub.icon ?? Icons.widgets,
-                    size: 30,
+                    size: 26,
                     color: isDark
                         ? GlobalColors.primaryButtonDark
                         : GlobalColors.primaryButtonLight,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 AutoSizeText(
                   getCardLabel(context, sub.name),
                   style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: isDark
                         ? GlobalColors.darkPrimaryText
                         : GlobalColors.lightPrimaryText,
                   ),
                   textAlign: TextAlign.center,
-                  minFontSize: 9,
+                  minFontSize: 8,
                   maxLines: 2,
                 ),
                 if (sub.status.isNotEmpty) ...[
@@ -653,7 +653,7 @@ class _HomeTabState extends State<HomeTab> {
                           : GlobalColors.primaryButtonLight,
                     ),
                     textAlign: TextAlign.center,
-                    minFontSize: 8,
+                    minFontSize: 7,
                     maxLines: 1,
                   ),
                 ],
