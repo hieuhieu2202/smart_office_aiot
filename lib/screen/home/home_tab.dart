@@ -135,34 +135,50 @@ class _HomeTabState extends State<HomeTab> {
                       end: Alignment.bottomRight,
                     ),
           ),
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 20),
-            itemCount: homeController.projects.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 18),
-            itemBuilder: (context, idx) {
-              final project = homeController.projects[idx];
-              final subProjects = project.subProjects;
-              final pages = chunk(subProjects, 4); // Mỗi page 4 con
-              final pageController = _pageControllers.putIfAbsent(
-                idx,
-                () => PageController(),
-              );
-              final currentPageIndex = _currentPageIndexes[idx] ?? 0;
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isWideLayout = constraints.maxWidth >= 900;
+              final double maxCardWidth = isWideLayout
+                  ? 520
+                  : constraints.maxWidth;
+              final double horizontalPadding = isWideLayout
+                  ? (constraints.maxWidth - maxCardWidth) / 2
+                  : 5;
+              final double resolvedPadding = horizontalPadding
+                  .clamp(0, constraints.maxWidth)
+                  .toDouble();
 
-              return Card(
-                elevation: 3,
-                color:
-                    isDark
-                        ? GlobalColors.cardDarkBg
-                        : Colors.white.withOpacity(0.95),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
+              return ListView.separated(
+                padding: EdgeInsets.symmetric(
+                  horizontal: resolvedPadding,
+                  vertical: 20,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                itemCount: homeController.projects.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 18),
+                itemBuilder: (context, idx) {
+                  final project = homeController.projects[idx];
+                  final subProjects = project.subProjects;
+                  final pages = chunk(subProjects, 4); // Mỗi page 4 con
+                  final pageController = _pageControllers.putIfAbsent(
+                    idx,
+                    () => PageController(),
+                  );
+                  final currentPageIndex = _currentPageIndexes[idx] ?? 0;
+
+                  return Card(
+                    elevation: 3,
+                    color:
+                        isDark
+                            ? GlobalColors.cardDarkBg
+                            : Colors.white.withOpacity(0.95),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(18.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                       // Module header
                       Row(
                         children: [
@@ -414,6 +430,8 @@ class _HomeTabState extends State<HomeTab> {
                     ],
                   ),
                 ),
+              );
+                },
               );
             },
           ),
