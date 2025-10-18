@@ -301,6 +301,65 @@ class _HomeTabState extends State<HomeTab> {
             ? 22
             : 18;
 
+    final header = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          project.icon ?? Icons.dashboard,
+          size: isDesktop
+              ? 40
+              : isTablet
+                  ? 36
+                  : 36,
+          color: isDark
+              ? GlobalColors.primaryButtonDark
+              : GlobalColors.primaryButtonLight,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            getModuleLabel(context, project.name),
+            style: GlobalTextStyles.bodyLarge(
+              isDark: isDark,
+            ).copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: isDesktop
+                  ? 21
+                  : isTablet
+                      ? 20
+                      : 19,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 11,
+            vertical: 5,
+          ),
+          decoration: BoxDecoration(
+            color: isDark
+                ? GlobalColors.primaryButtonDark.withOpacity(0.16)
+                : GlobalColors.primaryButtonLight.withOpacity(0.11),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            getStatusText(context, project.status),
+            style: GlobalTextStyles.bodySmall(
+              isDark: isDark,
+            ).copyWith(
+              color: isDark
+                  ? GlobalColors.primaryButtonDark
+                  : GlobalColors.primaryButtonLight,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final bool useHorizontalLayout = !isMobile && subProjects.isNotEmpty;
+    final double horizontalGap = isDesktop ? 28 : 22;
+
     return Card(
       elevation: 3,
       color: isDark
@@ -311,94 +370,67 @@ class _HomeTabState extends State<HomeTab> {
       ),
       child: Padding(
         padding: EdgeInsets.all(cardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  project.icon ?? Icons.dashboard,
-                  size: isDesktop
-                      ? 40
-                      : isTablet
-                          ? 36
-                          : 36,
-                  color: isDark
-                      ? GlobalColors.primaryButtonDark
-                      : GlobalColors.primaryButtonLight,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    getModuleLabel(context, project.name),
-                    style: GlobalTextStyles.bodyLarge(
-                      isDark: isDark,
-                    ).copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: isDesktop
-                          ? 21
-                          : isTablet
-                              ? 20
-                              : 19,
+        child: useHorizontalLayout
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        header,
+                      ],
                     ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 11,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? GlobalColors.primaryButtonDark.withOpacity(0.16)
-                        : GlobalColors.primaryButtonLight.withOpacity(0.11),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    getStatusText(context, project.status),
-                    style: GlobalTextStyles.bodySmall(
+                  SizedBox(width: horizontalGap),
+                  Expanded(
+                    flex: 3,
+                    child: _buildWideSubProjectWrap(
+                      context: context,
                       isDark: isDark,
-                    ).copyWith(
-                      color: isDark
-                          ? GlobalColors.primaryButtonDark
-                          : GlobalColors.primaryButtonLight,
-                      fontWeight: FontWeight.w700,
+                      subProjects: subProjects,
+                      isTablet: isTablet,
+                      isDesktop: isDesktop,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            if (subProjects.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 28),
-                child: Center(
-                  child: Text(
-                    text.no_id,
-                    style: GlobalTextStyles.bodySmall(
-                      isDark: isDark,
-                    ),
-                  ),
-                ),
+                ],
               )
-            else if (isMobile)
-              _buildMobileSubProjectPager(
-                context: context,
-                isDark: isDark,
-                index: index,
-                pages: pages,
-                pageController: pageController!,
-              )
-            else
-              _buildWideSubProjectWrap(
-                context: context,
-                isDark: isDark,
-                subProjects: subProjects,
-                isTablet: isTablet,
-                isDesktop: isDesktop,
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  header,
+                  const SizedBox(height: 18),
+                  if (subProjects.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 28),
+                      child: Center(
+                        child: Text(
+                          text.no_id,
+                          style: GlobalTextStyles.bodySmall(
+                            isDark: isDark,
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (isMobile)
+                    _buildMobileSubProjectPager(
+                      context: context,
+                      isDark: isDark,
+                      index: index,
+                      pages: pages,
+                      pageController: pageController!,
+                    )
+                  else
+                    _buildWideSubProjectWrap(
+                      context: context,
+                      isDark: isDark,
+                      subProjects: subProjects,
+                      isTablet: isTablet,
+                      isDesktop: isDesktop,
+                    ),
+                ],
               ),
-          ],
-        ),
       ),
     );
   }
