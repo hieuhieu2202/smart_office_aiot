@@ -316,8 +316,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     }
 
     final media = MediaQuery.of(context);
-    final targetWidth = media.size.width * 0.8;
-    final targetHeight = media.size.height * 0.8;
+    final targetWidth = media.size.width * 0.9;
+    final targetHeight = media.size.height * 0.9;
 
     await showDialog<void>(
       context: context,
