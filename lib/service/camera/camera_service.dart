@@ -40,13 +40,12 @@ class CameraService {
     _initializingFuture = completer.future;
 
     try {
-      await _disposeController(preserveCameraCache: true);
-
       final discoveredCameras = await availableCameras();
       final sortedCameras = List<CameraDescription>.from(discoveredCameras);
       sortedCameras.sort(_compareCameras);
       _availableCameras = List.unmodifiable(sortedCameras);
       if (_availableCameras.isEmpty) {
+        await _disposeController(preserveCameraCache: true);
         _lastError = CameraException('no_camera', 'No camera found');
         return false;
       }
@@ -65,6 +64,18 @@ class CameraService {
       _activeCamera = targetCamera;
       final presetsToTry = _presetsInPriorityOrder(preset);
       CameraException? lastInitError;
+
+      final existingController = _controller;
+      if (existingController != null &&
+          existingController.value.isInitialized &&
+          existingController.description == targetCamera &&
+          presetsToTry.contains(existingController.resolutionPreset)) {
+        _resolutionPreset = existingController.resolutionPreset;
+        _lastError = null;
+        return true;
+      }
+
+      await _disposeController(preserveCameraCache: true);
 
       for (final candidatePreset in presetsToTry) {
         CameraController? controller;
@@ -85,6 +96,10 @@ class CameraService {
           lastInitError = error;
           _lastError = error;
           _logCameraError('Camera initialization failed', error, stackTrace);
+          if (error.description != null &&
+              error.description!.contains('already exists')) {
+            await Future<void>.delayed(const Duration(milliseconds: 150));
+          }
           await controller?.dispose();
           _controller = null;
         }
