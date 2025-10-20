@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:camera_platform_interface/camera_platform_interface.dart';
+import 'package:camera_windows/camera_windows.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
@@ -35,6 +38,11 @@ class MyHttpOverrides extends HttpOverrides {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb && Platform.isWindows) {
+    CameraPlatform.instance = CameraWindows();
+  }
+
   HttpOverrides.global = MyHttpOverrides();
   await GetStorage.init();
   Get.put(NavbarController());
