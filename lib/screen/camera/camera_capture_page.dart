@@ -138,7 +138,11 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
     try {
       final xFile = await _cameraService.capturePhoto();
-      final file = await _persistCapture(xFile, fileName, rotationTurns);
+      final file = await _persistCapture(
+        xFile,
+        fileName,
+        rotationTurns,
+      );
       final previewBytes = await file.readAsBytes();
 
       if (!mounted) {
@@ -212,29 +216,41 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   ) async {
     final directory = await getTemporaryDirectory();
     final targetPath = p.join(directory.path, fileName);
-    await file.saveTo(targetPath);
-    final savedFile = File(targetPath);
+    final normalizedTurns = rotationTurns % 4;
+    final needsRotation = normalizedTurns != 0;
 
-    if (rotationTurns % 4 != 0) {
-      try {
-        final bytes = await savedFile.readAsBytes();
-        final decoded = img.decodeImage(bytes);
-        if (decoded != null) {
-          final rotated = img.copyRotate(
-            decoded,
-            angle: rotationTurns * 90,
-          );
-          final encoded = img.encodeJpg(rotated);
-          await savedFile.writeAsBytes(encoded, flush: true);
-        }
-      } catch (error) {
-        if (kDebugMode) {
-          debugPrint('Không thể xoay ảnh: $error');
-        }
+    try {
+      final bytes = await file.readAsBytes();
+      final decoded = img.decodeImage(bytes);
+
+      if (decoded == null) {
+        final fallback = File(targetPath);
+        await fallback.writeAsBytes(bytes, flush: true);
+        return fallback;
       }
-    }
 
-    return savedFile;
+      img.Image processed = decoded;
+
+      if (needsRotation) {
+        processed = img.copyRotate(
+          processed,
+          angle: normalizedTurns * 90,
+        );
+      }
+
+      final encoded = img.encodeJpg(processed, quality: 95);
+      final savedFile = File(targetPath);
+      await savedFile.writeAsBytes(encoded, flush: true);
+      return savedFile;
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Không thể xử lý ảnh: $error');
+      }
+
+      final fallback = File(targetPath);
+      await file.saveTo(targetPath);
+      return fallback;
+    }
   }
 
   Future<void> _chooseRemoteFolder() async {
@@ -396,13 +412,31 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                 final detailCard = _buildDetailsCard(theme);
 
                 if (isWide) {
+                  final availableWidth = constraints.maxWidth;
+                  final detailWidth = availableWidth.isFinite
+                      ? availableWidth * 0.1
+                      : 260.0;
+                  final previewWidth = availableWidth.isFinite
+                      ? availableWidth - detailWidth - 24
+                      : null;
+
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(flex: 3, child: previewCard),
+                        if (previewWidth != null && previewWidth > 0)
+                          SizedBox(
+                            width: previewWidth,
+                            child: previewCard,
+                          )
+                        else
+                          Expanded(child: previewCard),
                         const SizedBox(width: 24),
-                        Expanded(flex: 2, child: detailCard),
+                        SizedBox(
+                          width: detailWidth,
+                          child: detailCard,
+                        ),
                       ],
                     ),
                   );
@@ -531,13 +565,27 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final side = math.min(constraints.maxWidth, constraints.maxHeight);
-          var previewWidth = side;
-          var previewHeight = side;
-          if (displayAspectRatio >= 1) {
-            previewWidth = side * displayAspectRatio;
-          } else {
-            previewHeight = side / displayAspectRatio;
+          final maxWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : MediaQuery.of(context).size.width;
+          final maxHeight = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : MediaQuery.of(context).size.height;
+
+          double previewWidth = maxWidth;
+          double previewHeight = previewWidth / displayAspectRatio;
+
+          if (previewHeight > maxHeight) {
+            previewHeight = maxHeight;
+            previewWidth = previewHeight * displayAspectRatio;
+          }
+
+          if (previewWidth.isNaN || previewWidth <= 0) {
+            previewWidth = maxWidth;
+          }
+
+          if (previewHeight.isNaN || previewHeight <= 0) {
+            previewHeight = maxHeight;
           }
 
           return Stack(
@@ -555,7 +603,18 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                       valueListenable: liveController,
                       builder: (context, value, child) {
                         if (value.isInitialized && !value.isRecordingVideo) {
-                          return CameraPreview(liveController);
+                          Widget preview = CameraPreview(liveController);
+
+                          if (_shouldCorrectPreviewMirror(
+                              liveController.description)) {
+                            preview = Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.rotationY(math.pi),
+                              child: preview,
+                            );
+                          }
+
+                          return preview;
                         }
                         return const Center(
                           child: CircularProgressIndicator(),
@@ -572,132 +631,161 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     );
   }
 
+  bool _shouldCorrectPreviewMirror(CameraDescription description) {
+    switch (description.lensDirection) {
+      case CameraLensDirection.front:
+      case CameraLensDirection.external:
+        return true;
+      case CameraLensDirection.back:
+        return false;
+    }
+  }
+
 
   Widget _buildDetailsCard(ThemeData theme) {
     final cameras = _cameraService.cameras;
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    final cardContent = Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Thiết bị camera',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          if (cameras.isEmpty)
             Text(
-              'Thiết bị camera',
+              'Không phát hiện camera nào. Hãy kết nối thiết bị và thử lại.',
+              style: theme.textTheme.bodyMedium,
+            )
+          else
+            DropdownButtonFormField<CameraDescription>(
+              value: _selectedCamera ?? cameras.first,
+              items: [
+                for (final camera in cameras)
+                  DropdownMenuItem(
+                    value: camera,
+                    child: Text(_describeCamera(camera)),
+                  ),
+              ],
+              isExpanded: true,
+              onChanged: _initializing ? null : (camera) {
+                if (camera != null) {
+                  _switchCamera(camera);
+                }
+              },
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          const SizedBox(height: 24),
+          _buildRotationControls(theme),
+          const SizedBox(height: 24),
+          Text(
+            'Thư mục WinSCP',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _uploading ? null : _chooseRemoteFolder,
+            icon: const Icon(Icons.folder_open_rounded),
+            label: const Text('Chọn thư mục'),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.brightness == Brightness.dark
+                  ? GlobalColors.cardDarkBg.withOpacity(0.6)
+                  : GlobalColors.cardLightBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.15),
+              ),
+            ),
+            child: Text(
+              _selectedFolder.isEmpty ? '/' : _selectedFolder,
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (_latestPreviewBytes != null) ...[
+            Text(
+              'Ảnh vừa chụp',
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
-            if (cameras.isEmpty)
-              Text(
-                'Không phát hiện camera nào. Hãy kết nối thiết bị và thử lại.',
-                style: theme.textTheme.bodyMedium,
-              )
-            else
-              DropdownButtonFormField<CameraDescription>(
-                value: _selectedCamera ?? cameras.first,
-                items: [
-                  for (final camera in cameras)
-                    DropdownMenuItem(
-                      value: camera,
-                      child: Text(_describeCamera(camera)),
-                    ),
-                ],
-                isExpanded: true,
-                onChanged: _initializing ? null : (camera) {
-                  if (camera != null) {
-                    _switchCamera(camera);
-                  }
-                },
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.memory(
+                _latestPreviewBytes!,
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
               ),
-            const SizedBox(height: 24),
-            _buildRotationControls(theme),
-            const SizedBox(height: 24),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (_lastRemotePath != null) ...[
             Text(
-              'Thư mục WinSCP',
+              'Tải lên gần nhất',
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _uploading ? null : _chooseRemoteFolder,
-              icon: const Icon(Icons.folder_open_rounded),
-              label: const Text('Chọn thư mục'),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: theme.brightness == Brightness.dark
-                    ? GlobalColors.cardDarkBg.withOpacity(0.6)
-                    : GlobalColors.cardLightBg,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.15),
-                ),
-              ),
-              child: Text(
-                _selectedFolder.isEmpty ? '/' : _selectedFolder,
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: const Icon(Icons.cloud_done_rounded, color: Colors.green),
+              title: Text(
+                _lastRemotePath!,
                 style: theme.textTheme.bodyMedium,
               ),
+              subtitle: _lastUploadTime != null
+                  ? Text(DateFormat('HH:mm:ss dd/MM/yyyy').format(_lastUploadTime!))
+                  : null,
             ),
-            const SizedBox(height: 24),
-            if (_latestPreviewBytes != null) ...[
-              Text(
-                'Ảnh vừa chụp',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.memory(
-                  _latestPreviewBytes!,
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (_lastRemotePath != null) ...[
-              Text(
-                'Tải lên gần nhất',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                leading: const Icon(Icons.cloud_done_rounded, color: Colors.green),
-                title: Text(
-                  _lastRemotePath!,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                subtitle: _lastUploadTime != null
-                    ? Text(DateFormat('HH:mm:ss dd/MM/yyyy').format(_lastUploadTime!))
-                    : null,
-              ),
-            ],
-            if (_lastUploadError != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Lỗi tải lên',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _lastUploadError!,
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
-              ),
-            ],
           ],
-        ),
+          if (_lastUploadError != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Lỗi tải lên',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _lastUploadError!,
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          Widget content = cardContent;
+          if (constraints.maxWidth.isFinite) {
+            content = ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: content,
+            );
+          }
+          if (constraints.maxHeight.isFinite) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.zero,
+              child: content,
+            );
+          }
+          return content;
+        },
       ),
     );
   }
