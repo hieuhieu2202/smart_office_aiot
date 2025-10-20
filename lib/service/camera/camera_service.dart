@@ -182,10 +182,8 @@ class CameraService {
         return 1;
       case CameraLensDirection.front:
         return 2;
-      case CameraLensDirection.unknown:
-      default:
-        return 3;
     }
+    return 3;
   }
 
 

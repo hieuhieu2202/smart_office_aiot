@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:camera_platform_interface/camera_platform_interface.dart';
-import 'package:camera_android_camerax/camera_android_camerax.dart';
 import 'package:camera_windows/camera_windows.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -40,12 +39,8 @@ class MyHttpOverrides extends HttpOverrides {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (!kIsWeb) {
-    if (Platform.isWindows) {
-      CameraPlatform.instance = CameraWindows();
-    } else if (Platform.isAndroid) {
-      AndroidCameraCameraX.registerWith();
-    }
+  if (!kIsWeb && Platform.isWindows) {
+    CameraPlatform.instance = CameraWindows();
   }
 
   HttpOverrides.global = MyHttpOverrides();
