@@ -571,7 +571,18 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                       valueListenable: liveController,
                       builder: (context, value, child) {
                         if (value.isInitialized && !value.isRecordingVideo) {
-                          return CameraPreview(liveController);
+                          Widget preview = CameraPreview(liveController);
+
+                          if (_shouldCorrectPreviewMirror(
+                              liveController.description)) {
+                            preview = Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.rotationY(math.pi),
+                              child: preview,
+                            );
+                          }
+
+                          return preview;
                         }
                         return const Center(
                           child: CircularProgressIndicator(),
@@ -586,6 +597,16 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         },
       ),
     );
+  }
+
+  bool _shouldCorrectPreviewMirror(CameraDescription description) {
+    switch (description.lensDirection) {
+      case CameraLensDirection.front:
+      case CameraLensDirection.external:
+        return true;
+      case CameraLensDirection.back:
+        return false;
+    }
   }
 
 
