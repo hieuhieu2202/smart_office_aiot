@@ -590,128 +590,147 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   Widget _buildDetailsCard(ThemeData theme) {
     final cameras = _cameraService.cameras;
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    final cardContent = Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Thiết bị camera',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          if (cameras.isEmpty)
             Text(
-              'Thiết bị camera',
+              'Không phát hiện camera nào. Hãy kết nối thiết bị và thử lại.',
+              style: theme.textTheme.bodyMedium,
+            )
+          else
+            DropdownButtonFormField<CameraDescription>(
+              value: _selectedCamera ?? cameras.first,
+              items: [
+                for (final camera in cameras)
+                  DropdownMenuItem(
+                    value: camera,
+                    child: Text(_describeCamera(camera)),
+                  ),
+              ],
+              isExpanded: true,
+              onChanged: _initializing ? null : (camera) {
+                if (camera != null) {
+                  _switchCamera(camera);
+                }
+              },
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          const SizedBox(height: 24),
+          _buildRotationControls(theme),
+          const SizedBox(height: 24),
+          Text(
+            'Thư mục WinSCP',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _uploading ? null : _chooseRemoteFolder,
+            icon: const Icon(Icons.folder_open_rounded),
+            label: const Text('Chọn thư mục'),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.brightness == Brightness.dark
+                  ? GlobalColors.cardDarkBg.withOpacity(0.6)
+                  : GlobalColors.cardLightBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.15),
+              ),
+            ),
+            child: Text(
+              _selectedFolder.isEmpty ? '/' : _selectedFolder,
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (_latestPreviewBytes != null) ...[
+            Text(
+              'Ảnh vừa chụp',
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
-            if (cameras.isEmpty)
-              Text(
-                'Không phát hiện camera nào. Hãy kết nối thiết bị và thử lại.',
-                style: theme.textTheme.bodyMedium,
-              )
-            else
-              DropdownButtonFormField<CameraDescription>(
-                value: _selectedCamera ?? cameras.first,
-                items: [
-                  for (final camera in cameras)
-                    DropdownMenuItem(
-                      value: camera,
-                      child: Text(_describeCamera(camera)),
-                    ),
-                ],
-                isExpanded: true,
-                onChanged: _initializing ? null : (camera) {
-                  if (camera != null) {
-                    _switchCamera(camera);
-                  }
-                },
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.memory(
+                _latestPreviewBytes!,
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
               ),
-            const SizedBox(height: 24),
-            _buildRotationControls(theme),
-            const SizedBox(height: 24),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (_lastRemotePath != null) ...[
             Text(
-              'Thư mục WinSCP',
+              'Tải lên gần nhất',
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _uploading ? null : _chooseRemoteFolder,
-              icon: const Icon(Icons.folder_open_rounded),
-              label: const Text('Chọn thư mục'),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: theme.brightness == Brightness.dark
-                    ? GlobalColors.cardDarkBg.withOpacity(0.6)
-                    : GlobalColors.cardLightBg,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.15),
-                ),
-              ),
-              child: Text(
-                _selectedFolder.isEmpty ? '/' : _selectedFolder,
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: const Icon(Icons.cloud_done_rounded, color: Colors.green),
+              title: Text(
+                _lastRemotePath!,
                 style: theme.textTheme.bodyMedium,
               ),
+              subtitle: _lastUploadTime != null
+                  ? Text(DateFormat('HH:mm:ss dd/MM/yyyy').format(_lastUploadTime!))
+                  : null,
             ),
-            const SizedBox(height: 24),
-            if (_latestPreviewBytes != null) ...[
-              Text(
-                'Ảnh vừa chụp',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.memory(
-                  _latestPreviewBytes!,
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (_lastRemotePath != null) ...[
-              Text(
-                'Tải lên gần nhất',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                leading: const Icon(Icons.cloud_done_rounded, color: Colors.green),
-                title: Text(
-                  _lastRemotePath!,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                subtitle: _lastUploadTime != null
-                    ? Text(DateFormat('HH:mm:ss dd/MM/yyyy').format(_lastUploadTime!))
-                    : null,
-              ),
-            ],
-            if (_lastUploadError != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Lỗi tải lên',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _lastUploadError!,
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
-              ),
-            ],
           ],
-        ),
+          if (_lastUploadError != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Lỗi tải lên',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _lastUploadError!,
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          Widget content = cardContent;
+          if (constraints.maxWidth.isFinite) {
+            content = ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: content,
+            );
+          }
+          if (constraints.maxHeight.isFinite) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.zero,
+              child: content,
+            );
+          }
+          return content;
+        },
       ),
     );
   }
