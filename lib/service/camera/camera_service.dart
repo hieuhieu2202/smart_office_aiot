@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:image/image.dart' as img;
 
 class CameraService {
   CameraController? _controller;
@@ -103,6 +101,14 @@ class CameraService {
     return initialize(cameraDescription: camera, preset: _resolutionPreset);
   }
 
+  bool get shouldMirrorOutput {
+    final description = _controller?.description ?? _activeCamera;
+    if (description == null) {
+      return false;
+    }
+    return _shouldMirrorLens(description.lensDirection);
+  }
+
   Future<XFile> capturePhoto() async {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
@@ -114,24 +120,6 @@ class CameraService {
 
     try {
       final file = await controller.takePicture();
-
-      try {
-        final bytes = await file.readAsBytes();
-        final decoded = img.decodeImage(bytes);
-        if (decoded != null) {
-          final shouldFlip = controller.description.lensDirection ==
-                  CameraLensDirection.front ||
-              controller.description.lensDirection ==
-                  CameraLensDirection.external;
-
-          final processed = shouldFlip ? img.flipHorizontal(decoded) : decoded;
-          final encoded = img.encodeJpg(processed);
-          await File(file.path).writeAsBytes(encoded, flush: true);
-        }
-      } catch (e, st) {
-        debugPrint('Failed to post-process captured image: $e');
-        debugPrint('$st');
-      }
 
       _lastError = null;
       return file;
@@ -192,6 +180,11 @@ class CameraService {
       case CameraLensDirection.front:
         return 2;
     }
+  }
+
+  bool _shouldMirrorLens(CameraLensDirection direction) {
+    return direction == CameraLensDirection.front ||
+        direction == CameraLensDirection.external;
   }
 
   CameraDescription? _pickBestCamera(List<CameraDescription> cameras) {

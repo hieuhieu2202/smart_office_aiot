@@ -138,7 +138,12 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
     try {
       final xFile = await _cameraService.capturePhoto();
-      final file = await _persistCapture(xFile, fileName, rotationTurns);
+      final file = await _persistCapture(
+        xFile,
+        fileName,
+        rotationTurns,
+        mirrorHorizontally: _cameraService.shouldMirrorOutput,
+      );
       final previewBytes = await file.readAsBytes();
 
       if (!mounted) {
@@ -208,28 +213,39 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   Future<File> _persistCapture(
     XFile file,
     String fileName,
-    int rotationTurns,
-  ) async {
+    int rotationTurns, {
+    required bool mirrorHorizontally,
+  }) async {
     final directory = await getTemporaryDirectory();
     final targetPath = p.join(directory.path, fileName);
     await file.saveTo(targetPath);
     final savedFile = File(targetPath);
 
-    if (rotationTurns % 4 != 0) {
+    final normalizedTurns = rotationTurns % 4;
+    final needsRotation = normalizedTurns != 0;
+    final needsMirror = mirrorHorizontally;
+
+    if (needsRotation || needsMirror) {
       try {
         final bytes = await savedFile.readAsBytes();
         final decoded = img.decodeImage(bytes);
         if (decoded != null) {
-          final rotated = img.copyRotate(
-            decoded,
-            angle: rotationTurns * 90,
-          );
-          final encoded = img.encodeJpg(rotated);
+          img.Image processed = decoded;
+          if (needsMirror) {
+            processed = img.flipHorizontal(processed);
+          }
+          if (needsRotation) {
+            processed = img.copyRotate(
+              processed,
+              angle: normalizedTurns * 90,
+            );
+          }
+          final encoded = img.encodeJpg(processed);
           await savedFile.writeAsBytes(encoded, flush: true);
         }
       } catch (error) {
         if (kDebugMode) {
-          debugPrint('Không thể xoay ảnh: $error');
+          debugPrint('Không thể xử lý ảnh: $error');
         }
       }
     }
@@ -555,11 +571,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                       valueListenable: liveController,
                       builder: (context, value, child) {
                         if (value.isInitialized && !value.isRecordingVideo) {
-                          final lensDirection =
-                              liveController.description.lensDirection;
-                          final shouldMirrorPreview = lensDirection ==
-                                  CameraLensDirection.front ||
-                              lensDirection == CameraLensDirection.external;
+                          final shouldMirrorPreview =
+                              _cameraService.shouldMirrorOutput;
 
                           Widget preview = CameraPreview(liveController);
                           if (shouldMirrorPreview) {
