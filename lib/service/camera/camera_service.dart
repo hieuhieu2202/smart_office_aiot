@@ -101,14 +101,6 @@ class CameraService {
     return initialize(cameraDescription: camera, preset: _resolutionPreset);
   }
 
-  bool get shouldMirrorOutput {
-    final description = _controller?.description ?? _activeCamera;
-    if (description == null) {
-      return false;
-    }
-    return _shouldMirrorLens(description.lensDirection);
-  }
-
   Future<XFile> capturePhoto() async {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
@@ -180,11 +172,6 @@ class CameraService {
       case CameraLensDirection.front:
         return 2;
     }
-  }
-
-  bool _shouldMirrorLens(CameraLensDirection direction) {
-    return direction == CameraLensDirection.front ||
-        direction == CameraLensDirection.external;
   }
 
   CameraDescription? _pickBestCamera(List<CameraDescription> cameras) {

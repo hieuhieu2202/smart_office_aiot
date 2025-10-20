@@ -39,9 +39,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   String? _lastRemotePath;
   String? _lastUploadError;
   int _rotationTurns = 0;
-  bool _mirrorOutput = false;
-  bool _mirrorOverride = false;
-  bool _recommendedMirror = false;
   bool _animateFromRight = false;
   bool _contentVisible = false;
 
@@ -79,17 +76,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
     if (!mounted) return;
 
-    final recommendedMirror = _cameraService.shouldMirrorOutput;
-
     setState(() {
       _initializing = false;
       _selectedCamera = _cameraService.activeCamera;
-      _recommendedMirror = recommendedMirror;
-      if (!_mirrorOverride) {
-        _mirrorOutput = recommendedMirror;
-      } else if (_mirrorOutput == recommendedMirror) {
-        _mirrorOverride = false;
-      }
       if (!ready) {
         _cameraError = _cameraService.lastError;
       }
@@ -107,9 +96,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   }
 
   Future<void> _switchCamera(CameraDescription description) async {
-    setState(() {
-      _mirrorOverride = false;
-    });
     await _cameraService.dispose();
     await Future.delayed(const Duration(milliseconds: 150));
     await _initializeCamera(camera: description);
@@ -152,12 +138,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
     try {
       final xFile = await _cameraService.capturePhoto();
-      final shouldMirrorCapture = _mirrorOutput;
       final file = await _persistCapture(
         xFile,
         fileName,
         rotationTurns,
-        mirrorHorizontally: shouldMirrorCapture,
       );
       final previewBytes = await file.readAsBytes();
 
@@ -228,9 +212,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   Future<File> _persistCapture(
     XFile file,
     String fileName,
-    int rotationTurns, {
-    required bool mirrorHorizontally,
-  }) async {
+    int rotationTurns,
+  ) async {
     final directory = await getTemporaryDirectory();
     final targetPath = p.join(directory.path, fileName);
     final normalizedTurns = rotationTurns % 4;
@@ -247,10 +230,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       }
 
       img.Image processed = decoded;
-
-      if (mirrorHorizontally) {
-        processed = img.flipHorizontal(processed);
-      }
 
       if (needsRotation) {
         processed = img.copyRotate(
@@ -592,17 +571,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                       valueListenable: liveController,
                       builder: (context, value, child) {
                         if (value.isInitialized && !value.isRecordingVideo) {
-                          final shouldMirrorPreview = _mirrorOutput;
-
-                          Widget preview = CameraPreview(liveController);
-                          if (shouldMirrorPreview) {
-                            preview = Transform.scale(
-                              scaleX: -1,
-                              alignment: Alignment.center,
-                              child: preview,
-                            );
-                          }
-                          return preview;
+                          return CameraPreview(liveController);
                         }
                         return const Center(
                           child: CircularProgressIndicator(),
@@ -662,39 +631,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
             ),
           const SizedBox(height: 24),
           _buildRotationControls(theme),
-          const SizedBox(height: 24),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Lật ảnh giống khung preview'),
-            subtitle: const Text(
-              'Áp dụng cho cả ảnh hiển thị và file tải lên',
-            ),
-            value: _mirrorOutput,
-            onChanged: !_cameraService.isInitialized
-                ? null
-                : (value) {
-                    setState(() {
-                      _mirrorOutput = value;
-                      _mirrorOverride = value != _recommendedMirror;
-                    });
-                  },
-          ),
-          if (_mirrorOverride)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: !_cameraService.isInitialized
-                    ? null
-                    : () {
-                        setState(() {
-                          _mirrorOutput = _recommendedMirror;
-                          _mirrorOverride = false;
-                        });
-                      },
-                icon: const Icon(Icons.settings_backup_restore_rounded),
-                label: const Text('Khôi phục đề xuất từ camera'),
-              ),
-            ),
           const SizedBox(height: 24),
           Text(
             'Thư mục WinSCP',
