@@ -22,6 +22,22 @@ class CameraCapturePage extends StatefulWidget {
   State<CameraCapturePage> createState() => _CameraCapturePageState();
 }
 
+enum _NoticeType { info, success, error }
+
+class _InlineNotice {
+  const _InlineNotice({
+    required this.id,
+    required this.message,
+    required this.type,
+    required this.autoDismiss,
+  });
+
+  final int id;
+  final String message;
+  final _NoticeType type;
+  final bool autoDismiss;
+}
+
 class _CameraCapturePageState extends State<CameraCapturePage> {
   final CameraService _cameraService = CameraService();
   final WinScpUploadService _uploadService =
@@ -45,6 +61,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   int _rotationTurns = 0;
   bool _animateFromRight = false;
   bool _contentVisible = false;
+  final List<_InlineNotice> _activeNotices = [];
+  int _nextNoticeId = 0;
 
   @override
   void initState() {
@@ -95,10 +113,14 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     if (!ready) {
       final lastError = _cameraService.lastError;
       if (lastError?.code == 'missing_plugin') {
-        _showCameraUnsupportedBanner();
+        _showCameraUnsupportedNotice();
       } else {
         final description = lastError?.description ?? 'No camera found';
-        _showSnackBar(description);
+        _pushNotice(
+          description,
+          type: _NoticeType.error,
+          duration: const Duration(seconds: 4),
+        );
       }
     }
   }
@@ -131,7 +153,11 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     if (_capturing || _uploading) return;
 
     if (!_cameraService.isInitialized) {
-      _showSnackBar('Camera chưa sẵn sàng');
+      _pushNotice(
+        'Camera chưa sẵn sàng',
+        type: _NoticeType.error,
+        duration: const Duration(seconds: 4),
+      );
       return;
     }
 
@@ -175,11 +201,19 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       });
 
       if (error.code == 'missing_plugin') {
-        _showCameraUnsupportedBanner();
+        _showCameraUnsupportedNotice();
       } else if (error.code == 'no_camera' || error.code == 'not_initialized') {
-        _showSnackBar('No camera found');
+        _pushNotice(
+          'No camera found',
+          type: _NoticeType.error,
+          duration: const Duration(seconds: 4),
+        );
       } else {
-        _showSnackBar('Chụp ảnh thất bại ❌');
+        _pushNotice(
+          'Chụp ảnh thất bại ❌',
+          type: _NoticeType.error,
+          duration: const Duration(seconds: 4),
+        );
       }
     } on FileSystemException catch (error) {
       if (!mounted) return;
@@ -188,7 +222,11 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         _lastUploadError = error.message;
       });
 
-      _showSnackBar('Không thể lưu ảnh ❌');
+      _pushNotice(
+        'Không thể lưu ảnh ❌',
+        type: _NoticeType.error,
+        duration: const Duration(seconds: 4),
+      );
     } catch (error) {
       if (!mounted) return;
 
@@ -196,7 +234,11 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         _lastUploadError = '$error';
       });
 
-      _showSnackBar('Không thể chụp ảnh ❌');
+      _pushNotice(
+        'Không thể chụp ảnh ❌',
+        type: _NoticeType.error,
+        duration: const Duration(seconds: 4),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -211,7 +253,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     final fileName = _pendingFileName;
 
     if (file == null || fileName == null) {
-      _showSnackBar('Không có ảnh để tải lên');
+      _pushNotice(
+        'Không có ảnh để tải lên',
+        type: _NoticeType.info,
+      );
       return;
     }
 
@@ -246,7 +291,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         _pendingFileName = null;
       });
 
-      _showSnackBar('Upload successful ✅');
+      _pushNotice(
+        'Upload successful ✅',
+        type: _NoticeType.success,
+      );
     } on FileSystemException catch (error) {
       if (!mounted) return;
 
@@ -254,7 +302,11 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         _lastUploadError = error.message;
       });
 
-      _showSnackBar('Upload failed ❌');
+      _pushNotice(
+        'Upload failed ❌',
+        type: _NoticeType.error,
+        duration: const Duration(seconds: 4),
+      );
     } catch (error) {
       if (!mounted) return;
 
@@ -262,7 +314,11 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         _lastUploadError = '$error';
       });
 
-      _showSnackBar('Upload failed ❌');
+      _pushNotice(
+        'Upload failed ❌',
+        type: _NoticeType.error,
+        duration: const Duration(seconds: 4),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -293,7 +349,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     });
 
     if (!silent) {
-      _showSnackBar('Đã xóa ảnh chờ gửi');
+      _pushNotice(
+        'Đã xóa ảnh chờ gửi',
+        type: _NoticeType.info,
+      );
     }
   }
 
@@ -311,7 +370,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     final bytes = _pendingPreviewBytes;
 
     if (bytes == null) {
-      _showSnackBar('Không có ảnh để xem trước');
+      _pushNotice(
+        'Không có ảnh để xem trước',
+        type: _NoticeType.info,
+      );
       return;
     }
 
@@ -479,57 +541,53 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     );
   }
 
-  void _showSnackBar(String message) {
+  void _pushNotice(
+    String message, {
+    _NoticeType type = _NoticeType.info,
+    Duration duration = const Duration(seconds: 3),
+    bool persistent = false,
+  }) {
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.clearMaterialBanners();
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-  }
 
-  void _showCameraUnsupportedBanner() {
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger
-      ..hideCurrentSnackBar()
-      ..clearMaterialBanners();
-
-    final theme = Theme.of(context);
-    final banner = MaterialBanner(
-      backgroundColor: theme.colorScheme.errorContainer,
-      contentTextStyle: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.colorScheme.onErrorContainer,
-        fontWeight: FontWeight.w600,
-      ),
-      leading: Icon(
-        Icons.warning_amber_rounded,
-        color: theme.colorScheme.onErrorContainer,
-      ),
-      content: const Text(
-        'Camera chưa được hỗ trợ trên nền tảng này. Vui lòng thử trên thiết bị khác.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => messenger.hideCurrentMaterialBanner(),
-          child: const Text('Đóng'),
-        ),
-      ],
+    final entry = _InlineNotice(
+      id: _nextNoticeId++,
+      message: message,
+      type: type,
+      autoDismiss: !persistent,
     );
 
-    messenger.showMaterialBanner(banner);
-
-    Future<void>.delayed(const Duration(seconds: 4), () {
-      if (!mounted) {
-        return;
+    setState(() {
+      if (_activeNotices.length >= 4) {
+        _activeNotices.removeAt(0);
       }
-      messenger.hideCurrentMaterialBanner();
+      _activeNotices.add(entry);
     });
+
+    if (!persistent) {
+      Future<void>.delayed(duration, () {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _activeNotices.remove(entry);
+        });
+      });
+    }
+  }
+
+  void _dismissNotice(_InlineNotice notice) {
+    if (!mounted) return;
+    setState(() {
+      _activeNotices.removeWhere((entry) => entry.id == notice.id);
+    });
+  }
+
+  void _showCameraUnsupportedNotice() {
+    _pushNotice(
+      'Camera chưa được hỗ trợ trên nền tảng này. Vui lòng thử trên thiết bị khác.',
+      type: _NoticeType.error,
+      persistent: true,
+    );
   }
 
   String _describeCamera(CameraDescription description) {
@@ -560,70 +618,96 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       floatingActionButton: _buildCaptureFab(context, theme),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: SafeArea(
-        child: Builder(
-          builder: (context) {
-            Widget content = LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 900;
-                final previewCard = _buildPreviewCard(theme);
-                final detailCard = _buildDetailsCard(theme);
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: Builder(
+                builder: (context) {
+                  Widget content = LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth >= 900;
+                      final previewCard = _buildPreviewCard(theme);
+                      final detailCard = _buildDetailsCard(theme);
 
-                if (isWide) {
-                  final availableWidth = constraints.maxWidth;
-                  final targetDetailWidth = availableWidth.isFinite
-                      ? availableWidth * 0.2
-                      : 300.0;
-                  final detailWidth =
-                      targetDetailWidth.clamp(240.0, 360.0).toDouble();
+                      if (isWide) {
+                        final availableWidth = constraints.maxWidth;
+                        final targetDetailWidth = availableWidth.isFinite
+                            ? availableWidth * 0.2
+                            : 300.0;
+                        final detailWidth =
+                            targetDetailWidth.clamp(240.0, 360.0).toDouble();
 
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: previewCard,
-                        ),
-                        const SizedBox(width: 24),
-                        ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minWidth: detailWidth,
-                            maxWidth: detailWidth,
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: previewCard,
+                              ),
+                              const SizedBox(width: 24),
+                              ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: detailWidth,
+                                  maxWidth: detailWidth,
+                                ),
+                                child: detailCard,
+                              ),
+                            ],
                           ),
-                          child: detailCard,
-                        ),
-                      ],
-                    ),
+                        );
+                      }
+
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+                        children: [
+                          previewCard,
+                          const SizedBox(height: 16),
+                          detailCard,
+                        ],
+                      );
+                    },
                   );
-                }
 
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+                  if (_animateFromRight) {
+                    content = AnimatedSlide(
+                      offset: _contentVisible ? Offset.zero : const Offset(0.2, 0),
+                      duration: const Duration(milliseconds: 420),
+                      curve: Curves.easeOutCubic,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 320),
+                        curve: Curves.easeOut,
+                        opacity: _contentVisible ? 1 : 0,
+                        child: content,
+                      ),
+                    );
+                  }
+
+                  return content;
+                },
+              ),
+            ),
+            if (_activeNotices.isNotEmpty)
+              Positioned(
+                top: 16,
+                left: 16,
+                right: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    previewCard,
-                    const SizedBox(height: 16),
-                    detailCard,
+                    for (final notice in _activeNotices)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _NoticeBanner(
+                          notice: notice,
+                          onClose: () => _dismissNotice(notice),
+                        ),
+                      ),
                   ],
-                );
-              },
-            );
-
-            if (_animateFromRight) {
-              content = AnimatedSlide(
-                offset: _contentVisible ? Offset.zero : const Offset(0.2, 0),
-                duration: const Duration(milliseconds: 420),
-                curve: Curves.easeOutCubic,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 320),
-                  curve: Curves.easeOut,
-                  opacity: _contentVisible ? 1 : 0,
-                  child: content,
                 ),
-              );
-            }
-
-            return content;
-          },
+              ),
+          ],
         ),
       ),
     );
@@ -637,7 +721,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     if (!hasPendingCapture) {
       return FloatingActionButton.extended(
         onPressed: isBusy ? null : _capturePhoto,
-        backgroundColor: theme.colorScheme.primary,
+        backgroundColor: Colors.green.shade600,
+        foregroundColor: Colors.white,
         label: SizedBox(
           width: 160,
           child: Row(
@@ -1131,6 +1216,88 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         ),
       ],
     );
+  }
+}
+
+class _NoticeBanner extends StatelessWidget {
+  const _NoticeBanner({required this.notice, required this.onClose});
+
+  final _InlineNotice notice;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = _NoticePalette.resolve(theme, notice.type);
+
+    final closeTooltip = notice.autoDismiss ? 'Ẩn thông báo' : 'Đóng';
+
+    return Material(
+      elevation: 4,
+      borderRadius: BorderRadius.circular(16),
+      color: palette.background,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(palette.icon, color: palette.foreground),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                notice.message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: palette.foreground,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              splashRadius: 20,
+              icon: Icon(Icons.close_rounded, color: palette.foreground),
+              tooltip: closeTooltip,
+              onPressed: onClose,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoticePalette {
+  const _NoticePalette({
+    required this.background,
+    required this.foreground,
+    required this.icon,
+  });
+
+  final Color background;
+  final Color foreground;
+  final IconData icon;
+
+  static _NoticePalette resolve(ThemeData theme, _NoticeType type) {
+    switch (type) {
+      case _NoticeType.success:
+        return _NoticePalette(
+          background: theme.colorScheme.tertiaryContainer,
+          foreground: theme.colorScheme.onTertiaryContainer,
+          icon: Icons.check_circle_rounded,
+        );
+      case _NoticeType.error:
+        return _NoticePalette(
+          background: theme.colorScheme.errorContainer,
+          foreground: theme.colorScheme.onErrorContainer,
+          icon: Icons.error_outline_rounded,
+        );
+      case _NoticeType.info:
+        return _NoticePalette(
+          background: theme.colorScheme.primaryContainer,
+          foreground: theme.colorScheme.onPrimaryContainer,
+          icon: Icons.info_outline_rounded,
+        );
+    }
   }
 }
 
