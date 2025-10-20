@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -23,7 +24,8 @@ class CameraCapturePage extends StatefulWidget {
 
 class _CameraCapturePageState extends State<CameraCapturePage> {
   final CameraService _cameraService = CameraService();
-  final WinScpUploadService _uploadService = WinScpUploadService();
+  final WinScpUploadService _uploadService =
+      WinScpUploadService(shareSessionWithStpModule: false);
   final DateFormat _fileNameFormat = DateFormat('yyyyMMdd_HHmmss');
 
   bool _initializing = true;
@@ -56,7 +58,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
   @override
   void dispose() {
-    _cameraService.dispose();
+    unawaited(_cameraService.dispose());
+    unawaited(_uploadService.dispose());
     super.dispose();
   }
 

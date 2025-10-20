@@ -31,6 +31,14 @@ class CameraService {
   }) async {
     await dispose();
 
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+      _lastError = CameraException(
+        'missing_plugin',
+        'Camera plugin is not available on Windows builds',
+      );
+      return false;
+    }
+
     try {
       _availableCameras = await availableCameras();
       if (_availableCameras.isEmpty) {
