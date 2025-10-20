@@ -1,12 +1,8 @@
 import 'dart:async';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-/// A thin wrapper around the [camera] plugin that exposes a
-/// lazily-initialized [CameraController] for image capture scenarios and
-/// captures the most recent error for UI feedback.
 class CameraService {
   CameraController? _controller;
   List<CameraDescription> _availableCameras = const [];
@@ -16,118 +12,75 @@ class CameraService {
   Future<void>? _initializingFuture;
 
   CameraController? get controller => _controller;
-
   List<CameraDescription> get cameras => List.unmodifiable(_availableCameras);
-
   CameraDescription? get activeCamera => _activeCamera;
-
   CameraException? get lastError => _lastError;
-
   bool get isInitialized => _controller?.value.isInitialized ?? false;
 
-  /// Initializes the first available camera (or the requested one when
-  /// provided). Returns `true` when the controller is ready and `false` when
-  /// no camera could be prepared.
+  /// Initialize camera safely — ensures previous controller is fully disposed first
   Future<bool> initialize({
     CameraDescription? cameraDescription,
     ResolutionPreset preset = ResolutionPreset.medium,
   }) async {
-    while (_initializingFuture != null) {
-      await _initializingFuture;
-    }
+    // tránh gọi song song nhiều lần
+    if (_initializingFuture != null) await _initializingFuture;
 
     final completer = Completer<void>();
     _initializingFuture = completer.future;
 
     try {
+      // 🔸 Dispose controller cũ thật sự trước khi tạo mới
+      if (_controller != null) {
+        await _controller!.dispose();
+        _controller = null;
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+
       final discoveredCameras = await availableCameras();
-      final sortedCameras = List<CameraDescription>.from(discoveredCameras);
-      sortedCameras.sort(_compareCameras);
-      _availableCameras = List.unmodifiable(sortedCameras);
-      if (_availableCameras.isEmpty) {
-        await _disposeController(preserveCameraCache: true);
+      if (discoveredCameras.isEmpty) {
         _lastError = CameraException('no_camera', 'No camera found');
         return false;
       }
 
-      CameraDescription? preferredCamera = cameraDescription;
-      if (preferredCamera == null && _activeCamera != null) {
-        if (_availableCameras.contains(_activeCamera)) {
-          preferredCamera = _activeCamera;
-        }
-      }
+      _availableCameras = List.unmodifiable(discoveredCameras..sort(_compareCameras));
 
-      final targetCamera = preferredCamera ??
+      final targetCamera = cameraDescription ??
+          _activeCamera ??
           _pickBestCamera(_availableCameras) ??
           _availableCameras.first;
 
       _activeCamera = targetCamera;
       final presetsToTry = _presetsInPriorityOrder(preset);
-      CameraException? lastInitError;
 
-      final existingController = _controller;
-      if (existingController != null &&
-          existingController.value.isInitialized &&
-          existingController.description == targetCamera &&
-          presetsToTry.contains(existingController.resolutionPreset)) {
-        _resolutionPreset = existingController.resolutionPreset;
-        _lastError = null;
-        return true;
-      }
-
-      await _disposeController(preserveCameraCache: true);
-
-      for (final candidatePreset in presetsToTry) {
-        CameraController? controller;
+      for (final p in presetsToTry) {
         try {
-          controller = CameraController(
+          final controller = CameraController(
             targetCamera,
-            candidatePreset,
+            p,
             enableAudio: false,
             imageFormatGroup: ImageFormatGroup.jpeg,
           );
-
           await controller.initialize();
           _controller = controller;
-          _resolutionPreset = candidatePreset;
+          _resolutionPreset = p;
           _lastError = null;
           return true;
-        } on CameraException catch (error, stackTrace) {
-          lastInitError = error;
-          _lastError = error;
-          _logCameraError('Camera initialization failed', error, stackTrace);
-          if (error.description != null &&
-              error.description!.contains('already exists')) {
-            await Future<void>.delayed(const Duration(milliseconds: 150));
-          }
-          await controller?.dispose();
+        } on CameraException catch (e, st) {
+          _lastError = e;
+          _logCameraError('Init failed', e, st);
+          await _controller?.dispose();
           _controller = null;
+
+          if (e.description?.contains('already exists') ?? false) {
+            await Future.delayed(const Duration(milliseconds: 200));
+          }
         }
       }
-
-      if (lastInitError != null) {
-        return false;
-      }
-
       return false;
-    } on MissingPluginException catch (error, stackTrace) {
-      final cameraError = CameraException(
-        'missing_plugin',
-        'Camera plugin is not available on this platform',
-      );
-      _lastError = cameraError;
-      _logCameraError('Camera plugin unavailable', cameraError, stackTrace);
-      await dispose();
-      return false;
-    } on CameraException catch (error, stackTrace) {
-      _lastError = error;
-      _logCameraError('Camera initialization failed', error, stackTrace);
-      await _disposeController(preserveCameraCache: true);
-      return false;
-    } catch (error, stackTrace) {
-      final cameraError = CameraException('init_failure', '$error');
-      _lastError = cameraError;
-      _logCameraError('Unexpected camera initialization error', cameraError, stackTrace);
+    } catch (e, st) {
+      final err = CameraException('init_failure', '$e');
+      _lastError = err;
+      _logCameraError('Unexpected init error', err, st);
       await _disposeController(preserveCameraCache: true);
       return false;
     } finally {
@@ -136,59 +89,34 @@ class CameraService {
     }
   }
 
-  /// Attempts to reinitialize the controller using the last known camera and
-  /// preset.
-  Future<bool> refresh() {
-    return initialize(
-      cameraDescription: _activeCamera,
-      preset: _resolutionPreset,
-    );
-  }
+  Future<bool> refresh() =>
+      initialize(cameraDescription: _activeCamera, preset: _resolutionPreset);
 
-  /// Switches to a different camera description if available.
   Future<bool> switchCamera(CameraDescription camera) async {
     if (_availableCameras.isEmpty) {
       final discovered = await availableCameras();
-      final sorted = List<CameraDescription>.from(discovered);
-      sorted.sort(_compareCameras);
-      _availableCameras = List.unmodifiable(sorted);
+      _availableCameras = List.unmodifiable(discovered..sort(_compareCameras));
     }
-
-    if (!_availableCameras.contains(camera)) {
-      return false;
-    }
-
+    if (!_availableCameras.contains(camera)) return false;
     return initialize(cameraDescription: camera, preset: _resolutionPreset);
   }
 
-  /// Captures a single still image from the active camera.
   Future<XFile> capturePhoto() async {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
-      final error = CameraException(
-        'not_initialized',
-        'Camera has not been initialized',
-      );
-      _lastError = error;
-      throw error;
+      throw CameraException('not_initialized', 'Camera not initialized');
     }
-
     if (controller.value.isTakingPicture) {
-      final error = CameraException(
-        'in_progress',
-        'A capture is already in progress',
-      );
-      _lastError = error;
-      throw error;
+      throw CameraException('in_progress', 'Capture already in progress');
     }
 
     try {
       final file = await controller.takePicture();
       _lastError = null;
       return file;
-    } on CameraException catch (error, stackTrace) {
-      _lastError = error;
-      _logCameraError('Camera capture failed', error, stackTrace);
+    } on CameraException catch (e, st) {
+      _lastError = e;
+      _logCameraError('Capture failed', e, st);
       rethrow;
     }
   }
@@ -204,18 +132,14 @@ class CameraService {
   Future<void> _disposeController({required bool preserveCameraCache}) async {
     final controller = _controller;
     _controller = null;
-
     if (controller != null) {
       try {
         await controller.dispose();
-      } catch (error, stackTrace) {
-        if (kDebugMode) {
-          debugPrint('Camera dispose failed: $error');
-          debugPrint('$stackTrace');
-        }
+        await Future.delayed(const Duration(milliseconds: 100));
+      } catch (e, st) {
+        debugPrint('Dispose failed: $e\n$st');
       }
     }
-
     if (!preserveCameraCache) {
       _activeCamera = null;
       _availableCameras = const [];
@@ -225,10 +149,7 @@ class CameraService {
   int _compareCameras(CameraDescription a, CameraDescription b) {
     final priorityDiff =
         _lensPriority(a.lensDirection) - _lensPriority(b.lensDirection);
-    if (priorityDiff != 0) {
-      return priorityDiff;
-    }
-    return a.name.compareTo(b.name);
+    return priorityDiff != 0 ? priorityDiff : a.name.compareTo(b.name);
   }
 
   List<ResolutionPreset> _presetsInPriorityOrder(ResolutionPreset preferred) {
@@ -238,7 +159,6 @@ class CameraService {
         ResolutionPreset.medium,
       ResolutionPreset.low,
     };
-
     return ordered.toList();
   }
 
@@ -251,33 +171,24 @@ class CameraService {
       case CameraLensDirection.front:
         return 2;
     }
-    return 3;
   }
-
 
   CameraDescription? _pickBestCamera(List<CameraDescription> cameras) {
-    CameraDescription? findByDirection(CameraLensDirection direction) {
-      for (final camera in cameras) {
-        if (camera.lensDirection == direction) {
-          return camera;
-        }
+    CameraDescription? find(CameraLensDirection dir) {
+      try {
+        return cameras.firstWhere((c) => c.lensDirection == dir);
+      } catch (_) {
+        return null;
       }
-      return null;
     }
 
-    return findByDirection(CameraLensDirection.external) ??
-        findByDirection(CameraLensDirection.back) ??
-        findByDirection(CameraLensDirection.front);
+    return find(CameraLensDirection.external) ??
+        find(CameraLensDirection.back) ??
+        find(CameraLensDirection.front);
   }
 
-  void _logCameraError(
-    String message,
-    CameraException error,
-    StackTrace stackTrace,
-  ) {
-    if (kDebugMode) {
-      debugPrint('$message (${error.code}): ${error.description}');
-      debugPrint('$stackTrace');
-    }
+  void _logCameraError(String message, CameraException error, StackTrace st) {
+    debugPrint('❌ $message (${error.code}): ${error.description}');
+    debugPrint('$st');
   }
 }
