@@ -87,7 +87,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     if (!ready) {
       final lastError = _cameraService.lastError;
       if (lastError?.code == 'missing_plugin') {
-        _showSnackBar('Camera chưa được hỗ trợ trên nền tảng này');
+        _showCameraUnsupportedBanner();
       } else {
         _showSnackBar('No camera found');
       }
@@ -170,7 +170,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         _cameraError = error;
       });
 
-      if (error.code == 'no_camera' || error.code == 'not_initialized') {
+      if (error.code == 'missing_plugin') {
+        _showCameraUnsupportedBanner();
+      } else if (error.code == 'no_camera' || error.code == 'not_initialized') {
         _showSnackBar('No camera found');
       } else {
         _showSnackBar('Upload failed ❌');
@@ -303,7 +305,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
   void _showSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearMaterialBanners();
+    messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
@@ -311,6 +315,45 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
           duration: const Duration(seconds: 2),
         ),
       );
+  }
+
+  void _showCameraUnsupportedBanner() {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..clearMaterialBanners();
+
+    final theme = Theme.of(context);
+    final banner = MaterialBanner(
+      backgroundColor: theme.colorScheme.errorContainer,
+      contentTextStyle: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onErrorContainer,
+        fontWeight: FontWeight.w600,
+      ),
+      leading: Icon(
+        Icons.warning_amber_rounded,
+        color: theme.colorScheme.onErrorContainer,
+      ),
+      content: const Text(
+        'Camera chưa được hỗ trợ trên nền tảng này. Vui lòng thử trên thiết bị khác.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => messenger.hideCurrentMaterialBanner(),
+          child: const Text('Đóng'),
+        ),
+      ],
+    );
+
+    messenger.showMaterialBanner(banner);
+
+    Future<void>.delayed(const Duration(seconds: 4), () {
+      if (!mounted) {
+        return;
+      }
+      messenger.hideCurrentMaterialBanner();
+    });
   }
 
   String _describeCamera(CameraDescription description) {
