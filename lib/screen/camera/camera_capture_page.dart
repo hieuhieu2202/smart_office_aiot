@@ -572,28 +572,26 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
                 if (isWide) {
                   final availableWidth = constraints.maxWidth;
-                  final detailWidth = availableWidth.isFinite
-                      ? math.max(210.0, availableWidth * 0.12)
-                      : 260.0;
-                  final previewWidth = availableWidth.isFinite
-                      ? availableWidth - detailWidth - 24
-                      : null;
+                  final targetDetailWidth = availableWidth.isFinite
+                      ? availableWidth * 0.2
+                      : 300.0;
+                  final detailWidth =
+                      targetDetailWidth.clamp(240.0, 360.0).toDouble();
 
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (previewWidth != null && previewWidth > 0)
-                          SizedBox(
-                            width: previewWidth,
-                            child: previewCard,
-                          )
-                        else
-                          Expanded(child: previewCard),
+                        Expanded(
+                          child: previewCard,
+                        ),
                         const SizedBox(width: 24),
-                        SizedBox(
-                          width: detailWidth,
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: detailWidth,
+                            maxWidth: detailWidth,
+                          ),
                           child: detailCard,
                         ),
                       ],
@@ -860,11 +858,24 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   }
 
   bool _shouldCorrectPreviewMirror(CameraDescription description) {
-    switch (description.lensDirection) {
-      case CameraLensDirection.front:
-      case CameraLensDirection.external:
-        return true;
-      case CameraLensDirection.back:
+    if (kIsWeb) {
+      return false;
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.windows:
+      case TargetPlatform.macOS:
+      case TargetPlatform.linux:
+        switch (description.lensDirection) {
+          case CameraLensDirection.front:
+          case CameraLensDirection.external:
+            return true;
+          case CameraLensDirection.back:
+            return false;
+        }
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.iOS:
         return false;
     }
   }
