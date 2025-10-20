@@ -38,6 +38,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   DateTime? _lastUploadTime;
   String? _lastRemotePath;
   String? _lastUploadError;
+  File? _pendingCaptureFile;
+  Uint8List? _pendingPreviewBytes;
+  String? _pendingFileName;
+  bool _capturing = false;
   int _rotationTurns = 0;
   bool _animateFromRight = false;
   bool _contentVisible = false;
@@ -58,6 +62,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
   @override
   void dispose() {
+    final pendingFile = _pendingCaptureFile;
+    if (pendingFile != null) {
+      unawaited(pendingFile.delete());
+    }
     unawaited(_cameraService.dispose());
     unawaited(_uploadService.dispose());
     super.dispose();
@@ -119,8 +127,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     });
   }
 
-  Future<void> _captureAndUpload() async {
-    if (_uploading) return;
+  Future<void> _capturePhoto() async {
+    if (_capturing || _uploading) return;
 
     if (!_cameraService.isInitialized) {
       _showSnackBar('Camera chưa sẵn sàng');
@@ -128,7 +136,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     }
 
     setState(() {
-      _uploading = true;
+      _capturing = true;
       _lastUploadError = null;
     });
 
@@ -145,31 +153,20 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       );
       final previewBytes = await file.readAsBytes();
 
-      if (!mounted) {
-        return;
+      final previousFile = _pendingCaptureFile;
+      if (previousFile != null && previousFile.path != file.path) {
+        unawaited(previousFile.delete());
       }
-
-      setState(() {
-        _latestPreviewBytes = previewBytes;
-      });
-
-      final remotePath = await _uploadService.uploadFile(
-        file: file,
-        remoteDirectory: _selectedFolder,
-        remoteFileName: fileName,
-      );
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _lastUploadTime = DateTime.now();
-        _lastRemotePath = remotePath;
-        _lastUploadError = null;
+        _pendingCaptureFile = file;
+        _pendingPreviewBytes = previewBytes;
+        _pendingFileName = fileName;
       });
-
-      _showSnackBar('Upload successful ✅');
     } on CameraException catch (error) {
       if (!mounted) return;
 
@@ -182,8 +179,74 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       } else if (error.code == 'no_camera' || error.code == 'not_initialized') {
         _showSnackBar('No camera found');
       } else {
-        _showSnackBar('Upload failed ❌');
+        _showSnackBar('Chụp ảnh thất bại ❌');
       }
+    } on FileSystemException catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _lastUploadError = error.message;
+      });
+
+      _showSnackBar('Không thể lưu ảnh ❌');
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _lastUploadError = '$error';
+      });
+
+      _showSnackBar('Không thể chụp ảnh ❌');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _capturing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _uploadPendingCapture() async {
+    final file = _pendingCaptureFile;
+    final fileName = _pendingFileName;
+
+    if (file == null || fileName == null) {
+      _showSnackBar('Không có ảnh để tải lên');
+      return;
+    }
+
+    if (_uploading) return;
+
+    setState(() {
+      _uploading = true;
+      _lastUploadError = null;
+    });
+
+    try {
+      final remotePath = await _uploadService.uploadFile(
+        file: file,
+        remoteDirectory: _selectedFolder,
+        remoteFileName: fileName,
+      );
+
+      try {
+        await file.delete();
+      } catch (_) {}
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _lastUploadTime = DateTime.now();
+        _lastRemotePath = remotePath;
+        _latestPreviewBytes = _pendingPreviewBytes;
+        _pendingPreviewBytes = null;
+        _pendingCaptureFile = null;
+        _pendingFileName = null;
+      });
+
+      _showSnackBar('Upload successful ✅');
     } on FileSystemException catch (error) {
       if (!mounted) return;
 
@@ -207,6 +270,102 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         });
       }
     }
+  }
+
+  Future<void> _discardPendingCapture({
+    bool deleteFile = true,
+    bool silent = false,
+  }) async {
+    final file = _pendingCaptureFile;
+
+    if (deleteFile && file != null) {
+      try {
+        await file.delete();
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _pendingCaptureFile = null;
+      _pendingPreviewBytes = null;
+      _pendingFileName = null;
+    });
+
+    if (!silent) {
+      _showSnackBar('Đã xóa ảnh chờ gửi');
+    }
+  }
+
+  Future<void> _retakeCapture() async {
+    if (_uploading || _capturing) return;
+
+    await _discardPendingCapture(deleteFile: true, silent: true);
+
+    if (!mounted) return;
+
+    unawaited(_capturePhoto());
+  }
+
+  Future<void> _previewPendingCapture() async {
+    final bytes = _pendingPreviewBytes;
+
+    if (bytes == null) {
+      _showSnackBar('Không có ảnh để xem trước');
+      return;
+    }
+
+    final media = MediaQuery.of(context);
+    final maxWidth = math.min(media.size.width * 0.9, 720.0);
+    final maxHeight = math.min(media.size.height * 0.9, 720.0);
+
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(24),
+          clipBehavior: Clip.antiAlias,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: maxWidth,
+              maxHeight: maxHeight,
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black,
+                    alignment: Alignment.center,
+                    child: InteractiveViewer(
+                      minScale: 0.5,
+                      maxScale: 4.0,
+                      child: Image.memory(
+                        bytes,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Material(
+                    color: Colors.black54,
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.close_rounded, color: Colors.white),
+                      tooltip: 'Đóng',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<File> _persistCapture(
@@ -400,7 +559,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
           ),
         ],
       ),
-      floatingActionButton: _buildCaptureFab(theme),
+      floatingActionButton: _buildCaptureFab(context, theme),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: SafeArea(
         child: Builder(
@@ -414,7 +573,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                 if (isWide) {
                   final availableWidth = constraints.maxWidth;
                   final detailWidth = availableWidth.isFinite
-                      ? availableWidth * 0.1
+                      ? math.max(210.0, availableWidth * 0.12)
                       : 260.0;
                   final previewWidth = availableWidth.isFinite
                       ? availableWidth - detailWidth - 24
@@ -474,42 +633,111 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     );
   }
 
-  Widget _buildCaptureFab(ThemeData theme) {
-    final isEnabled = _cameraService.isInitialized && !_uploading && !_initializing;
+  Widget _buildCaptureFab(BuildContext context, ThemeData theme) {
+    final hasPendingCapture = _pendingCaptureFile != null;
+    final isBusy =
+        _initializing || _capturing || _uploading || !_cameraService.isInitialized;
 
-    return FloatingActionButton.extended(
-      onPressed: isEnabled ? _captureAndUpload : null,
-      backgroundColor: theme.colorScheme.primary,
-      label: _uploading
-          ? const SizedBox(
-              width: 140,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.6,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
+    if (!hasPendingCapture) {
+      return FloatingActionButton.extended(
+        onPressed: isBusy ? null : _capturePhoto,
+        backgroundColor: theme.colorScheme.primary,
+        label: SizedBox(
+          width: 160,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_capturing) ...[
+                const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.6,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
-                  SizedBox(width: 12),
-                  Text('Đang tải lên...'),
-                ],
+                ),
+                const SizedBox(width: 12),
+                const Text('Đang chụp...'),
+              ] else ...[
+                const Icon(Icons.photo_camera_rounded),
+                const SizedBox(width: 12),
+                const Text('Chụp ảnh'),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    return _buildPostCaptureBar(context, theme);
+  }
+
+  Widget _buildPostCaptureBar(BuildContext context, ThemeData theme) {
+    final media = MediaQuery.of(context);
+    final availableWidth = math.max(media.size.width - 32, 280.0);
+    final maxWidth = math.min(availableWidth, 620.0);
+    final isUploading = _uploading;
+
+    return SizedBox(
+      width: maxWidth,
+      child: Material(
+        elevation: 6,
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(32),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              ElevatedButton.icon(
+                onPressed: isUploading ? null : _uploadPendingCapture,
+                icon: isUploading
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2.4),
+                      )
+                    : const Icon(Icons.cloud_upload_rounded),
+                label: Text(isUploading ? 'Đang tải...' : 'Tải lên'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  visualDensity: VisualDensity.compact,
+                ),
               ),
-            )
-          : const SizedBox(
-              width: 140,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.camera_alt_rounded),
-                  SizedBox(width: 12),
-                  Text('Chụp & Upload'),
-                ],
+              OutlinedButton.icon(
+                onPressed: isUploading ? null : _previewPendingCapture,
+                icon: const Icon(Icons.visibility_rounded),
+                label: const Text('Xem trước'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  visualDensity: VisualDensity.compact,
+                  minimumSize: const Size(0, 44),
+                ),
               ),
-            ),
+              TextButton.icon(
+                onPressed: isUploading ? null : _retakeCapture,
+                icon: const Icon(Icons.camera_enhance_rounded),
+                label: const Text('Chụp lại'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: isUploading ? null : () => _discardPendingCapture(deleteFile: true),
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('Xóa ảnh'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -714,6 +942,54 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
             ),
           ),
           const SizedBox(height: 24),
+          if (_pendingPreviewBytes != null) ...[
+            Text(
+              'Ảnh chờ gửi',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.memory(
+                _pendingPreviewBytes!,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _uploading ? null : _previewPendingCapture,
+                  icon: const Icon(Icons.visibility_rounded),
+                  label: const Text('Xem'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: const Size(0, 40),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _uploading
+                      ? null
+                      : () => _discardPendingCapture(deleteFile: true),
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  label: const Text('Xóa'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: const Size(0, 40),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 16),
+          ],
           if (_latestPreviewBytes != null) ...[
             Text(
               'Ảnh vừa chụp',
@@ -811,11 +1087,21 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
               onPressed: disableButtons ? null : _rotateLeft,
               icon: const Icon(Icons.rotate_left_rounded),
               label: const Text('Trái 90°'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                visualDensity: VisualDensity.compact,
+                minimumSize: const Size(0, 40),
+              ),
             ),
             OutlinedButton.icon(
               onPressed: disableButtons ? null : _rotateRight,
               icon: const Icon(Icons.rotate_right_rounded),
               label: const Text('Phải 90°'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                visualDensity: VisualDensity.compact,
+                minimumSize: const Size(0, 40),
+              ),
             ),
             Chip(
               backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
@@ -826,6 +1112,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
             if (rotationDegrees != 0)
               TextButton(
                 onPressed: disableButtons ? null : _resetRotation,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  visualDensity: VisualDensity.compact,
+                ),
                 child: const Text('Đặt lại'),
               ),
           ],
