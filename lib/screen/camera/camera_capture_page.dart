@@ -238,7 +238,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
     try {
       final bytes = await file.readAsBytes();
-      final decoded = img.JpegDecoder().decode(bytes);
+      final decoded = img.decodeImage(bytes);
 
       if (decoded == null) {
         final fallback = File(targetPath);
@@ -246,16 +246,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         return fallback;
       }
 
-      final originalOrientation = decoded.exif?.orientation;
-      img.Image processed = img.bakeOrientation(decoded);
+      img.Image processed = decoded;
 
-      var shouldMirror = mirrorHorizontally;
-      if (!shouldMirror &&
-          _orientationNeedsHorizontalMirror(originalOrientation)) {
-        shouldMirror = true;
-      }
-
-      if (shouldMirror) {
+      if (mirrorHorizontally) {
         processed = img.flipHorizontal(processed);
       }
 
@@ -265,9 +258,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
           angle: normalizedTurns * 90,
         );
       }
-
-      processed.exif ??= img.ExifData();
-      processed.exif!.orientation = img.Orientation.topLeft;
 
       final encoded = img.encodeJpg(processed, quality: 95);
       final savedFile = File(targetPath);
@@ -281,25 +271,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       final fallback = File(targetPath);
       await file.saveTo(targetPath);
       return fallback;
-    }
-  }
-
-  bool _orientationNeedsHorizontalMirror(img.Orientation? orientation) {
-    if (orientation == null) {
-      return false;
-    }
-
-    switch (orientation) {
-      case img.Orientation.topRight:
-      case img.Orientation.bottomLeft:
-      case img.Orientation.leftTop:
-      case img.Orientation.rightBottom:
-        return true;
-      case img.Orientation.topLeft:
-      case img.Orientation.bottomRight:
-      case img.Orientation.rightTop:
-      case img.Orientation.leftBottom:
-        return false;
     }
   }
 
