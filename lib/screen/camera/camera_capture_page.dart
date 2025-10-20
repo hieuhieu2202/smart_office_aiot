@@ -233,20 +233,72 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   }
 
   Future<void> _chooseRemoteFolder() async {
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => _RemoteDirectoryPicker(
-        initialPath: _selectedFolder,
-        service: _uploadService,
-      ),
-    );
+    final selected = await _showRemoteDirectoryPicker();
 
     if (selected != null && mounted) {
       setState(() {
         _selectedFolder = selected;
       });
     }
+  }
+
+  Future<String?> _showRemoteDirectoryPicker() {
+    final picker = _RemoteDirectoryPicker(
+      initialPath: _selectedFolder,
+      service: _uploadService,
+      presentation: (!kIsWeb && Platform.isWindows)
+          ? _DirectoryPickerPresentation.sideSheet
+          : _DirectoryPickerPresentation.bottomSheet,
+    );
+
+    if (!kIsWeb && Platform.isWindows) {
+      return showGeneralDialog<String>(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: 'Chọn thư mục đích',
+        barrierColor: Colors.black54,
+        transitionDuration: const Duration(milliseconds: 320),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          final media = MediaQuery.of(context);
+          final width = media.size.width;
+          final sheetWidth = width >= 1200
+              ? 460.0
+              : math.min(width * 0.7, 460.0);
+
+          return SafeArea(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  right: media.padding.right + 16,
+                  top: 24,
+                  bottom: 24,
+                ),
+                child: SizedBox(width: sheetWidth, child: picker),
+              ),
+            ),
+          );
+        },
+        transitionBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
+          return SlideTransition(
+            position:
+                Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+                    .animate(curved),
+            child: child,
+          );
+        },
+      );
+    }
+
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => picker,
+    );
   }
 
   void _showSnackBar(String message) {
@@ -691,14 +743,18 @@ class _PreviewPlaceholder extends StatelessWidget {
   }
 }
 
+enum _DirectoryPickerPresentation { bottomSheet, sideSheet }
+
 class _RemoteDirectoryPicker extends StatefulWidget {
   const _RemoteDirectoryPicker({
     required this.initialPath,
     required this.service,
+    this.presentation = _DirectoryPickerPresentation.bottomSheet,
   });
 
   final String initialPath;
   final WinScpUploadService service;
+  final _DirectoryPickerPresentation presentation;
 
   @override
   State<_RemoteDirectoryPicker> createState() => _RemoteDirectoryPickerState();
@@ -707,118 +763,196 @@ class _RemoteDirectoryPicker extends StatefulWidget {
 class _RemoteDirectoryPickerState extends State<_RemoteDirectoryPicker> {
   late String _currentPath;
   late Future<List<RemoteDirectoryEntry>> _pendingRequest;
+  late final TextEditingController _searchController;
+  late final VoidCallback _searchListener;
+  String _searchTerm = '';
 
   @override
   void initState() {
     super.initState();
     _currentPath = widget.initialPath.isEmpty ? '/' : widget.initialPath;
     _pendingRequest = widget.service.listDirectories(_currentPath);
+    _searchController = TextEditingController();
+    _searchListener = () {
+      final next = _searchController.text.trim().toLowerCase();
+      if (next != _searchTerm) {
+        setState(() {
+          _searchTerm = next;
+        });
+      }
+    };
+    _searchController.addListener(_searchListener);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-
+    final isSideSheet =
+        widget.presentation == _DirectoryPickerPresentation.sideSheet;
     final mediaQuery = MediaQuery.of(context);
+    final bottomPadding = isSideSheet ? 0.0 : mediaQuery.viewInsets.bottom;
     final availableHeight =
         math.max(0.0, mediaQuery.size.height - bottomPadding);
-    final targetHeight =
-        availableHeight == 0 ? 420.0 : math.min(520.0, math.max(360.0, availableHeight * 0.75));
+    final targetHeight = isSideSheet
+        ? availableHeight
+        : (availableHeight == 0
+            ? 420.0
+            : math
+                .min(520.0, math.max(360.0, availableHeight * 0.75)));
+
+    final panelRadius = isSideSheet
+        ? const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            bottomLeft: Radius.circular(24),
+          )
+        : const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          );
+
+    Widget buildDirectoryList(List<RemoteDirectoryEntry> directories) {
+      if (directories.isEmpty) {
+        return const _DirectoryEmpty();
+      }
+
+      final query = _searchTerm;
+      final filtered = query.isEmpty
+          ? directories
+          : directories
+              .where((entry) {
+                final target = '${entry.name} ${entry.path}'.toLowerCase();
+                return target.contains(query);
+              })
+              .toList();
+
+      if (filtered.isEmpty) {
+        return _DirectorySearchEmpty(query: _searchController.text);
+      }
+
+      return ListView.separated(
+        itemCount: filtered.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final entry = filtered[index];
+          return ListTile(
+            leading: const Icon(Icons.folder_rounded, color: Colors.amber),
+            title: Text(entry.name),
+            subtitle: Text(entry.path),
+            onTap: () => _navigateTo(entry.path),
+          );
+        },
+      );
+    }
+
+    final content = SizedBox(
+      height: targetHeight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(24, isSideSheet ? 24 : 20, 12, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Chọn thư mục đích',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              _currentPath,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search_rounded),
+                hintText: 'Tìm kiếm thư mục',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+              ),
+              textInputAction: TextInputAction.search,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).pop(_currentPath),
+              icon: const Icon(Icons.check_circle_outline_rounded),
+              label: const Text('Chọn thư mục này'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(44),
+              ),
+            ),
+          ),
+          if (_currentPath != '/')
+            ListTile(
+              leading: const Icon(Icons.arrow_upward_rounded),
+              title: const Text('Lên một cấp'),
+              onTap: () => _navigateTo(_parentPath(_currentPath)),
+            ),
+          Expanded(
+            child: FutureBuilder<List<RemoteDirectoryEntry>>(
+              future: _pendingRequest,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return _DirectoryError(
+                    message: '${snapshot.error}',
+                    onRetry: () => _navigateTo(_currentPath),
+                  );
+                }
+
+                final directories = snapshot.data ?? <RemoteDirectoryEntry>[];
+                return buildDirectoryList(directories);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
 
     return SafeArea(
+      top: isSideSheet,
+      bottom: !isSideSheet,
       child: Padding(
         padding: EdgeInsets.only(bottom: bottomPadding),
-        child: SizedBox(
-          height: targetHeight,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 12, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Chọn thư mục đích',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  _currentPath,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.of(context).pop(_currentPath),
-                  icon: const Icon(Icons.check_circle_outline_rounded),
-                  label: const Text('Chọn thư mục này'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(44),
-                  ),
-                ),
-              ),
-              if (_currentPath != '/')
-                ListTile(
-                  leading: const Icon(Icons.arrow_upward_rounded),
-                  title: const Text('Lên một cấp'),
-                  onTap: () => _navigateTo(_parentPath(_currentPath)),
-                ),
-              Expanded(
-                child: FutureBuilder<List<RemoteDirectoryEntry>>(
-                  future: _pendingRequest,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (snapshot.hasError) {
-                      return _DirectoryError(
-                        message: '${snapshot.error}',
-                        onRetry: () => _navigateTo(_currentPath),
-                      );
-                    }
-
-                    final directories = snapshot.data ?? <RemoteDirectoryEntry>[];
-                    if (directories.isEmpty) {
-                      return const _DirectoryEmpty();
-                    }
-
-                    return ListView.separated(
-                      itemCount: directories.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final entry = directories[index];
-                        return ListTile(
-                          leading: const Icon(Icons.folder_rounded, color: Colors.amber),
-                          title: Text(entry.name),
-                          subtitle: Text(entry.path),
-                          onTap: () => _navigateTo(entry.path),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+        child: Material(
+          elevation: isSideSheet ? 12 : 0,
+          color: theme.colorScheme.surface,
+          borderRadius: panelRadius,
+          clipBehavior: Clip.antiAlias,
+          child: content,
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_searchListener);
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _navigateTo(String path) {
@@ -859,6 +993,41 @@ class _DirectoryEmpty extends StatelessWidget {
           'Thư mục này không có thư mục con. Bạn có thể chọn trực tiếp hoặc quay lại.',
           style: theme.textTheme.bodyMedium,
           textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+class _DirectorySearchEmpty extends StatelessWidget {
+  const _DirectorySearchEmpty({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off_rounded,
+                size: 42, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(height: 12),
+            Text(
+              'Không tìm thấy thư mục phù hợp',
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Từ khóa "${query.trim()}" không khớp với thư mục nào.',
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
