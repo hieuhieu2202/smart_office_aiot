@@ -474,99 +474,150 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
   Widget _buildPreviewCard(ThemeData theme) {
     final controller = _cameraService.controller;
-    double aspectRatio = 16 / 9;
-    if (_cameraService.isInitialized && controller != null) {
-      final value = controller.value.aspectRatio;
-      if (value.isFinite && value > 0) {
-        aspectRatio = value;
-      }
-    }
+    final hasLivePreview = _cameraService.isInitialized && controller != null;
     final rotationTurns = _rotationTurns % 4;
-    final displayAspectRatio = rotationTurns.isOdd ? 1 / aspectRatio : aspectRatio;
     final rotationDegrees = rotationTurns * 90;
 
-    Widget child;
-    if (_initializing) {
-      child = _PreviewPlaceholder(
-        icon: Icons.photo_camera_front_rounded,
-        message: 'Đang khởi tạo camera...',
-      );
-    } else if (_cameraService.isInitialized && controller != null) {
-      child = RotatedBox(
-        quarterTurns: rotationTurns,
-        child: CameraPreview(controller),
-      );
-    } else {
-      final errorCode = _cameraError?.code;
-      var errorMessage =
-          _cameraError?.description ?? 'Không tìm thấy camera khả dụng.';
-      if (errorCode == 'missing_plugin') {
-        errorMessage =
-            'Camera chưa được hỗ trợ trên nền tảng này. Vui lòng thử trên thiết bị khác.';
+    double aspectRatio = 1;
+    if (hasLivePreview) {
+      final ratio = controller!.value.aspectRatio;
+      if (ratio.isFinite && ratio > 0) {
+        aspectRatio = ratio;
       }
-      child = _PreviewPlaceholder(
-        icon: Icons.videocam_off_rounded,
-        message: errorMessage,
-        action: TextButton.icon(
-          onPressed: _initializing ? null : () => _initializeCamera(),
-          icon: const Icon(Icons.refresh),
-          label: const Text('Thử lại'),
+    }
+    final displayAspectRatio = rotationTurns.isOdd ? 1 / aspectRatio : aspectRatio;
+
+    if (!hasLivePreview) {
+      Widget placeholder;
+      if (_initializing) {
+        placeholder = _PreviewPlaceholder(
+          icon: Icons.photo_camera_front_rounded,
+          message: 'Đang khởi tạo camera...',
+        );
+      } else {
+        final errorCode = _cameraError?.code;
+        var errorMessage =
+            _cameraError?.description ?? 'Không tìm thấy camera khả dụng.';
+        if (errorCode == 'missing_plugin') {
+          errorMessage =
+              'Camera chưa được hỗ trợ trên nền tảng này. Vui lòng thử trên thiết bị khác.';
+        }
+        placeholder = _PreviewPlaceholder(
+          icon: Icons.videocam_off_rounded,
+          message: errorMessage,
+          action: TextButton.icon(
+            onPressed: _initializing ? null : () => _initializeCamera(),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Thử lại'),
+          ),
+        );
+      }
+
+      return Card(
+        clipBehavior: Clip.antiAlias,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: AspectRatio(
+          aspectRatio: 1,
+          child: placeholder,
         ),
       );
     }
+
+    final liveController = controller!;
 
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: AspectRatio(
-        aspectRatio: displayAspectRatio,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(color: Colors.black, child: child),
-            if (_cameraService.isInitialized && !_initializing && rotationDegrees != 0)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.55),
-                    borderRadius: BorderRadius.circular(12),
+        aspectRatio: 1,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            double side;
+            if (constraints.maxWidth.isFinite && constraints.maxHeight.isFinite) {
+              side = math.min(constraints.maxWidth, constraints.maxHeight);
+            } else if (constraints.maxWidth.isFinite) {
+              side = constraints.maxWidth;
+            } else if (constraints.maxHeight.isFinite) {
+              side = constraints.maxHeight;
+            } else {
+              side = 360;
+            }
+            if (!side.isFinite || side <= 0) {
+              side = 360;
+            }
+            var previewWidth = side;
+            var previewHeight = side;
+            if (displayAspectRatio >= 1) {
+              previewWidth = side * displayAspectRatio;
+              previewHeight = side;
+            } else {
+              previewHeight = side / displayAspectRatio;
+              previewWidth = side;
+            }
+
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                Container(color: Colors.black),
+                Align(
+                  alignment: Alignment.center,
+                  child: SizedBox(
+                    width: previewWidth,
+                    height: previewHeight,
+                    child: RotatedBox(
+                      quarterTurns: rotationTurns,
+                      child: CameraPreview(liveController),
+                    ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Text(
-                      '$rotationDegrees°',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                ),
+                if (!_initializing && rotationDegrees != 0)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.55),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        child: Text(
+                          '$rotationDegrees°',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            if (_cameraService.isInitialized && !_initializing)
-              Positioned(
-                bottom: 16,
-                left: 16,
-                right: 16,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.45),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Text(
-                      'Nhấn nút chụp để lưu ảnh và tải lên máy chủ WinSCP.',
-                      style: TextStyle(color: Colors.white, fontSize: 13),
-                      textAlign: TextAlign.center,
+                if (!_initializing)
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        child: Text(
+                          'Nhấn nút chụp để lưu ảnh và tải lên máy chủ WinSCP.',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -604,6 +655,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                       child: Text(_describeCamera(camera)),
                     ),
                 ],
+                isExpanded: true,
                 onChanged: _initializing ? null : (camera) {
                   if (camera != null) {
                     _switchCamera(camera);
