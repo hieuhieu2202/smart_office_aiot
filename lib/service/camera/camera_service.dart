@@ -14,7 +14,7 @@ class CameraService {
   Future<void> initialize() async {
     _availableCameras = await availableCameras();
     if (_availableCameras.isEmpty) {
-      throw const CameraException('no_camera', 'No camera found');
+      throw CameraException('no_camera', 'No camera found');
     }
 
     final camera = _availableCameras.first;
@@ -33,13 +33,13 @@ class CameraService {
   Future<XFile> capturePhoto() async {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
-      throw const CameraException(
+      throw CameraException(
         'not_initialized',
         'Camera has not been initialized',
       );
     }
     if (controller.value.isTakingPicture) {
-      throw const CameraException(
+      throw CameraException(
         'in_progress',
         'A capture is already in progress',
       );

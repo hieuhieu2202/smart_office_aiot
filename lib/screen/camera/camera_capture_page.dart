@@ -85,7 +85,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
       final controller = _cameraService.controller;
       if (controller == null || !controller.value.isInitialized) {
-        throw const CameraException('not_initialized', 'Camera is not ready');
+        throw CameraException('not_initialized', 'Camera is not ready');
       }
 
       final picture = await _cameraService.capturePhoto();
