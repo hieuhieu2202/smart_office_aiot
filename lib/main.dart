@@ -11,6 +11,7 @@ import 'package:smart_factory/screen/setting/controller/setting_controller.dart'
 import 'package:smart_factory/screen/splash/splash.dart';
 import 'package:smart_factory/screen/login/login.dart';
 import 'package:smart_factory/screen/navbar/navbar.dart';
+import 'package:smart_factory/screen/camera/camera_capture_page.dart';
 import 'package:smart_factory/lang/controller/language_controller.dart';
 import 'package:smart_factory/lang/language_selection_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
@@ -108,6 +109,7 @@ class MyApp extends StatelessWidget {
           ),
           GetPage(name: '/login', page: () => const LoginScreen()),
           GetPage(name: '/navbar', page: () => const NavbarScreen()),
+          GetPage(name: '/camera-capture', page: () => const CameraCapturePage()),
         ],
       ),
     );

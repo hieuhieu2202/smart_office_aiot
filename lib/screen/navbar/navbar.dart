@@ -6,6 +6,7 @@ import 'package:smart_factory/screen/home/home_tab.dart';
 import 'package:smart_factory/screen/notification/notification_tab.dart';
 import 'package:smart_factory/screen/setting/setting_tab.dart';
 import 'package:smart_factory/screen/stp/stp_tab.dart';
+import 'package:smart_factory/screen/camera/camera_capture_page.dart';
 import '../home/controller/home_controller.dart';
 import '../setting/controller/setting_controller.dart';
 import 'package:smart_factory/generated/l10n.dart';
@@ -30,6 +31,7 @@ class NavbarScreen extends StatelessWidget {
     final List<String> tabLabels = [
       text.home,
       "WinSCP",
+      'Capture',
       'QR Scan',
       text.notification,
       text.settings,
@@ -37,6 +39,7 @@ class NavbarScreen extends StatelessWidget {
 
     // Lazy cache cho QRScreen để tránh rebuild liên tục
     Widget? qrScreenCache;
+    Widget? cameraScreenCache;
 
     return ResponsiveBuilder(
       builder: (context, sizingInfo) {
@@ -49,6 +52,9 @@ class NavbarScreen extends StatelessWidget {
             const HomeTab(),
             const SftpScreen(),
             currentIndex == 2
+                ? (cameraScreenCache ??= const CameraCapturePage())
+                : const SizedBox.shrink(),
+            currentIndex == 3
                 ? (qrScreenCache ??= const QRScanScreen())
                 : const SizedBox.shrink(),
             const NotificationTab(),
@@ -108,8 +114,15 @@ class NavbarScreen extends StatelessWidget {
                       label: tabLabels[1],
                     ),
                     BottomNavigationBarItem(
-                      icon: const Icon(Icons.qr_code_scanner),
+                      icon: const Text(
+                        '📸',
+                        style: TextStyle(fontSize: 22),
+                      ),
                       label: tabLabels[2],
+                    ),
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.qr_code_scanner),
+                      label: tabLabels[3],
                     ),
                     BottomNavigationBarItem(
                       icon: Obx(() {
@@ -144,11 +157,11 @@ class NavbarScreen extends StatelessWidget {
                           ],
                         );
                       }),
-                      label: tabLabels[3],
+                      label: tabLabels[4],
                     ),
                     BottomNavigationBarItem(
                       icon: const Icon(Icons.settings),
-                      label: tabLabels[4],
+                      label: tabLabels[5],
                     ),
                   ],
                 ),
@@ -233,7 +246,7 @@ class _SideNavigationBar extends StatelessWidget {
               onTap: () => onTap(i),
               indicatorColor: indicatorColor,
               inactiveColor: inactiveColor,
-              badgeCount: i == 3
+              badgeCount: i == 4
                   ? notificationController.unreadCount.value
                   : 0,
             ),
@@ -242,19 +255,24 @@ class _SideNavigationBar extends StatelessWidget {
     );
   }
 
-  IconData _iconForIndex(int index) {
+  Widget _iconForIndex(int index) {
     switch (index) {
       case 0:
-        return Icons.home_rounded;
+        return const Icon(Icons.home_rounded);
       case 1:
-        return Icons.public_rounded;
+        return const Icon(Icons.public_rounded);
       case 2:
-        return Icons.qr_code_scanner;
+        return const Text(
+          '📸',
+          style: TextStyle(fontSize: 24),
+        );
       case 3:
-        return Icons.notifications_active_rounded;
+        return const Icon(Icons.qr_code_scanner);
       case 4:
+        return const Icon(Icons.notifications_active_rounded);
+      case 5:
       default:
-        return Icons.settings;
+        return const Icon(Icons.settings);
     }
   }
 }
@@ -271,7 +289,7 @@ class _SideNavItem extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final Widget icon;
   final bool isSelected;
   final VoidCallback onTap;
   final Color indicatorColor;
@@ -301,10 +319,15 @@ class _SideNavItem extends StatelessWidget {
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Icon(
-                      icon,
-                      color: baseColor,
-                      size: 28,
+                    IconTheme(
+                      data: IconThemeData(
+                        color: baseColor,
+                        size: 28,
+                      ),
+                      child: DefaultTextStyle.merge(
+                        style: TextStyle(color: baseColor, fontSize: 24),
+                        child: icon,
+                      ),
                     ),
                     if (badgeCount > 0)
                       Positioned(
