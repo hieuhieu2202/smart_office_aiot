@@ -39,6 +39,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   String? _lastRemotePath;
   String? _lastUploadError;
   int _rotationTurns = 0;
+  bool _mirrorOutput = false;
+  bool _mirrorOverride = false;
+  bool _recommendedMirror = false;
   bool _animateFromRight = false;
   bool _contentVisible = false;
 
@@ -76,9 +79,17 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
     if (!mounted) return;
 
+    final recommendedMirror = _cameraService.shouldMirrorOutput;
+
     setState(() {
       _initializing = false;
       _selectedCamera = _cameraService.activeCamera;
+      _recommendedMirror = recommendedMirror;
+      if (!_mirrorOverride) {
+        _mirrorOutput = recommendedMirror;
+      } else if (_mirrorOutput == recommendedMirror) {
+        _mirrorOverride = false;
+      }
       if (!ready) {
         _cameraError = _cameraService.lastError;
       }
@@ -96,6 +107,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   }
 
   Future<void> _switchCamera(CameraDescription description) async {
+    setState(() {
+      _mirrorOverride = false;
+    });
     await _cameraService.dispose();
     await Future.delayed(const Duration(milliseconds: 150));
     await _initializeCamera(camera: description);
@@ -138,11 +152,12 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
     try {
       final xFile = await _cameraService.capturePhoto();
+      final shouldMirrorCapture = _mirrorOutput;
       final file = await _persistCapture(
         xFile,
         fileName,
         rotationTurns,
-        mirrorHorizontally: _cameraService.shouldMirrorOutput,
+        mirrorHorizontally: shouldMirrorCapture,
       );
       final previewBytes = await file.readAsBytes();
 
@@ -218,39 +233,74 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   }) async {
     final directory = await getTemporaryDirectory();
     final targetPath = p.join(directory.path, fileName);
-    await file.saveTo(targetPath);
-    final savedFile = File(targetPath);
-
     final normalizedTurns = rotationTurns % 4;
     final needsRotation = normalizedTurns != 0;
-    final needsMirror = mirrorHorizontally;
 
-    if (needsRotation || needsMirror) {
-      try {
-        final bytes = await savedFile.readAsBytes();
-        final decoded = img.decodeImage(bytes);
-        if (decoded != null) {
-          img.Image processed = decoded;
-          if (needsMirror) {
-            processed = img.flipHorizontal(processed);
-          }
-          if (needsRotation) {
-            processed = img.copyRotate(
-              processed,
-              angle: normalizedTurns * 90,
-            );
-          }
-          final encoded = img.encodeJpg(processed);
-          await savedFile.writeAsBytes(encoded, flush: true);
-        }
-      } catch (error) {
-        if (kDebugMode) {
-          debugPrint('Không thể xử lý ảnh: $error');
-        }
+    try {
+      final bytes = await file.readAsBytes();
+      final decoded = img.JpegDecoder().decode(bytes);
+
+      if (decoded == null) {
+        final fallback = File(targetPath);
+        await fallback.writeAsBytes(bytes, flush: true);
+        return fallback;
       }
+
+      final originalOrientation = decoded.exif?.orientation;
+      img.Image processed = img.bakeOrientation(decoded);
+
+      var shouldMirror = mirrorHorizontally;
+      if (!shouldMirror &&
+          _orientationNeedsHorizontalMirror(originalOrientation)) {
+        shouldMirror = true;
+      }
+
+      if (shouldMirror) {
+        processed = img.flipHorizontal(processed);
+      }
+
+      if (needsRotation) {
+        processed = img.copyRotate(
+          processed,
+          angle: normalizedTurns * 90,
+        );
+      }
+
+      processed.exif ??= img.ExifData();
+      processed.exif!.orientation = img.Orientation.topLeft;
+
+      final encoded = img.encodeJpg(processed, quality: 95);
+      final savedFile = File(targetPath);
+      await savedFile.writeAsBytes(encoded, flush: true);
+      return savedFile;
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Không thể xử lý ảnh: $error');
+      }
+
+      final fallback = File(targetPath);
+      await file.saveTo(targetPath);
+      return fallback;
+    }
+  }
+
+  bool _orientationNeedsHorizontalMirror(img.Orientation? orientation) {
+    if (orientation == null) {
+      return false;
     }
 
-    return savedFile;
+    switch (orientation) {
+      case img.Orientation.topRight:
+      case img.Orientation.bottomLeft:
+      case img.Orientation.leftTop:
+      case img.Orientation.rightBottom:
+        return true;
+      case img.Orientation.topLeft:
+      case img.Orientation.bottomRight:
+      case img.Orientation.rightTop:
+      case img.Orientation.leftBottom:
+        return false;
+    }
   }
 
   Future<void> _chooseRemoteFolder() async {
@@ -571,8 +621,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                       valueListenable: liveController,
                       builder: (context, value, child) {
                         if (value.isInitialized && !value.isRecordingVideo) {
-                          final shouldMirrorPreview =
-                              _cameraService.shouldMirrorOutput;
+                          final shouldMirrorPreview = _mirrorOutput;
 
                           Widget preview = CameraPreview(liveController);
                           if (shouldMirrorPreview) {
@@ -642,6 +691,39 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
             ),
           const SizedBox(height: 24),
           _buildRotationControls(theme),
+          const SizedBox(height: 24),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Lật ảnh giống khung preview'),
+            subtitle: const Text(
+              'Áp dụng cho cả ảnh hiển thị và file tải lên',
+            ),
+            value: _mirrorOutput,
+            onChanged: !_cameraService.isInitialized
+                ? null
+                : (value) {
+                    setState(() {
+                      _mirrorOutput = value;
+                      _mirrorOverride = value != _recommendedMirror;
+                    });
+                  },
+          ),
+          if (_mirrorOverride)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: !_cameraService.isInitialized
+                    ? null
+                    : () {
+                        setState(() {
+                          _mirrorOutput = _recommendedMirror;
+                          _mirrorOverride = false;
+                        });
+                      },
+                icon: const Icon(Icons.settings_backup_restore_rounded),
+                label: const Text('Khôi phục đề xuất từ camera'),
+              ),
+            ),
           const SizedBox(height: 24),
           Text(
             'Thư mục WinSCP',
