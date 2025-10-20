@@ -29,7 +29,7 @@ class CameraService {
     CameraDescription? cameraDescription,
     ResolutionPreset preset = ResolutionPreset.medium,
   }) async {
-    await dispose();
+    await _disposeController(preserveCameraCache: true);
 
     try {
       final discoveredCameras = await availableCameras();
@@ -53,19 +53,36 @@ class CameraService {
           _availableCameras.first;
 
       _activeCamera = targetCamera;
-      _resolutionPreset = preset;
+      final presetsToTry = _presetsInPriorityOrder(preset);
+      CameraException? lastInitError;
 
-      final controller = CameraController(
-        targetCamera,
-        preset,
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
-      );
+      for (final candidatePreset in presetsToTry) {
+        try {
+          final controller = CameraController(
+            targetCamera,
+            candidatePreset,
+            enableAudio: false,
+            imageFormatGroup: ImageFormatGroup.jpeg,
+          );
 
-      _controller = controller;
-      await controller.initialize();
-      _lastError = null;
-      return true;
+          _controller = controller;
+          await controller.initialize();
+          _resolutionPreset = candidatePreset;
+          _lastError = null;
+          return true;
+        } on CameraException catch (error, stackTrace) {
+          lastInitError = error;
+          _lastError = error;
+          _logCameraError('Camera initialization failed', error, stackTrace);
+          await _disposeController(preserveCameraCache: true);
+        }
+      }
+
+      if (lastInitError != null) {
+        return false;
+      }
+
+      return false;
     } on MissingPluginException catch (error, stackTrace) {
       final cameraError = CameraException(
         'missing_plugin',
@@ -78,13 +95,13 @@ class CameraService {
     } on CameraException catch (error, stackTrace) {
       _lastError = error;
       _logCameraError('Camera initialization failed', error, stackTrace);
-      await dispose();
+      await _disposeController(preserveCameraCache: true);
       return false;
     } catch (error, stackTrace) {
       final cameraError = CameraException('init_failure', '$error');
       _lastError = cameraError;
       _logCameraError('Unexpected camera initialization error', cameraError, stackTrace);
-      await dispose();
+      await _disposeController(preserveCameraCache: true);
       return false;
     }
   }
@@ -146,7 +163,15 @@ class CameraService {
     }
   }
 
-  Future<void> dispose() async {
+  Future<void> dispose({bool clearCache = true}) async {
+    await _disposeController(preserveCameraCache: !clearCache);
+    if (clearCache) {
+      _activeCamera = null;
+      _availableCameras = const [];
+    }
+  }
+
+  Future<void> _disposeController({required bool preserveCameraCache}) async {
     final controller = _controller;
     _controller = null;
 
@@ -161,8 +186,10 @@ class CameraService {
       }
     }
 
-    _activeCamera = null;
-    _availableCameras = const [];
+    if (!preserveCameraCache) {
+      _activeCamera = null;
+      _availableCameras = const [];
+    }
   }
 
   int _compareCameras(CameraDescription a, CameraDescription b) {
@@ -172,6 +199,17 @@ class CameraService {
       return priorityDiff;
     }
     return a.name.compareTo(b.name);
+  }
+
+  List<ResolutionPreset> _presetsInPriorityOrder(ResolutionPreset preferred) {
+    final ordered = <ResolutionPreset>{
+      preferred,
+      if (preferred.index > ResolutionPreset.medium.index)
+        ResolutionPreset.medium,
+      ResolutionPreset.low,
+    };
+
+    return ordered.toList();
   }
 
   int _lensPriority(CameraLensDirection direction) {

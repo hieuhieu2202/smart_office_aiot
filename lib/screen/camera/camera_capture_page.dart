@@ -89,7 +89,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       if (lastError?.code == 'missing_plugin') {
         _showCameraUnsupportedBanner();
       } else {
-        _showSnackBar('No camera found');
+        final description = lastError?.description ?? 'No camera found';
+        _showSnackBar(description);
       }
     }
   }
