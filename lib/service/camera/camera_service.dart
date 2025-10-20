@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -125,7 +126,7 @@ class CameraService {
 
           final processed = shouldFlip ? img.flipHorizontal(decoded) : decoded;
           final encoded = img.encodeJpg(processed);
-          await file.writeAsBytes(encoded, flush: true);
+          await File(file.path).writeAsBytes(encoded, flush: true);
         }
       } catch (e, st) {
         debugPrint('Failed to post-process captured image: $e');

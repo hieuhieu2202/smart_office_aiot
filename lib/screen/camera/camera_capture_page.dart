@@ -555,7 +555,21 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                       valueListenable: liveController,
                       builder: (context, value, child) {
                         if (value.isInitialized && !value.isRecordingVideo) {
-                          return CameraPreview(liveController);
+                          final lensDirection =
+                              liveController.description.lensDirection;
+                          final shouldMirrorPreview = lensDirection ==
+                                  CameraLensDirection.front ||
+                              lensDirection == CameraLensDirection.external;
+
+                          Widget preview = CameraPreview(liveController);
+                          if (shouldMirrorPreview) {
+                            preview = Transform.scale(
+                              scaleX: -1,
+                              alignment: Alignment.center,
+                              child: preview,
+                            );
+                          }
+                          return preview;
                         }
                         return const Center(
                           child: CircularProgressIndicator(),
