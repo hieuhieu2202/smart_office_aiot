@@ -1,26 +1,32 @@
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:smart_factory/config/global_color.dart';
 
+import 'package:smart_factory/config/global_color.dart';
 import 'package:smart_factory/service/camera/camera_service.dart';
+import 'package:smart_factory/service/screen/screen_capture_service.dart';
 import 'package:smart_factory/service/winscp_upload_service.dart';
 
-enum _CameraBootstrapStatus { loading, ready, unavailable }
+enum CaptureMode { camera, screenshot }
 
-class _UploadSummary {
-  const _UploadSummary({
-    required this.success,
+class UploadFeedback {
+  const UploadFeedback.success({
     required this.timestamp,
-    this.remotePath,
-    this.errorMessage,
-  });
+    required this.remotePath,
+  })  : success = true,
+        errorMessage = null;
+
+  const UploadFeedback.failure({
+    required this.timestamp,
+    required this.errorMessage,
+  })  : success = false,
+        remotePath = null;
 
   final bool success;
   final DateTime timestamp;
@@ -38,30 +44,38 @@ class CameraCapturePage extends StatefulWidget {
 class _CameraCapturePageState extends State<CameraCapturePage> {
   final CameraService _cameraService = CameraService();
   final WinScpUploadService _uploadService = WinScpUploadService();
+  final ScreenCaptureService _screenCaptureService = ScreenCaptureService();
+  final DateFormat _fileNameFormat = DateFormat('yyyyMMdd_HHmmss');
+  final DateFormat _timeFormat = DateFormat('HH:mm:ss');
 
-  _CameraBootstrapStatus _status = _CameraBootstrapStatus.loading;
-  bool _uploading = false;
+  CaptureMode _mode = CaptureMode.camera;
+  bool _cameraInitializing = true;
+  bool _cameraReady = false;
+  CameraException? _cameraError;
+
   String _selectedFolder = '/';
+  bool _uploading = false;
   File? _latestFile;
   Uint8List? _latestPreviewBytes;
-  _UploadSummary? _lastUploadSummary;
-  CameraException? _lastCameraError;
-
-  final DateFormat _timestampFormat = DateFormat('yyyyMMdd_HHmmss');
-  final DateFormat _timeFormat = DateFormat('HH:mm:ss');
+  UploadFeedback? _lastFeedback;
 
   @override
   void initState() {
     super.initState();
-    _bootstrap();
+    _prepareCamera();
   }
 
-  Future<void> _bootstrap() async {
-    if (!mounted) return;
+  @override
+  void dispose() {
+    _cameraService.dispose();
+    super.dispose();
+  }
 
+  Future<void> _prepareCamera() async {
     setState(() {
-      _status = _CameraBootstrapStatus.loading;
-      _lastCameraError = null;
+      _cameraInitializing = true;
+      _cameraReady = false;
+      _cameraError = null;
     });
 
     final initialized = await _cameraService.initialize(
@@ -71,219 +85,31 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     if (!mounted) return;
 
     setState(() {
-      if (initialized) {
-        _status = _CameraBootstrapStatus.ready;
-        _lastCameraError = null;
-      } else {
-        _status = _CameraBootstrapStatus.unavailable;
-        _lastCameraError = _cameraService.lastError;
-      }
+      _cameraInitializing = false;
+      _cameraReady = initialized;
+      _cameraError = initialized ? null : _cameraService.lastError;
     });
 
     if (!initialized) {
-      _showCameraMessage(
-        _cameraService.lastError,
-        fallbackMessage: 'No camera found',
-      );
-    }
-
-    try {
-      await _uploadService.listDirectories(_selectedFolder);
-    } catch (_) {
-      // Ignore preload failures; the picker will handle displaying errors.
+      _showCameraMessage(_cameraService.lastError);
     }
   }
 
-  @override
-  void dispose() {
-    _cameraService.dispose();
-    super.dispose();
-  }
-
-  bool get _canCapture =>
-      _status == _CameraBootstrapStatus.ready &&
-      _cameraService.isInitialized &&
-      !_uploading;
-
-  Future<void> _captureAndUpload() async {
-    if (!_canCapture) {
-      return;
-    }
-
+  Future<void> _switchCamera(CameraDescription description) async {
     setState(() {
-      _uploading = true;
+      _cameraInitializing = true;
+      _cameraReady = false;
+      _cameraError = null;
     });
 
-    try {
-      final capturedFile = await _cameraService.capturePhoto();
-      final captureMoment = DateTime.now();
-      final fileName = _buildFilename(captureMoment);
-      final persistedFile = await _persistCapture(capturedFile, fileName);
-      final previewBytes = await persistedFile.readAsBytes();
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _latestFile = persistedFile;
-        _latestPreviewBytes = previewBytes;
-      });
-
-      final remotePath = await _uploadService.uploadFile(
-        file: persistedFile,
-        remoteDirectory: _selectedFolder,
-        remoteFileName: fileName,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _lastUploadSummary = _UploadSummary(
-          success: true,
-          timestamp: DateTime.now(),
-          remotePath: remotePath,
-        );
-      });
-
-      _showUploadMessage(success: true);
-    } on CameraException catch (error) {
-      await _handleCameraException(error);
-    } catch (error) {
-      if (mounted) {
-        setState(() {
-          _lastUploadSummary = _UploadSummary(
-            success: false,
-            timestamp: DateTime.now(),
-            errorMessage: '$error',
-          );
-        });
-      }
-      _showUploadMessage(success: false);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _uploading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _handleCameraException(CameraException error) async {
-    _showCameraMessage(error);
-    await _cameraService.dispose();
+    final initialized = await _cameraService.switchCamera(description);
 
     if (!mounted) return;
 
     setState(() {
-      _status = _CameraBootstrapStatus.unavailable;
-      _lastCameraError = error;
-    });
-  }
-
-  Future<File> _persistCapture(XFile capturedFile, String filename) async {
-    final directory = await getTemporaryDirectory();
-    final filePath = '${directory.path}/$filename';
-    await capturedFile.saveTo(filePath);
-    return File(filePath);
-  }
-
-  String _buildFilename(DateTime timestamp) {
-    final formatted = _timestampFormat.format(timestamp);
-    return 'photo_$formatted.jpg';
-  }
-
-  Future<void> _openFolderPicker() async {
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return RemoteFolderPicker(
-          initialPath: _selectedFolder,
-          uploadService: _uploadService,
-        );
-      },
-    );
-
-    if (selected != null && mounted) {
-      setState(() {
-        _selectedFolder = selected;
-      });
-    }
-  }
-
-  Future<void> _openCameraPicker() async {
-    final cameras = _cameraService.cameras;
-    if (cameras.length <= 1) {
-      return;
-    }
-
-    final selected = await showModalBottomSheet<CameraDescription>(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 48,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Chọn camera',
-                  style: Theme.of(context).textTheme.titleMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                for (final camera in cameras)
-                  ListTile(
-                    leading: Icon(_iconForLensDirection(camera.lensDirection)),
-                    title: Text(_cameraLabel(camera)),
-                    onTap: () => Navigator.of(context).pop(camera),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (selected != null) {
-      await _switchCamera(selected);
-    }
-  }
-
-  Future<void> _switchCamera(CameraDescription camera) async {
-    if (!mounted) return;
-
-    setState(() {
-      _status = _CameraBootstrapStatus.loading;
-    });
-
-    final initialized = await _cameraService.switchCamera(camera);
-
-    if (!mounted) return;
-
-    setState(() {
-      if (initialized) {
-        _status = _CameraBootstrapStatus.ready;
-        _lastCameraError = null;
-      } else {
-        _status = _CameraBootstrapStatus.unavailable;
-        _lastCameraError = _cameraService.lastError;
-      }
+      _cameraInitializing = false;
+      _cameraReady = initialized;
+      _cameraError = initialized ? null : _cameraService.lastError;
     });
 
     if (!initialized) {
@@ -292,6 +118,109 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         fallbackMessage: 'Không thể chuyển camera',
       );
     }
+  }
+
+  Future<void> _onCapturePressed() async {
+    if (_uploading) return;
+
+    if (_mode == CaptureMode.camera && !_cameraReady) {
+      _showCameraMessage(
+        _cameraError,
+        fallbackMessage: 'Camera chưa sẵn sàng',
+      );
+      return;
+    }
+
+    setState(() {
+      _uploading = true;
+    });
+
+    final timestamp = DateTime.now();
+    final fileName = 'photo_${_fileNameFormat.format(timestamp)}.jpg';
+
+    try {
+      final File file;
+
+      if (_mode == CaptureMode.camera) {
+        final xFile = await _cameraService.capturePhoto();
+        file = await _persistCameraCapture(xFile, fileName);
+      } else {
+        file = await _screenCaptureService.captureJpeg(fileName: fileName);
+      }
+
+      final previewBytes = await file.readAsBytes();
+      if (!mounted) return;
+
+      setState(() {
+        _latestFile = file;
+        _latestPreviewBytes = previewBytes;
+      });
+
+      final remotePath = await _uploadService.uploadFile(
+        file: file,
+        remoteDirectory: _selectedFolder,
+        remoteFileName: fileName,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _lastFeedback = UploadFeedback.success(
+          timestamp: DateTime.now(),
+          remotePath: remotePath,
+        );
+      });
+
+      _showUploadMessage(success: true);
+    } on CameraException catch (error) {
+      await _handleCameraFailure(error);
+    } on ScreenCaptureException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _lastFeedback = UploadFeedback.failure(
+          timestamp: DateTime.now(),
+          errorMessage: error.message,
+        );
+      });
+      _showScreenshotMessage(error.message);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _lastFeedback = UploadFeedback.failure(
+          timestamp: DateTime.now(),
+          errorMessage: '$error',
+        );
+      });
+      _showUploadMessage(success: false);
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _uploading = false;
+      });
+    }
+  }
+
+  Future<File> _persistCameraCapture(XFile file, String fileName) async {
+    final directory = await getTemporaryDirectory();
+    final path = p.join(directory.path, fileName);
+    await file.saveTo(path);
+    return File(path);
+  }
+
+  Future<void> _handleCameraFailure(CameraException error) async {
+    await _cameraService.dispose();
+    if (!mounted) return;
+
+    setState(() {
+      _cameraReady = false;
+      _cameraError = error;
+      _lastFeedback = UploadFeedback.failure(
+        timestamp: DateTime.now(),
+        errorMessage: error.description,
+      );
+    });
+
+    _showCameraMessage(error);
   }
 
   void _showCameraMessage(CameraException? error, {String? fallbackMessage}) {
@@ -309,8 +238,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       snackStyle: SnackStyle.FLOATING,
       backgroundColor:
           Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      colorText:
-          Get.isDarkMode ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+      colorText: Get.isDarkMode
+          ? GlobalColors.darkPrimaryText
+          : GlobalColors.lightPrimaryText,
     );
   }
 
@@ -321,14 +251,289 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       snackStyle: SnackStyle.FLOATING,
       backgroundColor:
           Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      colorText:
-          Get.isDarkMode ? GlobalColors.darkPrimaryText : GlobalColors.lightPrimaryText,
+      colorText: Get.isDarkMode
+          ? GlobalColors.darkPrimaryText
+          : GlobalColors.lightPrimaryText,
+    );
+  }
+
+  void _showScreenshotMessage(String message) {
+    Get.snackbar(
+      'Screen capture',
+      message,
+      snackStyle: SnackStyle.FLOATING,
+      backgroundColor:
+          Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+      colorText: Get.isDarkMode
+          ? GlobalColors.darkPrimaryText
+          : GlobalColors.lightPrimaryText,
+    );
+  }
+
+  Future<void> _pickFolder() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => RemoteFolderPicker(
+        initialPath: _selectedFolder,
+        uploadService: _uploadService,
+      ),
+    );
+
+    if (selected != null && mounted) {
+      setState(() {
+        _selectedFolder = selected;
+      });
+    }
+  }
+
+  Future<void> _pickCamera() async {
+    final cameras = _cameraService.cameras;
+    if (cameras.length <= 1) return;
+
+    final selected = await showModalBottomSheet<CameraDescription>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 48,
+                height: 4,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(2),
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Chọn camera',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              ...cameras.map(
+                (camera) => ListTile(
+                  leading: Icon(_iconForDirection(camera.lensDirection)),
+                  title: Text(_cameraLabel(camera)),
+                  onTap: () => Navigator.of(context).pop(camera),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selected != null) {
+      await _switchCamera(selected);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final isWide = mediaQuery.size.width >= 900;
+
+    final fabIcon = _uploading
+        ? const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : const Icon(Icons.camera_alt_rounded);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Camera Capture'),
+        actions: [
+          IconButton(
+            tooltip: 'Chọn thư mục WinSCP',
+            onPressed: _uploading ? null : _pickFolder,
+            icon: const Icon(Icons.folder_special_rounded),
+          ),
+          if (_mode == CaptureMode.camera && _cameraService.cameras.length > 1)
+            IconButton(
+              tooltip: 'Đổi camera',
+              onPressed: _cameraInitializing ? null : _pickCamera,
+              icon: const Icon(Icons.cameraswitch_rounded),
+            ),
+          const SizedBox(width: 4),
+        ],
+      ),
+      floatingActionButton: isWide
+          ? FloatingActionButton.extended(
+              onPressed: _uploading ? null : _onCapturePressed,
+              icon: fabIcon,
+              label: Text(_uploading ? 'Đang xử lý...' : 'Chụp & tải lên'),
+            )
+          : FloatingActionButton(
+              onPressed: _uploading ? null : _onCapturePressed,
+              child: fabIcon,
+            ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (isWide) {
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: _buildCaptureSurface(),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 2,
+                      child: _InformationColumn(
+                        selectedFolder: _selectedFolder,
+                        lastFeedback: _lastFeedback,
+                        latestPreviewBytes: _latestPreviewBytes,
+                        latestFile: _latestFile,
+                        timeFormat: _timeFormat,
+                        onPickFolder: _uploading ? null : _pickFolder,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildCaptureSurface(),
+                  const SizedBox(height: 16),
+                  _InformationColumn(
+                    selectedFolder: _selectedFolder,
+                    lastFeedback: _lastFeedback,
+                    latestPreviewBytes: _latestPreviewBytes,
+                    latestFile: _latestFile,
+                    timeFormat: _timeFormat,
+                    onPickFolder: _uploading ? null : _pickFolder,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCaptureSurface() {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _mode == CaptureMode.camera ? 'Camera trực tiếp' : 'Chụp màn hình',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                SegmentedButton<CaptureMode>(
+                  segments: const [
+                    ButtonSegment(
+                      value: CaptureMode.camera,
+                      icon: Icon(Icons.photo_camera_rounded),
+                      label: Text('Camera'),
+                    ),
+                    ButtonSegment(
+                      value: CaptureMode.screenshot,
+                      icon: Icon(Icons.monitor_rounded),
+                      label: Text('Màn hình'),
+                    ),
+                  ],
+                  selected: <CaptureMode>{_mode},
+                  onSelectionChanged: (selection) async {
+                    final mode = selection.first;
+                    if (mode == _mode) return;
+                    setState(() {
+                      _mode = mode;
+                    });
+                    if (mode == CaptureMode.camera) {
+                      await _prepareCamera();
+                    } else {
+                      await _cameraService.dispose();
+                      if (!mounted) return;
+                      setState(() {
+                        _cameraReady = false;
+                        _cameraError = null;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: _mode == CaptureMode.screenshot
+                ? _ScreenshotPlaceholder(onCapture: _uploading ? null : _onCapturePressed)
+                : _buildCameraPreview(),
+          ),
+          if (_mode == CaptureMode.camera)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _buildCameraStatus(),
+            )
+          else
+            const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCameraPreview() {
+    if (_cameraInitializing) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_cameraReady && _cameraService.controller != null) {
+      return CameraPreview(_cameraService.controller!);
+    }
+    return _UnavailablePlaceholder(
+      message: _cameraError?.description ??
+          'Vui lòng kết nối camera ngoài (ví dụ: Camo Studio) và thử lại.',
+      onRetry: _prepareCamera,
+    );
+  }
+
+  Widget _buildCameraStatus() {
+    if (_cameraInitializing) {
+      return const _StatusPill(
+        icon: Icons.downloading_rounded,
+        label: 'Đang khởi tạo camera...',
+      );
+    }
+    if (_cameraReady) {
+      return _StatusPill(
+        icon: Icons.check_circle_rounded,
+        label:
+            'Sẵn sàng - ${_cameraLabel(_cameraService.activeCamera ?? _cameraService.controller?.description)}',
+        color: Theme.of(context).colorScheme.primary,
+      );
+    }
+    return _StatusPill(
+      icon: Icons.warning_rounded,
+      label: _cameraError?.description ?? 'Không tìm thấy camera',
+      color: Theme.of(context).colorScheme.error,
     );
   }
 
   String _cameraLabel(CameraDescription? description) {
     if (description == null) {
-      return 'Đang khởi tạo...';
+      return 'Chưa xác định';
     }
 
     final facing = switch (description.lensDirection) {
@@ -341,222 +546,210 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     return '$facing (${description.name})';
   }
 
-  IconData _iconForLensDirection(CameraLensDirection direction) {
+  IconData _iconForDirection(CameraLensDirection direction) {
     switch (direction) {
       case CameraLensDirection.back:
         return Icons.photo_camera_back_rounded;
       case CameraLensDirection.front:
         return Icons.photo_camera_front_rounded;
       case CameraLensDirection.external:
-        return Icons.connected_tv_rounded;
+        return Icons.videocam_rounded;
       default:
         return Icons.camera_alt_rounded;
     }
   }
+}
+
+class _ScreenshotPlaceholder extends StatelessWidget {
+  const _ScreenshotPlaceholder({required this.onCapture});
+
+  final VoidCallback? onCapture;
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final isWide = mediaQuery.size.width >= 900;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Camera Capture'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.folder_special_rounded),
-            tooltip: 'Chọn thư mục WinSCP',
-            onPressed: _uploading ? null : _openFolderPicker,
-          ),
-          if (_cameraService.cameras.length > 1)
-            IconButton(
-              icon: const Icon(Icons.cameraswitch_rounded),
-              tooltip: 'Đổi camera',
-              onPressed: _status == _CameraBootstrapStatus.loading
-                  ? null
-                  : _openCameraPicker,
-            ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      floatingActionButton: _status == _CameraBootstrapStatus.ready
-          ? (isWide
-              ? FloatingActionButton.extended(
-                  onPressed: _canCapture ? _captureAndUpload : null,
-                  icon: _uploading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.camera_alt_rounded),
-                  label: Text(_uploading ? 'Đang xử lý...' : 'Chụp & tải lên'),
-                )
-              : FloatingActionButton(
-                  onPressed: _canCapture ? _captureAndUpload : null,
-                  child: _uploading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.camera_alt_rounded),
-                ))
-          : null,
-      body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          child: switch (_status) {
-            _CameraBootstrapStatus.loading =>
-              const Center(child: CircularProgressIndicator()),
-            _CameraBootstrapStatus.unavailable =>
-              _buildUnavailableState(),
-            _CameraBootstrapStatus.ready => _buildReadyState(isWide),
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReadyState(bool isWide) {
-    if (isWide) {
-      return Padding(
-        padding: const EdgeInsets.all(24),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: _buildCameraPreview(),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              flex: 2,
-              child: SingleChildScrollView(
-                child: _buildInformationCards(),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+      padding: const EdgeInsets.all(24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildCameraPreview(),
+          Icon(Icons.monitor_heart_rounded,
+              size: 56, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 16),
-          _buildInformationCards(),
+          Text(
+            'Nhấn "Chụp & tải lên" để lưu ảnh màn hình hiện tại.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Ứng dụng sẽ tự động tải ảnh lên thư mục đã chọn trên máy chủ.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onCapture,
+            icon: const Icon(Icons.camera_rounded),
+            label: const Text('Chụp màn hình ngay'),
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildCameraPreview() {
-    final controller = _cameraService.controller;
-    final aspectRatio = controller?.value.aspectRatio ?? (3 / 4);
+class _UnavailablePlaceholder extends StatelessWidget {
+  const _UnavailablePlaceholder({
+    required this.message,
+    required this.onRetry,
+  });
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: AspectRatio(
-        aspectRatio: aspectRatio,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ColoredBox(
-              color: Colors.black,
-              child: controller != null && controller.value.isInitialized
-                  ? CameraPreview(controller)
-                  : const Center(
-                      child: Text(
-                        'Camera đang khởi tạo...',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                    ),
-            ),
-            Positioned(
-              top: 16,
-              left: 16,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _iconForLensDirection(
-                            _cameraService.activeCamera?.lensDirection ??
-                                CameraLensDirection.back),
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _cameraLabel(_cameraService.activeCamera),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            if (_uploading)
-              Container(
-                color: Colors.black45,
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-          ],
-        ),
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.videocam_off_rounded,
+              size: 56, color: Theme.of(context).colorScheme.error),
+          const SizedBox(height: 16),
+          Text(
+            'Không tìm thấy camera',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Thử lại'),
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildInformationCards() {
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({
+    required this.icon,
+    required this.label,
+    this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final background = (color ?? theme.colorScheme.surfaceVariant).withOpacity(0.2);
+    final foreground = color ?? theme.colorScheme.onSurfaceVariant;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: foreground, size: 18),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(color: foreground),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InformationColumn extends StatelessWidget {
+  const _InformationColumn({
+    required this.selectedFolder,
+    required this.lastFeedback,
+    required this.latestPreviewBytes,
+    required this.latestFile,
+    required this.timeFormat,
+    required this.onPickFolder,
+  });
+
+  final String selectedFolder;
+  final UploadFeedback? lastFeedback;
+  final Uint8List? latestPreviewBytes;
+  final File? latestFile;
+  final DateFormat timeFormat;
+  final Future<void> Function()? onPickFolder;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildFolderCard(),
+        _FolderCard(
+          selectedFolder: selectedFolder,
+          onTap: onPickFolder,
+        ),
         const SizedBox(height: 16),
-        if (_lastUploadSummary != null) _buildUploadSummaryCard(),
-        if (_latestPreviewBytes != null || _latestFile != null) ...[
+        if (lastFeedback != null)
+          _UploadStatusCard(
+            feedback: lastFeedback!,
+            timeFormat: timeFormat,
+          ),
+        if (latestPreviewBytes != null || latestFile != null) ...[
           const SizedBox(height: 16),
-          _buildPreviewCard(),
+          _PreviewCard(
+            previewBytes: latestPreviewBytes,
+            file: latestFile,
+          ),
         ],
       ],
     );
   }
+}
 
-  Widget _buildFolderCard() {
+class _FolderCard extends StatelessWidget {
+  const _FolderCard({required this.selectedFolder, required this.onTap});
+
+  final String selectedFolder;
+  final Future<void> Function()? onTap;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
-        onTap: _uploading ? null : _openFolderPicker,
         borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(20),
           child: Row(
             children: [
               Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                padding: const EdgeInsets.all(12),
                 child: const Icon(Icons.folder_rounded, size: 28),
               ),
               const SizedBox(width: 16),
@@ -566,12 +759,13 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                   children: [
                     Text(
                       'Thư mục WinSCP',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _selectedFolder,
+                      selectedFolder,
                       style: theme.textTheme.bodyMedium,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -586,28 +780,34 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       ),
     );
   }
+}
 
-  Widget _buildUploadSummaryCard() {
-    final summary = _lastUploadSummary!;
+class _UploadStatusCard extends StatelessWidget {
+  const _UploadStatusCard({
+    required this.feedback,
+    required this.timeFormat,
+  });
+
+  final UploadFeedback feedback;
+  final DateFormat timeFormat;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final success = summary.success;
+    final success = feedback.success;
     final color = success
         ? theme.colorScheme.primary.withOpacity(0.12)
         : theme.colorScheme.error.withOpacity(0.12);
-
-    final icon = success
-        ? Icons.cloud_done_rounded
-        : Icons.error_outline_rounded;
-
+    final icon = success ? Icons.cloud_done_rounded : Icons.error_outline_rounded;
     final message = success
-        ? 'Đã tải lên thành công lúc ${_timeFormat.format(summary.timestamp)}'
-        : 'Tải lên thất bại lúc ${_timeFormat.format(summary.timestamp)}';
+        ? 'Đã tải lên thành công lúc ${timeFormat.format(feedback.timestamp)}'
+        : 'Tải lên thất bại lúc ${timeFormat.format(feedback.timestamp)}';
 
     return Card(
       color: color,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -626,17 +826,17 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                 ),
               ],
             ),
-            if (success && summary.remotePath != null) ...[
+            if (success && feedback.remotePath != null) ...[
               const SizedBox(height: 12),
               Text(
-                summary.remotePath!,
+                feedback.remotePath!,
                 style: theme.textTheme.bodyMedium,
               ),
             ],
-            if (!success && summary.errorMessage != null) ...[
+            if (!success && feedback.errorMessage != null) ...[
               const SizedBox(height: 12),
               Text(
-                summary.errorMessage!,
+                feedback.errorMessage!,
                 style: theme.textTheme.bodyMedium,
               ),
             ],
@@ -645,15 +845,26 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       ),
     );
   }
+}
 
-  Widget _buildPreviewCard() {
+class _PreviewCard extends StatelessWidget {
+  const _PreviewCard({
+    required this.previewBytes,
+    required this.file,
+  });
+
+  final Uint8List? previewBytes;
+  final File? file;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             ClipRRect(
@@ -661,16 +872,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
               child: SizedBox(
                 width: 110,
                 height: 82,
-                child: _latestPreviewBytes != null
-                    ? Image.memory(
-                        _latestPreviewBytes!,
-                        fit: BoxFit.cover,
-                      )
-                    : (_latestFile != null
-                        ? Image.file(
-                            _latestFile!,
-                            fit: BoxFit.cover,
-                          )
+                child: previewBytes != null
+                    ? Image.memory(previewBytes!, fit: BoxFit.cover)
+                    : (file != null
+                        ? Image.file(file!, fit: BoxFit.cover)
                         : const SizedBox.shrink()),
               ),
             ),
@@ -681,59 +886,19 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                 children: [
                   Text(
                     'Ảnh mới nhất',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _latestFile != null
-                        ? _latestFile!.path.split(Platform.pathSeparator).last
-                        : '',
+                    file != null ? p.basename(file!.path) : '',
                     style: theme.textTheme.bodyMedium,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUnavailableState() {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.videocam_off_rounded,
-              size: 72,
-              color: theme.colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Không phát hiện thấy camera',
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _lastCameraError?.description ??
-                  'Vui lòng kết nối camera ngoài (ví dụ: Camo Studio) và thử lại.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _bootstrap,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
             ),
           ],
         ),
@@ -767,13 +932,13 @@ class _RemoteFolderPickerState extends State<RemoteFolderPicker> {
     _entriesFuture = widget.uploadService.listDirectories(_currentPath);
   }
 
-  void _refresh() {
+  Future<void> _refresh() async {
     setState(() {
       _entriesFuture = widget.uploadService.listDirectories(_currentPath);
     });
   }
 
-  void _navigateTo(RemoteDirectoryEntry entry) {
+  Future<void> _navigateTo(RemoteDirectoryEntry entry) async {
     setState(() {
       _currentPath = entry.path;
       _entriesFuture = widget.uploadService.listDirectories(_currentPath);
@@ -781,27 +946,28 @@ class _RemoteFolderPickerState extends State<RemoteFolderPicker> {
   }
 
   void _goToParent() {
-    if (_currentPath == '/') {
+    if (_currentPath == '/' || _currentPath.isEmpty) {
       return;
     }
-
-    final segments = _currentPath.split('/')
-      ..removeWhere((segment) => segment.isEmpty);
-    if (segments.isNotEmpty) {
-      segments.removeLast();
+    final segments = _currentPath.split('/').where((e) => e.isNotEmpty).toList();
+    if (segments.isEmpty) {
+      setState(() {
+        _currentPath = '/';
+        _entriesFuture = widget.uploadService.listDirectories(_currentPath);
+      });
+      return;
     }
-    final parentPath = segments.isEmpty ? '/' : '/${segments.join('/')}';
-
+    segments.removeLast();
+    final parent = segments.isEmpty ? '/' : '/${segments.join('/')}';
     setState(() {
-      _currentPath = parentPath;
+      _currentPath = parent;
       _entriesFuture = widget.uploadService.listDirectories(_currentPath);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final double height = max(320, min(size.height * 0.8, 560));
+    final height = MediaQuery.of(context).size.height * 0.7;
 
     return SafeArea(
       child: SizedBox(
@@ -815,14 +981,14 @@ class _RemoteFolderPickerState extends State<RemoteFolderPicker> {
                 width: 52,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
                   borderRadius: BorderRadius.circular(2),
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   Expanded(
@@ -840,7 +1006,7 @@ class _RemoteFolderPickerState extends State<RemoteFolderPicker> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 _currentPath,
                 style: Theme.of(context).textTheme.bodySmall,
@@ -848,23 +1014,22 @@ class _RemoteFolderPickerState extends State<RemoteFolderPicker> {
             ),
             const SizedBox(height: 12),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: FilledButton.icon(
                 onPressed: () => Navigator.of(context).pop(_currentPath),
                 icon: const Icon(Icons.check_circle_outline_rounded),
                 label: const Text('Chọn thư mục này'),
               ),
             ),
-            if (_currentPath != '/') ...[
+            if (_currentPath != '/')
               Padding(
-                padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
+                padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
                 child: ListTile(
                   leading: const Icon(Icons.arrow_upward_rounded),
                   title: const Text('Thư mục cha'),
                   onTap: _goToParent,
                 ),
               ),
-            ],
             const Divider(height: 1),
             Expanded(
               child: FutureBuilder<List<RemoteDirectoryEntry>>(
@@ -876,7 +1041,7 @@ class _RemoteFolderPickerState extends State<RemoteFolderPicker> {
 
                   if (snapshot.hasError) {
                     return Padding(
-                      padding: const EdgeInsets.all(24.0),
+                      padding: const EdgeInsets.all(24),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -897,15 +1062,12 @@ class _RemoteFolderPickerState extends State<RemoteFolderPicker> {
                   }
 
                   final entries = snapshot.data ?? const [];
-
                   if (entries.isEmpty) {
-                    return const Center(
-                      child: Text('Thư mục trống'),
-                    );
+                    return const Center(child: Text('Thư mục trống'));
                   }
 
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     itemBuilder: (context, index) {
                       final entry = entries[index];
                       return ListTile(
