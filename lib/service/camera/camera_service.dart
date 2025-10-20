@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 /// A thin wrapper around the [camera] plugin that exposes a
 /// lazily-initialized [CameraController] for image capture scenarios and
@@ -56,6 +57,15 @@ class CameraService {
       await controller.initialize();
       _lastError = null;
       return true;
+    } on MissingPluginException catch (error, stackTrace) {
+      final cameraError = CameraException(
+        'missing_plugin',
+        'Camera plugin is not available on this platform',
+      );
+      _lastError = cameraError;
+      _logCameraError('Camera plugin unavailable', cameraError, stackTrace);
+      await dispose();
+      return false;
     } on CameraException catch (error, stackTrace) {
       _lastError = error;
       _logCameraError('Camera initialization failed', error, stackTrace);

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
@@ -36,10 +37,20 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   String? _lastRemotePath;
   String? _lastUploadError;
   int _rotationTurns = 0;
+  bool _animateFromRight = false;
+  bool _contentVisible = false;
 
   @override
   void initState() {
     super.initState();
+    _animateFromRight = !kIsWeb && Platform.isWindows;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _contentVisible = true;
+        });
+      }
+    });
     _initializeCamera();
   }
 
@@ -71,7 +82,12 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     });
 
     if (!ready) {
-      _showSnackBar('No camera found');
+      final lastError = _cameraService.lastError;
+      if (lastError?.code == 'missing_plugin') {
+        _showSnackBar('Camera chưa được hỗ trợ trên nền tảng này');
+      } else {
+        _showSnackBar('No camera found');
+      }
     }
   }
 
@@ -266,33 +282,53 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       floatingActionButton: _buildCaptureFab(theme),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 900;
-            final previewCard = _buildPreviewCard(theme);
-            final detailCard = _buildDetailsCard(theme);
+        child: Builder(
+          builder: (context) {
+            Widget content = LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 900;
+                final previewCard = _buildPreviewCard(theme);
+                final detailCard = _buildDetailsCard(theme);
 
-            if (isWide) {
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
-                child: Row(
+                if (isWide) {
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
+                    child: Row(
+                      children: [
+                        Expanded(flex: 3, child: previewCard),
+                        const SizedBox(width: 24),
+                        Expanded(flex: 2, child: detailCard),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
                   children: [
-                    Expanded(flex: 3, child: previewCard),
-                    const SizedBox(width: 24),
-                    Expanded(flex: 2, child: detailCard),
+                    previewCard,
+                    const SizedBox(height: 16),
+                    detailCard,
                   ],
+                );
+              },
+            );
+
+            if (_animateFromRight) {
+              content = AnimatedSlide(
+                offset: _contentVisible ? Offset.zero : const Offset(0.2, 0),
+                duration: const Duration(milliseconds: 420),
+                curve: Curves.easeOutCubic,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOut,
+                  opacity: _contentVisible ? 1 : 0,
+                  child: content,
                 ),
               );
             }
 
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
-              children: [
-                previewCard,
-                const SizedBox(height: 16),
-                detailCard,
-              ],
-            );
+            return content;
           },
         ),
       ),
@@ -363,7 +399,13 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         child: CameraPreview(controller),
       );
     } else {
-      final errorMessage = _cameraError?.description ?? 'Không tìm thấy camera khả dụng.';
+      final errorCode = _cameraError?.code;
+      var errorMessage =
+          _cameraError?.description ?? 'Không tìm thấy camera khả dụng.';
+      if (errorCode == 'missing_plugin') {
+        errorMessage =
+            'Camera chưa được hỗ trợ trên nền tảng này. Vui lòng thử trên thiết bị khác.';
+      }
       child = _PreviewPlaceholder(
         icon: Icons.videocam_off_rounded,
         message: errorMessage,
@@ -675,11 +717,17 @@ class _RemoteDirectoryPickerState extends State<_RemoteDirectoryPicker> {
     final theme = Theme.of(context);
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
+    final mediaQuery = MediaQuery.of(context);
+    final availableHeight =
+        math.max(0.0, mediaQuery.size.height - bottomPadding);
+    final targetHeight =
+        availableHeight == 0 ? 420.0 : math.min(520.0, math.max(360.0, availableHeight * 0.75));
+
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(bottom: bottomPadding),
         child: SizedBox(
-          height: 420,
+          height: targetHeight,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
