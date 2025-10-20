@@ -3,36 +3,13 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'package:smart_factory/config/global_color.dart';
 import 'package:smart_factory/service/camera/camera_service.dart';
-import 'package:smart_factory/service/screen/screen_capture_service.dart';
 import 'package:smart_factory/service/winscp_upload_service.dart';
-
-enum CaptureMode { camera, screenshot }
-
-class UploadFeedback {
-  const UploadFeedback.success({
-    required this.timestamp,
-    required this.remotePath,
-  })  : success = true,
-        errorMessage = null;
-
-  const UploadFeedback.failure({
-    required this.timestamp,
-    required this.errorMessage,
-  })  : success = false,
-        remotePath = null;
-
-  final bool success;
-  final DateTime timestamp;
-  final String? remotePath;
-  final String? errorMessage;
-}
 
 class CameraCapturePage extends StatefulWidget {
   const CameraCapturePage({super.key});
@@ -44,25 +21,23 @@ class CameraCapturePage extends StatefulWidget {
 class _CameraCapturePageState extends State<CameraCapturePage> {
   final CameraService _cameraService = CameraService();
   final WinScpUploadService _uploadService = WinScpUploadService();
-  final ScreenCaptureService _screenCaptureService = ScreenCaptureService();
   final DateFormat _fileNameFormat = DateFormat('yyyyMMdd_HHmmss');
-  final DateFormat _timeFormat = DateFormat('HH:mm:ss');
 
-  CaptureMode _mode = CaptureMode.camera;
-  bool _cameraInitializing = true;
-  bool _cameraReady = false;
+  bool _initializing = true;
+  bool _uploading = false;
   CameraException? _cameraError;
+  CameraDescription? _selectedCamera;
 
   String _selectedFolder = '/';
-  bool _uploading = false;
-  File? _latestFile;
   Uint8List? _latestPreviewBytes;
-  UploadFeedback? _lastFeedback;
+  DateTime? _lastUploadTime;
+  String? _lastRemotePath;
+  String? _lastUploadError;
 
   @override
   void initState() {
     super.initState();
-    _prepareCamera();
+    _initializeCamera();
   }
 
   @override
@@ -71,88 +46,62 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     super.dispose();
   }
 
-  Future<void> _prepareCamera() async {
+  Future<void> _initializeCamera({CameraDescription? camera}) async {
     setState(() {
-      _cameraInitializing = true;
-      _cameraReady = false;
+      _initializing = true;
       _cameraError = null;
     });
 
-    final initialized = await _cameraService.initialize(
+    final ready = await _cameraService.initialize(
+      cameraDescription: camera,
       preset: ResolutionPreset.high,
     );
 
     if (!mounted) return;
 
     setState(() {
-      _cameraInitializing = false;
-      _cameraReady = initialized;
-      _cameraError = initialized ? null : _cameraService.lastError;
+      _initializing = false;
+      _selectedCamera = _cameraService.activeCamera;
+      if (!ready) {
+        _cameraError = _cameraService.lastError;
+      }
     });
 
-    if (!initialized) {
-      _showCameraMessage(_cameraService.lastError);
+    if (!ready) {
+      _showSnackBar('No camera found');
     }
   }
 
   Future<void> _switchCamera(CameraDescription description) async {
-    setState(() {
-      _cameraInitializing = true;
-      _cameraReady = false;
-      _cameraError = null;
-    });
-
-    final initialized = await _cameraService.switchCamera(description);
-
-    if (!mounted) return;
-
-    setState(() {
-      _cameraInitializing = false;
-      _cameraReady = initialized;
-      _cameraError = initialized ? null : _cameraService.lastError;
-    });
-
-    if (!initialized) {
-      _showCameraMessage(
-        _cameraService.lastError,
-        fallbackMessage: 'Không thể chuyển camera',
-      );
-    }
+    await _initializeCamera(camera: description);
   }
 
-  Future<void> _onCapturePressed() async {
+  Future<void> _captureAndUpload() async {
     if (_uploading) return;
 
-    if (_mode == CaptureMode.camera && !_cameraReady) {
-      _showCameraMessage(
-        _cameraError,
-        fallbackMessage: 'Camera chưa sẵn sàng',
-      );
+    if (!_cameraService.isInitialized) {
+      _showSnackBar('Camera chưa sẵn sàng');
       return;
     }
 
     setState(() {
       _uploading = true;
+      _lastUploadError = null;
     });
 
     final timestamp = DateTime.now();
     final fileName = 'photo_${_fileNameFormat.format(timestamp)}.jpg';
 
     try {
-      final File file;
+      final xFile = await _cameraService.capturePhoto();
+      final file = await _persistCapture(xFile, fileName);
+      final previewBytes = await file.readAsBytes();
 
-      if (_mode == CaptureMode.camera) {
-        final xFile = await _cameraService.capturePhoto();
-        file = await _persistCameraCapture(xFile, fileName);
-      } else {
-        file = await _screenCaptureService.captureJpeg(fileName: fileName);
+      if (!mounted) {
+        return;
       }
 
-      final previewBytes = await file.readAsBytes();
-      if (!mounted) return;
-
       setState(() {
-        _latestFile = file;
         _latestPreviewBytes = previewBytes;
       });
 
@@ -162,121 +111,68 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         remoteFileName: fileName,
       );
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
-        _lastFeedback = UploadFeedback.success(
-          timestamp: DateTime.now(),
-          remotePath: remotePath,
-        );
+        _lastUploadTime = DateTime.now();
+        _lastRemotePath = remotePath;
+        _lastUploadError = null;
       });
 
-      _showUploadMessage(success: true);
+      _showSnackBar('Upload successful ✅');
     } on CameraException catch (error) {
-      await _handleCameraFailure(error);
-    } on ScreenCaptureException catch (error) {
       if (!mounted) return;
+
       setState(() {
-        _lastFeedback = UploadFeedback.failure(
-          timestamp: DateTime.now(),
-          errorMessage: error.message,
-        );
+        _cameraError = error;
       });
-      _showScreenshotMessage(error.message);
+
+      if (error.code == 'no_camera' || error.code == 'not_initialized') {
+        _showSnackBar('No camera found');
+      } else {
+        _showSnackBar('Upload failed ❌');
+      }
+    } on FileSystemException catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _lastUploadError = error.message;
+      });
+
+      _showSnackBar('Upload failed ❌');
     } catch (error) {
       if (!mounted) return;
+
       setState(() {
-        _lastFeedback = UploadFeedback.failure(
-          timestamp: DateTime.now(),
-          errorMessage: '$error',
-        );
+        _lastUploadError = '$error';
       });
-      _showUploadMessage(success: false);
+
+      _showSnackBar('Upload failed ❌');
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _uploading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _uploading = false;
+        });
+      }
     }
   }
 
-  Future<File> _persistCameraCapture(XFile file, String fileName) async {
+  Future<File> _persistCapture(XFile file, String fileName) async {
     final directory = await getTemporaryDirectory();
-    final path = p.join(directory.path, fileName);
-    await file.saveTo(path);
-    return File(path);
+    final targetPath = p.join(directory.path, fileName);
+    await file.saveTo(targetPath);
+    return File(targetPath);
   }
 
-  Future<void> _handleCameraFailure(CameraException error) async {
-    await _cameraService.dispose();
-    if (!mounted) return;
-
-    setState(() {
-      _cameraReady = false;
-      _cameraError = error;
-      _lastFeedback = UploadFeedback.failure(
-        timestamp: DateTime.now(),
-        errorMessage: error.description,
-      );
-    });
-
-    _showCameraMessage(error);
-  }
-
-  void _showCameraMessage(CameraException? error, {String? fallbackMessage}) {
-    final message = switch (error?.code) {
-      'CameraAccessDenied' => 'Không được cấp quyền truy cập camera',
-      'cameraDisconnected' => 'Camera đã ngắt kết nối',
-      'cameraUnavailable' => 'Camera đang bận, vui lòng thử lại',
-      'no_camera' => 'Không tìm thấy camera phù hợp',
-      _ => fallbackMessage ?? error?.description ?? 'Không thể sử dụng camera',
-    };
-
-    Get.snackbar(
-      'Camera',
-      message,
-      snackStyle: SnackStyle.FLOATING,
-      backgroundColor:
-          Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      colorText: Get.isDarkMode
-          ? GlobalColors.darkPrimaryText
-          : GlobalColors.lightPrimaryText,
-    );
-  }
-
-  void _showUploadMessage({required bool success}) {
-    Get.snackbar(
-      'Upload',
-      success ? 'Upload successful ✅' : 'Upload failed ❌',
-      snackStyle: SnackStyle.FLOATING,
-      backgroundColor:
-          Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      colorText: Get.isDarkMode
-          ? GlobalColors.darkPrimaryText
-          : GlobalColors.lightPrimaryText,
-    );
-  }
-
-  void _showScreenshotMessage(String message) {
-    Get.snackbar(
-      'Screen capture',
-      message,
-      snackStyle: SnackStyle.FLOATING,
-      backgroundColor:
-          Get.isDarkMode ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      colorText: Get.isDarkMode
-          ? GlobalColors.darkPrimaryText
-          : GlobalColors.lightPrimaryText,
-    );
-  }
-
-  Future<void> _pickFolder() async {
+  Future<void> _chooseRemoteFolder() async {
     final selected = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => RemoteFolderPicker(
+      builder: (context) => _RemoteDirectoryPicker(
         initialPath: _selectedFolder,
-        uploadService: _uploadService,
+        service: _uploadService,
       ),
     );
 
@@ -287,138 +183,68 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     }
   }
 
-  Future<void> _pickCamera() async {
-    final cameras = _cameraService.cameras;
-    if (cameras.length <= 1) return;
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+  }
 
-    final selected = await showModalBottomSheet<CameraDescription>(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 48,
-                height: 4,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(2),
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Chọn camera',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              ...cameras.map(
-                (camera) => ListTile(
-                  leading: Icon(_iconForDirection(camera.lensDirection)),
-                  title: Text(_cameraLabel(camera)),
-                  onTap: () => Navigator.of(context).pop(camera),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (selected != null) {
-      await _switchCamera(selected);
-    }
+  String _describeCamera(CameraDescription description) {
+    final direction = description.lensDirection.name;
+    final name = description.name;
+    return '${direction[0].toUpperCase()}${direction.substring(1)} • $name';
   }
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final isWide = mediaQuery.size.width >= 900;
-
-    final fabIcon = _uploading
-        ? const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        : const Icon(Icons.camera_alt_rounded);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Camera Capture'),
+        title: const Text('Capture'),
         actions: [
           IconButton(
-            tooltip: 'Chọn thư mục WinSCP',
-            onPressed: _uploading ? null : _pickFolder,
-            icon: const Icon(Icons.folder_special_rounded),
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Làm mới camera',
+            onPressed: _initializing ? null : () => _initializeCamera(camera: _selectedCamera),
           ),
-          if (_mode == CaptureMode.camera && _cameraService.cameras.length > 1)
-            IconButton(
-              tooltip: 'Đổi camera',
-              onPressed: _cameraInitializing ? null : _pickCamera,
-              icon: const Icon(Icons.cameraswitch_rounded),
-            ),
-          const SizedBox(width: 4),
         ],
       ),
-      floatingActionButton: isWide
-          ? FloatingActionButton.extended(
-              onPressed: _uploading ? null : _onCapturePressed,
-              icon: fabIcon,
-              label: Text(_uploading ? 'Đang xử lý...' : 'Chụp & tải lên'),
-            )
-          : FloatingActionButton(
-              onPressed: _uploading ? null : _onCapturePressed,
-              child: fabIcon,
-            ),
+      floatingActionButton: _buildCaptureFab(theme),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 900;
+            final previewCard = _buildPreviewCard(theme);
+            final detailCard = _buildDetailsCard(theme);
+
             if (isWide) {
               return Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
                 child: Row(
                   children: [
-                    Expanded(
-                      flex: 3,
-                      child: _buildCaptureSurface(),
-                    ),
+                    Expanded(flex: 3, child: previewCard),
                     const SizedBox(width: 24),
-                    Expanded(
-                      flex: 2,
-                      child: _InformationColumn(
-                        selectedFolder: _selectedFolder,
-                        lastFeedback: _lastFeedback,
-                        latestPreviewBytes: _latestPreviewBytes,
-                        latestFile: _latestFile,
-                        timeFormat: _timeFormat,
-                        onPickFolder: _uploading ? null : _pickFolder,
-                      ),
-                    ),
+                    Expanded(flex: 2, child: detailCard),
                   ],
                 ),
               );
             }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildCaptureSurface(),
-                  const SizedBox(height: 16),
-                  _InformationColumn(
-                    selectedFolder: _selectedFolder,
-                    lastFeedback: _lastFeedback,
-                    latestPreviewBytes: _latestPreviewBytes,
-                    latestFile: _latestFile,
-                    timeFormat: _timeFormat,
-                    onPickFolder: _uploading ? null : _pickFolder,
-                  ),
-                ],
-              ),
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+              children: [
+                previewCard,
+                const SizedBox(height: 16),
+                detailCard,
+              ],
             );
           },
         ),
@@ -426,480 +252,227 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     );
   }
 
-  Widget _buildCaptureSurface() {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _mode == CaptureMode.camera ? 'Camera trực tiếp' : 'Chụp màn hình',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                SegmentedButton<CaptureMode>(
-                  segments: const [
-                    ButtonSegment(
-                      value: CaptureMode.camera,
-                      icon: Icon(Icons.photo_camera_rounded),
-                      label: Text('Camera'),
-                    ),
-                    ButtonSegment(
-                      value: CaptureMode.screenshot,
-                      icon: Icon(Icons.monitor_rounded),
-                      label: Text('Màn hình'),
-                    ),
-                  ],
-                  selected: <CaptureMode>{_mode},
-                  onSelectionChanged: (selection) async {
-                    final mode = selection.first;
-                    if (mode == _mode) return;
-                    setState(() {
-                      _mode = mode;
-                    });
-                    if (mode == CaptureMode.camera) {
-                      await _prepareCamera();
-                    } else {
-                      await _cameraService.dispose();
-                      if (!mounted) return;
-                      setState(() {
-                        _cameraReady = false;
-                        _cameraError = null;
-                      });
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          AspectRatio(
-            aspectRatio: 4 / 3,
-            child: _mode == CaptureMode.screenshot
-                ? _ScreenshotPlaceholder(onCapture: _uploading ? null : _onCapturePressed)
-                : _buildCameraPreview(),
-          ),
-          if (_mode == CaptureMode.camera)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _buildCameraStatus(),
-            )
-          else
-            const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
+  Widget _buildCaptureFab(ThemeData theme) {
+    final isEnabled = _cameraService.isInitialized && !_uploading && !_initializing;
 
-  Widget _buildCameraPreview() {
-    if (_cameraInitializing) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_cameraReady && _cameraService.controller != null) {
-      return CameraPreview(_cameraService.controller!);
-    }
-    return _UnavailablePlaceholder(
-      message: _cameraError?.description ??
-          'Vui lòng kết nối camera ngoài (ví dụ: Camo Studio) và thử lại.',
-      onRetry: _prepareCamera,
-    );
-  }
-
-  Widget _buildCameraStatus() {
-    if (_cameraInitializing) {
-      return const _StatusPill(
-        icon: Icons.downloading_rounded,
-        label: 'Đang khởi tạo camera...',
-      );
-    }
-    if (_cameraReady) {
-      return _StatusPill(
-        icon: Icons.check_circle_rounded,
-        label:
-            'Sẵn sàng - ${_cameraLabel(_cameraService.activeCamera ?? _cameraService.controller?.description)}',
-        color: Theme.of(context).colorScheme.primary,
-      );
-    }
-    return _StatusPill(
-      icon: Icons.warning_rounded,
-      label: _cameraError?.description ?? 'Không tìm thấy camera',
-      color: Theme.of(context).colorScheme.error,
-    );
-  }
-
-  String _cameraLabel(CameraDescription? description) {
-    if (description == null) {
-      return 'Chưa xác định';
-    }
-
-    final facing = switch (description.lensDirection) {
-      CameraLensDirection.back => 'Camera sau',
-      CameraLensDirection.front => 'Camera trước',
-      CameraLensDirection.external => 'Camera ngoài',
-      _ => description.lensDirection.name,
-    };
-
-    return '$facing (${description.name})';
-  }
-
-  IconData _iconForDirection(CameraLensDirection direction) {
-    switch (direction) {
-      case CameraLensDirection.back:
-        return Icons.photo_camera_back_rounded;
-      case CameraLensDirection.front:
-        return Icons.photo_camera_front_rounded;
-      case CameraLensDirection.external:
-        return Icons.videocam_rounded;
-      default:
-        return Icons.camera_alt_rounded;
-    }
-  }
-}
-
-class _ScreenshotPlaceholder extends StatelessWidget {
-  const _ScreenshotPlaceholder({required this.onCapture});
-
-  final VoidCallback? onCapture;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.monitor_heart_rounded,
-              size: 56, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 16),
-          Text(
-            'Nhấn "Chụp & tải lên" để lưu ảnh màn hình hiện tại.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Ứng dụng sẽ tự động tải ảnh lên thư mục đã chọn trên máy chủ.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: onCapture,
-            icon: const Icon(Icons.camera_rounded),
-            label: const Text('Chụp màn hình ngay'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UnavailablePlaceholder extends StatelessWidget {
-  const _UnavailablePlaceholder({
-    required this.message,
-    required this.onRetry,
-  });
-
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.videocam_off_rounded,
-              size: 56, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: 16),
-          Text(
-            'Không tìm thấy camera',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Thử lại'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({
-    required this.icon,
-    required this.label,
-    this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final background = (color ?? theme.colorScheme.surfaceVariant).withOpacity(0.2);
-    final foreground = color ?? theme.colorScheme.onSurfaceVariant;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: foreground, size: 18),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(color: foreground),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InformationColumn extends StatelessWidget {
-  const _InformationColumn({
-    required this.selectedFolder,
-    required this.lastFeedback,
-    required this.latestPreviewBytes,
-    required this.latestFile,
-    required this.timeFormat,
-    required this.onPickFolder,
-  });
-
-  final String selectedFolder;
-  final UploadFeedback? lastFeedback;
-  final Uint8List? latestPreviewBytes;
-  final File? latestFile;
-  final DateFormat timeFormat;
-  final Future<void> Function()? onPickFolder;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _FolderCard(
-          selectedFolder: selectedFolder,
-          onTap: onPickFolder,
-        ),
-        const SizedBox(height: 16),
-        if (lastFeedback != null)
-          _UploadStatusCard(
-            feedback: lastFeedback!,
-            timeFormat: timeFormat,
-          ),
-        if (latestPreviewBytes != null || latestFile != null) ...[
-          const SizedBox(height: 16),
-          _PreviewCard(
-            previewBytes: latestPreviewBytes,
-            file: latestFile,
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _FolderCard extends StatelessWidget {
-  const _FolderCard({required this.selectedFolder, required this.onTap});
-
-  final String selectedFolder;
-  final Future<void> Function()? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(Icons.folder_rounded, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Thư mục WinSCP',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      selectedFolder,
-                      style: theme.textTheme.bodyMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.navigate_next_rounded),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _UploadStatusCard extends StatelessWidget {
-  const _UploadStatusCard({
-    required this.feedback,
-    required this.timeFormat,
-  });
-
-  final UploadFeedback feedback;
-  final DateFormat timeFormat;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final success = feedback.success;
-    final color = success
-        ? theme.colorScheme.primary.withOpacity(0.12)
-        : theme.colorScheme.error.withOpacity(0.12);
-    final icon = success ? Icons.cloud_done_rounded : Icons.error_outline_rounded;
-    final message = success
-        ? 'Đã tải lên thành công lúc ${timeFormat.format(feedback.timestamp)}'
-        : 'Tải lên thất bại lúc ${timeFormat.format(feedback.timestamp)}';
-
-    return Card(
-      color: color,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon,
-                    color: success
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.error),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
-              ],
-            ),
-            if (success && feedback.remotePath != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                feedback.remotePath!,
-                style: theme.textTheme.bodyMedium,
-              ),
-            ],
-            if (!success && feedback.errorMessage != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                feedback.errorMessage!,
-                style: theme.textTheme.bodyMedium,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PreviewCard extends StatelessWidget {
-  const _PreviewCard({
-    required this.previewBytes,
-    required this.file,
-  });
-
-  final Uint8List? previewBytes;
-  final File? file;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: SizedBox(
-                width: 110,
-                height: 82,
-                child: previewBytes != null
-                    ? Image.memory(previewBytes!, fit: BoxFit.cover)
-                    : (file != null
-                        ? Image.file(file!, fit: BoxFit.cover)
-                        : const SizedBox.shrink()),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return FloatingActionButton.extended(
+      onPressed: isEnabled ? _captureAndUpload : null,
+      backgroundColor: theme.colorScheme.primary,
+      label: _uploading
+          ? const SizedBox(
+              width: 140,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'Ảnh mới nhất',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                  SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.6,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    file != null ? p.basename(file!.path) : '',
-                    style: theme.textTheme.bodyMedium,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  SizedBox(width: 12),
+                  Text('Đang tải lên...'),
+                ],
+              ),
+            )
+          : const SizedBox(
+              width: 140,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.camera_alt_rounded),
+                  SizedBox(width: 12),
+                  Text('Chụp & Upload'),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildPreviewCard(ThemeData theme) {
+    final controller = _cameraService.controller;
+    final aspectRatio =
+        _cameraService.isInitialized && controller != null ? controller.value.aspectRatio : 16 / 9;
+
+    Widget child;
+    if (_initializing) {
+      child = _PreviewPlaceholder(
+        icon: Icons.photo_camera_front_rounded,
+        message: 'Đang khởi tạo camera...',
+      );
+    } else if (_cameraService.isInitialized && controller != null) {
+      child = CameraPreview(controller);
+    } else {
+      final errorMessage = _cameraError?.description ?? 'Không tìm thấy camera khả dụng.';
+      child = _PreviewPlaceholder(
+        icon: Icons.videocam_off_rounded,
+        message: errorMessage,
+        action: TextButton.icon(
+          onPressed: _initializing ? null : () => _initializeCamera(),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Thử lại'),
+        ),
+      );
+    }
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: AspectRatio(
+        aspectRatio: aspectRatio,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(color: Colors.black, child: child),
+            if (_cameraService.isInitialized && !_initializing)
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.45),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    child: Text(
+                      'Nhấn nút chụp để lưu ảnh và tải lên máy chủ WinSCP.',
+                      style: TextStyle(color: Colors.white, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailsCard(ThemeData theme) {
+    final cameras = _cameraService.cameras;
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Thiết bị camera',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            if (cameras.isEmpty)
+              Text(
+                'Không phát hiện camera nào. Hãy kết nối thiết bị và thử lại.',
+                style: theme.textTheme.bodyMedium,
+              )
+            else
+              DropdownButtonFormField<CameraDescription>(
+                value: _selectedCamera ?? cameras.first,
+                items: [
+                  for (final camera in cameras)
+                    DropdownMenuItem(
+                      value: camera,
+                      child: Text(_describeCamera(camera)),
+                    ),
+                ],
+                onChanged: _initializing ? null : (camera) {
+                  if (camera != null) {
+                    _switchCamera(camera);
+                  }
+                },
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+            const SizedBox(height: 24),
+            Text(
+              'Thư mục WinSCP',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _uploading ? null : _chooseRemoteFolder,
+              icon: const Icon(Icons.folder_open_rounded),
+              label: const Text('Chọn thư mục'),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: theme.brightness == Brightness.dark
+                    ? GlobalColors.cardDarkBg.withOpacity(0.6)
+                    : GlobalColors.cardLightBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withOpacity(0.15),
+                ),
+              ),
+              child: Text(
+                _selectedFolder.isEmpty ? '/' : _selectedFolder,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+            const SizedBox(height: 24),
+            if (_latestPreviewBytes != null) ...[
+              Text(
+                'Ảnh vừa chụp',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.memory(
+                  _latestPreviewBytes!,
+                  height: 140,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (_lastRemotePath != null) ...[
+              Text(
+                'Tải lên gần nhất',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                leading: const Icon(Icons.cloud_done_rounded, color: Colors.green),
+                title: Text(
+                  _lastRemotePath!,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                subtitle: _lastUploadTime != null
+                    ? Text(DateFormat('HH:mm:ss dd/MM/yyyy').format(_lastUploadTime!))
+                    : null,
+              ),
+            ],
+            if (_lastUploadError != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Lỗi tải lên',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _lastUploadError!,
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+              ),
+            ],
           ],
         ),
       ),
@@ -907,181 +480,251 @@ class _PreviewCard extends StatelessWidget {
   }
 }
 
-class RemoteFolderPicker extends StatefulWidget {
-  const RemoteFolderPicker({
-    super.key,
+class _PreviewPlaceholder extends StatelessWidget {
+  const _PreviewPlaceholder({
+    required this.icon,
+    required this.message,
+    this.action,
+  });
+
+  final IconData icon;
+  final String message;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      alignment: Alignment.center,
+      color: Colors.black,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: Colors.white70),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+            ),
+          ),
+          if (action != null) ...[
+            const SizedBox(height: 16),
+            action!,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RemoteDirectoryPicker extends StatefulWidget {
+  const _RemoteDirectoryPicker({
     required this.initialPath,
-    required this.uploadService,
+    required this.service,
   });
 
   final String initialPath;
-  final WinScpUploadService uploadService;
+  final WinScpUploadService service;
 
   @override
-  State<RemoteFolderPicker> createState() => _RemoteFolderPickerState();
+  State<_RemoteDirectoryPicker> createState() => _RemoteDirectoryPickerState();
 }
 
-class _RemoteFolderPickerState extends State<RemoteFolderPicker> {
+class _RemoteDirectoryPickerState extends State<_RemoteDirectoryPicker> {
   late String _currentPath;
-  late Future<List<RemoteDirectoryEntry>> _entriesFuture;
+  late Future<List<RemoteDirectoryEntry>> _pendingRequest;
 
   @override
   void initState() {
     super.initState();
     _currentPath = widget.initialPath.isEmpty ? '/' : widget.initialPath;
-    _entriesFuture = widget.uploadService.listDirectories(_currentPath);
-  }
-
-  Future<void> _refresh() async {
-    setState(() {
-      _entriesFuture = widget.uploadService.listDirectories(_currentPath);
-    });
-  }
-
-  Future<void> _navigateTo(RemoteDirectoryEntry entry) async {
-    setState(() {
-      _currentPath = entry.path;
-      _entriesFuture = widget.uploadService.listDirectories(_currentPath);
-    });
-  }
-
-  void _goToParent() {
-    if (_currentPath == '/' || _currentPath.isEmpty) {
-      return;
-    }
-    final segments = _currentPath.split('/').where((e) => e.isNotEmpty).toList();
-    if (segments.isEmpty) {
-      setState(() {
-        _currentPath = '/';
-        _entriesFuture = widget.uploadService.listDirectories(_currentPath);
-      });
-      return;
-    }
-    segments.removeLast();
-    final parent = segments.isEmpty ? '/' : '/${segments.join('/')}';
-    setState(() {
-      _currentPath = parent;
-      _entriesFuture = widget.uploadService.listDirectories(_currentPath);
-    });
+    _pendingRequest = widget.service.listDirectories(_currentPath);
   }
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height * 0.7;
+    final theme = Theme.of(context);
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return SafeArea(
-      child: SizedBox(
-        height: height,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 12),
-            Center(
-              child: Container(
-                width: 52,
-                height: 4,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(2),
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomPadding),
+        child: SizedBox(
+          height: 420,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 12, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Chọn thư mục đích',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  _currentPath,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.of(context).pop(_currentPath),
+                  icon: const Icon(Icons.check_circle_outline_rounded),
+                  label: const Text('Chọn thư mục này'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(44),
+                  ),
+                ),
+              ),
+              if (_currentPath != '/')
+                ListTile(
+                  leading: const Icon(Icons.arrow_upward_rounded),
+                  title: const Text('Lên một cấp'),
+                  onTap: () => _navigateTo(_parentPath(_currentPath)),
+                ),
+              Expanded(
+                child: FutureBuilder<List<RemoteDirectoryEntry>>(
+                  future: _pendingRequest,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return _DirectoryError(
+                        message: '${snapshot.error}',
+                        onRetry: () => _navigateTo(_currentPath),
+                      );
+                    }
+
+                    final directories = snapshot.data ?? <RemoteDirectoryEntry>[];
+                    if (directories.isEmpty) {
+                      return const _DirectoryEmpty();
+                    }
+
+                    return ListView.separated(
+                      itemCount: directories.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final entry = directories[index];
+                        return ListTile(
+                          leading: const Icon(Icons.folder_rounded, color: Colors.amber),
+                          title: Text(entry.name),
+                          subtitle: Text(entry.path),
+                          onTap: () => _navigateTo(entry.path),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateTo(String path) {
+    final normalized = path.isEmpty ? '/' : path;
+    setState(() {
+      _currentPath = normalized;
+      _pendingRequest = widget.service.listDirectories(_currentPath);
+    });
+  }
+
+  String _parentPath(String path) {
+    if (path.isEmpty || path == '/') {
+      return '/';
+    }
+
+    final segments = path.split('/')..removeWhere((segment) => segment.isEmpty);
+    if (segments.isEmpty) {
+      return '/';
+    }
+    segments.removeLast();
+    if (segments.isEmpty) {
+      return '/';
+    }
+    return '/${segments.join('/')}';
+  }
+}
+
+class _DirectoryEmpty extends StatelessWidget {
+  const _DirectoryEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Text(
+          'Thư mục này không có thư mục con. Bạn có thể chọn trực tiếp hoặc quay lại.',
+          style: theme.textTheme.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+class _DirectoryError extends StatelessWidget {
+  const _DirectoryError({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off_rounded, size: 42, color: theme.colorScheme.error),
+            const SizedBox(height: 12),
+            Text(
+              'Không thể tải danh sách thư mục.',
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Chọn thư mục đích',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: _refresh,
-                    icon: const Icon(Icons.refresh_rounded),
-                    tooltip: 'Tải lại',
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                _currentPath,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: FilledButton.icon(
-                onPressed: () => Navigator.of(context).pop(_currentPath),
-                icon: const Icon(Icons.check_circle_outline_rounded),
-                label: const Text('Chọn thư mục này'),
-              ),
-            ),
-            if (_currentPath != '/')
-              Padding(
-                padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.arrow_upward_rounded),
-                  title: const Text('Thư mục cha'),
-                  onTap: _goToParent,
-                ),
-              ),
-            const Divider(height: 1),
-            Expanded(
-              child: FutureBuilder<List<RemoteDirectoryEntry>>(
-                future: _entriesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
-                    return Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline_rounded, size: 48),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Không thể tải thư mục: ${snapshot.error}',
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton(
-                            onPressed: _refresh,
-                            child: const Text('Thử lại'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final entries = snapshot.data ?? const [];
-                  if (entries.isEmpty) {
-                    return const Center(child: Text('Thư mục trống'));
-                  }
-
-                  return ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemBuilder: (context, index) {
-                      final entry = entries[index];
-                      return ListTile(
-                        leading: const Icon(Icons.folder_open_rounded),
-                        title: Text(entry.name),
-                        trailing: const Icon(Icons.navigate_next_rounded),
-                        onTap: () => _navigateTo(entry),
-                      );
-                    },
-                    separatorBuilder: (context, _) => const Divider(height: 1),
-                    itemCount: entries.length,
-                  );
-                },
-              ),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Thử lại'),
             ),
           ],
         ),
