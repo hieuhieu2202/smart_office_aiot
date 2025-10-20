@@ -156,11 +156,11 @@ class WinScpUploadService {
     _standaloneSshClient = null;
 
     if (sftpClient != null) {
-      await sftpClient.close();
+      await Future.microtask(() => sftpClient.close());
     }
 
     if (sshClient != null) {
-      await sshClient.close();
+      await Future.microtask(() => sshClient.close());
     }
   }
 }
