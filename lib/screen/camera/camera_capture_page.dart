@@ -2,10 +2,12 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:image/image.dart' as img;
 
 import 'package:smart_factory/config/global_color.dart';
 import 'package:smart_factory/service/camera/camera_service.dart';
@@ -33,6 +35,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   DateTime? _lastUploadTime;
   String? _lastRemotePath;
   String? _lastUploadError;
+  int _rotationTurns = 0;
 
   @override
   void initState() {
@@ -76,6 +79,24 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     await _initializeCamera(camera: description);
   }
 
+  void _rotateLeft() {
+    setState(() {
+      _rotationTurns = (_rotationTurns + 3) % 4;
+    });
+  }
+
+  void _rotateRight() {
+    setState(() {
+      _rotationTurns = (_rotationTurns + 1) % 4;
+    });
+  }
+
+  void _resetRotation() {
+    setState(() {
+      _rotationTurns = 0;
+    });
+  }
+
   Future<void> _captureAndUpload() async {
     if (_uploading) return;
 
@@ -91,10 +112,11 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
     final timestamp = DateTime.now();
     final fileName = 'photo_${_fileNameFormat.format(timestamp)}.jpg';
+    final rotationTurns = _rotationTurns % 4;
 
     try {
       final xFile = await _cameraService.capturePhoto();
-      final file = await _persistCapture(xFile, fileName);
+      final file = await _persistCapture(xFile, fileName, rotationTurns);
       final previewBytes = await file.readAsBytes();
 
       if (!mounted) {
@@ -159,11 +181,36 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     }
   }
 
-  Future<File> _persistCapture(XFile file, String fileName) async {
+  Future<File> _persistCapture(
+    XFile file,
+    String fileName,
+    int rotationTurns,
+  ) async {
     final directory = await getTemporaryDirectory();
     final targetPath = p.join(directory.path, fileName);
     await file.saveTo(targetPath);
-    return File(targetPath);
+    final savedFile = File(targetPath);
+
+    if (rotationTurns % 4 != 0) {
+      try {
+        final bytes = await savedFile.readAsBytes();
+        final decoded = img.decodeImage(bytes);
+        if (decoded != null) {
+          final rotated = img.copyRotate(
+            decoded,
+            angle: rotationTurns * 90,
+          );
+          final encoded = img.encodeJpg(rotated);
+          await savedFile.writeAsBytes(encoded, flush: true);
+        }
+      } catch (error) {
+        if (kDebugMode) {
+          debugPrint('Không thể xoay ảnh: $error');
+        }
+      }
+    }
+
+    return savedFile;
   }
 
   Future<void> _chooseRemoteFolder() async {
@@ -293,8 +340,16 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
   Widget _buildPreviewCard(ThemeData theme) {
     final controller = _cameraService.controller;
-    final aspectRatio =
-        _cameraService.isInitialized && controller != null ? controller.value.aspectRatio : 16 / 9;
+    double aspectRatio = 16 / 9;
+    if (_cameraService.isInitialized && controller != null) {
+      final value = controller.value.aspectRatio;
+      if (value.isFinite && value > 0) {
+        aspectRatio = value;
+      }
+    }
+    final rotationTurns = _rotationTurns % 4;
+    final displayAspectRatio = rotationTurns.isOdd ? 1 / aspectRatio : aspectRatio;
+    final rotationDegrees = rotationTurns * 90;
 
     Widget child;
     if (_initializing) {
@@ -303,7 +358,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         message: 'Đang khởi tạo camera...',
       );
     } else if (_cameraService.isInitialized && controller != null) {
-      child = CameraPreview(controller);
+      child = RotatedBox(
+        quarterTurns: rotationTurns,
+        child: CameraPreview(controller),
+      );
     } else {
       final errorMessage = _cameraError?.description ?? 'Không tìm thấy camera khả dụng.';
       child = _PreviewPlaceholder(
@@ -322,11 +380,32 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: AspectRatio(
-        aspectRatio: aspectRatio,
+        aspectRatio: displayAspectRatio,
         child: Stack(
           fit: StackFit.expand,
           children: [
             Container(color: Colors.black, child: child),
+            if (_cameraService.isInitialized && !_initializing && rotationDegrees != 0)
+              Positioned(
+                top: 16,
+                right: 16,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Text(
+                      '$rotationDegrees°',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (_cameraService.isInitialized && !_initializing)
               Positioned(
                 bottom: 16,
@@ -395,6 +474,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
+            const SizedBox(height: 24),
+            _buildRotationControls(theme),
             const SizedBox(height: 24),
             Text(
               'Thư mục WinSCP',
@@ -476,6 +557,50 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRotationControls(ThemeData theme) {
+    final rotationDegrees = (_rotationTurns % 4) * 90;
+    final disableButtons = _initializing || !_cameraService.isInitialized;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Góc xoay',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            OutlinedButton.icon(
+              onPressed: disableButtons ? null : _rotateLeft,
+              icon: const Icon(Icons.rotate_left_rounded),
+              label: const Text('Trái 90°'),
+            ),
+            OutlinedButton.icon(
+              onPressed: disableButtons ? null : _rotateRight,
+              icon: const Icon(Icons.rotate_right_rounded),
+              label: const Text('Phải 90°'),
+            ),
+            Chip(
+              backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+              labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+              avatar: const Icon(Icons.explore_rounded, size: 18),
+              label: Text('$rotationDegrees°'),
+            ),
+            if (rotationDegrees != 0)
+              TextButton(
+                onPressed: disableButtons ? null : _resetRotation,
+                child: const Text('Đặt lại'),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

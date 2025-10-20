@@ -125,8 +125,20 @@ class CameraService {
   }
 
   Future<void> dispose() async {
-    await _controller?.dispose();
+    final controller = _controller;
     _controller = null;
+
+    if (controller != null) {
+      try {
+        await controller.dispose();
+      } catch (error, stackTrace) {
+        if (kDebugMode) {
+          debugPrint('Camera dispose failed: $error');
+          debugPrint('$stackTrace');
+        }
+      }
+    }
+
     _activeCamera = null;
     _availableCameras = const [];
   }
