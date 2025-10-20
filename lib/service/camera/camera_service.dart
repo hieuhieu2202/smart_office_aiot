@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +13,7 @@ class CameraService {
   CameraDescription? _activeCamera;
   ResolutionPreset _resolutionPreset = ResolutionPreset.medium;
   CameraException? _lastError;
+  Future<void>? _initializingFuture;
 
   CameraController? get controller => _controller;
 
@@ -29,9 +32,16 @@ class CameraService {
     CameraDescription? cameraDescription,
     ResolutionPreset preset = ResolutionPreset.medium,
   }) async {
-    await _disposeController(preserveCameraCache: true);
+    while (_initializingFuture != null) {
+      await _initializingFuture;
+    }
+
+    final completer = Completer<void>();
+    _initializingFuture = completer.future;
 
     try {
+      await _disposeController(preserveCameraCache: true);
+
       final discoveredCameras = await availableCameras();
       final sortedCameras = List<CameraDescription>.from(discoveredCameras);
       sortedCameras.sort(_compareCameras);
@@ -57,16 +67,17 @@ class CameraService {
       CameraException? lastInitError;
 
       for (final candidatePreset in presetsToTry) {
+        CameraController? controller;
         try {
-          final controller = CameraController(
+          controller = CameraController(
             targetCamera,
             candidatePreset,
             enableAudio: false,
             imageFormatGroup: ImageFormatGroup.jpeg,
           );
 
-          _controller = controller;
           await controller.initialize();
+          _controller = controller;
           _resolutionPreset = candidatePreset;
           _lastError = null;
           return true;
@@ -74,7 +85,8 @@ class CameraService {
           lastInitError = error;
           _lastError = error;
           _logCameraError('Camera initialization failed', error, stackTrace);
-          await _disposeController(preserveCameraCache: true);
+          await controller?.dispose();
+          _controller = null;
         }
       }
 
@@ -103,6 +115,9 @@ class CameraService {
       _logCameraError('Unexpected camera initialization error', cameraError, stackTrace);
       await _disposeController(preserveCameraCache: true);
       return false;
+    } finally {
+      completer.complete();
+      _initializingFuture = null;
     }
   }
 
