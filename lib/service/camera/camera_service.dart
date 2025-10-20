@@ -14,7 +14,7 @@ class CameraService {
 
   CameraController? get controller => _controller;
 
-  List<CameraDescription> get cameras => _availableCameras;
+  List<CameraDescription> get cameras => List.unmodifiable(_availableCameras);
 
   CameraDescription? get activeCamera => _activeCamera;
 
@@ -32,14 +32,23 @@ class CameraService {
     await dispose();
 
     try {
-      _availableCameras = await availableCameras();
+      final discoveredCameras = await availableCameras();
+      final sortedCameras = List<CameraDescription>.from(discoveredCameras);
+      sortedCameras.sort(_compareCameras);
+      _availableCameras = List.unmodifiable(sortedCameras);
       if (_availableCameras.isEmpty) {
         _lastError = CameraException('no_camera', 'No camera found');
         return false;
       }
 
-      final targetCamera = cameraDescription ??
-          _activeCamera ??
+      CameraDescription? preferredCamera = cameraDescription;
+      if (preferredCamera == null && _activeCamera != null) {
+        if (_availableCameras.contains(_activeCamera)) {
+          preferredCamera = _activeCamera;
+        }
+      }
+
+      final targetCamera = preferredCamera ??
           _pickBestCamera(_availableCameras) ??
           _availableCameras.first;
 
@@ -92,7 +101,10 @@ class CameraService {
   /// Switches to a different camera description if available.
   Future<bool> switchCamera(CameraDescription camera) async {
     if (_availableCameras.isEmpty) {
-      _availableCameras = await availableCameras();
+      final discovered = await availableCameras();
+      final sorted = List<CameraDescription>.from(discovered);
+      sorted.sort(_compareCameras);
+      _availableCameras = List.unmodifiable(sorted);
     }
 
     if (!_availableCameras.contains(camera)) {
@@ -152,6 +164,30 @@ class CameraService {
     _activeCamera = null;
     _availableCameras = const [];
   }
+
+  int _compareCameras(CameraDescription a, CameraDescription b) {
+    final priorityDiff =
+        _lensPriority(a.lensDirection) - _lensPriority(b.lensDirection);
+    if (priorityDiff != 0) {
+      return priorityDiff;
+    }
+    return a.name.compareTo(b.name);
+  }
+
+  int _lensPriority(CameraLensDirection direction) {
+    switch (direction) {
+      case CameraLensDirection.external:
+        return 0;
+      case CameraLensDirection.back:
+        return 1;
+      case CameraLensDirection.front:
+        return 2;
+      case CameraLensDirection.unknown:
+      default:
+        return 3;
+    }
+  }
+
 
   CameraDescription? _pickBestCamera(List<CameraDescription> cameras) {
     CameraDescription? findByDirection(CameraLensDirection direction) {
