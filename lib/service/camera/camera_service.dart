@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img;
 
 class CameraService {
   CameraController? _controller;
@@ -112,6 +113,25 @@ class CameraService {
 
     try {
       final file = await controller.takePicture();
+
+      try {
+        final bytes = await file.readAsBytes();
+        final decoded = img.decodeImage(bytes);
+        if (decoded != null) {
+          final shouldFlip = controller.description.lensDirection ==
+                  CameraLensDirection.front ||
+              controller.description.lensDirection ==
+                  CameraLensDirection.external;
+
+          final processed = shouldFlip ? img.flipHorizontal(decoded) : decoded;
+          final encoded = img.encodeJpg(processed);
+          await file.writeAsBytes(encoded, flush: true);
+        }
+      } catch (e, st) {
+        debugPrint('Failed to post-process captured image: $e');
+        debugPrint('$st');
+      }
+
       _lastError = null;
       return file;
     } on CameraException catch (e, st) {
