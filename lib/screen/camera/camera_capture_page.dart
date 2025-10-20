@@ -316,8 +316,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     }
 
     final media = MediaQuery.of(context);
-    final maxWidth = math.min(media.size.width * 0.9, 720.0);
-    final maxHeight = math.min(media.size.height * 0.9, 720.0);
+    final targetWidth = media.size.width * 0.8;
+    final targetHeight = media.size.height * 0.8;
 
     await showDialog<void>(
       context: context,
@@ -326,11 +326,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         return Dialog(
           insetPadding: const EdgeInsets.all(24),
           clipBehavior: Clip.antiAlias,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: maxWidth,
-              maxHeight: maxHeight,
-            ),
+          child: SizedBox(
+            width: targetWidth,
+            height: targetHeight,
             child: Stack(
               children: [
                 Positioned.fill(
