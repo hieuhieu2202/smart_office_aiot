@@ -626,7 +626,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                 builder: (context) {
                   Widget content = LayoutBuilder(
                     builder: (context, constraints) {
-                      final isWide = constraints.maxWidth >= 900;
+                      final width = constraints.maxWidth;
+                      final isCompact = width < 600;
+                      final isWide = width >= 900;
                       final previewCard = _buildPreviewCard(theme);
                       final detailCard = _buildDetailsCard(theme);
 
@@ -643,9 +645,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: previewCard,
-                              ),
+                              Expanded(child: previewCard),
                               const SizedBox(width: 24),
                               ConstrainedBox(
                                 constraints: BoxConstraints(
@@ -659,13 +659,65 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                         );
                       }
 
-                      return ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
-                        children: [
-                          previewCard,
-                          const SizedBox(height: 16),
-                          detailCard,
-                        ],
+                      if (!isCompact) {
+                        final availableWidth = constraints.maxWidth;
+                        final targetDetailWidth = availableWidth.isFinite
+                            ? availableWidth * 0.26
+                            : 300.0;
+                        final detailWidth =
+                            targetDetailWidth.clamp(250.0, 340.0).toDouble();
+
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: previewCard),
+                              const SizedBox(width: 20),
+                              ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: detailWidth,
+                                  maxWidth: detailWidth,
+                                ),
+                                child: detailCard,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final media = MediaQuery.of(context);
+                      final screenHeight = media.size.height;
+                      final previewHeight = screenHeight.isFinite
+                          ? math.max(
+                              math.min(screenHeight * 0.58, 540.0),
+                              320.0,
+                            )
+                          : 420.0;
+                      final detailsHeight = screenHeight.isFinite
+                          ? math.max(
+                              math.min(screenHeight * 0.48, 520.0),
+                              280.0,
+                            )
+                          : 360.0;
+
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(12, 16, 12, 120),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              height: previewHeight,
+                              width: double.infinity,
+                              child: previewCard,
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              height: detailsHeight,
+                              width: double.infinity,
+                              child: detailCard,
+                            ),
+                          ],
+                        ),
                       );
                     },
                   );
