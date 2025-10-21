@@ -916,7 +916,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
     final liveController = controller;
     final rotationTurns = _rotationTurns % 4;
-    final rotationDegrees = rotationTurns * 90;
     final aspectRatio = liveController.value.aspectRatio;
     final displayAspectRatio = rotationTurns.isOdd ? 1 / aspectRatio : aspectRatio;
 
@@ -1213,7 +1212,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   }
 
   Widget _buildRotationControls(ThemeData theme) {
-    final rotationDegrees = (_rotationTurns % 4) * 90;
+      final rotationDegrees = (_rotationTurns % 4) * 90;
     final disableButtons = _initializing || !_cameraService.isInitialized;
 
     return Column(
