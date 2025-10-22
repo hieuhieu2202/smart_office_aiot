@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart'; // Nếu chưa có, nhớ import GetX!
+import 'package:responsive_builder/responsive_builder.dart';
 import 'package:smart_factory/screen/home/widget/aoivi/avi_dashboard_detail_screen.dart';
 import '../../../../config/global_color.dart';
 import '../../../../config/global_text_style.dart';
@@ -50,39 +51,74 @@ class PTHDashboardSummary extends StatelessWidget {
       },
     ];
 
-    return Card(
-      color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: statList.map((stat) {
-            final showDetail = (stat['label'] == 'PASS' || stat['label'] == 'FAIL');
-            return _StatCard(
-              icon: stat["icon"] as IconData,
-              label: stat["label"] as String,
-              value: stat["value"].toString(),
-              color: stat["color"] as Color,
-              isDark: isDark,
-              showDetail: showDetail,
-              onDetail: showDetail
-                  ? () {
-                // LẤY GIÁ TRỊ TỪ CONTROLLER (KHÔNG BAO GIỜ RỖNG)
-                Get.to(() => PTHDashboardDetailScreen(
-                  status: stat["status"] as String,
-                  groupName: controller.selectedGroup.value,
-                  machineName: controller.selectedMachine.value,
-                  modelName: controller.selectedModel.value,
-                  rangeDateTime: controller.selectedRangeDateTime.value,
-                ));
-              }
-                  : null,
-            );
-          }).toList(),
-        ),
-      ),
+    return ResponsiveBuilder(
+      builder: (context, sizingInfo) {
+        final bool isMobile =
+            sizingInfo.deviceScreenType == DeviceScreenType.mobile;
+        final bool isDesktop =
+            sizingInfo.deviceScreenType == DeviceScreenType.desktop;
+        final double horizontalPadding = isMobile ? 0 : (isDesktop ? 28 : 16);
+        final double verticalPadding = isMobile ? 12 : (isDesktop ? 22 : 18);
+        final double cardWidth = isMobile ? 64 : (isDesktop ? 132 : 112);
+        final EdgeInsetsGeometry cardMargin = isMobile
+            ? const EdgeInsets.symmetric(horizontal: 2)
+            : const EdgeInsets.symmetric(horizontal: 8, vertical: 6);
+        final double wrapSpacing = isDesktop ? 28 : 20;
+
+        final stats = statList.map((stat) {
+          final showDetail =
+              (stat['label'] == 'PASS' || stat['label'] == 'FAIL');
+          return _StatCard(
+            icon: stat["icon"] as IconData,
+            label: stat["label"] as String,
+            value: stat["value"].toString(),
+            color: stat["color"] as Color,
+            isDark: isDark,
+            showDetail: showDetail,
+            onDetail: showDetail
+                ? () {
+                    Get.to(() => PTHDashboardDetailScreen(
+                          status: stat["status"] as String,
+                          groupName: controller.selectedGroup.value,
+                          machineName: controller.selectedMachine.value,
+                          modelName: controller.selectedModel.value,
+                          rangeDateTime:
+                              controller.selectedRangeDateTime.value,
+                        ));
+                  }
+                : null,
+            width: cardWidth,
+            margin: cardMargin,
+          );
+        }).toList();
+
+        final Widget content = isMobile
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: stats,
+              )
+            : Wrap(
+                alignment: WrapAlignment.center,
+                runAlignment: WrapAlignment.center,
+                spacing: wrapSpacing,
+                runSpacing: wrapSpacing * 0.6,
+                children: stats,
+              );
+
+        return Card(
+          color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
+          elevation: 3,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: verticalPadding,
+              horizontal: horizontalPadding,
+            ),
+            child: content,
+          ),
+        );
+      },
     );
   }
 }
@@ -95,6 +131,8 @@ class _StatCard extends StatelessWidget {
   final bool isDark;
   final bool showDetail;
   final VoidCallback? onDetail;
+  final double width;
+  final EdgeInsetsGeometry margin;
 
   const _StatCard({
     required this.icon,
@@ -104,13 +142,15 @@ class _StatCard extends StatelessWidget {
     required this.isDark,
     this.showDetail = false,
     this.onDetail,
+    this.width = 64,
+    this.margin = const EdgeInsets.symmetric(horizontal: 2),
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 64,
-      margin: const EdgeInsets.symmetric(horizontal: 2),
+      width: width,
+      margin: margin,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
