@@ -179,7 +179,7 @@ class _RuntimeCardBody extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _legendDot(_runColor),
+            _runtimeLegendDot(_runColor),
             const SizedBox(width: 8),
             Text(
               "Run",
@@ -189,7 +189,7 @@ class _RuntimeCardBody extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 24),
-            _legendDot(_idleColor),
+            _runtimeLegendDot(_idleColor),
             const SizedBox(width: 8),
             Text(
               "Idle",
