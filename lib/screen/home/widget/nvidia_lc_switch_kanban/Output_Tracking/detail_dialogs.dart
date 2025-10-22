@@ -67,7 +67,7 @@ class OtStationTrendDialog extends StatelessWidget {
                     labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
                     axisLine: const AxisLine(color: Colors.transparent),
                   ),
-                  axes: <CartesianAxis>[
+                  axes: <ChartAxis>[
                     NumericAxis(
                       name: 'rrAxis',
                       opposedPosition: true,
@@ -85,7 +85,7 @@ class OtStationTrendDialog extends StatelessWidget {
                     overflowMode: LegendItemOverflowMode.wrap,
                     textStyle: const TextStyle(color: Colors.white70),
                   ),
-                  series: <ChartSeries<_StationTrendPoint, String>>[
+                  series: <CartesianSeries<dynamic, dynamic>>[
                     ColumnSeries<_StationTrendPoint, String>(
                       name: 'Pass Qty',
                       dataSource: data,
@@ -266,7 +266,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                       axisLine: const AxisLine(color: Colors.transparent),
                     ),
                     tooltipBehavior: TooltipBehavior(enable: true),
-                    series: <ChartSeries<_DetailPoint, String>>[
+                    series: <CartesianSeries<dynamic, dynamic>>[
                       ColumnSeries<_DetailPoint, String>(
                         dataSource: points,
                         xValueMapper: (p, _) => p.label,
