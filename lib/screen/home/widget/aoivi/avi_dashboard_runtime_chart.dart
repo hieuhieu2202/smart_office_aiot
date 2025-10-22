@@ -24,8 +24,9 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
 
     if (machines.isEmpty) return _buildNoDataCard(context);
 
-    final double resolvedHeight =
-        (height != null && height! > 0) ? height! : 240;
+    final double? forcedHeight =
+        (height != null && height! > 0) ? height : null;
+    final double mobileChartHeight = 240;
 
     return DefaultTabController(
       length: machines.length,
@@ -35,110 +36,19 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Tiêu đề & Tab
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      "Runtime Analysis",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                        color: isDark
-                            ? GlobalColors.darkPrimaryText
-                            : GlobalColors.lightPrimaryText,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 6),
-                ],
-              ),
-              TabBar(
-                isScrollable: true,
-                labelColor: Colors.blue[700],
-                unselectedLabelColor: isDark ? Colors.white60 : Colors.grey[600],
-                indicator: BoxDecoration(
-                  color: isDark ? Colors.blue.withOpacity(0.17) : Colors.blue.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                tabs: machines
-                    .map<Widget>((m) => Tab(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    child: Text(
-                      m['machine'].toString(),
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                  ),
-                ))
-                    .toList(),
-              ),
-              const SizedBox(height: 7),
-              SizedBox(
-                height: resolvedHeight,
-                child: TabBarView(
-                  children: machines.map((machine) {
-                    return _RuntimeChartForMachine(
-                      machine: machine,
-                      runtime: runtime,
-                      isDark: isDark,
-                    );
-                  }).toList(),
-                ),
-              ),
-              // ===== Legend cố định dưới cùng =====
-              Padding(
-                padding: const EdgeInsets.only(
-                  top: 12.0,
-                  left: 18.0,
-                  right: 18.0,
-                  bottom: 4,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _legendDot(_runColor),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Run",
-                      style: TextStyle(
-                        color: isDark ? GlobalColors.labelDark : GlobalColors.labelLight,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    _legendDot(_idleColor),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Idle",
-                      style: TextStyle(
-                        color: isDark ? GlobalColors.labelDark : GlobalColors.labelLight,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          child: _RuntimeCardBody(
+            machines: machines,
+            runtime: runtime,
+            isDark: isDark,
+            forcedHeight: forcedHeight,
+            mobileChartHeight: mobileChartHeight,
           ),
         ),
       ),
     );
   }
 
-  Widget _legendDot(Color color) {
-    return Container(
-      width: 15,
-      height: 15,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(7.5),
-      ),
-    );
-  }
+  Widget _legendDot(Color color) => _runtimeLegendDot(color);
 
   Widget _buildNoDataCard(BuildContext context) {
     final labelColor =
@@ -174,16 +84,161 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
   }
 }
 
+class _RuntimeCardBody extends StatelessWidget {
+  final List machines;
+  final Map runtime;
+  final bool isDark;
+  final double? forcedHeight;
+  final double mobileChartHeight;
+
+  const _RuntimeCardBody({
+    required this.machines,
+    required this.runtime,
+    required this.isDark,
+    required this.mobileChartHeight,
+    this.forcedHeight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget tabView = TabBarView(
+      children: machines.map((machine) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final double availableHeight = constraints.maxHeight.isFinite
+                ? constraints.maxHeight
+                : mobileChartHeight;
+            return _RuntimeChartForMachine(
+              machine: machine,
+              runtime: runtime,
+              isDark: isDark,
+              maxContentHeight: availableHeight,
+            );
+          },
+        );
+      }).toList(),
+    );
+
+    final children = <Widget>[
+      // Tiêu đề & Tab
+      Row(
+        children: [
+          Expanded(
+            child: Text(
+              "Runtime Analysis",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+                color: isDark
+                    ? GlobalColors.darkPrimaryText
+                    : GlobalColors.lightPrimaryText,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
+      TabBar(
+        isScrollable: true,
+        labelColor: Colors.blue[700],
+        unselectedLabelColor: isDark ? Colors.white60 : Colors.grey[600],
+        indicator: BoxDecoration(
+          color: isDark
+              ? Colors.blue.withOpacity(0.17)
+              : Colors.blue.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        tabs: machines
+            .map<Widget>(
+              (m) => Tab(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  child: Text(
+                    m['machine'].toString(),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+      const SizedBox(height: 7),
+      if (forcedHeight != null)
+        Expanded(child: tabView)
+      else
+        SizedBox(height: mobileChartHeight, child: tabView),
+      Padding(
+        padding: const EdgeInsets.only(
+          top: 12.0,
+          left: 18.0,
+          right: 18.0,
+          bottom: 4,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _legendDot(_runColor),
+            const SizedBox(width: 8),
+            Text(
+              "Run",
+              style: TextStyle(
+                color: isDark ? GlobalColors.labelDark : GlobalColors.labelLight,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 24),
+            _legendDot(_idleColor),
+            const SizedBox(width: 8),
+            Text(
+              "Idle",
+              style: TextStyle(
+                color: isDark ? GlobalColors.labelDark : GlobalColors.labelLight,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+
+    final column = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: forcedHeight != null ? MainAxisSize.max : MainAxisSize.min,
+      children: children,
+    );
+
+    if (forcedHeight != null) {
+      return SizedBox(height: forcedHeight, child: column);
+    }
+    return column;
+  }
+}
+
+Widget _runtimeLegendDot(Color color) {
+  return Container(
+    width: 15,
+    height: 15,
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(7.5),
+    ),
+  );
+}
+
 // Widget vẽ runtime cho 1 máy
 class _RuntimeChartForMachine extends StatelessWidget {
   final Map machine;
   final Map runtime;
   final bool isDark;
+  final double? maxContentHeight;
 
   const _RuntimeChartForMachine({
     required this.machine,
     required this.runtime,
     required this.isDark,
+    this.maxContentHeight,
   });
 
   String _formatTime(String time) {
@@ -226,6 +281,11 @@ class _RuntimeChartForMachine extends StatelessWidget {
   Widget build(BuildContext context) {
     final labelColor = isDark ? GlobalColors.labelDark : GlobalColors.labelLight;
 
+    final double? viewportHeight =
+        (maxContentHeight != null && maxContentHeight! > 0)
+            ? maxContentHeight
+            : null;
+
     final runData = machine['runtimeMachineData'].firstWhere(
           (d) => d['status'] == 'Run',
       orElse: () => null,
@@ -265,7 +325,34 @@ class _RuntimeChartForMachine extends StatelessWidget {
       minChartWidth,
       times.length * (barWidth * 2 + barInGroupSpace + groupSpace) + 10,
     );
-    final chartHeight = barMax < 30 ? 120.0 : math.min(barMax * 3.1, 240.0);
+    double chartHeight =
+        barMax < 30 ? 120.0 : math.min(barMax * 3.1, 240.0);
+
+    if (viewportHeight != null && viewportHeight.isFinite) {
+      final double maxAllowed = viewportHeight - 96;
+      if (maxAllowed > 0) {
+        if (maxAllowed < 80) {
+          chartHeight =
+              chartHeight.clamp(0.0, maxAllowed).toDouble();
+          chartHeight = math.max(
+            chartHeight,
+            math.min(maxAllowed, 60.0),
+          );
+        } else {
+          chartHeight =
+              chartHeight.clamp(80.0, maxAllowed).toDouble();
+        }
+      } else {
+        final double safeUpper = math.max(0.0, viewportHeight - 48);
+        chartHeight = math.min(chartHeight, safeUpper);
+        if (safeUpper > 0) {
+          chartHeight = math.max(
+            chartHeight,
+            math.min(safeUpper, 40.0),
+          );
+        }
+      }
+    }
 
     // Tạo nhãn Y
     List<int> yLabels = [];
