@@ -103,37 +103,42 @@ class _RuntimeCardBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final Widget tabView = TabBarView(
-          children: machines.map((machine) {
-            return LayoutBuilder(
-              builder: (context, chartConstraints) {
-                final double availableHeight = chartConstraints.maxHeight.isFinite
-                    ? chartConstraints.maxHeight
-                    : mobileChartHeight;
-                return _RuntimeChartForMachine(
-                  machine: machine,
-                  runtime: runtime,
-                  isDark: isDark,
-                  maxContentHeight: availableHeight,
-                );
-              },
-            );
-          }).toList(),
-        );
-
         final bool hasForcedHeight =
             forcedHeight != null && forcedHeight!.isFinite && forcedHeight! > 0;
-        final double availableHeight = hasForcedHeight
+        final double resolvedViewportHeight = hasForcedHeight
             ? forcedHeight!
             : (constraints.hasBoundedHeight && constraints.maxHeight.isFinite
                 ? constraints.maxHeight
-                : double.infinity);
+                : mobileChartHeight + 160);
 
-        const double headerEstimate = 150.0;
-        const double minViewportForLock = 340.0;
-        final bool needsScroll = hasForcedHeight &&
-            availableHeight.isFinite &&
-            availableHeight < (headerEstimate + minViewportForLock);
+        const double headerExtent = 82.0; // title + tabs + spacing
+        const double legendExtent = 34.0;
+        final double tabAreaHeight = hasForcedHeight
+            ? math.max(0.0, resolvedViewportHeight - headerExtent - legendExtent)
+            : mobileChartHeight;
+
+        final Widget tabSection = hasForcedHeight && tabAreaHeight <= 0
+            ? const SizedBox.shrink()
+            : SizedBox(
+                height: hasForcedHeight ? tabAreaHeight : mobileChartHeight,
+                child: TabBarView(
+                  children: machines.map((machine) {
+                    return LayoutBuilder(
+                      builder: (context, chartConstraints) {
+                        final double availableHeight = chartConstraints.maxHeight.isFinite
+                            ? chartConstraints.maxHeight
+                            : mobileChartHeight;
+                        return _RuntimeChartForMachine(
+                          machine: machine,
+                          runtime: runtime,
+                          isDark: isDark,
+                          maxContentHeight: availableHeight,
+                        );
+                      },
+                    );
+                  }).toList(),
+                ),
+              );
 
         final List<Widget> children = [
           Row(
@@ -150,7 +155,6 @@ class _RuntimeCardBody extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
             ],
           ),
           TabBar(
@@ -168,86 +172,65 @@ class _RuntimeCardBody extends StatelessWidget {
                   (m) => Tab(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       child: Text(
                         m['machine'].toString(),
                         style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 14),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),
                 )
                 .toList(),
           ),
-          const SizedBox(height: 7),
-        ];
-
-        if (needsScroll) {
-          final double lockedHeight = availableHeight.isFinite
-              ? math.max(220.0, availableHeight - headerEstimate)
-              : mobileChartHeight;
-          children.add(SizedBox(height: lockedHeight, child: tabView));
-        } else if (hasForcedHeight) {
-          children.add(Expanded(child: tabView));
-        } else {
-          children.add(SizedBox(height: mobileChartHeight, child: tabView));
-        }
-
-        children.add(
-          Padding(
-            padding: const EdgeInsets.only(
-              top: 12.0,
-              left: 18.0,
-              right: 18.0,
-              bottom: 4,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _runtimeLegendDot(_runColor),
-                const SizedBox(width: 8),
-                Text(
-                  "Run",
-                  style: TextStyle(
-                    color: isDark
-                        ? GlobalColors.labelDark
-                        : GlobalColors.labelLight,
-                    fontWeight: FontWeight.w600,
+          const SizedBox(height: 6),
+          tabSection,
+          SizedBox(
+            height: legendExtent,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _runtimeLegendDot(_runColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Run",
+                    style: TextStyle(
+                      color: isDark
+                          ? GlobalColors.labelDark
+                          : GlobalColors.labelLight,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 24),
-                _runtimeLegendDot(_idleColor),
-                const SizedBox(width: 8),
-                Text(
-                  "Idle",
-                  style: TextStyle(
-                    color: isDark
-                        ? GlobalColors.labelDark
-                        : GlobalColors.labelLight,
-                    fontWeight: FontWeight.w600,
+                  const SizedBox(width: 22),
+                  _runtimeLegendDot(_idleColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Idle",
+                    style: TextStyle(
+                      color: isDark
+                          ? GlobalColors.labelDark
+                          : GlobalColors.labelLight,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        );
+        ];
 
         final column = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize:
-              hasForcedHeight && !needsScroll ? MainAxisSize.max : MainAxisSize.min,
           children: children,
         );
 
-        if (needsScroll) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: column,
-          );
-        }
-
         if (hasForcedHeight) {
-          return SizedBox(height: forcedHeight, child: column);
+          return SizedBox(height: resolvedViewportHeight, child: column);
         }
 
         return column;
@@ -365,25 +348,20 @@ class _RuntimeChartForMachine extends StatelessWidget {
       minChartWidth,
       times.length * (barWidth * 2 + barInGroupSpace + groupSpace) + 10,
     );
-    double chartHeight =
-        barMax < 30 ? 160.0 : math.min(barMax * 3.1, 420.0);
-    double minChartHeight = 180.0;
-    double maxChartHeight = 520.0;
+    final double fallbackChartHeight =
+        barMax < 30 ? 150.0 : math.min(barMax * 3.0, 360.0);
+    double chartHeight = fallbackChartHeight;
 
-    if (viewportHeight != null && viewportHeight.isFinite) {
-      final double availableForChart = viewportHeight - 55.0;
-      final double viewportMax = math.max(120.0, availableForChart);
-      maxChartHeight = math.min(maxChartHeight, viewportMax);
-      minChartHeight = math.min(minChartHeight, maxChartHeight);
-    }
-
-    chartHeight = chartHeight.clamp(minChartHeight, maxChartHeight).toDouble();
-
-    if (viewportHeight != null && viewportHeight.isFinite) {
-      final double allowance = viewportHeight - 55.0;
-      if (allowance.isFinite && allowance > 0) {
-        final double safeMax = math.max(80.0, allowance);
-        chartHeight = math.min(chartHeight, safeMax);
+    if (viewportHeight != null && viewportHeight!.isFinite) {
+      final double available = math.max(0.0, viewportHeight!);
+      const double chromeHeight = 53.0; // labels + padding
+      final double rawChartHeight = available - chromeHeight;
+      if (rawChartHeight <= 0) {
+        chartHeight = 0;
+      } else if (rawChartHeight < 200) {
+        chartHeight = rawChartHeight;
+      } else {
+        chartHeight = math.min(rawChartHeight, 420.0);
       }
     }
 

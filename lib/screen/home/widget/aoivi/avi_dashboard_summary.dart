@@ -57,16 +57,16 @@ class PTHDashboardSummary extends StatelessWidget {
             sizingInfo.deviceScreenType == DeviceScreenType.mobile;
         final bool isDesktop =
             sizingInfo.deviceScreenType == DeviceScreenType.desktop;
-        final double horizontalPadding = isMobile ? 0 : (isDesktop ? 18 : 14);
-        final double verticalPadding = isMobile ? 10 : (isDesktop ? 14 : 12);
-        final double cardWidth = isMobile ? 64 : (isDesktop ? 136 : 112);
+        final double horizontalPadding = isMobile ? 0 : (isDesktop ? 14 : 12);
+        final double verticalPadding = isMobile ? 10 : (isDesktop ? 12 : 11);
+        final double cardWidth = isMobile ? 64 : (isDesktop ? 122 : 104);
         final EdgeInsetsGeometry cardMargin = isMobile
             ? const EdgeInsets.symmetric(horizontal: 2)
-            : const EdgeInsets.symmetric(horizontal: 8, vertical: 6);
-        final double wrapSpacing = isDesktop ? 22 : 18;
-        final double iconSize = isMobile ? 30 : (isDesktop ? 46 : 36);
-        final double labelSize = isMobile ? 13 : (isDesktop ? 16 : 14);
-        final double valueSize = isMobile ? 18 : (isDesktop ? 28 : 20);
+            : const EdgeInsets.symmetric(horizontal: 6, vertical: 4);
+        final double wrapSpacing = isDesktop ? 18 : 16;
+        final double iconSize = isMobile ? 30 : (isDesktop ? 40 : 34);
+        final double labelSize = isMobile ? 13 : (isDesktop ? 14 : 13);
+        final double valueSize = isMobile ? 18 : (isDesktop ? 24 : 20);
 
         final stats = statList.map((stat) {
           final showDetail =
@@ -95,6 +95,8 @@ class PTHDashboardSummary extends StatelessWidget {
             iconSize: iconSize,
             labelSize: labelSize,
             valueSize: valueSize,
+            detailFontSize: isMobile ? 11.5 : (isDesktop ? 11.5 : 11),
+            detailIconSize: isMobile ? 15 : (isDesktop ? 14 : 13),
           );
         }).toList();
 
@@ -115,7 +117,7 @@ class PTHDashboardSummary extends StatelessWidget {
           color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
           elevation: 3,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(isMobile ? 16 : 14),
+            borderRadius: BorderRadius.circular(isMobile ? 14 : 12),
           ),
           child: Padding(
             padding: EdgeInsets.symmetric(
@@ -143,6 +145,8 @@ class _StatCard extends StatelessWidget {
   final double iconSize;
   final double labelSize;
   final double valueSize;
+  final double detailFontSize;
+  final double detailIconSize;
 
   const _StatCard({
     required this.icon,
@@ -157,6 +161,8 @@ class _StatCard extends StatelessWidget {
     this.iconSize = 30,
     this.labelSize = 13,
     this.valueSize = 18,
+    this.detailFontSize = 12,
+    this.detailIconSize = 14,
   });
 
   @override
@@ -168,7 +174,7 @@ class _StatCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: color, size: iconSize),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Text(
             label,
             textAlign: TextAlign.center,
@@ -194,12 +200,12 @@ class _StatCard extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.search, color: color, size: 16),
+                    Icon(Icons.search, color: color, size: detailIconSize),
                     const SizedBox(width: 3),
                     Text(
                       "Chi tiết",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: detailFontSize,
                         fontWeight: FontWeight.w500,
                         color: color,
                         decoration: TextDecoration.underline,

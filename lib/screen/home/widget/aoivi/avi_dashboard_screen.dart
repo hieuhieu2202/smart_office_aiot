@@ -557,36 +557,43 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
                   final data = controller.monitoringData.value ?? {};
                   return LayoutBuilder(
                     builder: (context, constraints) {
-                      final bool forceScroll = constraints.maxHeight < 720;
+                      final double viewportHeight =
+                          constraints.hasBoundedHeight ? constraints.maxHeight : 0;
+                      final bool expandToViewport = viewportHeight >= 680;
+                      final double maxContentWidth = isDesktop ? 1520 : 1280;
                       final EdgeInsets padding = EdgeInsets.fromLTRB(
-                        isDesktop ? 28 : 20,
-                        isDesktop ? 28 : 22,
-                        isDesktop ? 28 : 20,
-                        isDesktop ? 32 : 26,
+                        isDesktop ? 26 : 20,
+                        isDesktop ? 26 : 22,
+                        isDesktop ? 26 : 20,
+                        isDesktop ? 30 : 24,
                       );
 
-                      Widget content = Padding(
-                        padding: padding,
-                        child: _LargeDashboardContent(
-                          data: data,
-                          isDesktop: isDesktop,
-                          expandToViewport: !forceScroll,
+                      Widget panel = Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxContentWidth),
+                          child: Padding(
+                            padding: padding,
+                            child: _LargeDashboardContent(
+                              data: data,
+                              isDesktop: isDesktop,
+                              expandToViewport: expandToViewport,
+                              viewportHeight: viewportHeight,
+                            ),
+                          ),
                         ),
                       );
 
-                      if (forceScroll) {
-                        content = SingleChildScrollView(
-                          padding: EdgeInsets.zero,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minHeight: constraints.maxHeight,
-                            ),
-                            child: content,
+                      if (!expandToViewport) {
+                        panel = SingleChildScrollView(
+                          padding: EdgeInsets.symmetric(
+                            vertical: isDesktop ? 24 : 18,
                           ),
+                          child: panel,
                         );
                       }
 
-                      return content;
+                      return panel;
                     },
                   );
                 }),
@@ -630,29 +637,37 @@ class _LargeDashboardContent extends StatelessWidget {
   final Map data;
   final bool isDesktop;
   final bool expandToViewport;
+  final double? viewportHeight;
 
   const _LargeDashboardContent({
     required this.data,
     required this.isDesktop,
     this.expandToViewport = true,
+    this.viewportHeight,
   });
 
   @override
   Widget build(BuildContext context) {
-    final double spacing = isDesktop ? 28.0 : 22.0;
-    final double verticalSpacing = isDesktop ? 28.0 : 22.0;
+    final double spacing = isDesktop ? 24.0 : 20.0;
+    final double verticalSpacing = isDesktop ? 24.0 : 20.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
-        final bool sideBySide = width >= (isDesktop ? 1200 : 1080);
-        final bool ultraWide = width >= (isDesktop ? 1440 : 1280);
-        final int leftFlex = ultraWide ? 12 : 11;
-        final int rightFlex = ultraWide ? 5 : 6;
-        final int runtimeFlex = ultraWide ? 7 : 6;
-        final int outputFlex = ultraWide ? 5 : 4;
+        final bool sideBySide = width >= (isDesktop ? 1180 : 1040);
+        final bool ultraWide = width >= (isDesktop ? 1440 : 1300);
+        final int leftFlex = ultraWide ? 13 : 11;
+        final int rightFlex = ultraWide ? 4 : 5;
+        final int runtimeFlex = ultraWide ? 8 : 7;
+        final int outputFlex = ultraWide ? 4 : 3;
 
-        if (expandToViewport && sideBySide) {
+        final double effectiveViewportHeight = viewportHeight ??
+            (constraints.hasBoundedHeight ? constraints.maxHeight : 0);
+        final bool tallEnough = expandToViewport &&
+            constraints.hasBoundedHeight &&
+            effectiveViewportHeight >= 640;
+
+        if (tallEnough && sideBySide) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
