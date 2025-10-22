@@ -1,27 +1,3 @@
-import 'dart:math';
-
-List<double> ensureSeries(
-  String group,
-  Map<String, List<double>> source,
-  int expectedLength,
-) {
-  if (expectedLength <= 0) {
-    return const <double>[];
-  }
-
-  final values = source[group] ?? const <double>[];
-  if (values.length == expectedLength) {
-    return values;
-  }
-  if (values.length > expectedLength) {
-    return List<double>.from(values.take(expectedLength));
-  }
-  return <double>[
-    ...values,
-    ...List<double>.filled(max(0, expectedLength - values.length), 0),
-  ];
-}
-
 String formatHourRange(String value) {
   final raw = value.trim();
   if (raw.contains(':')) {

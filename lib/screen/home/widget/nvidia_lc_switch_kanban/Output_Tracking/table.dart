@@ -1,436 +1,410 @@
 import 'package:flutter/material.dart';
+
 import 'cells.dart';
+import 'output_tracking_view_state.dart';
 import 'series_utils.dart';
 
 class OtTable extends StatefulWidget {
-  final List<String> hours;
-  final List<String> groups; // STATION
-  final List<String> models; // danh sách model đã chọn
-  final Map<String, String> modelNameByGroup; // group -> model name
-  final Map<String, List<double>> passByGroup;
-  final Map<String, List<double>> yrByGroup;
-  final Map<String, List<double>> rrByGroup;
-  final Map<String, int> wipByGroup;
-  final Map<String, int> totalPassByGroup;
-  final Map<String, int> totalFailByGroup;
-
   const OtTable({
     super.key,
-    required this.hours,
-    required this.groups,
-    required this.models,
-    required this.modelNameByGroup,
-    required this.passByGroup,
-    required this.yrByGroup,
-    required this.rrByGroup,
-    required this.wipByGroup,
-    required this.totalPassByGroup,
-    required this.totalFailByGroup,
+    required this.view,
   });
+
+  final OtViewState view;
 
   @override
   State<OtTable> createState() => _OtTableState();
 }
 
 class _OtTableState extends State<OtTable> {
-  // ==== KÍCH THƯỚC COMPACT (có thể tinh chỉnh nhanh) ====
-  static const double kRowH    = 44.0;  // cao 1 hàng dữ liệu
-  static const double kVGap    = 4.0;   // khoảng cách dọc giữa hàng
-  static const double kHdrH    = 46.0;  // cao header
-  static const double kChipW   = 38.0;  // rộng WIP/PASS/FAIL
-  static const double kChipGap = 4.0;   // khoảng giữa 3 chip
-  static const double kModelW  = 148.0; // rộng cột MODEL NAME
-  static const double kHourW   = 136.0; // rộng 1 cột giờ
-  static const double kColGap  = 8.0;   // gap giữa khối trái & phải
-  static const double kHourGap = 4.0;   // gap giữa các cột giờ
+  static const double kRowHeight = 44;
+  static const double kHeaderHeight = 46;
+  static const double kRowGap = 4;
+  static const double kModelWidth = 148;
+  static const double kChipWidth = 38;
+  static const double kChipGap = 4;
+  static const double kHourWidth = 136;
+  static const double kHourGap = 4;
+  static const double kColumnGap = 8;
 
-  // --- Scroll ngang: header & body đồng bộ qua 2 controller ---
   final ScrollController _hHeaderCtrl = ScrollController();
-  final ScrollController _hBodyCtrl   = ScrollController();
-  bool _isSyncingH = false;
-
-  // --- Scroll dọc: trái & phải đồng bộ ---
-  final _vLeft = ScrollController();
-  final _vGrid = ScrollController();
+  final ScrollController _hBodyCtrl = ScrollController();
+  final ScrollController _vLeftCtrl = ScrollController();
+  final ScrollController _vRightCtrl = ScrollController();
+  bool _isSyncing = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Đồng bộ NGANG (header <-> body)
-    _hHeaderCtrl.addListener(() {
-      if (_isSyncingH) return;
-      _isSyncingH = true;
-      if (_hBodyCtrl.hasClients) {
-        final t = _hHeaderCtrl.offset;
-        _hBodyCtrl.jumpTo(
-          t.clamp(_hBodyCtrl.position.minScrollExtent, _hBodyCtrl.position.maxScrollExtent),
-        );
-      }
-      _isSyncingH = false;
-    });
+    _hHeaderCtrl.addListener(() => _syncHorizontal(_hHeaderCtrl, _hBodyCtrl));
+    _hBodyCtrl.addListener(() => _syncHorizontal(_hBodyCtrl, _hHeaderCtrl));
 
-    _hBodyCtrl.addListener(() {
-      if (_isSyncingH) return;
-      _isSyncingH = true;
-      if (_hHeaderCtrl.hasClients) {
-        final t = _hBodyCtrl.offset;
-        _hHeaderCtrl.jumpTo(
-          t.clamp(_hHeaderCtrl.position.minScrollExtent, _hHeaderCtrl.position.maxScrollExtent),
-        );
-      }
-      _isSyncingH = false;
-    });
-
-    // Đồng bộ DỌC (trái <-> phải)
-    _vGrid.addListener(() {
-      if (_vLeft.hasClients && _vLeft.offset != _vGrid.offset) {
-        _vLeft.jumpTo(_vGrid.offset);
-      }
-    });
-    _vLeft.addListener(() {
-      if (_vGrid.hasClients && _vGrid.offset != _vLeft.offset) {
-        _vGrid.jumpTo(_vLeft.offset);
-      }
-    });
+    _vLeftCtrl.addListener(() => _syncVertical(_vLeftCtrl, _vRightCtrl));
+    _vRightCtrl.addListener(() => _syncVertical(_vRightCtrl, _vLeftCtrl));
   }
 
   @override
   void dispose() {
     _hHeaderCtrl.dispose();
     _hBodyCtrl.dispose();
-    _vLeft.dispose();
-    _vGrid.dispose();
+    _vLeftCtrl.dispose();
+    _vRightCtrl.dispose();
     super.dispose();
+  }
+
+  void _syncHorizontal(ScrollController source, ScrollController target) {
+    if (_isSyncing) return;
+    if (!source.hasClients || !target.hasClients) return;
+    _isSyncing = true;
+    target.jumpTo(source.offset.clamp(
+      target.position.minScrollExtent,
+      target.position.maxScrollExtent,
+    ));
+    _isSyncing = false;
+  }
+
+  void _syncVertical(ScrollController source, ScrollController target) {
+    if (!source.hasClients || !target.hasClients) return;
+    if ((source.offset - target.offset).abs() < 0.5) return;
+    target.jumpTo(source.offset.clamp(
+      target.position.minScrollExtent,
+      target.position.maxScrollExtent,
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final border = Colors.white.withOpacity(.08);
-    final hours  = widget.hours;
-    final cols   = hours.length;
+    final rows = widget.view.rows;
+    final hours = widget.view.hours;
+    final borderColor = Colors.white.withOpacity(.08);
+    final hourColumnsWidth = hours.isEmpty
+        ? kHourWidth
+        : hours.length * kHourWidth + (hours.length - 1) * kHourGap;
 
-    final double gridW =
-    (cols == 0) ? kHourW : (cols * kHourW + (cols - 1) * kHourGap);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final minLeftWidth = (kModelWidth + 4 + (kChipWidth * 3) + (kChipGap * 2) + 8)
+            .clamp(0.0, maxWidth);
+        final leftWidth = _clamp(
+          maxWidth * 0.70,
+          min: minLeftWidth,
+          max: maxWidth - kColumnGap,
+        );
 
-    return LayoutBuilder(builder: (context, cons) {
-      final maxW = cons.maxWidth;
-
-      // Bên trái chiếm ~70% nhưng không nhỏ hơn phần tối thiểu
-      final double minLeft = (kModelW + 4 + (kChipW * 3) + (kChipGap * 2) + 8)
-          .clamp(0.0, maxW);
-      final double leftW = _clampSafe(maxW * 0.70, min: minLeft, max: maxW - kColGap);
-
-      return Column(
-        children: [
-          // ================== HEADER ==================
-          Row(
-            children: [
-              Container(
-                width: leftW,
-                height: kHdrH,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF143A64),
-                  border: Border.all(color: border),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    _hdrCell('MODEL NAME', width: kModelW, align: TextAlign.left),
-                    const SizedBox(width: 4),
-
-                    // Ngăn MODEL NAME ↔ STATION
-                    _vDivider(color: Colors.white.withOpacity(.12)),
-                    const SizedBox(width: 6),
-
-                    const Expanded(
-                      child: Text(
-                        'STATION',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.left,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: .3,
-                        ),
-                      ),
-                    ),
-
-                    // Ngăn STATION ↔ chips
-                    const SizedBox(width: 4),
-                    _vDivider(color: Colors.white.withOpacity(.12)),
-                    const SizedBox(width: 6),
-
-                    _hdrCell('WIP',  width: kChipW),
-                    SizedBox(width: kChipGap),
-                    _hdrCell('PASS', width: kChipW),
-                    SizedBox(width: kChipGap),
-                    _hdrCell('FAIL', width: kChipW),
-                  ],
-                ),
-              ),
-              SizedBox(width: kColGap),
-
-              // Header giờ (cuộn cùng _hBodyCtrl)
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: _hHeaderCtrl,
-                  primary: false,
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: gridW,
-                    child: Row(
-                      children: List.generate(cols, (i) {
+        return Column(
+          children: [
+            _buildHeader(leftWidth, borderColor, hourColumnsWidth, hours),
+            Expanded(
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: leftWidth,
+                    child: ListView.builder(
+                      controller: _vLeftCtrl,
+                      padding: EdgeInsets.zero,
+                      physics: const ClampingScrollPhysics(),
+                      itemExtent: kRowHeight + kRowGap,
+                      itemCount: rows.length,
+                      itemBuilder: (_, index) {
+                        final row = rows[index];
                         return Padding(
-                          padding: EdgeInsets.only(right: i == cols - 1 ? 0 : kHourGap),
-                          child: Container(
-                            width: kHourW,
-                            height: kHdrH,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF143A64),
-                              border: Border.all(color: border),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    formatHourRange(hours[i]),
-                                    maxLines: 1,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                const Text(
-                                  'PASS   YR   RR',
-                                  style: TextStyle(fontSize: 9, color: Colors.white70),
-                                ),
-                              ],
-                            ),
+                          padding: const EdgeInsets.only(bottom: kRowGap),
+                          child: _LeftRow(
+                            row: row,
+                            borderColor: borderColor,
                           ),
                         );
-                      }),
+                      },
                     ),
                   ),
-                ),
-              ),
-            ],
-          ),
-
-          // ================== BODY ==================
-          Expanded(
-            child: Row(
-              children: [
-                // Trái (MODEL | STATION | WIP | PASS | FAIL)
-                SizedBox(
-                  width: leftW,
-                  child: ListView.builder(
-                    controller: _vLeft,
-                    physics: const ClampingScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    itemCount: widget.groups.length,
-                    itemExtent: kRowH + kVGap,
-                    itemBuilder: (_, i) {
-                      final station = widget.groups[i];
-                      final rawModel = widget.modelNameByGroup[station]?.trim() ?? '';
-                      final models = widget.models
-                          .map((e) => e.trim())
-                          .where((e) => e.isNotEmpty)
-                          .toList();
-                      final fallbackModel = models.isEmpty ? '-' : models.join('\n');
-                      final model = rawModel.isEmpty ? fallbackModel : rawModel;
-                      final wip = widget.wipByGroup[station] ?? 0;
-                      final p   = widget.totalPassByGroup[station] ?? 0;
-                      final f   = widget.totalFailByGroup[station] ?? 0;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: kVGap),
-                        child: Container(
-                          height: kRowH,
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0x0FFFFFFF),
-                            border: Border.all(color: border),
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: Row(
-                            children: [
-                              // MODEL NAME: cuộn ngang
-                              SizedBox(
-                                width: kModelW,
-                                child: Tooltip(
-                                  message: model,
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      model,
-                                      maxLines: 3,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: .2,
+                  SizedBox(width: kColumnGap),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: _hBodyCtrl,
+                      scrollDirection: Axis.horizontal,
+                      primary: false,
+                      child: SizedBox(
+                        width: hourColumnsWidth,
+                        child: ListView.builder(
+                          controller: _vRightCtrl,
+                          padding: EdgeInsets.zero,
+                          physics: const ClampingScrollPhysics(),
+                          itemExtent: kRowHeight + kRowGap,
+                          itemCount: rows.length,
+                          itemBuilder: (_, rowIndex) {
+                            final row = rows[rowIndex];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: kRowGap),
+                              child: Row(
+                                children: List.generate(hours.length, (col) {
+                                  final metric = row.metrics.length > col
+                                      ? row.metrics[col]
+                                      : const OtCellMetrics(pass: 0, yr: 0, rr: 0);
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      right: col == hours.length - 1 ? 0 : kHourGap,
+                                    ),
+                                    child: Container(
+                                      width: kHourWidth,
+                                      height: kRowHeight,
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0x0FFFFFFF),
+                                        border: Border.all(color: borderColor),
+                                        borderRadius: BorderRadius.circular(9),
+                                      ),
+                                      child: TripleCell(
+                                        pass: metric.pass,
+                                        yr: metric.yr,
+                                        rr: metric.rr,
                                       ),
                                     ),
-                                  ),
-                                ),
+                                  );
+                                }),
                               ),
-                              const SizedBox(width: 4),
-
-                              // Ngăn MODEL NAME ↔ STATION
-                              _vDivider(color: Colors.white.withOpacity(.08)),
-                              const SizedBox(width: 6),
-
-                              // STATION: cuộn ngang
-                              Expanded(
-                                child: ClipRect(
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    physics: const ClampingScrollPhysics(),
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        station,
-                                        softWrap: false,
-                                        style: const TextStyle(fontSize: 10),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                              // Ngăn STATION ↔ chips
-                              const SizedBox(width: 4),
-                              _vDivider(color: Colors.white.withOpacity(.08)),
-                              const SizedBox(width: 6),
-
-                              _chip('$wip', color: Colors.blue,  width: kChipW),
-                              SizedBox(width: kChipGap),
-                              _chip('$p',   color: Colors.green, width: kChipW),
-                              SizedBox(width: kChipGap),
-                              _chip('$f',   color: Colors.red,   width: kChipW),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(width: kColGap),
-
-                // Phải (lưới giờ) — đồng bộ ngang với header
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _hBodyCtrl,
-                    primary: false,
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: gridW,
-                      child: ListView.builder(
-                        controller: _vGrid,
-                        physics: const ClampingScrollPhysics(),
-                        padding: EdgeInsets.zero,
-                        itemCount: widget.groups.length,
-                        itemExtent: kRowH + kVGap,
-                        itemBuilder: (_, r) {
-                          final g = widget.groups[r];
-                          final pass = ensureSeries(g, widget.passByGroup, cols);
-                          final yr   = ensureSeries(g, widget.yrByGroup,   cols);
-                          final rr   = ensureSeries(g, widget.rrByGroup,   cols);
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: kVGap),
-                            child: Row(
-                              children: List.generate(cols, (c) {
-                                return Padding(
-                                  padding: EdgeInsets.only(right: c == cols - 1 ? 0 : kHourGap),
-                                  child: Container(
-                                    width: kHourW,
-                                    height: kRowH,
-                                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0x0FFFFFFF),
-                                      border: Border.all(color: border),
-                                      borderRadius: BorderRadius.circular(9),
-                                    ),
-                                    child: TripleCell(
-                                      pass: (pass[c].isNaN ? 0 : pass[c]),
-                                      yr:   (yr[c].isNaN   ? 0 : yr[c]),
-                                      rr:   (rr[c].isNaN   ? 0 : rr[c]),
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ),
-                          );
-                        },
                       ),
                     ),
                   ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(
+    double leftWidth,
+    Color borderColor,
+    double hourColumnsWidth,
+    List<String> hours,
+  ) {
+    return Row(
+      children: [
+        Container(
+          width: leftWidth,
+          height: kHeaderHeight,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF143A64),
+            border: Border.all(color: borderColor),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              _headerCell('MODEL NAME', width: kModelWidth, align: TextAlign.left),
+              const SizedBox(width: 4),
+              _divider(borderColor),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'STATION',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: .3,
+                  ),
                 ),
-              ],
+              ),
+              const SizedBox(width: 4),
+              _divider(borderColor),
+              const SizedBox(width: 6),
+              _headerCell('WIP', width: kChipWidth),
+              SizedBox(width: kChipGap),
+              _headerCell('PASS', width: kChipWidth),
+              SizedBox(width: kChipGap),
+              _headerCell('FAIL', width: kChipWidth),
+            ],
+          ),
+        ),
+        SizedBox(width: kColumnGap),
+        Expanded(
+          child: SingleChildScrollView(
+            controller: _hHeaderCtrl,
+            scrollDirection: Axis.horizontal,
+            primary: false,
+            child: SizedBox(
+              width: hourColumnsWidth,
+              child: Row(
+                children: List.generate(hours.length, (index) {
+                  final label = formatHourRange(hours[index]);
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: index == hours.length - 1 ? 0 : kHourGap,
+                    ),
+                    child: Container(
+                      width: kHourWidth,
+                      height: kHeaderHeight,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF143A64),
+                        border: Border.all(color: borderColor),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              label,
+                              maxLines: 1,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          const Text(
+                            'PASS   YR   RR',
+                            style: TextStyle(fontSize: 9, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ),
             ),
           ),
-        ],
-      );
-    });
+        ),
+      ],
+    );
   }
 
-  // ---------- Helpers ----------
-  static double _clampSafe(double v, {required double min, required double max}) {
-    final lo = min <= max ? min : max;
-    final hi = min <= max ? max : min;
-    if (v < lo) return lo;
-    if (v > hi) return hi;
-    return v;
-  }
+  Widget _divider(Color borderColor) =>
+      Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.6));
 
-  Widget _vDivider({required Color color}) {
-    return Container(width: 1.0, height: double.infinity, color: color);
-  }
-
-  Widget _hdrCell(String t, {required double width, TextAlign align = TextAlign.center}) {
+  Widget _headerCell(String text, {required double width, TextAlign align = TextAlign.center}) {
     return SizedBox(
       width: width,
-      child: Text(
-        t,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        textAlign: align,
-        style: const TextStyle(
-          fontSize: 9.5,
-          fontWeight: FontWeight.w700,
-          letterSpacing: .2,
+      child: Center(
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: align,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: .3,
+          ),
         ),
       ),
     );
   }
 
-  Widget _chip(String t, {required Color color, required double width}) {
+  double _clamp(double value, {required double min, required double max}) {
+    final lower = min <= max ? min : max;
+    final upper = min <= max ? max : min;
+    if (value < lower) return lower;
+    if (value > upper) return upper;
+    return value;
+  }
+}
+
+class _LeftRow extends StatelessWidget {
+  const _LeftRow({
+    required this.row,
+    required this.borderColor,
+  });
+
+  final OtRowView row;
+  final Color borderColor;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      width: width,
-      height: kRowH - 10,
-      alignment: Alignment.center,
+      height: _OtTableState.kRowHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(.12),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(.35)),
+        color: const Color(0x0FFFFFFF),
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(9),
       ),
-      child: Text(
-        t,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 9),
+      child: Row(
+        children: [
+          SizedBox(
+            width: _OtTableState.kModelWidth,
+            child: Tooltip(
+              message: row.model,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  row.model,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: .2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.6)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: ClipRect(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const ClampingScrollPhysics(),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    row.station,
+                    softWrap: false,
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.6)),
+          const SizedBox(width: 6),
+          _summaryChip('${row.wip}', color: Colors.blue),
+          SizedBox(width: _OtTableState.kChipGap),
+          _summaryChip('${row.totalPass}', color: Colors.green),
+          SizedBox(width: _OtTableState.kChipGap),
+          _summaryChip('${row.totalFail}', color: Colors.red),
+        ],
       ),
     );
   }
 
+  Widget _summaryChip(String text, {required Color color}) {
+    return Container(
+      width: _OtTableState.kChipWidth,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withOpacity(.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(.45)),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
 }

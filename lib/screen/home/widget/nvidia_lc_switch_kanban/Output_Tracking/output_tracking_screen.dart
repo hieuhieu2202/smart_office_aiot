@@ -6,6 +6,8 @@ import 'package:responsive_builder/responsive_builder.dart';
 
 import '../../../controller/nvidia_lc_switch_kanban_controller.dart';
 import 'filter_panel.dart';
+import 'mobile_cards.dart';
+import 'output_tracking_view_state.dart';
 import 'table.dart';
 
 class OutputTrackingScreen extends StatefulWidget {
@@ -75,13 +77,22 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
     setState(() => _selectedShift = newShift);
   }
 
-  void _onQuery() {
-    final groups = _selectedModels.isEmpty ? _controller.groups.toList() : _selectedModels;
-    _controller.updateFilter(
-      newDate: _selectedDate,
-      newShift: _selectedShift,
-      newGroups: groups,
-    );
+  Future<void> _onQuery() async {
+    final groups = _selectedModels.isEmpty
+        ? _controller.groups.toList()
+        : List<String>.from(_selectedModels);
+    try {
+      await _controller.updateFilter(
+        newDate: _selectedDate,
+        newShift: _selectedShift,
+        newGroups: groups,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không thể tải dữ liệu: $e')),
+      );
+    }
   }
 
   void _onExport() {
@@ -147,17 +158,10 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
             child: Obx(() {
               final isLoading = _controller.isLoading.value;
               final error = _controller.error.value;
-              final output = _controller.outputTracking.value;
-              final hours = _controller.hours;
-              final data = output?.data ?? const [];
-              final orderedGroups = <String>[];
-              final seenGroups = <String>{};
-              for (final row in data) {
-                final name = row.groupName.trim();
-                if (name.isEmpty) continue;
-                if (seenGroups.add(name)) orderedGroups.add(name);
-              }
-              final modelsForDisplay = output?.model ?? _controller.groups.toList();
+              final view = _controller.outputTrackingView.value;
+              final rows = view?.rows ?? const <OtRowView>[];
+              final hours = view?.hours ?? const <String>[];
+              final hasView = rows.isNotEmpty && hours.isNotEmpty;
 
               return RefreshIndicator(
                 onRefresh: _controller.loadAll,
@@ -183,11 +187,11 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
                           onShiftChanged: _onShiftChanged,
                           onSelectModels: _openModelPicker,
                           onExport: _onExport,
-                          onQuery: _onQuery,
+                          onQuery: () => _onQuery(),
                         ),
                       ),
                     ),
-                    if (isLoading && output == null)
+                    if (isLoading && view == null)
                       const SliverFillRemaining(
                         hasScrollBody: false,
                         child: Center(child: CircularProgressIndicator()),
@@ -203,7 +207,7 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
                           onPressed: _controller.loadAll,
                         ),
                       )
-                    else if (orderedGroups.isEmpty || hours.isEmpty)
+                    else if (view == null || !hasView)
                       SliverFillRemaining(
                         hasScrollBody: false,
                         child: _StateBox(
@@ -214,6 +218,32 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
                           onPressed: _controller.loadAll,
                         ),
                       )
+                    else if (isMobile) ...[
+                      SliverPadding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                          vertical: 12,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final row = rows[index];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: index == rows.length - 1 ? 0 : 12,
+                                ),
+                                child: OtMobileRowCard(
+                                  row: row,
+                                  hours: hours,
+                                ),
+                              );
+                            },
+                            childCount: rows.length,
+                          ),
+                        ),
+                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                    ]
                     else ...[
                       SliverPadding(
                         padding: EdgeInsets.symmetric(
@@ -241,18 +271,7 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
                               ),
                               child: SizedBox(
                                 height: _computeTableHeight(context, isMobile, isTablet),
-                                child: OtTable(
-                                  hours: hours,
-                                  groups: orderedGroups,
-                                  models: modelsForDisplay,
-                                  modelNameByGroup: _controller.modelNameByGroup,
-                                  passByGroup: _controller.passSeriesByGroup,
-                                  yrByGroup: _controller.yrSeriesByGroup,
-                                  rrByGroup: _controller.rrSeriesByGroup,
-                                  wipByGroup: _controller.wipByGroup,
-                                  totalPassByGroup: _controller.totalPassByGroup,
-                                  totalFailByGroup: _controller.totalFailByGroup,
-                                ),
+                                child: OtTable(view: view!),
                               ),
                             ),
                           ),

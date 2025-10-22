@@ -1,6 +1,9 @@
 import 'dart:async';
+
 import 'package:get/get.dart';
+
 import '../../../service/lc_switch_kanban_api.dart';
+import '../widget/nvidia_lc_switch_kanban/Output_Tracking/output_tracking_view_state.dart';
 
 class KanbanController extends GetxController {
   // ====== Filter state ======
@@ -27,6 +30,7 @@ class KanbanController extends GetxController {
   // Payloads
   final outputTracking = Rxn<KanbanOutputTracking>();
   final uphTracking    = Rxn<KanbanUphTracking>();
+  final outputTrackingView = Rxn<OtViewState>();
 
   // Danh sách model cho picker (SFIS/GetGroupsByShift)
   final allModels = <String>[].obs;
@@ -41,7 +45,7 @@ class KanbanController extends GetxController {
   Timer? _timer;
 
   // ---------------- Public API ----------------
-  void updateFilter({
+  Future<void> updateFilter({
     String? newModelSerial,
     DateTime? newDate,
     String? newShift,
@@ -53,15 +57,28 @@ class KanbanController extends GetxController {
     String? newCustomer,
     String? newNickName,
     String? newModelName,
-  }) {
-    if (newModelSerial != null) modelSerial.value = newModelSerial;
-    if (newDate        != null) date.value        = newDate;
-    if (newShift       != null) shift.value       = newShift;
-    if (newGroups != null && newGroups.isNotEmpty) {
+  }) async {
+    var shouldReloadModels = false;
+
+    if (newModelSerial != null && newModelSerial != modelSerial.value) {
+      modelSerial.value = newModelSerial;
+      shouldReloadModels = true;
+    }
+    if (newDate != null && !_isSameDay(newDate, date.value)) {
+      date.value = newDate;
+      shouldReloadModels = true;
+    }
+    if (newShift != null && newShift != shift.value) {
+      shift.value = newShift;
+      shouldReloadModels = true;
+    }
+
+    if (newGroups != null) {
       groups
         ..clear()
         ..addAll(newGroups);
     }
+
     if (newDateRange != null) dateRange.value = newDateRange;
     if (newSection   != null) section.value   = newSection;
     if (newStation   != null) station.value   = newStation;
@@ -70,14 +87,17 @@ class KanbanController extends GetxController {
     if (newNickName  != null) nickName.value  = newNickName;
     if (newModelName != null) modelName.value = newModelName;
 
-    // đổi ngày/ca → nạp lại danh sách models + data
-    ensureModels(force: true);
-    loadAll();
+    if (shouldReloadModels) {
+      await ensureModels(force: true);
+    }
+
+    await loadAll();
   }
 
   Future<void> loadAll() async {
     isLoading.value = true;
     error.value = null;
+    outputTrackingView.value = null;
     try {
       final body = KanbanApi.buildBody(
         modelSerial: modelSerial.value,
@@ -108,9 +128,12 @@ class KanbanController extends GetxController {
 
       // Cập nhật danh sách model nếu cần
       _mergeModelsFromResponses();
+
+      _rebuildOutputTrackingView();
     } catch (e) {
       error.value = e.toString();
       KanbanApiLog.net(() => '[KanbanController] loadAll ERROR: $e');
+      outputTrackingView.value = null;
     } finally {
       isLoading.value = false;
     }
@@ -151,6 +174,29 @@ class KanbanController extends GetxController {
         ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       allModels.assignAll(merged);
     }
+  }
+
+  void _rebuildOutputTrackingView() {
+    final out = outputTracking.value;
+    if (out == null) {
+      outputTrackingView.value = null;
+      return;
+    }
+
+    final fallback = out.model
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (fallback.isEmpty) {
+      fallback.addAll(groups.map((e) => e.trim()).where((e) => e.isNotEmpty));
+    }
+
+    outputTrackingView.value = OtViewState.fromResponse(
+      hours: hours,
+      groups: out.data,
+      modelByStation: modelNameByGroup,
+      fallbackModels: fallback,
+    );
   }
 
   // ====== Build STATION -> MODEL map dựa đúng OutputTracking ======
@@ -387,3 +433,6 @@ String _fmt(DateTime d) {
   final day = d.day.toString().padLeft(2, '0');
   return '$y-$m-$day';
 }
+
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
