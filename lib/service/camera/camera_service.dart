@@ -112,6 +112,7 @@ class CameraService {
 
     try {
       final file = await controller.takePicture();
+
       _lastError = null;
       return file;
     } on CameraException catch (e, st) {
