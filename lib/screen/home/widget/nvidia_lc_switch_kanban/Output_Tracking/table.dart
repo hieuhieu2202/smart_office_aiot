@@ -22,17 +22,17 @@ class OtTable extends StatefulWidget {
 }
 
 class _OtTableState extends State<OtTable> {
-  static const double kRowHeight = 44;
-  static const double kHeaderHeight = 46;
-  static const double kRowGap = 4;
-  static const double kModelWidth = 148;
-  static const double kChipWidth = 38;
-  static const double kChipGap = 4;
-  static const double kStationWidth = 160;
-  static const double kHourWidth = 136;
-  static const double kHourGap = 4;
-  static const double kColumnGap = 8;
-  static const double kRailHorizontalPadding = 12;
+  static const double kRowHeight = 68;
+  static const double kHeaderHeight = 72;
+  static const double kRowGap = 10;
+  static const double kModelWidth = 200;
+  static const double kChipWidth = 72;
+  static const double kChipGap = 8;
+  static const double kStationWidth = 220;
+  static const double kHourWidth = 170;
+  static const double kHourGap = 12;
+  static const double kColumnGap = 18;
+  static const double kRailHorizontalPadding = 24;
 
   final ScrollController _hHeaderCtrl = ScrollController();
   final ScrollController _hBodyCtrl = ScrollController();
@@ -169,16 +169,17 @@ class _OtTableState extends State<OtTable> {
                                     child: Container(
                                       width: kHourWidth,
                                       height: kRowHeight,
-                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                       decoration: BoxDecoration(
                                         color: const Color(0x0FFFFFFF),
                                         border: Border.all(color: borderColor),
-                                        borderRadius: BorderRadius.circular(9),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: TripleCell(
                                         pass: metric.pass,
                                         yr: metric.yr,
                                         rr: metric.rr,
+                                        compact: false,
                                         onTapYr: widget.onSectionTap != null &&
                                                 metric.yr > 0
                                             ? () => widget.onSectionTap!(
@@ -227,11 +228,11 @@ class _OtTableState extends State<OtTable> {
         Container(
           width: leftWidth,
           height: kHeaderHeight,
-          padding: const EdgeInsets.symmetric(horizontal: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             color: const Color(0xFF143A64),
             border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: _buildRailHeaderContent(borderColor, allowRailScroll, railContentWidth),
         ),
@@ -253,30 +254,29 @@ class _OtTableState extends State<OtTable> {
                     child: Container(
                       width: kHourWidth,
                       height: kHeaderHeight,
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       decoration: BoxDecoration(
                         color: const Color(0xFF143A64),
                         border: Border.all(color: borderColor),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              label,
-                              maxLines: 1,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: .2,
                             ),
                           ),
-                          const SizedBox(height: 1),
+                          const SizedBox(height: 6),
                           const Text(
                             'PASS   YR   RR',
-                            style: TextStyle(fontSize: 9, color: Colors.white70),
+                            style: TextStyle(fontSize: 11, color: Colors.white70),
                           ),
                         ],
                       ),
@@ -314,9 +314,10 @@ class _OtTableState extends State<OtTable> {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.left,
                 style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: .3,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -357,9 +358,10 @@ class _OtTableState extends State<OtTable> {
           overflow: TextOverflow.ellipsis,
           textAlign: align,
           style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            letterSpacing: .3,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            letterSpacing: .4,
+            color: Colors.white,
           ),
         ),
       ),
@@ -400,9 +402,10 @@ class _LeftRow extends StatelessWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 10,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: .2,
+                    letterSpacing: .25,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -429,7 +432,12 @@ class _LeftRow extends StatelessWidget {
                       child: Text(
                         row.station,
                         softWrap: false,
-                        style: const TextStyle(fontSize: 10),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: .2,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -472,11 +480,11 @@ class _LeftRow extends StatelessWidget {
 
     return Container(
       height: _OtTableState.kRowHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0x0FFFFFFF),
         border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: content,
     );
@@ -485,20 +493,23 @@ class _LeftRow extends StatelessWidget {
   Widget _summaryChip(String text, {required Color color, VoidCallback? onTap}) {
     Widget chip = Container(
       width: _OtTableState.kChipWidth,
+      height: _OtTableState.kRowHeight - 24,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: color.withOpacity(.12),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(.45)),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Text(
           text,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 15,
             fontWeight: FontWeight.w700,
             color: color,
+            letterSpacing: .25,
           ),
         ),
       ),

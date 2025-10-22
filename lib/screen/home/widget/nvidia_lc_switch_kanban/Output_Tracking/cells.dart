@@ -34,10 +34,10 @@ class TripleCell extends StatelessWidget {
     final warning = const Color(0xFFFFA726);
 
     // Kích thước cơ sở (sẽ co giãn theo LayoutBuilder)
-    final baseHeight = compact ? 24.0 : 26.0;
-    final baseGap    = compact ? 6.0  : 8.0;
-    final baseFont   = compact ? 11.0 : 12.0;
-    final radius     = 10.0;
+    final baseHeight = compact ? 30.0 : 38.0;
+    final baseGap    = compact ? 8.0  : 10.0;
+    final baseFont   = compact ? 13.0 : 15.0;
+    final radius     = 12.0;
 
     // Chuẩn bị style theo ngưỡng (đồng bộ web)
     final passStr   = pass.isNaN ? '0' : pass.round().toString();
@@ -78,13 +78,22 @@ class TripleCell extends StatelessWidget {
         final gap   = (maxW >= 120) ? baseGap : (baseGap * 0.6);
         final gapsW = 2 * gap;
 
-        // Bề rộng cho 3 pill: chia đều phần còn lại
-        final pillW = ((maxW - gapsW) / 3).clamp(34.0, 1000.0);
+        // Bề rộng khả dụng sau khi trừ khoảng cách giữa các pill
+        final available = (maxW - gapsW).clamp(0.0, double.infinity);
+        double pillW = available / 3;
+        if (!pillW.isFinite) {
+          pillW = 0;
+        }
 
-        // Co font và chiều cao nếu quá chật
-        final scale = (pillW < 40) ? 0.9 : 1.0;
+        // Thu nhỏ chiều cao/font nếu không gian bị hạn chế
+        final minWidth = compact ? 34.0 : 40.0;
+        double scale = 1.0;
+        if (pillW > 0 && pillW < minWidth) {
+          scale = (pillW / minWidth).clamp(0.75, 1.0);
+        }
         final h  = baseHeight * scale;
         final fs = baseFont   * scale;
+        final pillRadius = radius * scale.clamp(.85, 1.0);
 
         return Row(
           children: [
@@ -95,7 +104,7 @@ class TripleCell extends StatelessWidget {
               fs: fs,
               // PASS neutral xanh, đậm khi >0
               style: _BadgeStyle.neutral(blue, bold: passBold),
-              radius: radius,
+              radius: pillRadius,
               onTap: onTapPass,
             ),
             SizedBox(width: gap),
@@ -105,7 +114,7 @@ class TripleCell extends StatelessWidget {
               height: h,
               fs: fs,
               style: yrStyle,
-              radius: radius,
+              radius: pillRadius,
               onTap: onTapYr,
             ),
             SizedBox(width: gap),
@@ -115,7 +124,7 @@ class TripleCell extends StatelessWidget {
               height: h,
               fs: fs,
               style: rrStyle,
-              radius: radius,
+              radius: pillRadius,
               onTap: onTapRr,
             ),
           ],
