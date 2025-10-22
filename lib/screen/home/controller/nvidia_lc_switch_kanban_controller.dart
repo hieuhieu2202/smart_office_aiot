@@ -41,7 +41,7 @@ class KanbanController extends GetxController {
 
   // Auto refresh
   final isAutoRefreshEnabled = true.obs;
-  final refreshSec = 15.obs;
+  final refreshSec = 60.obs;
   Timer? _timer;
 
   // ---------------- Public API ----------------
@@ -88,7 +88,7 @@ class KanbanController extends GetxController {
     if (newModelName != null) modelName.value = newModelName;
 
     if (shouldReloadModels) {
-      await ensureModels(force: true);
+      await ensureModels(force: true, selectAll: groups.isEmpty);
     }
 
     await loadAll();
@@ -136,12 +136,22 @@ class KanbanController extends GetxController {
       outputTrackingView.value = null;
     } finally {
       isLoading.value = false;
+      if (isAutoRefreshEnabled.value) {
+        startAutoRefresh();
+      }
     }
   }
 
   /// Nạp danh sách MODEL từ SFIS/GetGroupsByShift
-  Future<void> ensureModels({bool force = false}) async {
-    if (!force && allModels.length > 1) return;
+  Future<void> ensureModels({bool force = false, bool selectAll = false}) async {
+    if (!force && allModels.length > 1) {
+      if (selectAll && allModels.isNotEmpty) {
+        groups
+          ..clear()
+          ..addAll(allModels);
+      }
+      return;
+    }
     isLoadingModels.value = true;
     try {
       final list = await KanbanApi.getGroupsByShift(
@@ -151,13 +161,28 @@ class KanbanController extends GetxController {
       );
       if (list.isNotEmpty) {
         allModels.assignAll(list);
+        if (selectAll) {
+          groups
+            ..clear()
+            ..addAll(list);
+        }
       } else {
         _mergeModelsFromResponses();
+        if (selectAll && allModels.isNotEmpty) {
+          groups
+            ..clear()
+            ..addAll(allModels);
+        }
       }
       KanbanApiLog.net(() => '[KanbanController] ensureModels count=${allModels.length}');
     } catch (e) {
       KanbanApiLog.net(() => '[KanbanController] ensureModels ERROR: $e');
       if (allModels.isEmpty) _mergeModelsFromResponses();
+      if (selectAll && allModels.isNotEmpty) {
+        groups
+          ..clear()
+          ..addAll(allModels);
+      }
     } finally {
       isLoadingModels.value = false;
     }
@@ -415,9 +440,18 @@ class KanbanController extends GetxController {
   void onInit() {
     super.onInit();
     setNetworkLog(true);
-    ensureModels();
-    loadAll();
-    startAutoRefresh();
+    Future.microtask(() async {
+      await ensureModels(force: true, selectAll: true);
+      if (groups.isEmpty && allModels.isNotEmpty) {
+        groups
+          ..clear()
+          ..addAll(allModels);
+      }
+      await loadAll();
+      if (isAutoRefreshEnabled.value) {
+        startAutoRefresh();
+      }
+    });
   }
 
   @override

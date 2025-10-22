@@ -17,47 +17,46 @@ class OtMobileRowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.surfaceVariant.withOpacity(0.22),
-              theme.colorScheme.surfaceVariant.withOpacity(0.12),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    const cardColor = Color(0xFF0F223F);
+    const borderColor = Color(0xFF1E345A);
+    final titleStyle = theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        );
+    final subtitleStyle = theme.textTheme.bodySmall?.copyWith(
+          color: Colors.white70,
+        );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor.withOpacity(.7)),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black45,
+            blurRadius: 12,
+            offset: Offset(0, 6),
           ),
-        ),
-        padding: const EdgeInsets.all(16),
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: DefaultTextStyle(
+        style: const TextStyle(color: Colors.white),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              row.station,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            Text(row.station, style: titleStyle),
             const SizedBox(height: 4),
-            Text(
-              row.model,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+            Text(row.model, style: subtitleStyle),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _statChip('WIP', row.wip, theme, Colors.blue),
-                _statChip('PASS', row.totalPass, theme, Colors.green),
-                _statChip('FAIL', row.totalFail, theme, Colors.red),
+                _statChip('WIP', row.wip, Colors.lightBlueAccent),
+                _statChip('PASS', row.totalPass, Colors.greenAccent),
+                _statChip('FAIL', row.totalFail, Colors.redAccent),
               ],
             ),
             const SizedBox(height: 16),
@@ -98,7 +97,7 @@ class OtMobileRowCard extends StatelessWidget {
     );
   }
 
-  Widget _statChip(String label, int value, ThemeData theme, Color color) {
+  Widget _statChip(String label, int value, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -112,17 +111,19 @@ class OtMobileRowCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: theme.textTheme.labelSmall?.copyWith(
+            style: TextStyle(
               color: color,
               fontWeight: FontWeight.w600,
+              letterSpacing: .2,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             '$value',
-            style: theme.textTheme.titleSmall?.copyWith(
+            style: TextStyle(
               color: color,
               fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
           ),
         ],
