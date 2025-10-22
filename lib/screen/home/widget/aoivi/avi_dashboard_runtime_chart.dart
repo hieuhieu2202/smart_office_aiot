@@ -26,7 +26,7 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
 
     final double? forcedHeight =
         (height != null && height! > 0) ? height : null;
-    final double mobileChartHeight = 240;
+    final double mobileChartHeight = 280;
 
     return DefaultTabController(
       length: machines.length,
@@ -35,7 +35,7 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
         elevation: 3,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
           child: _RuntimeCardBody(
             machines: machines,
             runtime: runtime,
@@ -326,33 +326,18 @@ class _RuntimeChartForMachine extends StatelessWidget {
       times.length * (barWidth * 2 + barInGroupSpace + groupSpace) + 10,
     );
     double chartHeight =
-        barMax < 30 ? 120.0 : math.min(barMax * 3.1, 240.0);
+        barMax < 30 ? 160.0 : math.min(barMax * 3.1, 420.0);
+    const double minChartHeight = 180.0;
+    double maxChartHeight = 520.0;
 
     if (viewportHeight != null && viewportHeight.isFinite) {
-      final double maxAllowed = viewportHeight - 96;
-      if (maxAllowed > 0) {
-        if (maxAllowed < 80) {
-          chartHeight =
-              chartHeight.clamp(0.0, maxAllowed).toDouble();
-          chartHeight = math.max(
-            chartHeight,
-            math.min(maxAllowed, 60.0),
-          );
-        } else {
-          chartHeight =
-              chartHeight.clamp(80.0, maxAllowed).toDouble();
-        }
-      } else {
-        final double safeUpper = math.max(0.0, viewportHeight - 48);
-        chartHeight = math.min(chartHeight, safeUpper);
-        if (safeUpper > 0) {
-          chartHeight = math.max(
-            chartHeight,
-            math.min(safeUpper, 40.0),
-          );
-        }
+      final double headerAllowance = math.max(0.0, viewportHeight - 176.0);
+      if (headerAllowance > 0) {
+        maxChartHeight = math.max(minChartHeight, headerAllowance);
       }
     }
+
+    chartHeight = chartHeight.clamp(minChartHeight, maxChartHeight).toDouble();
 
     // Tạo nhãn Y
     List<int> yLabels = [];

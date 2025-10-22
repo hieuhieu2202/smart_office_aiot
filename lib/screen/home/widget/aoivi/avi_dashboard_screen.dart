@@ -559,10 +559,10 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
                     builder: (context, constraints) {
                       final bool forceScroll = constraints.maxHeight < 720;
                       final EdgeInsets padding = EdgeInsets.fromLTRB(
-                        isDesktop ? 36 : 24,
-                        isDesktop ? 36 : 24,
-                        isDesktop ? 36 : 24,
-                        isDesktop ? 40 : 30,
+                        isDesktop ? 28 : 20,
+                        isDesktop ? 28 : 22,
+                        isDesktop ? 28 : 20,
+                        isDesktop ? 32 : 26,
                       );
 
                       Widget content = Padding(
@@ -639,13 +639,18 @@ class _LargeDashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double spacing = isDesktop ? 32.0 : 24.0;
-    final double verticalSpacing = isDesktop ? 34.0 : 26.0;
+    final double spacing = isDesktop ? 28.0 : 22.0;
+    final double verticalSpacing = isDesktop ? 28.0 : 22.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
-        final bool sideBySide = width >= (isDesktop ? 1180 : 1020);
+        final bool sideBySide = width >= (isDesktop ? 1200 : 1080);
+        final bool ultraWide = width >= (isDesktop ? 1440 : 1280);
+        final int leftFlex = ultraWide ? 12 : 11;
+        final int rightFlex = ultraWide ? 5 : 6;
+        final int runtimeFlex = ultraWide ? 7 : 6;
+        final int outputFlex = ultraWide ? 5 : 4;
 
         if (expandToViewport && sideBySide) {
           return Column(
@@ -658,12 +663,12 @@ class _LargeDashboardContent extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(
-                      flex: 7,
+                      flex: leftFlex,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Expanded(
-                            flex: 3,
+                            flex: runtimeFlex,
                             child: _ResponsiveSection(
                               builder: (height) => PTHDashboardRuntimeChart(
                                 data: data,
@@ -673,7 +678,7 @@ class _LargeDashboardContent extends StatelessWidget {
                           ),
                           SizedBox(height: verticalSpacing),
                           Expanded(
-                            flex: 3,
+                            flex: outputFlex,
                             child: _ResponsiveSection(
                               builder: (height) => PTHDashboardOutputChart(
                                 data: data,
@@ -686,7 +691,7 @@ class _LargeDashboardContent extends StatelessWidget {
                     ),
                     SizedBox(width: spacing),
                     Expanded(
-                      flex: 5,
+                      flex: rightFlex,
                       child: _ResponsiveSection(
                         builder: (height) => PTHDashboardMachineDetail(
                           data: data,

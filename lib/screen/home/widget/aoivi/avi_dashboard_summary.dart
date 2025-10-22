@@ -57,13 +57,13 @@ class PTHDashboardSummary extends StatelessWidget {
             sizingInfo.deviceScreenType == DeviceScreenType.mobile;
         final bool isDesktop =
             sizingInfo.deviceScreenType == DeviceScreenType.desktop;
-        final double horizontalPadding = isMobile ? 0 : (isDesktop ? 42 : 24);
-        final double verticalPadding = isMobile ? 12 : (isDesktop ? 28 : 20);
-        final double cardWidth = isMobile ? 64 : (isDesktop ? 156 : 120);
+        final double horizontalPadding = isMobile ? 0 : (isDesktop ? 28 : 20);
+        final double verticalPadding = isMobile ? 10 : (isDesktop ? 20 : 16);
+        final double cardWidth = isMobile ? 64 : (isDesktop ? 148 : 118);
         final EdgeInsetsGeometry cardMargin = isMobile
             ? const EdgeInsets.symmetric(horizontal: 2)
-            : const EdgeInsets.symmetric(horizontal: 10, vertical: 8);
-        final double wrapSpacing = isDesktop ? 36 : 22;
+            : const EdgeInsets.symmetric(horizontal: 8, vertical: 6);
+        final double wrapSpacing = isDesktop ? 28 : 20;
         final double iconSize = isMobile ? 30 : (isDesktop ? 46 : 36);
         final double labelSize = isMobile ? 13 : (isDesktop ? 16 : 14);
         final double valueSize = isMobile ? 18 : (isDesktop ? 28 : 20);
@@ -114,8 +114,9 @@ class PTHDashboardSummary extends StatelessWidget {
         return Card(
           color: isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg,
           elevation: 3,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(isMobile ? 16 : 14),
+          ),
           child: Padding(
             padding: EdgeInsets.symmetric(
               vertical: verticalPadding,
