@@ -6,10 +6,12 @@ class OtViewState {
   OtViewState({
     required this.hours,
     required this.rows,
+    required this.modelsText,
   });
 
   final List<String> hours;
   final List<OtRowView> rows;
+  final String modelsText;
 
   bool get hasData => hours.isNotEmpty && rows.isNotEmpty;
 
@@ -44,7 +46,11 @@ class OtViewState {
       );
     }
 
-    return OtViewState(hours: sanitizedHours, rows: rows);
+    return OtViewState(
+      hours: sanitizedHours,
+      rows: rows,
+      modelsText: fallback,
+    );
   }
 
   static List<OtCellMetrics> _buildMetrics(int hourCount, KanbanOutputGroup group) {
