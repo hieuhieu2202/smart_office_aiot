@@ -27,6 +27,7 @@ class _OtTableState extends State<OtTable> {
   static const double kHourWidth = 136;
   static const double kHourGap = 4;
   static const double kColumnGap = 8;
+  static const double kRailHorizontalPadding = 12;
 
   final ScrollController _hHeaderCtrl = ScrollController();
   final ScrollController _hBodyCtrl = ScrollController();
@@ -86,14 +87,25 @@ class _OtTableState extends State<OtTable> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
-        final desiredLeftWidth =
+        const railContentWidth =
             (kModelWidth + 4 + 1 + 6 + kStationWidth + 4 + 1 + 6 + (kChipWidth * 3) + (kChipGap * 2));
+        const desiredLeftWidth = railContentWidth + kRailHorizontalPadding;
         final available = (maxWidth - kColumnGap).clamp(0.0, double.infinity);
-        final leftWidth = available >= desiredLeftWidth ? desiredLeftWidth : available;
+        final needsRailScroll = available < desiredLeftWidth;
+        final leftWidth = needsRailScroll
+            ? available.clamp(kRailHorizontalPadding, desiredLeftWidth)
+            : desiredLeftWidth;
 
         return Column(
           children: [
-            _buildHeader(leftWidth, borderColor, hourColumnsWidth, hours),
+            _buildHeader(
+              leftWidth,
+              borderColor,
+              hourColumnsWidth,
+              hours,
+              needsRailScroll,
+              railContentWidth,
+            ),
             Expanded(
               child: Row(
                 children: [
@@ -112,6 +124,8 @@ class _OtTableState extends State<OtTable> {
                           child: _LeftRow(
                             row: row,
                             borderColor: borderColor,
+                            allowHorizontalScroll: needsRailScroll,
+                            railContentWidth: railContentWidth,
                           ),
                         );
                       },
@@ -182,6 +196,8 @@ class _OtTableState extends State<OtTable> {
     Color borderColor,
     double hourColumnsWidth,
     List<String> hours,
+    bool allowRailScroll,
+    double railContentWidth,
   ) {
     return Row(
       children: [
@@ -194,39 +210,7 @@ class _OtTableState extends State<OtTable> {
             border: Border.all(color: borderColor),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Row(
-            children: [
-              _headerCell('MODEL NAME', width: kModelWidth, align: TextAlign.left),
-              const SizedBox(width: 4),
-              _divider(borderColor),
-              const SizedBox(width: 6),
-              SizedBox(
-                width: kStationWidth,
-                child: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'STATION',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.left,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: .3,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              _divider(borderColor),
-              const SizedBox(width: 6),
-              _headerCell('WIP', width: kChipWidth),
-              SizedBox(width: kChipGap),
-              _headerCell('PASS', width: kChipWidth),
-              SizedBox(width: kChipGap),
-              _headerCell('FAIL', width: kChipWidth),
-            ],
-          ),
+          child: _buildRailHeaderContent(borderColor, allowRailScroll, railContentWidth),
         ),
         SizedBox(width: kColumnGap),
         Expanded(
@@ -284,6 +268,61 @@ class _OtTableState extends State<OtTable> {
     );
   }
 
+  Widget _buildRailHeaderContent(
+    Color borderColor,
+    bool allowRailScroll,
+    double railContentWidth,
+  ) {
+    Widget row = SizedBox(
+      width: railContentWidth,
+      child: Row(
+        children: [
+          _headerCell('MODEL NAME', width: kModelWidth, align: TextAlign.left),
+          const SizedBox(width: 4),
+          _divider(borderColor),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: kStationWidth,
+            child: const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'STATION',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: .3,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          _divider(borderColor),
+          const SizedBox(width: 6),
+          _headerCell('WIP', width: kChipWidth),
+          SizedBox(width: kChipGap),
+          _headerCell('PASS', width: kChipWidth),
+          SizedBox(width: kChipGap),
+          _headerCell('FAIL', width: kChipWidth),
+        ],
+      ),
+    );
+
+    if (!allowRailScroll) {
+      return row;
+    }
+
+    return ClipRect(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const ClampingScrollPhysics(),
+        child: row,
+      ),
+    );
+  }
+
   Widget _divider(Color borderColor) =>
       Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.6));
 
@@ -312,21 +351,19 @@ class _LeftRow extends StatelessWidget {
   const _LeftRow({
     required this.row,
     required this.borderColor,
+    required this.allowHorizontalScroll,
+    required this.railContentWidth,
   });
 
   final OtRowView row;
   final Color borderColor;
+  final bool allowHorizontalScroll;
+  final double railContentWidth;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: _OtTableState.kRowHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: const Color(0x0FFFFFFF),
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(9),
-      ),
+    Widget content = SizedBox(
+      width: railContentWidth,
       child: Row(
         children: [
           SizedBox(
@@ -378,6 +415,27 @@ class _LeftRow extends StatelessWidget {
           _summaryChip('${row.totalFail}', color: Colors.red),
         ],
       ),
+    );
+
+    if (allowHorizontalScroll) {
+      content = ClipRect(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const ClampingScrollPhysics(),
+          child: content,
+        ),
+      );
+    }
+
+    return Container(
+      height: _OtTableState.kRowHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: const Color(0x0FFFFFFF),
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: content,
     );
   }
 
