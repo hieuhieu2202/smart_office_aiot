@@ -51,10 +51,10 @@ class OtViewState {
     if (hourCount <= 0) return const <OtCellMetrics>[];
 
     OtCellMetrics buildAt(int index) {
-      final pass = index < group.pass.length ? group.pass[index] : 0;
-      final yr = index < group.yr.length ? group.yr[index] : 0;
-      final rr = index < group.rr.length ? group.rr[index] : 0;
-      return OtCellMetrics(pass: pass, yr: yr, rr: rr);
+      final pass = index < group.pass.length ? group.pass[index] : 0.0;
+      final yr = index < group.yr.length ? group.yr[index] : 0.0;
+      final rr = index < group.rr.length ? group.rr[index] : 0.0;
+      return OtCellMetrics(pass: pass.toDouble(), yr: yr.toDouble(), rr: rr.toDouble());
     }
 
     return List<OtCellMetrics>.generate(hourCount, buildAt, growable: false);
