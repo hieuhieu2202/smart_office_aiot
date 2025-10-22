@@ -44,13 +44,11 @@ class _StencilColorScheme {
 class _StencilTypography {
   _StencilTypography._();
 
-  static final String heading =
-      GoogleFonts.spaceGrotesk().fontFamily ?? 'Space Grotesk';
-  static final String body =
-      GoogleFonts.ibmPlexSans().fontFamily ?? 'IBM Plex Sans';
-  static final String numeric =
-      GoogleFonts.ibmPlexMono().fontFamily ?? 'IBM Plex Mono';
+  static const String heading = 'SpaceGrotesk';
+  static const String body = 'IBMPlexSans';
+  static const String numeric = 'IBMPlexMono';
 }
+
 
 class _GlassCard extends StatelessWidget {
   const _GlassCard({
