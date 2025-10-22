@@ -34,10 +34,9 @@ class TripleCell extends StatelessWidget {
     const warning = Color(0xFFFFC56F);
 
     // Kích thước cơ sở (sẽ co giãn theo LayoutBuilder)
-    final baseHeight = compact ? 32.0 : 42.0;
-    final baseGap = compact ? 8.0 : 10.0;
-    final baseFont = compact ? 13.5 : 16.0;
-    const radius = 14.0;
+    final baseHeight = compact ? 28.0 : 34.0;
+    final baseGap = compact ? 6.0 : 8.0;
+    final baseFont = compact ? 12.0 : 13.5;
 
     // Chuẩn bị style theo ngưỡng (đồng bộ web)
     final passValue = pass.isFinite ? pass : 0;
@@ -94,7 +93,6 @@ class TripleCell extends StatelessWidget {
         }
         final h = baseHeight * scale;
         final fs = baseFont * scale;
-        final pillRadius = radius * scale.clamp(.8, 1.0);
 
         return Row(
           children: [
@@ -105,7 +103,6 @@ class TripleCell extends StatelessWidget {
               fs: fs,
               // PASS neutral xanh, đậm khi >0
               style: _BadgeStyle.neutral(green, bold: passBold),
-              radius: pillRadius,
               onTap: onTapPass,
             ),
             SizedBox(width: gap),
@@ -115,7 +112,6 @@ class TripleCell extends StatelessWidget {
               height: h,
               fs: fs,
               style: yrStyle,
-              radius: pillRadius,
               onTap: onTapYr,
             ),
             SizedBox(width: gap),
@@ -125,7 +121,6 @@ class TripleCell extends StatelessWidget {
               height: h,
               fs: fs,
               style: rrStyle,
-              radius: pillRadius,
               onTap: onTapRr,
             ),
           ],
@@ -141,7 +136,6 @@ class TripleCell extends StatelessWidget {
     required double height,
     required double fs,
     required _BadgeStyle style,
-    double radius = 12,
     VoidCallback? onTap,
   }) {
     Widget pill = Container(
@@ -150,7 +144,6 @@ class TripleCell extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: style.fillColor,
-        borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: style.borderColor, width: 1),
       ),
       // Đề phòng chữ dài khi pill quá hẹp

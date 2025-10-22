@@ -24,20 +24,22 @@ class OtTable extends StatefulWidget {
 }
 
 class _OtTableState extends State<OtTable> {
-  static const double kRowHeight = 68;
-  static const double kHeaderHeight = 74;
+  static const double kRowHeight = 60;
+  static const double kHeaderHeight = 60;
   static const double kRowGap = 4;
   static const double kModelWidth = 236;
-  static const double kChipWidth = 88;
-  static const double kChipGap = 8;
-  static const double kStationWidth = 210;
+  static const double kChipWidth = 74;
+  static const double kChipGap = 6;
+  static const double kStationMinWidth = 140;
+  static const double kStationPadding = 16;
+  static const double kStationMaxWidth = 240;
   static const double kHourWidth = 150;
   static const double kHourGap = 8;
   static const double kColumnGap = 16;
   static const double kDividerGapBefore = 4;
   static const double kDividerGapAfter = 6;
   static const double kDividerWidth = 1;
-  static const double kHeaderPaddingY = 14;
+  static const double kHeaderPaddingY = 0;
   static const BorderRadius kCellRadius = BorderRadius.zero;
 
   static const Color kHeaderBackground = Color(0xFF143A64);
@@ -48,8 +50,33 @@ class _OtTableState extends State<OtTable> {
 
   static double get kDividerTotal =>
       kDividerGapBefore + kDividerWidth + kDividerGapAfter;
-  static double get kSummaryWidth =>
-      kStationWidth + kDividerTotal + (kChipWidth * 3) + (kChipGap * 2);
+  double _summaryWidthFor(double stationWidth) =>
+      stationWidth + kDividerTotal + (kChipWidth * 3) + (kChipGap * 2);
+
+  double _stationWidthForRows(List<OtRowView> rows) {
+    final stations = rows.isEmpty
+        ? const <String>['STATION']
+        : rows.map((r) => r.station).where((name) => name.trim().isNotEmpty);
+
+    double widest = 0;
+    const style = TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      letterSpacing: .2,
+    );
+
+    for (final station in stations) {
+      final painter = TextPainter(
+        text: TextSpan(text: station, style: style),
+        maxLines: 1,
+        textDirection: TextDirection.ltr,
+      )..layout();
+      widest = math.max(widest, painter.width);
+    }
+
+    final desired = widest + kStationPadding;
+    return desired.clamp(kStationMinWidth, kStationMaxWidth);
+  }
 
   final ScrollController _hHeaderCtrl = ScrollController();
   final ScrollController _hBodyCtrl = ScrollController();
@@ -136,9 +163,10 @@ class _OtTableState extends State<OtTable> {
         ? kHourWidth
         : hours.length * kHourWidth + (hours.length - 1) * kHourGap;
     final modelWidth = _modelWidthForText(widget.view.modelsText);
-    final railContentWidth = modelWidth + kDividerTotal + kSummaryWidth;
+    final stationWidth = _stationWidthForRows(rows);
+    final summaryWidth = _summaryWidthFor(stationWidth);
+    final railContentWidth = modelWidth + kDividerTotal + summaryWidth;
     final railShellWidth = railContentWidth;
-    final summaryWidth = railContentWidth - modelWidth - kDividerTotal;
     final totalRailHeight = _rowsHeight(rows.length);
 
     return LayoutBuilder(
@@ -160,6 +188,7 @@ class _OtTableState extends State<OtTable> {
               needsRailScroll,
               railContentWidth,
               modelWidth,
+              stationWidth,
             ),
             Expanded(
               child: Row(
@@ -172,6 +201,7 @@ class _OtTableState extends State<OtTable> {
                       modelWidth: modelWidth,
                       railContentWidth: railContentWidth,
                       summaryWidth: summaryWidth,
+                      stationWidth: stationWidth,
                       totalHeight: totalRailHeight,
                       controller: _vLeftCtrl,
                       allowHorizontalScroll: needsRailScroll,
@@ -266,6 +296,7 @@ class _OtTableState extends State<OtTable> {
     bool allowRailScroll,
     double railContentWidth,
     double modelWidth,
+    double stationWidth,
   ) {
     return Row(
       children: [
@@ -283,6 +314,7 @@ class _OtTableState extends State<OtTable> {
             allowRailScroll,
             railContentWidth,
             modelWidth,
+            stationWidth,
           ),
         ),
         SizedBox(width: kColumnGap),
@@ -293,53 +325,88 @@ class _OtTableState extends State<OtTable> {
             primary: false,
             child: SizedBox(
               width: hourColumnsWidth,
-              child: Row(
-                children: List.generate(hours.length, (index) {
-                  final label = formatHourRange(hours[index]);
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      right: index == hours.length - 1 ? 0 : kHourGap,
+            child: Row(
+              children: List.generate(hours.length, (index) {
+                final label = formatHourRange(hours[index]);
+                return Padding(
+                  padding: EdgeInsets.only(
+                    right: index == hours.length - 1 ? 0 : kHourGap,
+                  ),
+                  child: Container(
+                    width: kHourWidth,
+                    height: kHeaderHeight,
+                    decoration: BoxDecoration(
+                      color: kHeaderBackground,
+                      border: Border.all(color: kHeaderBorder),
+                      borderRadius: kCellRadius,
                     ),
-                    child: Container(
-                      width: kHourWidth,
-                      height: kHeaderHeight,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: kHeaderBackground,
-                        border: Border.all(color: kHeaderBorder),
-                        borderRadius: kCellRadius,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(
                             label,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
                               letterSpacing: .25,
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'PASS   YR   RR',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.white70,
-                              letterSpacing: 1.5,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        ),
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: const [
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'PASS',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white70,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'YR',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white70,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'RR',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white70,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  );
-                }),
+                  ),
+                );
+              }),
               ),
             ),
           ),
@@ -353,6 +420,7 @@ class _OtTableState extends State<OtTable> {
     bool allowRailScroll,
     double railContentWidth,
     double modelWidth,
+    double stationWidth,
   ) {
     Widget row = SizedBox(
       width: railContentWidth,
@@ -363,19 +431,22 @@ class _OtTableState extends State<OtTable> {
           _divider(borderColor),
           const SizedBox(width: kDividerGapAfter),
           SizedBox(
-            width: kStationWidth,
+            width: stationWidth,
             child: const Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                'STATION',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.left,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: .3,
-                  color: Colors.white,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'STATION',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: .2,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -436,6 +507,7 @@ class _LeftRail extends StatelessWidget {
     required this.modelWidth,
     required this.railContentWidth,
     required this.summaryWidth,
+    required this.stationWidth,
     required this.totalHeight,
     required this.controller,
     required this.allowHorizontalScroll,
@@ -448,6 +520,7 @@ class _LeftRail extends StatelessWidget {
   final double modelWidth;
   final double railContentWidth;
   final double summaryWidth;
+  final double stationWidth;
   final double totalHeight;
   final ScrollController controller;
   final bool allowHorizontalScroll;
@@ -457,8 +530,7 @@ class _LeftRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final safeHeight = totalHeight <= 0 ? _OtTableState.kRowHeight : totalHeight;
-    final displaySummaryWidth =
-        summaryWidth.clamp(0.0, double.infinity) as double;
+    final displaySummaryWidth = summaryWidth;
 
     final summaryChildren = <Widget>[];
     if (rows.isEmpty) {
@@ -486,6 +558,7 @@ class _LeftRail extends StatelessWidget {
               row: row,
               borderColor: borderColor,
               width: displaySummaryWidth,
+              stationWidth: stationWidth,
               onTapStation:
                   onStationTap == null ? null : () => onStationTap!(row),
             ),
@@ -583,20 +656,17 @@ class _MergedModelCell extends StatelessWidget {
           color: _OtTableState.kRailBackground,
           border: Border.all(color: borderColor),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: Tooltip(
-              message: display,
-              child: Text(
-                display,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  height: 1.35,
-                  color: Colors.white,
-                ),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: Tooltip(
+            message: display,
+            child: Text(
+              display,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+                color: Colors.white,
               ),
             ),
           ),
@@ -611,12 +681,14 @@ class _LeftRow extends StatelessWidget {
     required this.row,
     required this.borderColor,
     required this.width,
+    required this.stationWidth,
     this.onTapStation,
   });
 
   final OtRowView row;
   final Color borderColor;
   final double width;
+  final double stationWidth;
   final VoidCallback? onTapStation;
 
   @override
@@ -632,7 +704,7 @@ class _LeftRow extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(
-              width: _OtTableState.kStationWidth,
+              width: stationWidth,
               child: MouseRegion(
                 cursor: onTapStation != null
                     ? SystemMouseCursors.click
@@ -640,16 +712,16 @@ class _LeftRow extends StatelessWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onTapStation,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
                         row.station,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                           letterSpacing: .2,
@@ -688,19 +760,21 @@ class _LeftRow extends StatelessWidget {
   Widget _summaryCell(String text, {required Color color, VoidCallback? onTap}) {
     Widget cell = SizedBox(
       width: _OtTableState.kChipWidth,
+      height: double.infinity,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: color.withOpacity(.08),
-          border: Border.all(color: color.withOpacity(.45)),
+          color: color.withOpacity(.05),
+          border: Border.all(color: color.withOpacity(.4)),
         ),
-        child: Center(
+        child: Align(
+          alignment: Alignment.center,
           child: Text(
             text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
               color: color,
               letterSpacing: .2,
             ),
