@@ -23,6 +23,7 @@ class _OtTableState extends State<OtTable> {
   static const double kModelWidth = 148;
   static const double kChipWidth = 38;
   static const double kChipGap = 4;
+  static const double kStationWidth = 160;
   static const double kHourWidth = 136;
   static const double kHourGap = 4;
   static const double kColumnGap = 8;
@@ -85,13 +86,10 @@ class _OtTableState extends State<OtTable> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
-        final minLeftWidth = (kModelWidth + 4 + (kChipWidth * 3) + (kChipGap * 2) + 8)
-            .clamp(0.0, maxWidth);
-        final leftWidth = _clamp(
-          maxWidth * 0.70,
-          min: minLeftWidth,
-          max: maxWidth - kColumnGap,
-        );
+        final desiredLeftWidth =
+            (kModelWidth + 4 + 1 + 6 + kStationWidth + 4 + 1 + 6 + (kChipWidth * 3) + (kChipGap * 2));
+        final available = (maxWidth - kColumnGap).clamp(0.0, double.infinity);
+        final leftWidth = available >= desiredLeftWidth ? desiredLeftWidth : available;
 
         return Column(
           children: [
@@ -202,16 +200,20 @@ class _OtTableState extends State<OtTable> {
               const SizedBox(width: 4),
               _divider(borderColor),
               const SizedBox(width: 6),
-              const Expanded(
-                child: Text(
-                  'STATION',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.left,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: .3,
+              SizedBox(
+                width: kStationWidth,
+                child: const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'STATION',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: .3,
+                    ),
                   ),
                 ),
               ),
@@ -304,13 +306,6 @@ class _OtTableState extends State<OtTable> {
     );
   }
 
-  double _clamp(double value, {required double min, required double max}) {
-    final lower = min <= max ? min : max;
-    final upper = min <= max ? max : min;
-    if (value < lower) return lower;
-    if (value > upper) return upper;
-    return value;
-  }
 }
 
 class _LeftRow extends StatelessWidget {
@@ -356,7 +351,8 @@ class _LeftRow extends StatelessWidget {
           const SizedBox(width: 4),
           Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.6)),
           const SizedBox(width: 6),
-          Expanded(
+          SizedBox(
+            width: _OtTableState.kStationWidth,
             child: ClipRect(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
