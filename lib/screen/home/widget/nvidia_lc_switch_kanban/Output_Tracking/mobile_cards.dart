@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'cells.dart';
 import 'output_tracking_view_state.dart';
@@ -9,10 +10,14 @@ class OtMobileRowCard extends StatelessWidget {
     super.key,
     required this.row,
     required this.hours,
+    this.onStationTap,
+    this.onSectionTap,
   });
 
   final OtRowView row;
   final List<String> hours;
+  final VoidCallback? onStationTap;
+  final void Function(String section)? onSectionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -55,8 +60,18 @@ class OtMobileRowCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 _statChip('WIP', row.wip, Colors.lightBlueAccent),
-                _statChip('PASS', row.totalPass, Colors.greenAccent),
-                _statChip('FAIL', row.totalFail, Colors.redAccent),
+                _statChip(
+                  'PASS',
+                  row.totalPass,
+                  Colors.greenAccent,
+                  onTap: onStationTap,
+                ),
+                _statChip(
+                  'FAIL',
+                  row.totalFail,
+                  Colors.redAccent,
+                  onTap: onStationTap,
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -84,6 +99,17 @@ class OtMobileRowCard extends StatelessWidget {
                             yr: row.metrics.length > i ? row.metrics[i].yr : 0,
                             rr: row.metrics.length > i ? row.metrics[i].rr : 0,
                             compact: false,
+                            onTapYr: onSectionTap != null &&
+                                    row.metrics.length > i &&
+                                    row.metrics[i].yr > 0
+                                ? () => onSectionTap!(hours[i])
+                                : null,
+                            onTapRr: onSectionTap != null &&
+                                    row.metrics.length > i &&
+                                    row.metrics[i].pass > 0 &&
+                                    row.metrics[i].rr > 0
+                                ? () => onSectionTap!(hours[i])
+                                : null,
                           ),
                         ),
                       ],
@@ -97,8 +123,8 @@ class OtMobileRowCard extends StatelessWidget {
     );
   }
 
-  Widget _statChip(String label, int value, Color color) {
-    return Container(
+  Widget _statChip(String label, int value, Color color, {VoidCallback? onTap}) {
+    Widget chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -127,6 +153,19 @@ class OtMobileRowCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) {
+      return chip;
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: chip,
       ),
     );
   }

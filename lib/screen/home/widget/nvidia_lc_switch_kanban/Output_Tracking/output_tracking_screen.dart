@@ -6,6 +6,7 @@ import 'package:responsive_builder/responsive_builder.dart';
 
 import '../../../controller/nvidia_lc_switch_kanban_controller.dart';
 import 'filter_panel.dart';
+import 'detail_dialogs.dart';
 import 'mobile_cards.dart';
 import 'output_tracking_view_state.dart';
 import 'table.dart';
@@ -98,6 +99,74 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
   void _onShiftChanged(String? newShift) {
     if (newShift == null) return;
     setState(() => _selectedShift = newShift);
+  }
+
+  Future<void> _showStationTrend(OtRowView row) async {
+    final view = _controller.outputTrackingView.value;
+    if (view == null || view.hours.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không có dữ liệu biểu đồ cho trạm này.')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (_) => OtStationTrendDialog(
+        station: row.station,
+        hours: view.hours,
+        metrics: row.metrics,
+      ),
+    );
+  }
+
+  Future<void> _showSectionDetail(OtRowView row, String section) async {
+    if (section.trim().isEmpty) return;
+    if (!mounted) return;
+
+    final navigator = Navigator.of(context, rootNavigator: true);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final detail = await _controller.fetchOutputTrackingDetail(
+        station: row.station,
+        section: section,
+      );
+
+      final didPop = navigator.canPop();
+      if (didPop) navigator.pop();
+      if (!mounted) return;
+
+      if (detail.errorDetails.isEmpty && detail.testerDetails.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không có dữ liệu chi tiết cho khung giờ này.')),
+        );
+        return;
+      }
+
+      await showDialog(
+        context: context,
+        builder: (_) => OtSectionDetailDialog(
+          station: row.station,
+          section: section,
+          detail: detail,
+        ),
+      );
+    } catch (e) {
+      if (navigator.canPop()) navigator.pop();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không thể tải dữ liệu chi tiết: $e')),
+      );
+    }
   }
 
   Future<void> _onQuery() async {
@@ -277,6 +346,8 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
                   child: OtMobileRowCard(
                     row: row,
                     hours: hours,
+                    onStationTap: () => _showStationTrend(row),
+                    onSectionTap: (section) => _showSectionDetail(row, section),
                   ),
                 );
               },
@@ -309,7 +380,11 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
               padding: const EdgeInsets.all(16),
               child: SizedBox(
                 height: _computeTableHeight(context, isMobile, isTablet),
-                child: OtTable(view: view!),
+                child: OtTable(
+                  view: view!,
+                  onStationTap: _showStationTrend,
+                  onSectionTap: _showSectionDetail,
+                ),
               ),
             ),
           ),

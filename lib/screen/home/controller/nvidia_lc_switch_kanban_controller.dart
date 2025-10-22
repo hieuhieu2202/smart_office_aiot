@@ -188,6 +188,27 @@ class KanbanController extends GetxController {
     }
   }
 
+  Future<KanbanOutputTrackingDetail> fetchOutputTrackingDetail({
+    required String station,
+    required String section,
+  }) async {
+    final groupList = groups.isNotEmpty
+        ? groups.toList()
+        : allModels.toList();
+    if (groupList.isEmpty) {
+      throw Exception('Không có model nào được chọn.');
+    }
+
+    return KanbanApi.getOutputTrackingDataDetail(
+      modelSerial: modelSerial.value,
+      date: _fmt(date.value),
+      shift: shift.value,
+      groups: groupList,
+      station: station,
+      section: section,
+    );
+  }
+
   void _mergeModelsFromResponses() {
     final set = <String>{...allModels};
     final o = outputTracking.value;

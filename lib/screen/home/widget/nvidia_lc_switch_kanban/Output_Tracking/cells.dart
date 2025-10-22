@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Hiển thị 3 ô nhỏ trong mỗi “giờ”: PASS | YR | RR
 /// - PASS: in đậm nếu > 0
@@ -11,12 +12,18 @@ class TripleCell extends StatelessWidget {
     required this.yr,
     required this.rr,
     this.compact = true,
+    this.onTapPass,
+    this.onTapYr,
+    this.onTapRr,
   });
 
   final double pass; // số lượng pass tại giờ đó
   final double yr;   // Yield Rate %
   final double rr;   // Retest Rate %
   final bool compact;
+  final VoidCallback? onTapPass;
+  final VoidCallback? onTapYr;
+  final VoidCallback? onTapRr;
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +96,7 @@ class TripleCell extends StatelessWidget {
               // PASS neutral xanh, đậm khi >0
               style: _BadgeStyle.neutral(blue, bold: passBold),
               radius: radius,
+              onTap: onTapPass,
             ),
             SizedBox(width: gap),
             _pill(
@@ -98,6 +106,7 @@ class TripleCell extends StatelessWidget {
               fs: fs,
               style: yrStyle,
               radius: radius,
+              onTap: onTapYr,
             ),
             SizedBox(width: gap),
             _pill(
@@ -107,6 +116,7 @@ class TripleCell extends StatelessWidget {
               fs: fs,
               style: rrStyle,
               radius: radius,
+              onTap: onTapRr,
             ),
           ],
         );
@@ -122,8 +132,9 @@ class TripleCell extends StatelessWidget {
     required double fs,
     required _BadgeStyle style,
     double radius = 12,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    Widget pill = Container(
       width: width,
       height: height,
       alignment: Alignment.center,
@@ -145,6 +156,19 @@ class TripleCell extends StatelessWidget {
             color: style.textColor,
           ),
         ),
+      ),
+    );
+
+    if (onTap == null) {
+      return pill;
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: pill,
       ),
     );
   }

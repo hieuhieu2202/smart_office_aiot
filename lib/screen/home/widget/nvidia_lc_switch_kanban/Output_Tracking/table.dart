@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'cells.dart';
 import 'output_tracking_view_state.dart';
@@ -8,9 +9,13 @@ class OtTable extends StatefulWidget {
   const OtTable({
     super.key,
     required this.view,
+    this.onStationTap,
+    this.onSectionTap,
   });
 
   final OtViewState view;
+  final void Function(OtRowView row)? onStationTap;
+  final void Function(OtRowView row, String section)? onSectionTap;
 
   @override
   State<OtTable> createState() => _OtTableState();
@@ -126,6 +131,9 @@ class _OtTableState extends State<OtTable> {
                             borderColor: borderColor,
                             allowHorizontalScroll: needsRailScroll,
                             railContentWidth: railContentWidth,
+                            onTapStation: widget.onStationTap == null
+                                ? null
+                                : () => widget.onStationTap!(row),
                           ),
                         );
                       },
@@ -171,6 +179,21 @@ class _OtTableState extends State<OtTable> {
                                         pass: metric.pass,
                                         yr: metric.yr,
                                         rr: metric.rr,
+                                        onTapYr: widget.onSectionTap != null &&
+                                                metric.yr > 0
+                                            ? () => widget.onSectionTap!(
+                                                  row,
+                                                  hours[col],
+                                                )
+                                            : null,
+                                        onTapRr: widget.onSectionTap != null &&
+                                                metric.pass > 0 &&
+                                                metric.rr > 0
+                                            ? () => widget.onSectionTap!(
+                                                  row,
+                                                  hours[col],
+                                                )
+                                            : null,
                                       ),
                                     ),
                                   );
@@ -310,14 +333,12 @@ class _OtTableState extends State<OtTable> {
       ),
     );
 
-    if (!allowRailScroll) {
-      return row;
-    }
-
     return ClipRect(
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        physics: const ClampingScrollPhysics(),
+        physics: allowRailScroll
+            ? const ClampingScrollPhysics()
+            : const NeverScrollableScrollPhysics(),
         child: row,
       ),
     );
@@ -353,12 +374,14 @@ class _LeftRow extends StatelessWidget {
     required this.borderColor,
     required this.allowHorizontalScroll,
     required this.railContentWidth,
+    this.onTapStation,
   });
 
   final OtRowView row;
   final Color borderColor;
   final bool allowHorizontalScroll;
   final double railContentWidth;
+  final VoidCallback? onTapStation;
 
   @override
   Widget build(BuildContext context) {
@@ -391,15 +414,24 @@ class _LeftRow extends StatelessWidget {
           SizedBox(
             width: _OtTableState.kStationWidth,
             child: ClipRect(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const ClampingScrollPhysics(),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    row.station,
-                    softWrap: false,
-                    style: const TextStyle(fontSize: 10),
+              child: MouseRegion(
+                cursor: onTapStation != null
+                    ? SystemMouseCursors.click
+                    : SystemMouseCursors.basic,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onTapStation,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const ClampingScrollPhysics(),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        row.station,
+                        softWrap: false,
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -408,24 +440,35 @@ class _LeftRow extends StatelessWidget {
           const SizedBox(width: 4),
           Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.6)),
           const SizedBox(width: 6),
-          _summaryChip('${row.wip}', color: Colors.blue),
+          _summaryChip(
+            '${row.wip}',
+            color: Colors.blue,
+          ),
           SizedBox(width: _OtTableState.kChipGap),
-          _summaryChip('${row.totalPass}', color: Colors.green),
+          _summaryChip(
+            '${row.totalPass}',
+            color: Colors.green,
+            onTap: onTapStation,
+          ),
           SizedBox(width: _OtTableState.kChipGap),
-          _summaryChip('${row.totalFail}', color: Colors.red),
+          _summaryChip(
+            '${row.totalFail}',
+            color: Colors.red,
+            onTap: onTapStation,
+          ),
         ],
       ),
     );
 
-    if (allowHorizontalScroll) {
-      content = ClipRect(
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const ClampingScrollPhysics(),
-          child: content,
-        ),
-      );
-    }
+    content = ClipRect(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: allowHorizontalScroll
+            ? const ClampingScrollPhysics()
+            : const NeverScrollableScrollPhysics(),
+        child: content,
+      ),
+    );
 
     return Container(
       height: _OtTableState.kRowHeight,
@@ -439,8 +482,8 @@ class _LeftRow extends StatelessWidget {
     );
   }
 
-  Widget _summaryChip(String text, {required Color color}) {
-    return Container(
+  Widget _summaryChip(String text, {required Color color, VoidCallback? onTap}) {
+    Widget chip = Container(
       width: _OtTableState.kChipWidth,
       alignment: Alignment.center,
       decoration: BoxDecoration(
@@ -458,6 +501,19 @@ class _LeftRow extends StatelessWidget {
             color: color,
           ),
         ),
+      ),
+    );
+
+    if (onTap == null) {
+      return chip;
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: chip,
       ),
     );
   }

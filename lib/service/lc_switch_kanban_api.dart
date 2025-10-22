@@ -108,6 +108,44 @@ class KanbanApi {
     throw Exception('GetOutputTrackingData: invalid payload');
   }
 
+  static Future<KanbanOutputTrackingDetail> getOutputTrackingDataDetail({
+    required String modelSerial,
+    required String date,
+    required String shift,
+    required List<String> groups,
+    required String station,
+    required String section,
+  }) async {
+    final uri = Uri.parse('$_base/OutputTracking/GetOutputTrackingDataDetail');
+    final body = <String, dynamic>{
+      'modelSerial': modelSerial,
+      'date': date,
+      'shift': shift,
+      'groups': groups,
+      'section': section,
+      'station': station,
+      'dateRange': 'string',
+      'line': 'string',
+      'customer': 'string',
+      'nickName': 'string',
+      'modelName': 'string',
+    };
+
+    KanbanApiLog.net(() => '[KanbanApi] POST $uri');
+    KanbanApiLog.net(() => '[KanbanApi] body => ${_safeBody(body)}');
+
+    final res = await HttpHelper().post(
+      uri,
+      headers: _headers(),
+      body: jsonEncode(body),
+      timeout: _timeout,
+    );
+
+    _ensure200(res, 'GetOutputTrackingDataDetail');
+    final data = jsonDecode(res.body);
+    return KanbanOutputTrackingDetail.fromAny(data);
+  }
+
   static Future<KanbanUphTracking> getUphTrackingData({
     required Map<String, dynamic> body,
   }) async {
@@ -202,6 +240,127 @@ class KanbanOutputGroup {
         rr: _readNumList(j, const ['rr', 'RR']),
         wip: _readInt(j, const ['wip', 'WIP']),
       );
+}
+
+class KanbanOutputTrackingDetail {
+  KanbanOutputTrackingDetail({
+    required this.errorDetails,
+    required this.testerDetails,
+  });
+
+  final List<KanbanErrorDetail> errorDetails;
+  final List<KanbanTesterDetail> testerDetails;
+
+  factory KanbanOutputTrackingDetail.fromAny(dynamic raw) {
+    if (raw is Map<String, dynamic>) {
+      if (raw['value'] is Map<String, dynamic>) {
+        return KanbanOutputTrackingDetail.fromJson(
+          Map<String, dynamic>.from(raw['value'] as Map),
+        );
+      }
+      if (raw['data'] is Map<String, dynamic>) {
+        return KanbanOutputTrackingDetail.fromJson(
+          Map<String, dynamic>.from(raw['data'] as Map),
+        );
+      }
+      return KanbanOutputTrackingDetail.fromJson(raw);
+    }
+    throw Exception('GetOutputTrackingDataDetail: invalid payload');
+  }
+
+  factory KanbanOutputTrackingDetail.fromJson(Map<String, dynamic> json) {
+    List<dynamic> readList(String key) {
+      final value = json[key];
+      if (value is List) return value;
+      if (value is Map<String, dynamic> && value['data'] is List) {
+        return List<dynamic>.from(value['data'] as List);
+      }
+      return const <dynamic>[];
+    }
+
+    return KanbanOutputTrackingDetail(
+      errorDetails: readList('errorDetails')
+          .whereType<Map<String, dynamic>>()
+          .map(KanbanErrorDetail.fromJson)
+          .toList(),
+      testerDetails: readList('testerDetails')
+          .whereType<Map<String, dynamic>>()
+          .map(KanbanTesterDetail.fromJson)
+          .toList(),
+    );
+  }
+}
+
+class KanbanErrorDetail {
+  KanbanErrorDetail({
+    required this.code,
+    required this.failQty,
+  });
+
+  final String code;
+  final int failQty;
+
+  factory KanbanErrorDetail.fromJson(Map<String, dynamic> json) {
+    String readCode() {
+      for (final key in ['ERROR_CODE', 'errorCode', 'code']) {
+        final value = json[key];
+        if (value != null) return value.toString();
+      }
+      return '';
+    }
+
+    int readQty() {
+      for (final key in ['FAIL_QTY', 'failQty', 'qty']) {
+        final value = json[key];
+        if (value == null) continue;
+        if (value is num) return value.round();
+        final parsed = int.tryParse(value.toString());
+        if (parsed != null) return parsed;
+      }
+      return 0;
+    }
+
+    return KanbanErrorDetail(
+      code: readCode(),
+      failQty: readQty(),
+    );
+  }
+}
+
+class KanbanTesterDetail {
+  KanbanTesterDetail({
+    required this.stationName,
+    required this.failQty,
+  });
+
+  final String stationName;
+  final int failQty;
+
+  factory KanbanTesterDetail.fromJson(Map<String, dynamic> json) {
+    String readStation() {
+      for (final key in ['STATION_NAME', 'stationName', 'station']) {
+        final value = json[key];
+        if (value != null) return value.toString();
+      }
+      return '';
+    }
+
+    int readQty() {
+      for (final key in ['FAIL_QTY', 'failQty', 'qty']) {
+        final value = json[key];
+        if (value == null) continue;
+        if (value is num) return value.round();
+        final parsed = int.tryParse(value.toString());
+        if (parsed != null) return parsed;
+      }
+      return 0;
+    }
+
+    return KanbanTesterDetail(
+      stationName: readStation(),
+      failQty: readQty(),
+    );
+  }
 }
 
 class KanbanUphTracking {
