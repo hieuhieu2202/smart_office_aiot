@@ -5,6 +5,7 @@ import 'series_utils.dart';
 class OtTable extends StatefulWidget {
   final List<String> hours;
   final List<String> groups; // STATION
+  final List<String> models; // danh sách model đã chọn
   final Map<String, String> modelNameByGroup; // group -> model name
   final Map<String, List<double>> passByGroup;
   final Map<String, List<double>> yrByGroup;
@@ -17,6 +18,7 @@ class OtTable extends StatefulWidget {
     super.key,
     required this.hours,
     required this.groups,
+    required this.models,
     required this.modelNameByGroup,
     required this.passByGroup,
     required this.yrByGroup,
@@ -32,15 +34,15 @@ class OtTable extends StatefulWidget {
 
 class _OtTableState extends State<OtTable> {
   // ==== KÍCH THƯỚC COMPACT (có thể tinh chỉnh nhanh) ====
-  static const double kRowH    = 34.0;  // cao 1 hàng dữ liệu
-  static const double kVGap    = 2.0;   // khoảng cách dọc giữa hàng
-  static const double kHdrH    = 33.0;  // cao header
-  static const double kChipW   = 30.0;  // rộng WIP/PASS/FAIL
+  static const double kRowH    = 44.0;  // cao 1 hàng dữ liệu
+  static const double kVGap    = 4.0;   // khoảng cách dọc giữa hàng
+  static const double kHdrH    = 46.0;  // cao header
+  static const double kChipW   = 38.0;  // rộng WIP/PASS/FAIL
   static const double kChipGap = 4.0;   // khoảng giữa 3 chip
-  static const double kModelW  = 96.0;  // rộng cột MODEL NAME
-  static const double kHourW   = 128.0; // rộng 1 cột giờ
-  static const double kColGap  = 6.0;   // gap giữa khối trái & phải
-  static const double kHourGap = 1.0;   // gap giữa các cột giờ
+  static const double kModelW  = 148.0; // rộng cột MODEL NAME
+  static const double kHourW   = 136.0; // rộng 1 cột giờ
+  static const double kColGap  = 8.0;   // gap giữa khối trái & phải
+  static const double kHourGap = 4.0;   // gap giữa các cột giờ
 
   // --- Scroll ngang: header & body đồng bộ qua 2 controller ---
   final ScrollController _hHeaderCtrl = ScrollController();
@@ -238,7 +240,13 @@ class _OtTableState extends State<OtTable> {
                     itemExtent: kRowH + kVGap,
                     itemBuilder: (_, i) {
                       final station = widget.groups[i];
-                      final model   = widget.modelNameByGroup[station]?.trim() ?? '-';
+                      final rawModel = widget.modelNameByGroup[station]?.trim() ?? '';
+                      final models = widget.models
+                          .map((e) => e.trim())
+                          .where((e) => e.isNotEmpty)
+                          .toList();
+                      final fallbackModel = models.isEmpty ? '-' : models.join('\n');
+                      final model = rawModel.isEmpty ? fallbackModel : rawModel;
                       final wip = widget.wipByGroup[station] ?? 0;
                       final p   = widget.totalPassByGroup[station] ?? 0;
                       final f   = widget.totalFailByGroup[station] ?? 0;
@@ -258,20 +266,18 @@ class _OtTableState extends State<OtTable> {
                               // MODEL NAME: cuộn ngang
                               SizedBox(
                                 width: kModelW,
-                                child: ClipRect(
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    physics: const ClampingScrollPhysics(),
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        model.isEmpty ? '-' : model,
-                                        softWrap: false,
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: .2,
-                                        ),
+                                child: Tooltip(
+                                  message: model,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      model,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: .2,
                                       ),
                                     ),
                                   ),
