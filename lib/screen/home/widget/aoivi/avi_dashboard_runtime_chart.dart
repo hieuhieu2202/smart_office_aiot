@@ -101,118 +101,158 @@ class _RuntimeCardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget tabView = TabBarView(
-      children: machines.map((machine) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final double availableHeight = constraints.maxHeight.isFinite
-                ? constraints.maxHeight
-                : mobileChartHeight;
-            return _RuntimeChartForMachine(
-              machine: machine,
-              runtime: runtime,
-              isDark: isDark,
-              maxContentHeight: availableHeight,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final Widget tabView = TabBarView(
+          children: machines.map((machine) {
+            return LayoutBuilder(
+              builder: (context, chartConstraints) {
+                final double availableHeight = chartConstraints.maxHeight.isFinite
+                    ? chartConstraints.maxHeight
+                    : mobileChartHeight;
+                return _RuntimeChartForMachine(
+                  machine: machine,
+                  runtime: runtime,
+                  isDark: isDark,
+                  maxContentHeight: availableHeight,
+                );
+              },
             );
-          },
+          }).toList(),
         );
-      }).toList(),
-    );
 
-    final children = <Widget>[
-      // Tiêu đề & Tab
-      Row(
-        children: [
-          Expanded(
-            child: Text(
-              "Runtime Analysis",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-                color: isDark
-                    ? GlobalColors.darkPrimaryText
-                    : GlobalColors.lightPrimaryText,
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
-      TabBar(
-        isScrollable: true,
-        labelColor: Colors.blue[700],
-        unselectedLabelColor: isDark ? Colors.white60 : Colors.grey[600],
-        indicator: BoxDecoration(
-          color: isDark
-              ? Colors.blue.withOpacity(0.17)
-              : Colors.blue.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        tabs: machines
-            .map<Widget>(
-              (m) => Tab(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  child: Text(
-                    m['machine'].toString(),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14),
+        final bool hasForcedHeight =
+            forcedHeight != null && forcedHeight!.isFinite && forcedHeight! > 0;
+        final double availableHeight = hasForcedHeight
+            ? forcedHeight!
+            : (constraints.hasBoundedHeight && constraints.maxHeight.isFinite
+                ? constraints.maxHeight
+                : double.infinity);
+
+        const double headerEstimate = 150.0;
+        const double minViewportForLock = 340.0;
+        final bool needsScroll = hasForcedHeight &&
+            availableHeight.isFinite &&
+            availableHeight < (headerEstimate + minViewportForLock);
+
+        final List<Widget> children = [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  "Runtime Analysis",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                    color: isDark
+                        ? GlobalColors.darkPrimaryText
+                        : GlobalColors.lightPrimaryText,
                   ),
                 ),
               ),
-            )
-            .toList(),
-      ),
-      const SizedBox(height: 7),
-      if (forcedHeight != null)
-        Expanded(child: tabView)
-      else
-        SizedBox(height: mobileChartHeight, child: tabView),
-      Padding(
-        padding: const EdgeInsets.only(
-          top: 12.0,
-          left: 18.0,
-          right: 18.0,
-          bottom: 4,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _runtimeLegendDot(_runColor),
-            const SizedBox(width: 8),
-            Text(
-              "Run",
-              style: TextStyle(
-                color: isDark ? GlobalColors.labelDark : GlobalColors.labelLight,
-                fontWeight: FontWeight.w600,
-              ),
+              const SizedBox(width: 6),
+            ],
+          ),
+          TabBar(
+            isScrollable: true,
+            labelColor: Colors.blue[700],
+            unselectedLabelColor: isDark ? Colors.white60 : Colors.grey[600],
+            indicator: BoxDecoration(
+              color: isDark
+                  ? Colors.blue.withOpacity(0.17)
+                  : Colors.blue.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
             ),
-            const SizedBox(width: 24),
-            _runtimeLegendDot(_idleColor),
-            const SizedBox(width: 8),
-            Text(
-              "Idle",
-              style: TextStyle(
-                color: isDark ? GlobalColors.labelDark : GlobalColors.labelLight,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    ];
+            tabs: machines
+                .map<Widget>(
+                  (m) => Tab(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      child: Text(
+                        m['machine'].toString(),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 7),
+        ];
 
-    final column = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: forcedHeight != null ? MainAxisSize.max : MainAxisSize.min,
-      children: children,
+        if (needsScroll) {
+          final double lockedHeight = availableHeight.isFinite
+              ? math.max(220.0, availableHeight - headerEstimate)
+              : mobileChartHeight;
+          children.add(SizedBox(height: lockedHeight, child: tabView));
+        } else if (hasForcedHeight) {
+          children.add(Expanded(child: tabView));
+        } else {
+          children.add(SizedBox(height: mobileChartHeight, child: tabView));
+        }
+
+        children.add(
+          Padding(
+            padding: const EdgeInsets.only(
+              top: 12.0,
+              left: 18.0,
+              right: 18.0,
+              bottom: 4,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _runtimeLegendDot(_runColor),
+                const SizedBox(width: 8),
+                Text(
+                  "Run",
+                  style: TextStyle(
+                    color: isDark
+                        ? GlobalColors.labelDark
+                        : GlobalColors.labelLight,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 24),
+                _runtimeLegendDot(_idleColor),
+                const SizedBox(width: 8),
+                Text(
+                  "Idle",
+                  style: TextStyle(
+                    color: isDark
+                        ? GlobalColors.labelDark
+                        : GlobalColors.labelLight,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        final column = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize:
+              hasForcedHeight && !needsScroll ? MainAxisSize.max : MainAxisSize.min,
+          children: children,
+        );
+
+        if (needsScroll) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: column,
+          );
+        }
+
+        if (hasForcedHeight) {
+          return SizedBox(height: forcedHeight, child: column);
+        }
+
+        return column;
+      },
     );
-
-    if (forcedHeight != null) {
-      return SizedBox(height: forcedHeight, child: column);
-    }
-    return column;
   }
 }
 
