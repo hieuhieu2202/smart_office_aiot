@@ -57,13 +57,16 @@ class PTHDashboardSummary extends StatelessWidget {
             sizingInfo.deviceScreenType == DeviceScreenType.mobile;
         final bool isDesktop =
             sizingInfo.deviceScreenType == DeviceScreenType.desktop;
-        final double horizontalPadding = isMobile ? 0 : (isDesktop ? 28 : 16);
-        final double verticalPadding = isMobile ? 12 : (isDesktop ? 22 : 18);
-        final double cardWidth = isMobile ? 64 : (isDesktop ? 132 : 112);
+        final double horizontalPadding = isMobile ? 0 : (isDesktop ? 42 : 24);
+        final double verticalPadding = isMobile ? 12 : (isDesktop ? 28 : 20);
+        final double cardWidth = isMobile ? 64 : (isDesktop ? 156 : 120);
         final EdgeInsetsGeometry cardMargin = isMobile
             ? const EdgeInsets.symmetric(horizontal: 2)
-            : const EdgeInsets.symmetric(horizontal: 8, vertical: 6);
-        final double wrapSpacing = isDesktop ? 28 : 20;
+            : const EdgeInsets.symmetric(horizontal: 10, vertical: 8);
+        final double wrapSpacing = isDesktop ? 36 : 22;
+        final double iconSize = isMobile ? 30 : (isDesktop ? 46 : 36);
+        final double labelSize = isMobile ? 13 : (isDesktop ? 16 : 14);
+        final double valueSize = isMobile ? 18 : (isDesktop ? 28 : 20);
 
         final stats = statList.map((stat) {
           final showDetail =
@@ -89,6 +92,9 @@ class PTHDashboardSummary extends StatelessWidget {
                 : null,
             width: cardWidth,
             margin: cardMargin,
+            iconSize: iconSize,
+            labelSize: labelSize,
+            valueSize: valueSize,
           );
         }).toList();
 
@@ -98,10 +104,10 @@ class PTHDashboardSummary extends StatelessWidget {
                 children: stats,
               )
             : Wrap(
-                alignment: WrapAlignment.center,
+                alignment: WrapAlignment.spaceEvenly,
                 runAlignment: WrapAlignment.center,
                 spacing: wrapSpacing,
-                runSpacing: wrapSpacing * 0.6,
+                runSpacing: wrapSpacing * 0.7,
                 children: stats,
               );
 
@@ -133,6 +139,9 @@ class _StatCard extends StatelessWidget {
   final VoidCallback? onDetail;
   final double width;
   final EdgeInsetsGeometry margin;
+  final double iconSize;
+  final double labelSize;
+  final double valueSize;
 
   const _StatCard({
     required this.icon,
@@ -144,6 +153,9 @@ class _StatCard extends StatelessWidget {
     this.onDetail,
     this.width = 64,
     this.margin = const EdgeInsets.symmetric(horizontal: 2),
+    this.iconSize = 30,
+    this.labelSize = 13,
+    this.valueSize = 18,
   });
 
   @override
@@ -154,21 +166,21 @@ class _StatCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 30),
+          Icon(icon, color: color, size: iconSize),
           const SizedBox(height: 6),
           Text(
             label,
             textAlign: TextAlign.center,
             style: GlobalTextStyles.bodySmall(isDark: isDark).copyWith(
               fontWeight: FontWeight.bold,
-              fontSize: 13,
+              fontSize: labelSize,
             ),
           ),
           Text(
             value,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 18,
+              fontSize: valueSize,
               color: color,
             ),
           ),

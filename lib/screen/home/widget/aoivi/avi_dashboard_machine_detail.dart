@@ -3,7 +3,13 @@ import '../../../../config/global_color.dart';
 
 class PTHDashboardMachineDetail extends StatelessWidget {
   final Map data;
-  const PTHDashboardMachineDetail({super.key, required this.data});
+  final double? height;
+
+  const PTHDashboardMachineDetail({
+    super.key,
+    required this.data,
+    this.height,
+  });
 
   Color _statusColor(String? status) {
     switch ((status ?? '').toLowerCase()) {
@@ -37,6 +43,12 @@ class PTHDashboardMachineDetail extends StatelessWidget {
         ),
       );
     }
+
+    final double resolvedHeight =
+        (height != null && height! > 0) ? height! : 150;
+    final double tableHeight = resolvedHeight > 200
+        ? resolvedHeight - 28
+        : (resolvedHeight > 160 ? resolvedHeight - 16 : resolvedHeight);
 
     return Card(
       color: bgColor,
@@ -80,7 +92,7 @@ class PTHDashboardMachineDetail extends StatelessWidget {
               ),
               const SizedBox(height: 7),
               SizedBox(
-                height: 150,
+                height: resolvedHeight,
                 child: TabBarView(
                   children: machines.map<Widget>((m) {
                     final detailList = m['runtimeMachineData'] as List? ?? [];
@@ -121,7 +133,7 @@ class PTHDashboardMachineDetail extends StatelessWidget {
 
                     // === Đây là phần cố định cột "Status" ===
                     return SizedBox(
-                      height: 120,
+                      height: tableHeight,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

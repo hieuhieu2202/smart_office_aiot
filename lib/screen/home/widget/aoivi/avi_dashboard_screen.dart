@@ -553,29 +553,43 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
             children: [
               _buildHeader(context),
               Expanded(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: Obx(() {
-                    final data = controller.monitoringData.value ?? {};
-                    return SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        isDesktop ? 32 : 24,
-                        isDesktop ? 32 : 24,
-                        isDesktop ? 32 : 24,
-                        isDesktop ? 48 : 36,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: isDesktop ? 1380 : 1100,
-                        ),
+                child: Obx(() {
+                  final data = controller.monitoringData.value ?? {};
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final bool forceScroll = constraints.maxHeight < 720;
+                      final EdgeInsets padding = EdgeInsets.fromLTRB(
+                        isDesktop ? 36 : 24,
+                        isDesktop ? 36 : 24,
+                        isDesktop ? 36 : 24,
+                        isDesktop ? 40 : 30,
+                      );
+
+                      Widget content = Padding(
+                        padding: padding,
                         child: _LargeDashboardContent(
                           data: data,
                           isDesktop: isDesktop,
+                          expandToViewport: !forceScroll,
                         ),
-                      ),
-                    );
-                  }),
-                ),
+                      );
+
+                      if (forceScroll) {
+                        content = SingleChildScrollView(
+                          padding: EdgeInsets.zero,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight,
+                            ),
+                            child: content,
+                          ),
+                        );
+                      }
+
+                      return content;
+                    },
+                  );
+                }),
               ),
             ],
           ),
@@ -615,51 +629,130 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
 class _LargeDashboardContent extends StatelessWidget {
   final Map data;
   final bool isDesktop;
+  final bool expandToViewport;
 
   const _LargeDashboardContent({
     required this.data,
     required this.isDesktop,
+    this.expandToViewport = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final spacing = isDesktop ? 28.0 : 22.0;
+    final double spacing = isDesktop ? 32.0 : 24.0;
+    final double verticalSpacing = isDesktop ? 34.0 : 26.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final bool allowTwoColumns = width >= 900;
-        final double columnWidth =
-            allowTwoColumns ? (width - spacing) / 2 : width;
+        final double width = constraints.maxWidth;
+        final bool sideBySide = width >= (isDesktop ? 1180 : 1020);
+
+        if (expandToViewport && sideBySide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PTHDashboardSummary(data: data),
+              SizedBox(height: verticalSpacing),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      flex: 7,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: _ResponsiveSection(
+                              builder: (height) => PTHDashboardRuntimeChart(
+                                data: data,
+                                height: height,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: verticalSpacing),
+                          Expanded(
+                            flex: 3,
+                            child: _ResponsiveSection(
+                              builder: (height) => PTHDashboardOutputChart(
+                                data: data,
+                                height: height,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: spacing),
+                    Expanded(
+                      flex: 5,
+                      child: _ResponsiveSection(
+                        builder: (height) => PTHDashboardMachineDetail(
+                          data: data,
+                          height: height,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             PTHDashboardSummary(data: data),
-            SizedBox(height: spacing),
-            Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              alignment: WrapAlignment.center,
-              runAlignment: WrapAlignment.start,
+            SizedBox(height: verticalSpacing),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(
-                  width: columnWidth,
-                  child: PTHDashboardRuntimeChart(data: data),
+                _ResponsiveSection(
+                  builder: (height) => PTHDashboardRuntimeChart(
+                    data: data,
+                    height: height,
+                  ),
                 ),
-                SizedBox(
-                  width: columnWidth,
-                  child: PTHDashboardOutputChart(data: data),
+                SizedBox(height: verticalSpacing),
+                _ResponsiveSection(
+                  builder: (height) => PTHDashboardOutputChart(
+                    data: data,
+                    height: height,
+                  ),
                 ),
-                SizedBox(
-                  width: width,
-                  child: PTHDashboardMachineDetail(data: data),
+                SizedBox(height: verticalSpacing),
+                _ResponsiveSection(
+                  builder: (height) => PTHDashboardMachineDetail(
+                    data: data,
+                    height: height,
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: spacing * 1.2),
           ],
         );
+      },
+    );
+  }
+}
+
+class _ResponsiveSection extends StatelessWidget {
+  final Widget Function(double height) builder;
+
+  const _ResponsiveSection({required this.builder});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double availableHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : (constraints.biggest.height.isFinite
+                ? constraints.biggest.height
+                : 0);
+        return builder(availableHeight);
       },
     );
   }

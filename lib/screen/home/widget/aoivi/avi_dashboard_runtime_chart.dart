@@ -7,8 +7,13 @@ const _idleColor = Color(0xFFF44336);
 
 class PTHDashboardRuntimeChart extends StatelessWidget {
   final Map data;
+  final double? height;
 
-  const PTHDashboardRuntimeChart({super.key, required this.data});
+  const PTHDashboardRuntimeChart({
+    super.key,
+    required this.data,
+    this.height,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +23,9 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
     final bgColor = isDark ? GlobalColors.cardDarkBg : GlobalColors.cardLightBg;
 
     if (machines.isEmpty) return _buildNoDataCard(context);
+
+    final double resolvedHeight =
+        (height != null && height! > 0) ? height! : 240;
 
     return DefaultTabController(
       length: machines.length,
@@ -70,7 +78,7 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
               ),
               const SizedBox(height: 7),
               SizedBox(
-                height: 240,
+                height: resolvedHeight,
                 child: TabBarView(
                   children: machines.map((machine) {
                     return _RuntimeChartForMachine(
@@ -135,12 +143,15 @@ class PTHDashboardRuntimeChart extends StatelessWidget {
   Widget _buildNoDataCard(BuildContext context) {
     final labelColor =
         Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+    final double resolvedHeight =
+        (height != null && height! > 0) ? height! : 230;
+
     return Card(
       color: Theme.of(context).cardColor,
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: SizedBox(
-        height: 230,
+        height: resolvedHeight,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

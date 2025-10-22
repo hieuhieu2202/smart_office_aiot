@@ -6,8 +6,13 @@ import '../../../../config/global_color.dart';
 
 class PTHDashboardOutputChart extends StatelessWidget {
   final Map data;
+  final double? height;
 
-  const PTHDashboardOutputChart({super.key, required this.data});
+  const PTHDashboardOutputChart({
+    super.key,
+    required this.data,
+    this.height,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +62,10 @@ class PTHDashboardOutputChart extends StatelessWidget {
       350.0,
       sections.length * (barWidth * 2 + barSpace + groupSpace) + 10,
     );
-    final chartHeight = maxY < 30 ? 120.0 : math.min(maxY * 2.7, 220.0);
+    final baseChartHeight = maxY < 30 ? 120.0 : math.min(maxY * 2.7, 220.0);
+    final chartHeight = height != null && height! > 0
+        ? math.max(baseChartHeight, math.max(height! - 80, 160))
+        : baseChartHeight;
 
     return Card(
       color: bgColor,
@@ -157,7 +165,7 @@ class PTHDashboardOutputChart extends StatelessWidget {
                           Column(
                             children: [
                               SizedBox(
-                                height: chartHeight+20,
+                                height: chartHeight + 20,
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: List.generate(sections.length, (
