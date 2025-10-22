@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'cells.dart';
+import 'series_utils.dart';
 
 class OtTable extends StatefulWidget {
   final List<String> hours;
@@ -197,7 +198,7 @@ class _OtTableState extends State<OtTable> {
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    _formatHourRange(hours[i]),
+                                    formatHourRange(hours[i]),
                                     maxLines: 1,
                                     style: const TextStyle(
                                       fontSize: 11,
@@ -335,9 +336,9 @@ class _OtTableState extends State<OtTable> {
                         itemExtent: kRowH + kVGap,
                         itemBuilder: (_, r) {
                           final g = widget.groups[r];
-                          final pass = _seriesFor(g, widget.passByGroup, cols);
-                          final yr   = _seriesFor(g, widget.yrByGroup,   cols);
-                          final rr   = _seriesFor(g, widget.rrByGroup,   cols);
+                          final pass = ensureSeries(g, widget.passByGroup, cols);
+                          final yr   = ensureSeries(g, widget.yrByGroup,   cols);
+                          final rr   = ensureSeries(g, widget.rrByGroup,   cols);
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: kVGap),
@@ -407,14 +408,6 @@ class _OtTableState extends State<OtTable> {
     );
   }
 
-  List<double> _seriesFor(String g, Map<String, List<double>> src, int len) {
-    if (len <= 0) return const <double>[];
-    final raw = src[g] ?? const <double>[];
-    if (raw.length == len) return raw;
-    if (raw.length > len)  return List<double>.from(raw.take(len));
-    return [...raw, ...List<double>.filled(len - raw.length, 0)];
-  }
-
   Widget _chip(String t, {required Color color, required double width}) {
     return Container(
       width: width,
@@ -434,18 +427,4 @@ class _OtTableState extends State<OtTable> {
     );
   }
 
-  // "08" -> "07:30 - 08:30"; nếu đã có ":" thì giữ nguyên
-  String _formatHourRange(String s) {
-    final raw = s.trim();
-    if (raw.contains(':')) return raw;
-    final h = int.tryParse(raw);
-    if (h == null) return raw;
-    final endH = (h % 24);
-    final startH = (h - 1) < 0 ? 23 : (h - 1);
-    final start = '${_two(startH)}:30';
-    final end   = '${_two(endH)}:30';
-    return '$start - $end';
-  }
-
-  String _two(int n) => n.toString().padLeft(2, '0');
 }
