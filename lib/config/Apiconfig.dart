@@ -62,6 +62,7 @@ class ApiConfig {
     }
 
     final context = _notificationContextPath.trim();
+
     final sanitizedContext = context.isEmpty
         ? ''
         : (context.startsWith('/') ? context : '/$context');
