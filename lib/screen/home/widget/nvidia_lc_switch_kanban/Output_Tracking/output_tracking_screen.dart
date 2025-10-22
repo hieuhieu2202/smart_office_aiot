@@ -365,14 +365,14 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
         sliver: SliverToBoxAdapter(
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: const Color(0xFF0F223F),
+              color: const Color(0xFF0D213A),
               borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: Colors.white.withOpacity(.05)),
+              border: Border.all(color: const Color(0xFF1E3F66).withOpacity(.6)),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black54,
-                  blurRadius: 16,
-                  offset: Offset(0, 8),
+                  blurRadius: 18,
+                  offset: Offset(0, 10),
                 ),
               ],
             ),

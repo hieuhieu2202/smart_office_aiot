@@ -28,23 +28,24 @@ class TripleCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Màu sử dụng
-    final blue    = const Color(0xFF2E8AF7);
-    final green   = const Color(0xFF21C079);
-    final red     = const Color(0xFFE05656);
-    final warning = const Color(0xFFFFA726);
+    const blue = Color(0xFF42A0FF);
+    const green = Color(0xFF38D893);
+    const red = Color(0xFFFF6B6B);
+    const warning = Color(0xFFFFC56F);
 
     // Kích thước cơ sở (sẽ co giãn theo LayoutBuilder)
-    final baseHeight = compact ? 30.0 : 38.0;
-    final baseGap    = compact ? 8.0  : 10.0;
-    final baseFont   = compact ? 13.0 : 15.0;
-    final radius     = 12.0;
+    final baseHeight = compact ? 32.0 : 42.0;
+    final baseGap = compact ? 8.0 : 10.0;
+    final baseFont = compact ? 13.5 : 16.0;
+    const radius = 14.0;
 
     // Chuẩn bị style theo ngưỡng (đồng bộ web)
-    final passStr   = pass.isNaN ? '0' : pass.round().toString();
-    final passBold  = (pass > 0);
+    final passValue = pass.isFinite ? pass : 0;
+    final passStr = passValue.round().toString();
+    final passBold = passValue > 0;
 
-    final yrVal   = yr.isNaN ? 0.0 : yr;
-    final yrText  = _pct(yrVal);
+    final yrVal = yr.isFinite ? yr : 0.0;
+    final yrText = _pct(yrVal);
     _BadgeStyle yrStyle;
     if (yrVal <= 0) {
       yrStyle = _BadgeStyle.neutral(blue); // không dữ liệu
@@ -56,7 +57,7 @@ class TripleCell extends StatelessWidget {
       yrStyle = _BadgeStyle.neutral(blue, bold: true); // ≥98% trắng đậm
     }
 
-    final rrVal  = rr.isNaN ? 0.0 : rr;
+    final rrVal = rr.isFinite ? rr : 0.0;
     final rrText = _pct(rrVal);
     _BadgeStyle rrStyle;
     if (rrVal < 0 || rrVal >= 5.0) {
@@ -86,14 +87,14 @@ class TripleCell extends StatelessWidget {
         }
 
         // Thu nhỏ chiều cao/font nếu không gian bị hạn chế
-        final minWidth = compact ? 34.0 : 40.0;
+        final minWidth = compact ? 40.0 : 48.0;
         double scale = 1.0;
         if (pillW > 0 && pillW < minWidth) {
           scale = (pillW / minWidth).clamp(0.75, 1.0);
         }
-        final h  = baseHeight * scale;
-        final fs = baseFont   * scale;
-        final pillRadius = radius * scale.clamp(.85, 1.0);
+        final h = baseHeight * scale;
+        final fs = baseFont * scale;
+        final pillRadius = radius * scale.clamp(.8, 1.0);
 
         return Row(
           children: [
@@ -103,7 +104,7 @@ class TripleCell extends StatelessWidget {
               height: h,
               fs: fs,
               // PASS neutral xanh, đậm khi >0
-              style: _BadgeStyle.neutral(blue, bold: passBold),
+              style: _BadgeStyle.neutral(green, bold: passBold),
               radius: pillRadius,
               onTap: onTapPass,
             ),
@@ -163,6 +164,7 @@ class TripleCell extends StatelessWidget {
             fontSize: fs,
             fontWeight: style.bold ? FontWeight.w700 : FontWeight.w500,
             color: style.textColor,
+            letterSpacing: .2,
           ),
         ),
       ),
@@ -182,8 +184,16 @@ class TripleCell extends StatelessWidget {
     );
   }
 
-  String _pct(double v) {
-    final clamped = v.isNaN ? 0 : v.clamp(0, 100);
+  String _pct(double value) {
+    if (value.isNaN || value <= 0) return '0%';
+    final clamped = value.clamp(0, 100);
+    if ((clamped - clamped.round()).abs() < 0.0001) {
+      return '${clamped.round()}%';
+    }
+    final oneDecimal = (clamped * 10).roundToDouble() / 10;
+    if ((clamped - oneDecimal).abs() < 0.0001) {
+      return '${oneDecimal.toStringAsFixed(1)}%';
+    }
     return '${clamped.toStringAsFixed(2)}%';
   }
 }
@@ -204,8 +214,8 @@ class _BadgeStyle {
 
   factory _BadgeStyle.neutral(Color tone, {bool bold = false}) {
     return _BadgeStyle(
-      fillColor: tone.withOpacity(.10),
-      borderColor: tone.withOpacity(.35),
+      fillColor: tone.withOpacity(.18),
+      borderColor: tone.withOpacity(.48),
       textColor: tone,
       bold: bold,
     );
@@ -213,8 +223,8 @@ class _BadgeStyle {
 
   factory _BadgeStyle.solid(Color tone) {
     return _BadgeStyle(
-      fillColor: tone.withOpacity(.12),
-      borderColor: tone.withOpacity(.55),
+      fillColor: tone.withOpacity(.28),
+      borderColor: tone.withOpacity(.72),
       textColor: tone,
       bold: true,
     );

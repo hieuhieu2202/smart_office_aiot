@@ -22,17 +22,26 @@ class OtTable extends StatefulWidget {
 }
 
 class _OtTableState extends State<OtTable> {
-  static const double kRowHeight = 68;
-  static const double kHeaderHeight = 72;
-  static const double kRowGap = 10;
-  static const double kModelWidth = 200;
-  static const double kChipWidth = 72;
-  static const double kChipGap = 8;
-  static const double kStationWidth = 220;
-  static const double kHourWidth = 170;
-  static const double kHourGap = 12;
-  static const double kColumnGap = 18;
-  static const double kRailHorizontalPadding = 24;
+  static const double kRowHeight = 82;
+  static const double kHeaderHeight = 88;
+  static const double kRowGap = 8;
+  static const double kModelWidth = 236;
+  static const double kChipWidth = 92;
+  static const double kChipGap = 10;
+  static const double kStationWidth = 224;
+  static const double kHourWidth = 156;
+  static const double kHourGap = 10;
+  static const double kColumnGap = 16;
+  static const double kRailPaddingX = 18;
+  static const double kHeaderPaddingY = 18;
+  static const double kRowPaddingY = 16;
+  static const BorderRadius kCellRadius = BorderRadius.all(Radius.circular(16));
+
+  static const Color kHeaderBackground = Color(0xFF143A64);
+  static const Color kHeaderBorder = Color(0xFF2C5C8F);
+  static const Color kRailBackground = Color(0xFF0F223F);
+  static const Color kHourBackground = Color(0xFF112B4B);
+  static const Color kGridBorder = Color(0xFF1E3F66);
 
   final ScrollController _hHeaderCtrl = ScrollController();
   final ScrollController _hBodyCtrl = ScrollController();
@@ -84,7 +93,7 @@ class _OtTableState extends State<OtTable> {
   Widget build(BuildContext context) {
     final rows = widget.view.rows;
     final hours = widget.view.hours;
-    final borderColor = Colors.white.withOpacity(.08);
+    const borderColor = kGridBorder;
     final hourColumnsWidth = hours.isEmpty
         ? kHourWidth
         : hours.length * kHourWidth + (hours.length - 1) * kHourGap;
@@ -92,14 +101,22 @@ class _OtTableState extends State<OtTable> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
-        const railContentWidth =
-            (kModelWidth + 4 + 1 + 6 + kStationWidth + 4 + 1 + 6 + (kChipWidth * 3) + (kChipGap * 2));
-        const desiredLeftWidth = railContentWidth + kRailHorizontalPadding;
+        const railContentWidth = kModelWidth +
+            4 +
+            1 +
+            6 +
+            kStationWidth +
+            4 +
+            1 +
+            6 +
+            (kChipWidth * 3) +
+            (kChipGap * 2);
+        const railShellWidth = railContentWidth + (kRailPaddingX * 2);
         final available = (maxWidth - kColumnGap).clamp(0.0, double.infinity);
-        final needsRailScroll = available < desiredLeftWidth;
-        final leftWidth = needsRailScroll
-            ? available.clamp(kRailHorizontalPadding, desiredLeftWidth)
-            : desiredLeftWidth;
+        final safeWidth = available.isFinite && available > 0 ? available : railShellWidth;
+        final needsRailScroll = safeWidth + 0.5 < railShellWidth;
+        final desiredWidth = needsRailScroll ? safeWidth : railShellWidth;
+        final leftWidth = desiredWidth.clamp(0.0, maxWidth);
 
         return Column(
           children: [
@@ -169,11 +186,14 @@ class _OtTableState extends State<OtTable> {
                                     child: Container(
                                       width: kHourWidth,
                                       height: kRowHeight,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 14,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0x0FFFFFFF),
+                                        color: kHourBackground,
                                         border: Border.all(color: borderColor),
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: kCellRadius,
                                       ),
                                       child: TripleCell(
                                         pass: metric.pass,
@@ -228,11 +248,14 @@ class _OtTableState extends State<OtTable> {
         Container(
           width: leftWidth,
           height: kHeaderHeight,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: kRailPaddingX,
+            vertical: kHeaderPaddingY,
+          ),
           decoration: BoxDecoration(
-            color: const Color(0xFF143A64),
-            border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(12),
+            color: kHeaderBackground,
+            border: Border.all(color: kHeaderBorder),
+            borderRadius: kCellRadius,
           ),
           child: _buildRailHeaderContent(borderColor, allowRailScroll, railContentWidth),
         ),
@@ -254,11 +277,14 @@ class _OtTableState extends State<OtTable> {
                     child: Container(
                       width: kHourWidth,
                       height: kHeaderHeight,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 16,
+                      ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF143A64),
-                        border: Border.all(color: borderColor),
-                        borderRadius: BorderRadius.circular(12),
+                        color: kHeaderBackground,
+                        border: Border.all(color: kHeaderBorder),
+                        borderRadius: kCellRadius,
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -268,15 +294,20 @@ class _OtTableState extends State<OtTable> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: .2,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: .25,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           const Text(
                             'PASS   YR   RR',
-                            style: TextStyle(fontSize: 11, color: Colors.white70),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white70,
+                              letterSpacing: 1.5,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -314,7 +345,7 @@ class _OtTableState extends State<OtTable> {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.left,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: FontWeight.w800,
                   letterSpacing: .3,
                   color: Colors.white,
@@ -340,13 +371,14 @@ class _OtTableState extends State<OtTable> {
         physics: allowRailScroll
             ? const ClampingScrollPhysics()
             : const NeverScrollableScrollPhysics(),
+        clipBehavior: Clip.none,
         child: row,
       ),
     );
   }
 
   Widget _divider(Color borderColor) =>
-      Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.6));
+      Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.9));
 
   Widget _headerCell(String text, {required double width, TextAlign align = TextAlign.center}) {
     return SizedBox(
@@ -358,9 +390,9 @@ class _OtTableState extends State<OtTable> {
           overflow: TextOverflow.ellipsis,
           textAlign: align,
           style: const TextStyle(
-            fontSize: 13,
+            fontSize: 15,
             fontWeight: FontWeight.w800,
-            letterSpacing: .4,
+            letterSpacing: .35,
             color: Colors.white,
           ),
         ),
@@ -402,9 +434,9 @@ class _LeftRow extends StatelessWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: .25,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: .3,
                     color: Colors.white,
                   ),
                 ),
@@ -412,7 +444,7 @@ class _LeftRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.6)),
+          Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.75)),
           const SizedBox(width: 6),
           SizedBox(
             width: _OtTableState.kStationWidth,
@@ -433,9 +465,9 @@ class _LeftRow extends StatelessWidget {
                         row.station,
                         softWrap: false,
                         style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: .2,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: .25,
                           color: Colors.white,
                         ),
                       ),
@@ -446,22 +478,22 @@ class _LeftRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.6)),
+          Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.75)),
           const SizedBox(width: 6),
           _summaryChip(
             '${row.wip}',
-            color: Colors.blue,
+            color: const Color(0xFF42A0FF),
           ),
           SizedBox(width: _OtTableState.kChipGap),
           _summaryChip(
             '${row.totalPass}',
-            color: Colors.green,
+            color: const Color(0xFF38D893),
             onTap: onTapStation,
           ),
           SizedBox(width: _OtTableState.kChipGap),
           _summaryChip(
             '${row.totalFail}',
-            color: Colors.red,
+            color: const Color(0xFFFF6B6B),
             onTap: onTapStation,
           ),
         ],
@@ -474,31 +506,36 @@ class _LeftRow extends StatelessWidget {
         physics: allowHorizontalScroll
             ? const ClampingScrollPhysics()
             : const NeverScrollableScrollPhysics(),
+        clipBehavior: Clip.none,
         child: content,
       ),
     );
 
     return Container(
       height: _OtTableState.kRowHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _OtTableState.kRailPaddingX,
+        vertical: _OtTableState.kRowPaddingY,
+      ),
       decoration: BoxDecoration(
-        color: const Color(0x0FFFFFFF),
+        color: _OtTableState.kRailBackground,
         border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: _OtTableState.kCellRadius,
       ),
       child: content,
     );
   }
 
   Widget _summaryChip(String text, {required Color color, VoidCallback? onTap}) {
+    final chipHeight = _OtTableState.kRowHeight - (_OtTableState.kRowPaddingY * 2);
     Widget chip = Container(
       width: _OtTableState.kChipWidth,
-      height: _OtTableState.kRowHeight - 24,
+      height: chipHeight,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: color.withOpacity(.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(.45)),
+        color: color.withOpacity(.18),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(.55)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: FittedBox(
@@ -506,7 +543,7 @@ class _LeftRow extends StatelessWidget {
         child: Text(
           text,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: FontWeight.w700,
             color: color,
             letterSpacing: .25,

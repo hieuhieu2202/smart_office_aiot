@@ -22,8 +22,8 @@ class OtMobileRowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const cardColor = Color(0xFF0F223F);
-    const borderColor = Color(0xFF1E345A);
+    const cardColor = Color(0xFF0F233F);
+    const borderColor = Color(0xFF1E3F66);
     final titleStyle = theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w700,
           color: Colors.white,
@@ -56,20 +56,20 @@ class OtMobileRowCard extends StatelessWidget {
             Text(row.model, style: subtitleStyle),
             const SizedBox(height: 12),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: 10,
+              runSpacing: 10,
               children: [
-                _statChip('WIP', row.wip, Colors.lightBlueAccent),
+                _statChip('WIP', row.wip, const Color(0xFF42A0FF)),
                 _statChip(
                   'PASS',
                   row.totalPass,
-                  Colors.greenAccent,
+                  const Color(0xFF38D893),
                   onTap: onStationTap,
                 ),
                 _statChip(
                   'FAIL',
                   row.totalFail,
-                  Colors.redAccent,
+                  const Color(0xFFFF6B6B),
                   onTap: onStationTap,
                 ),
               ],
@@ -125,11 +125,11 @@ class OtMobileRowCard extends StatelessWidget {
 
   Widget _statChip(String label, int value, Color color, {VoidCallback? onTap}) {
     Widget chip = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(.45)),
-        color: color.withOpacity(.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(.55)),
+        color: color.withOpacity(.18),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -140,7 +140,7 @@ class OtMobileRowCard extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontWeight: FontWeight.w600,
-              letterSpacing: .2,
+              letterSpacing: .25,
             ),
           ),
           const SizedBox(height: 4),
@@ -149,7 +149,7 @@ class OtMobileRowCard extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 18,
             ),
           ),
         ],
