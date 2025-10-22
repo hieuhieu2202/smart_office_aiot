@@ -483,15 +483,20 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   }
 
   Future<String?> _showRemoteDirectoryPicker() {
+    final mediaQuery = MediaQuery.of(context);
+    final width = mediaQuery.size.width;
+    final height = mediaQuery.size.height;
+    final useSideSheet = width >= 900 && height >= 600;
+
     final picker = _RemoteDirectoryPicker(
       initialPath: _selectedFolder,
       service: _uploadService,
-      presentation: (!kIsWeb && Platform.isWindows)
+      presentation: useSideSheet
           ? _DirectoryPickerPresentation.sideSheet
           : _DirectoryPickerPresentation.bottomSheet,
     );
 
-    if (!kIsWeb && Platform.isWindows) {
+    if (useSideSheet) {
       return showGeneralDialog<String>(
         context: context,
         barrierDismissible: true,
@@ -500,10 +505,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         transitionDuration: const Duration(milliseconds: 320),
         pageBuilder: (context, animation, secondaryAnimation) {
           final media = MediaQuery.of(context);
-          final width = media.size.width;
-          final sheetWidth = width >= 1200
-              ? 460.0
-              : math.min(width * 0.7, 460.0);
+          final dialogWidth = media.size.width;
+          final sheetWidth = dialogWidth.isFinite
+              ? math.max(340.0, math.min(dialogWidth * 0.4, 520.0))
+              : 420.0;
 
           return SafeArea(
             child: Align(
