@@ -367,17 +367,25 @@ class _RuntimeChartForMachine extends StatelessWidget {
     );
     double chartHeight =
         barMax < 30 ? 160.0 : math.min(barMax * 3.1, 420.0);
-    const double minChartHeight = 180.0;
+    double minChartHeight = 180.0;
     double maxChartHeight = 520.0;
 
     if (viewportHeight != null && viewportHeight.isFinite) {
-      final double headerAllowance = math.max(0.0, viewportHeight - 176.0);
-      if (headerAllowance > 0) {
-        maxChartHeight = math.max(minChartHeight, headerAllowance);
-      }
+      final double availableForChart = viewportHeight - 55.0;
+      final double viewportMax = math.max(120.0, availableForChart);
+      maxChartHeight = math.min(maxChartHeight, viewportMax);
+      minChartHeight = math.min(minChartHeight, maxChartHeight);
     }
 
     chartHeight = chartHeight.clamp(minChartHeight, maxChartHeight).toDouble();
+
+    if (viewportHeight != null && viewportHeight.isFinite) {
+      final double allowance = viewportHeight - 55.0;
+      if (allowance.isFinite && allowance > 0) {
+        final double safeMax = math.max(80.0, allowance);
+        chartHeight = math.min(chartHeight, safeMax);
+      }
+    }
 
     // Tạo nhãn Y
     List<int> yLabels = [];

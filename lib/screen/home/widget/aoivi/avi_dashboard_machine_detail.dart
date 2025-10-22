@@ -128,120 +128,135 @@ class PTHDashboardMachineDetail extends StatelessWidget {
                     final fewCols = timeList.length <= 5;
                     final cellWidth = fewCols ? 100.0 : 78.0;
 
-                    return SizedBox(
-                      height: tableHeight,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            children: [
-                              Container(
-                                width: cellWidth,
-                                height: 36,
-                                color: isDark
-                                    ? Colors.blueGrey[900]
-                                    : Colors.blue[50],
-                                child: Center(
-                                  child: Text(
-                                    "Status",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: fewCols ? 15 : 13),
-                                  ),
+                    final rowContent = Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Column(
+                          children: [
+                            Container(
+                              width: cellWidth,
+                              height: 36,
+                              color: isDark
+                                  ? Colors.blueGrey[900]
+                                  : Colors.blue[50],
+                              child: Center(
+                                child: Text(
+                                  "Status",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: fewCols ? 15 : 13),
                                 ),
                               ),
-                              ...statusList.map((status) => Container(
-                                    width: cellWidth,
-                                    height: 44,
-                                    color: Colors.transparent,
-                                    child: Center(
-                                      child: Text(
-                                        status,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: _statusColor(status),
-                                          fontSize: fewCols ? 14 : 12,
-                                        ),
+                            ),
+                            ...statusList.map((status) => Container(
+                                  width: cellWidth,
+                                  height: 44,
+                                  color: Colors.transparent,
+                                  child: Center(
+                                    child: Text(
+                                      status,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: _statusColor(status),
+                                        fontSize: fewCols ? 14 : 12,
                                       ),
                                     ),
-                                  )),
-                            ],
-                          ),
-                          Expanded(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: timeList
-                                        .map((t) => Container(
-                                              width: cellWidth,
-                                              height: 36,
-                                              color: isDark
-                                                  ? Colors.blueGrey[900]
-                                                  : Colors.blue[50],
-                                              child: Center(
-                                                child: Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Text(
-                                                      t,
+                                  ),
+                                )),
+                          ],
+                        ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: timeList
+                                      .map((t) => Container(
+                                            width: cellWidth,
+                                            height: 36,
+                                            color: isDark
+                                                ? Colors.blueGrey[900]
+                                                : Colors.blue[50],
+                                            child: Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    t,
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize:
+                                                            fewCols ? 14 : 12),
+                                                  ),
+                                                  const Text("Minutes / %",
                                                       style: TextStyle(
-                                                          fontWeight: FontWeight.bold,
-                                                          fontSize: fewCols ? 14 : 12),
-                                                    ),
-                                                    const Text("Minutes / %",
-                                                        style: TextStyle(
-                                                            fontSize: 11,
-                                                            color: Colors.grey)),
-                                                  ],
+                                                          fontSize: 11,
+                                                          color: Colors.grey)),
+                                                ],
+                                              ),
+                                            ),
+                                          ))
+                                      .toList(),
+                                ),
+                                ...statusList.map((status) => Row(
+                                      children: timeList.map((t) {
+                                        final cell = statusTimeMap[status]?[t];
+                                        final value = cell?['value'] ?? '--';
+                                        final percent = cell?['percent'] ?? '--';
+                                        return Container(
+                                          width: cellWidth,
+                                          height: 44,
+                                          alignment: Alignment.center,
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                value.toString(),
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _statusColor(status),
+                                                  fontSize:
+                                                      fewCols ? 16 : 13,
                                                 ),
                                               ),
-                                            ))
-                                        .toList(),
-                                  ),
-                                  ...statusList.map((status) => Row(
-                                        children: timeList.map((t) {
-                                          final cell = statusTimeMap[status]?[t];
-                                          final value = cell?['value'] ?? '--';
-                                          final percent = cell?['percent'] ?? '--';
-                                          return Container(
-                                            width: cellWidth,
-                                            height: 44,
-                                            alignment: Alignment.center,
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  value.toString(),
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: _statusColor(status),
-                                                    fontSize:
-                                                        fewCols ? 16 : 13,
-                                                  ),
+                                              Text(
+                                                "$percent%",
+                                                style: TextStyle(
+                                                  color: Colors.blue,
+                                                  fontSize:
+                                                      fewCols ? 13 : 11,
+                                                  fontWeight: FontWeight.w600,
                                                 ),
-                                                Text(
-                                                  "$percent%",
-                                                  style: TextStyle(
-                                                    color: Colors.blue,
-                                                    fontSize:
-                                                        fewCols ? 13 : 11,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }).toList(),
-                                      )),
-                                ],
-                              ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
+                                    )),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
+                      ],
+                    );
+
+                    return SizedBox(
+                      height: tableHeight,
+                      child: Scrollbar(
+                        thumbVisibility: false,
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: tableHeight,
+                            ),
+                            child: rowContent,
+                          ),
+                        ),
                       ),
                     );
                   }).toList(),
