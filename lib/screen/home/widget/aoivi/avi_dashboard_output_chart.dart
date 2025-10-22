@@ -62,9 +62,12 @@ class PTHDashboardOutputChart extends StatelessWidget {
       350.0,
       sections.length * (barWidth * 2 + barSpace + groupSpace) + 10,
     );
-    final baseChartHeight = maxY < 30 ? 120.0 : math.min(maxY * 2.7, 220.0);
-    final chartHeight = height != null && height! > 0
-        ? math.max(baseChartHeight, math.max(height! - 80, 160))
+    final double baseChartHeight =
+        maxY < 30 ? 120.0 : math.min(maxY * 2.7, 220.0).toDouble();
+    final double chartHeight = height != null && height! > 0
+        ? math
+            .max(baseChartHeight, math.max(height! - 80, 160))
+            .toDouble()
         : baseChartHeight;
 
     return Card(
