@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'http_helper.dart';
 
@@ -140,7 +141,11 @@ class KanbanApi {
 
     KanbanApiLog.net(() => '[KanbanApi] POST $uri');
     KanbanApiLog.net(
-      () => '[KanbanApi] body => ${_safeBody(body)} | groups=${sanitizedGroups.length}',
+      () {
+        final previewCount = math.min(5, sanitizedGroups.length);
+        final preview = sanitizedGroups.take(previewCount).join(', ');
+        return '[KanbanApi] body => ${_safeBody(body)} | groups=${sanitizedGroups.length} | sample=[$preview]';
+      },
     );
 
     final res = await HttpHelper().post(
@@ -152,7 +157,12 @@ class KanbanApi {
 
     _ensure200(res, 'GetOutputTrackingDataDetail');
     final data = jsonDecode(res.body);
-    return KanbanOutputTrackingDetail.fromAny(data);
+    final detail = KanbanOutputTrackingDetail.fromAny(data);
+    KanbanApiLog.net(
+      () =>
+          '[KanbanApi] detail response -> errors=${detail.errorDetails.length} testers=${detail.testerDetails.length}',
+    );
+    return detail;
   }
 
   static Future<KanbanUphTracking> getUphTrackingData({

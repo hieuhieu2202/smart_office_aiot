@@ -194,25 +194,20 @@ class KanbanController extends GetxController {
   }) async {
     final selectionSet = <String>{};
 
-    // 1) Ưu tiên chính là các model đã chọn ở bộ lọc hiện tại.
-    if (groups.isNotEmpty) {
-      selectionSet.addAll(
-        groups.map((e) => e.trim()).where((e) => e.isNotEmpty),
-      );
+    void addIfNotEmpty(Iterable<String> source) {
+      selectionSet.addAll(source.map((e) => e.trim()).where((e) => e.isNotEmpty));
     }
+
+    // 1) Ưu tiên chính là các model đã chọn ở bộ lọc hiện tại.
+    if (groups.isNotEmpty) addIfNotEmpty(groups);
 
     // 2) Bổ sung danh sách model mà API OutputTracking trả về.
-    final responseModels = outputTracking.value?.model ?? const <String>[];
-    selectionSet.addAll(
-      responseModels.map((e) => e.trim()).where((e) => e.isNotEmpty),
-    );
+    addIfNotEmpty(outputTracking.value?.model ?? const <String>[]);
 
-    // 3) Nếu vẫn rỗng (hiếm khi xảy ra) thì dùng toàn bộ model đã cache.
-    if (selectionSet.isEmpty && allModels.isNotEmpty) {
-      selectionSet.addAll(
-        allModels.map((e) => e.trim()).where((e) => e.isNotEmpty),
-      );
-    }
+    // 3) Theo yêu cầu nghiệp vụ: luôn gửi toàn bộ model hiện có từ SFIS.
+    if (allModels.isNotEmpty) addIfNotEmpty(allModels);
+
+    // 4) Nếu vẫn rỗng (trường hợp bất thường) thì giữ nguyên.
 
     final groupList = selectionSet.toList()
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
