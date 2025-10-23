@@ -192,9 +192,26 @@ class KanbanController extends GetxController {
     required String station,
     required String section,
   }) async {
-    final groupList = groups.isNotEmpty
+    final responseModels = outputTracking.value?.model ?? const <String>[];
+    final normalizedResponseModels = responseModels
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    final fallbackSelection = groups.isNotEmpty
         ? groups.toList()
         : allModels.toList();
+    final groupList = normalizedResponseModels.isNotEmpty
+        ? normalizedResponseModels
+        : fallbackSelection
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
     if (groupList.isEmpty) {
       throw Exception('Không có model nào được chọn.');
     }

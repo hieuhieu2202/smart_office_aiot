@@ -122,6 +122,7 @@ class KanbanApi {
       'date': date,
       'shift': shift,
       'groups': groups,
+      'model': groups,
       'section': section,
       'station': station,
       'dateRange': 'string',
