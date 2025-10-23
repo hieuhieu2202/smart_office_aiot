@@ -682,18 +682,18 @@ class _MergedModelCell extends StatelessWidget {
           color: _OtTableState.kRailBackground,
           border: Border.all(color: borderColor.withOpacity(.65), width: .7),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Tooltip(
-            message: display,
-            child: Align(
-              alignment: Alignment.topLeft,
+        child: Tooltip(
+          message: display,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
                 display,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
+                  fontWeight: FontWeight.w700,
+                  height: 1.25,
                   color: Colors.white,
                 ),
               ),
@@ -741,14 +741,14 @@ class _LeftRow extends StatelessWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onTapStation,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
+                  child: Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
                         row.station,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,

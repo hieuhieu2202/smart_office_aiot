@@ -190,16 +190,16 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
   double _computeTableHeight(BuildContext context, bool isMobile, bool isTablet) {
     final size = MediaQuery.of(context).size;
     final reserved = isMobile
-        ? 260.0
+        ? 210.0
         : isTablet
-            ? 300.0
-            : 320.0;
+            ? 240.0
+            : 255.0;
     final base = size.height - reserved;
-    final fallback = size.height * (isMobile ? 0.85 : 0.75);
-    final candidate = base.isFinite && base > 260 ? base : fallback;
-    final maxHeight = size.height * 0.96;
+    final fallback = size.height * (isMobile ? 0.9 : 0.82);
+    final candidate = base.isFinite && base > 300 ? base : fallback;
+    final maxHeight = size.height * 0.985;
     return candidate
-        .clamp(360.0, math.max(360.0, maxHeight))
+        .clamp(380.0, math.max(380.0, maxHeight))
         .toDouble();
   }
 
@@ -355,7 +355,7 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
 
     return [
       SliverPadding(
-        padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 16),
+        padding: EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 12),
         sliver: SliverToBoxAdapter(
           child: Container(
             color: const Color(0xFF0D213A),
@@ -468,10 +468,10 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onRefresh,
   }) : preferredSize = Size.fromHeight(
           isMobile
-              ? 220
+              ? 240
               : isTablet
-                  ? 200
-                  : 188,
+                  ? 220
+                  : 206,
         );
 
   final String title;
@@ -516,7 +516,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(16, isMobile ? 12 : 16, 16, 18),
+          padding: EdgeInsets.fromLTRB(16, isMobile ? 14 : 18, 16, 20),
           child: Column(
             crossAxisAlignment:
                 isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
@@ -524,12 +524,13 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  IconButton(
-                    tooltip: 'Quay lại',
-                    onPressed: onBack,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: BackButton(
+                      color: Colors.white,
+                      onPressed: onBack,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
