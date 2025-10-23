@@ -216,6 +216,11 @@ class OtSectionDetailDialog extends StatelessWidget {
                 points: errorPoints,
                 emptyMessage: 'Không có lỗi nào trong khung giờ này.',
                 primaryHeader: 'Error Code',
+                barGradient: const LinearGradient(
+                  colors: [Color(0xFFFFA8A8), Color(0xFFFF4E50)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
               const SizedBox(height: 20),
               _buildBarChart(
@@ -223,6 +228,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                 points: testerPoints,
                 emptyMessage: 'Không có dữ liệu máy test trong khung giờ này.',
                 primaryHeader: 'Tester Station',
+                barColor: const Color(0xFF66D9EF),
               ),
             ],
           ),
@@ -236,6 +242,8 @@ class OtSectionDetailDialog extends StatelessWidget {
     required List<_DetailPoint> points,
     required String emptyMessage,
     required String primaryHeader,
+    LinearGradient? barGradient,
+    Color? barColor,
   }) {
     const panelColor = Color(0xFF162C4B);
     final effectivePoints = _effectivePoints(points);
@@ -319,6 +327,8 @@ class OtSectionDetailDialog extends StatelessWidget {
                                 chartPoints,
                                 panelColor,
                                 0,
+                                gradient: barGradient,
+                                color: barColor,
                               ),
                             ),
                           ],
@@ -339,6 +349,8 @@ class OtSectionDetailDialog extends StatelessWidget {
                           chartPoints,
                           panelColor,
                           0,
+                          gradient: barGradient,
+                          color: barColor,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -359,8 +371,10 @@ class OtSectionDetailDialog extends StatelessWidget {
   Widget _buildDetailChart(
     List<_DetailPoint> points,
     Color panelColor,
-    double minHeight,
-  ) {
+    double minHeight, {
+    LinearGradient? gradient,
+    Color? color,
+  }) {
     return SizedBox.expand(
       child: Container(
         constraints: BoxConstraints(minHeight: minHeight),
@@ -383,7 +397,8 @@ class OtSectionDetailDialog extends StatelessWidget {
               dataSource: points,
               xValueMapper: (p, _) => p.label,
               yValueMapper: (p, _) => p.value.toDouble(),
-              color: const Color(0xFF66D9EF),
+              gradient: gradient,
+              color: gradient == null ? (color ?? const Color(0xFF66D9EF)) : null,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
               dataLabelSettings: const DataLabelSettings(
                 isVisible: true,
