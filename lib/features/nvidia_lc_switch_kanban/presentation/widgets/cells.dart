@@ -1,6 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+const Color kOtPassAccent = Color(0xFF38D893);
+const Color kOtNeutralAccent = Colors.white70;
+const Color kOtInfoAccent = Color(0xFF42A0FF);
+const Color kOtWarnAccent = Color(0xFFFFC56F);
+const Color kOtDangerAccent = Color(0xFFFF6B6B);
+
+Color otPassColor(double value) =>
+    value.isFinite && value > 0 ? kOtPassAccent : kOtNeutralAccent;
+
+Color otYieldRateColor(double value) {
+  if (!value.isFinite || value <= 0) return kOtNeutralAccent;
+  if (value < 95) return kOtDangerAccent;
+  if (value < 98) return kOtWarnAccent;
+  return kOtInfoAccent;
+}
+
+Color otRetestRateColor(double value) {
+  if (!value.isFinite) return kOtNeutralAccent;
+  if (value < 0 || value >= 5) return kOtDangerAccent;
+  if (value >= 3) return kOtWarnAccent;
+  return kOtInfoAccent;
+}
+
+String otFormatRate(double value) {
+  if (!value.isFinite || value <= 0) return '0%';
+  final clamped = value.clamp(0, 100);
+  if ((clamped - clamped.round()).abs() < 0.0001) {
+    return '${clamped.round()}%';
+  }
+  final oneDecimal = (clamped * 10).roundToDouble() / 10;
+  if ((clamped - oneDecimal).abs() < 0.0001) {
+    return '${oneDecimal.toStringAsFixed(1)}%';
+  }
+  return '${clamped.toStringAsFixed(2)}%';
+}
+
 /// Hiển thị 3 giá trị PASS | YR | RR theo bố cục bảng giống web.
 class TripleCell extends StatelessWidget {
   const TripleCell({
@@ -25,11 +61,6 @@ class TripleCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const dividerColor = Color(0xFF1C2F4A);
-    const passColor = Color(0xFF38D893);
-    const neutralColor = Colors.white70;
-    const infoColor = Color(0xFF42A0FF);
-    const warnColor = Color(0xFFFFC56F);
-    const dangerColor = Color(0xFFFF6B6B);
 
     final baseFontSize = compact ? 12.0 : 13.0;
 
@@ -37,33 +68,23 @@ class TripleCell extends StatelessWidget {
     final passText = passValue.round().toString();
     final passStyle = _metricStyle(
       fontSize: baseFontSize,
-      color: passValue > 0 ? passColor : neutralColor,
+      color: otPassColor(passValue),
       isBold: passValue > 0,
     );
 
     final yrValue = yr.isFinite ? yr : 0.0;
-    final yrText = _pct(yrValue);
+    final yrText = otFormatRate(yrValue);
     final yrStyle = _metricStyle(
       fontSize: baseFontSize,
-      color: yrValue <= 0
-          ? neutralColor
-          : yrValue < 95
-              ? dangerColor
-              : yrValue < 98
-                  ? warnColor
-                  : infoColor,
+      color: otYieldRateColor(yrValue),
       isBold: yrValue >= 98,
     );
 
     final rrValue = rr.isFinite ? rr : 0.0;
-    final rrText = _pct(rrValue);
+    final rrText = otFormatRate(rrValue);
     final rrStyle = _metricStyle(
       fontSize: baseFontSize,
-      color: rrValue < 0 || rrValue >= 5
-          ? dangerColor
-          : rrValue >= 3
-              ? warnColor
-              : infoColor,
+      color: otRetestRateColor(rrValue),
       isBold: rrValue > 0 && rrValue < 3,
     );
 
@@ -126,18 +147,5 @@ class TripleCell extends StatelessWidget {
     }
 
     return Expanded(child: label);
-  }
-
-  String _pct(double value) {
-    if (value.isNaN || value <= 0) return '0%';
-    final clamped = value.clamp(0, 100);
-    if ((clamped - clamped.round()).abs() < 0.0001) {
-      return '${clamped.round()}%';
-    }
-    final oneDecimal = (clamped * 10).roundToDouble() / 10;
-    if ((clamped - oneDecimal).abs() < 0.0001) {
-      return '${oneDecimal.toStringAsFixed(1)}%';
-    }
-    return '${clamped.toStringAsFixed(2)}%';
   }
 }
