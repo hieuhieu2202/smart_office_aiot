@@ -64,7 +64,7 @@ class TripleCell extends StatelessWidget {
 
     final baseFontSize = compact ? 14.0 : 15.0;
 
-    final passValue = pass.isFinite ? pass : 0;
+    final passValue = pass.isFinite ? pass : 0.0;
     final passText = passValue.round().toString();
     final passStyle = _metricStyle(
       fontSize: baseFontSize,
