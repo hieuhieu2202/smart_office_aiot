@@ -192,25 +192,30 @@ class KanbanController extends GetxController {
     required String station,
     required String section,
   }) async {
-    final responseModels = outputTracking.value?.model ?? const <String>[];
-    final normalizedResponseModels = responseModels
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final selectionSet = <String>{};
 
-    final fallbackSelection = groups.isNotEmpty
-        ? groups.toList()
-        : allModels.toList();
-    final groupList = normalizedResponseModels.isNotEmpty
-        ? normalizedResponseModels
-        : fallbackSelection
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    // 1) Ưu tiên chính là các model đã chọn ở bộ lọc hiện tại.
+    if (groups.isNotEmpty) {
+      selectionSet.addAll(
+        groups.map((e) => e.trim()).where((e) => e.isNotEmpty),
+      );
+    }
+
+    // 2) Bổ sung danh sách model mà API OutputTracking trả về.
+    final responseModels = outputTracking.value?.model ?? const <String>[];
+    selectionSet.addAll(
+      responseModels.map((e) => e.trim()).where((e) => e.isNotEmpty),
+    );
+
+    // 3) Nếu vẫn rỗng (hiếm khi xảy ra) thì dùng toàn bộ model đã cache.
+    if (selectionSet.isEmpty && allModels.isNotEmpty) {
+      selectionSet.addAll(
+        allModels.map((e) => e.trim()).where((e) => e.isNotEmpty),
+      );
+    }
+
+    final groupList = selectionSet.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
     if (groupList.isEmpty) {
       throw Exception('Không có model nào được chọn.');

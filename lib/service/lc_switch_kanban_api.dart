@@ -116,13 +116,19 @@ class KanbanApi {
     required String station,
     required String section,
   }) async {
+    final sanitizedGroups = groups
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
     final uri = Uri.parse('$_base/OutputTracking/GetOutputTrackingDataDetail');
     final body = <String, dynamic>{
       'modelSerial': modelSerial,
       'date': date,
       'shift': shift,
-      'groups': groups,
-      'model': groups,
+      'groups': sanitizedGroups,
       'section': section,
       'station': station,
       'dateRange': 'string',
@@ -133,7 +139,9 @@ class KanbanApi {
     };
 
     KanbanApiLog.net(() => '[KanbanApi] POST $uri');
-    KanbanApiLog.net(() => '[KanbanApi] body => ${_safeBody(body)}');
+    KanbanApiLog.net(
+      () => '[KanbanApi] body => ${_safeBody(body)} | groups=${sanitizedGroups.length}',
+    );
 
     final res = await HttpHelper().post(
       uri,
