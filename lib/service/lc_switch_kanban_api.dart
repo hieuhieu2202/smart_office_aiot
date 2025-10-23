@@ -124,6 +124,10 @@ class KanbanApi {
         .toList()
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
+    if (sanitizedGroups.isEmpty) {
+      throw Exception('GetOutputTrackingDataDetail: groups is empty');
+    }
+
     final uri = Uri.parse('$_base/OutputTracking/GetOutputTrackingDataDetail');
     final body = <String, dynamic>{
       'modelSerial': modelSerial,
@@ -444,10 +448,33 @@ void _ensure200(http.Response res, String apiName) {
 }
 
 String _safeBody(Map<String, dynamic> body) {
-  final copy = Map<String, dynamic>.from(body)..removeWhere(
-    (k, v) => k.toLowerCase().contains('token') || v.toString().length > 500,
-  );
-  return copy.toString();
+  final preview = <String, dynamic>{};
+
+  String _truncate(String value, {int max = 160}) {
+    if (value.length <= max) return value;
+    return '${value.substring(0, max)}…';
+  }
+
+  body.forEach((key, value) {
+    final lowerKey = key.toLowerCase();
+    if (lowerKey.contains('token')) return;
+
+    if (value is List) {
+      final sample = value.take(5).map((e) => e.toString()).toList();
+      final suffix = value.length > sample.length ? ', …' : '';
+      preview[key] = '[${value.length} items] ${sample.join(', ')}$suffix';
+      return;
+    }
+
+    if (value is String) {
+      preview[key] = _truncate(value);
+      return;
+    }
+
+    preview[key] = value;
+  });
+
+  return preview.toString();
 }
 
 dynamic _valueFor(Map<String, dynamic> s, List<String> k) {
