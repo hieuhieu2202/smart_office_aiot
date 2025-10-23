@@ -155,12 +155,10 @@ class OtSectionDetailDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final errorPoints = detail.errorDetails
         .map((e) => _DetailPoint(label: e.code, value: e.failQty))
-        .where((p) => p.value > 0)
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final testerPoints = detail.testerDetails
         .map((e) => _DetailPoint(label: e.stationName, value: e.failQty))
-        .where((p) => p.value > 0)
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -224,8 +222,11 @@ class OtSectionDetailDialog extends StatelessWidget {
     required List<_DetailPoint> points,
     required String emptyMessage,
   }) {
+    final effectivePoints = _effectivePoints(points);
     return SizedBox(
-      height: points.isEmpty ? 140 : math.min(320, 56.0 * math.max(4, points.length)),
+      height: effectivePoints.isEmpty
+          ? 140
+          : math.min(320, 56.0 * math.max(4, effectivePoints.length)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -239,7 +240,7 @@ class OtSectionDetailDialog extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: points.isEmpty
+            child: effectivePoints.isEmpty
                 ? Container(
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
@@ -258,7 +259,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                     primaryXAxis: CategoryAxis(
                       majorGridLines: const MajorGridLines(width: 0),
                       labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
-                      labelRotation: points.length > 6 ? -35 : 0,
+                      labelRotation: effectivePoints.length > 6 ? -35 : 0,
                     ),
                     primaryYAxis: NumericAxis(
                       majorGridLines: const MajorGridLines(dashArray: [4, 4], color: Colors.white24),
@@ -268,7 +269,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                     tooltipBehavior: TooltipBehavior(enable: true),
                     series: <CartesianSeries<dynamic, dynamic>>[
                       ColumnSeries<_DetailPoint, String>(
-                        dataSource: points,
+                        dataSource: effectivePoints,
                         xValueMapper: (p, _) => p.label,
                         yValueMapper: (p, _) => p.value.toDouble(),
                         color: const Color(0xFF66D9EF),
@@ -285,6 +286,18 @@ class OtSectionDetailDialog extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<_DetailPoint> _effectivePoints(List<_DetailPoint> points) {
+    if (points.isEmpty) return const [];
+
+    final positive = points.where((p) => p.value > 0).toList();
+    if (positive.isNotEmpty) {
+      return positive.length > 12 ? positive.take(12).toList() : positive;
+    }
+
+    final limit = math.min(12, points.length);
+    return points.take(limit).toList();
   }
 }
 
