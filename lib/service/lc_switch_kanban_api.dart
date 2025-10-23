@@ -314,8 +314,12 @@ class KanbanErrorDetail {
         final value = json[key];
         if (value == null) continue;
         if (value is num) return value.round();
-        final parsed = int.tryParse(value.toString());
-        if (parsed != null) return parsed;
+        final text = value.toString().trim();
+        if (text.isEmpty) continue;
+        final parsedInt = int.tryParse(text);
+        if (parsedInt != null) return parsedInt;
+        final parsedDouble = double.tryParse(text);
+        if (parsedDouble != null) return parsedDouble.round();
       }
       return 0;
     }
@@ -350,8 +354,12 @@ class KanbanTesterDetail {
         final value = json[key];
         if (value == null) continue;
         if (value is num) return value.round();
-        final parsed = int.tryParse(value.toString());
-        if (parsed != null) return parsed;
+        final text = value.toString().trim();
+        if (text.isEmpty) continue;
+        final parsedInt = int.tryParse(text);
+        if (parsedInt != null) return parsedInt;
+        final parsedDouble = double.tryParse(text);
+        if (parsedDouble != null) return parsedDouble.round();
       }
       return 0;
     }
