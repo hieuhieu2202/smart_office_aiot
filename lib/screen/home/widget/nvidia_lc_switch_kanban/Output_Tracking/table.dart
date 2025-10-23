@@ -233,10 +233,6 @@ class _OtTableState extends State<OtTable> {
                                   return Container(
                                     width: kHourWidth,
                                     height: kRowHeight,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 8,
-                                    ),
                                     decoration: BoxDecoration(
                                       color: kHourBackground,
                                       border: Border.all(
@@ -256,13 +252,12 @@ class _OtTableState extends State<OtTable> {
                                                 hours[col],
                                               )
                                           : null,
-                                      onTapRr:
-                                          widget.onSectionTap != null && metric.pass > 0 && metric.rr > 0
-                                              ? () => widget.onSectionTap!(
-                                                    row,
-                                                    hours[col],
-                                                  )
-                                              : null,
+                                      onTapRr: widget.onSectionTap != null && metric.pass > 0 && metric.rr > 0
+                                          ? () => widget.onSectionTap!(
+                                                row,
+                                                hours[col],
+                                              )
+                                          : null,
                                     ),
                                   );
                                 }),
@@ -318,89 +313,68 @@ class _OtTableState extends State<OtTable> {
             primary: false,
             child: SizedBox(
               width: hourColumnsWidth,
-            child: Row(
-              children: List.generate(hours.length, (index) {
-                final label = formatHourRange(hours[index]);
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: index == hours.length - 1 ? 0 : kHourGap,
-                  ),
-                  child: Container(
-                    width: kHourWidth,
-                    height: kHeaderHeight,
-                    decoration: BoxDecoration(
-                      color: kHeaderBackground,
-                      border: Border.all(color: kHeaderBorder.withOpacity(.7), width: .8),
-                      borderRadius: kCellRadius,
+              child: Row(
+                children: List.generate(hours.length, (index) {
+                  final label = formatHourRange(hours[index]);
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: index == hours.length - 1 ? 0 : kHourGap,
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: .25,
+                    child: Container(
+                      width: kHourWidth,
+                      height: kHeaderHeight,
+                      decoration: BoxDecoration(
+                        color: kHeaderBackground,
+                        border: Border.all(
+                          color: kHeaderBorder.withOpacity(.7),
+                          width: .8,
+                        ),
+                        borderRadius: kCellRadius,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                child: Text(
+                                  label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: .25,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: const [
-                              Expanded(
-                                child: Center(
-                                  child: Text(
-                                    'PASS',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white70,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ),
+                          SizedBox(
+                            height: 1,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: kHeaderBorder.withOpacity(.65),
                               ),
-                              Expanded(
-                                child: Center(
-                                  child: Text(
-                                    'YR',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white70,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Center(
-                                  child: Text(
-                                    'RR',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white70,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(
+                            height: 22,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: const [
+                                _HourLegendCell(label: 'PASS', showRightBorder: true),
+                                _HourLegendCell(label: 'YR', showRightBorder: true),
+                                _HourLegendCell(label: 'RR', showRightBorder: false),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
+                  );
               }),
-              ),
             ),
           ),
         ),
@@ -631,6 +605,44 @@ class _RailDivider extends StatelessWidget {
   }
 }
 
+class _HourLegendCell extends StatelessWidget {
+  const _HourLegendCell({
+    required this.label,
+    required this.showRightBorder,
+  });
+
+  final String label;
+  final bool showRightBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          border: Border(
+            right: showRightBorder
+                ? BorderSide(
+                    color: _OtTableState.kHeaderBorder.withOpacity(.65),
+                    width: .6,
+                  )
+                : BorderSide.none,
+          ),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: Colors.white70,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MergedModelCell extends StatelessWidget {
   const _MergedModelCell({
     required this.text,
@@ -776,10 +788,10 @@ class _LeftRow extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: color,
-              letterSpacing: .2,
+              letterSpacing: .15,
             ),
           ),
         ),
