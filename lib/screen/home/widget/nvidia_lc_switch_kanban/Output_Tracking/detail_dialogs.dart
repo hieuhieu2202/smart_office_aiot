@@ -215,12 +215,14 @@ class OtSectionDetailDialog extends StatelessWidget {
                 title: 'Top Error Codes',
                 points: errorPoints,
                 emptyMessage: 'Không có lỗi nào trong khung giờ này.',
+                primaryHeader: 'Error Code',
               ),
               const SizedBox(height: 20),
               _buildBarChart(
                 title: 'Top Tester Stations',
                 points: testerPoints,
                 emptyMessage: 'Không có dữ liệu máy test trong khung giờ này.',
+                primaryHeader: 'Tester Station',
               ),
             ],
           ),
@@ -233,6 +235,7 @@ class OtSectionDetailDialog extends StatelessWidget {
     required String title,
     required List<_DetailPoint> points,
     required String emptyMessage,
+    required String primaryHeader,
   }) {
     const panelColor = Color(0xFF162C4B);
     final effectivePoints = _effectivePoints(points);
@@ -244,75 +247,104 @@ class OtSectionDetailDialog extends StatelessWidget {
 
     return SizedBox(
       height: baseHeight,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: hasData
-                ? LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isWide = constraints.maxWidth >= 640;
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (!hasData) {
+            return Container(
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: panelColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                emptyMessage,
+                style: const TextStyle(color: Colors.white60),
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
 
-                      final chart = Expanded(
+          final isWide = constraints.maxWidth >= 640;
+          final double listWidth = math.min(280.0, constraints.maxWidth * 0.38);
+          final headerStyle = const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          );
+
+          Widget buildListColumn() {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _DetailListHeader(
+                  primaryHeader: primaryHeader,
+                  valueHeader: 'Fail Qty',
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: _DetailList(
+                    points: effectivePoints,
+                  ),
+                ),
+              ],
+            );
+          }
+
+          final panel = Container(
+            decoration: BoxDecoration(
+              color: panelColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(title, style: headerStyle),
+                            const SizedBox(height: 12),
+                            Expanded(
+                              child: _buildDetailChart(
+                                effectivePoints,
+                                panelColor,
+                                0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      SizedBox(width: listWidth, child: buildListColumn()),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: headerStyle),
+                      const SizedBox(height: 12),
+                      Flexible(
+                        flex: 3,
                         child: _buildDetailChart(
                           effectivePoints,
                           panelColor,
-                          isWide ? 0.0 : math.max(0.0, baseHeight - 170.0),
+                          0,
                         ),
-                      );
-
-                      final list = _DetailList(
-                        points: effectivePoints,
-                        backgroundColor: panelColor,
-                      );
-
-                      if (isWide) {
-                        final listWidth = math.min(240.0, constraints.maxWidth * 0.35);
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            chart,
-                            const SizedBox(width: 16),
-                            SizedBox(width: listWidth, child: list),
-                          ],
-                        );
-                      }
-
-                      return Column(
-                        children: [
-                          chart,
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: math.min(180.0, constraints.maxHeight * 0.45),
-                            child: list,
-                          ),
-                        ],
-                      );
-                    },
-                  )
-                : Container(
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: panelColor,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      emptyMessage,
-                      style: const TextStyle(color: Colors.white60),
-                      textAlign: TextAlign.center,
-                    ),
+                      ),
+                      const SizedBox(height: 12),
+                      Flexible(
+                        flex: 2,
+                        child: buildListColumn(),
+                      ),
+                    ],
                   ),
-          ),
-        ],
+          );
+
+          return panel;
+        },
       ),
     );
   }
@@ -401,59 +433,94 @@ class _DetailList extends StatelessWidget {
   const _DetailList({
     super.key,
     required this.points,
-    required this.backgroundColor,
   });
 
   final List<_DetailPoint> points;
-  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: ListView.separated(
-        physics: const ClampingScrollPhysics(),
-        shrinkWrap: true,
-        padding: EdgeInsets.zero,
-        itemCount: points.length,
-        separatorBuilder: (_, __) => const Divider(
-          height: 12,
-          thickness: 0.6,
-          color: Color(0xFF233755),
-        ),
-        itemBuilder: (context, index) {
-          final point = points[index];
-          return Row(
-            children: [
-              Expanded(
-                child: Text(
-                  point.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        color: const Color(0xFF1C3357),
+        child: ListView.separated(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          itemBuilder: (context, index) {
+            final point = points[index];
+            return Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    point.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                point.value.toString(),
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                const SizedBox(width: 12),
+                Text(
+                  point.value.toString(),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+          separatorBuilder: (_, __) => const Divider(
+            height: 12,
+            thickness: 0.7,
+            color: Color(0xFF274066),
+          ),
+          itemCount: points.length,
+        ),
       ),
+    );
+  }
+}
+
+class _DetailListHeader extends StatelessWidget {
+  const _DetailListHeader({
+    super.key,
+    required this.primaryHeader,
+    required this.valueHeader,
+  });
+
+  final String primaryHeader;
+  final String valueHeader;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            primaryHeader,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              letterSpacing: .6,
+            ),
+          ),
+        ),
+        Text(
+          valueHeader,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+            letterSpacing: .6,
+          ),
+        ),
+      ],
     );
   }
 }
