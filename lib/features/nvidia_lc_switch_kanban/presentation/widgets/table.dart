@@ -673,6 +673,8 @@ class _MergedModelCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final display = text.trim().isEmpty ? '-' : text.trim();
+    final lines = display.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final hasMultiple = lines.length > 1;
 
     return SizedBox(
       width: width,
@@ -684,21 +686,44 @@ class _MergedModelCell extends StatelessWidget {
         ),
         child: Tooltip(
           message: display,
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              child: Text(
-                display,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  height: 1.5,
-                  color: Colors.white,
-                  letterSpacing: .2,
-                ),
-              ),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: hasMultiple
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final line in lines)
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              line,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                height: 1.3,
+                                color: Colors.white,
+                                letterSpacing: .2,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  )
+                : Center(
+                    child: Text(
+                      display,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        height: 1.5,
+                        color: Colors.white,
+                        letterSpacing: .2,
+                      ),
+                    ),
+                  ),
           ),
         ),
       ),
