@@ -12,18 +12,22 @@ const Color _borderColor = Color(0xFF1E3F66);
 const Color _headerBackground = Color(0xFF17375E);
 const Color _rowBackground = Color(0xFF10253F);
 const Color _altRowBackground = Color(0xFF132C4C);
+const Color _activeRowBackground = Color(0xFF1B3D63);
+const Color _activeRowBorder = Color(0xFF3D6BAA);
 
 class OtMobileRowCard extends StatelessWidget {
   const OtMobileRowCard({
     super.key,
     required this.row,
     required this.hours,
+    this.activeHourIndex,
     this.onStationTap,
     this.onSectionTap,
   });
 
   final OtRowView row;
   final List<String> hours;
+  final int? activeHourIndex;
   final VoidCallback? onStationTap;
   final void Function(String section)? onSectionTap;
 
@@ -87,6 +91,7 @@ class OtMobileRowCard extends StatelessWidget {
                 hours: hours,
                 metrics: row.metrics,
                 isCompact: isCompact,
+                activeHourIndex: activeHourIndex,
                 onSectionTap: onSectionTap,
               ),
             ],
@@ -274,6 +279,7 @@ class _MobileMetricsTable extends StatelessWidget {
     required this.hours,
     required this.metrics,
     required this.isCompact,
+    this.activeHourIndex,
     this.onSectionTap,
   });
 
@@ -281,6 +287,7 @@ class _MobileMetricsTable extends StatelessWidget {
   final List<String> hours;
   final List<OtCellMetrics> metrics;
   final bool isCompact;
+  final int? activeHourIndex;
   final void Function(String section)? onSectionTap;
 
   @override
@@ -352,6 +359,8 @@ class _MobileMetricsTable extends StatelessWidget {
                 final metric = index < metrics.length
                     ? metrics[index]
                     : const OtCellMetrics(pass: 0, yr: 0, rr: 0);
+                final bool isActive =
+                    activeHourIndex != null && index == activeHourIndex;
                 final bool canTapYr =
                     onSectionTap != null && metric.yr.isFinite && metric.yr > 0;
                 final bool canTapRr = onSectionTap != null &&
@@ -359,14 +368,30 @@ class _MobileMetricsTable extends StatelessWidget {
                     metric.pass > 0 &&
                     metric.rr.isFinite &&
                     metric.rr > 0;
-                final rowColor = index.isEven ? _rowBackground : _altRowBackground;
+                final rowColor = isActive
+                    ? _activeRowBackground
+                    : index.isEven
+                        ? _rowBackground
+                        : _altRowBackground;
+                final TextStyle hourStyle = isActive
+                    ? baseStyle.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      )
+                    : baseStyle;
+                final Border? rowBorder = isActive
+                    ? Border.all(color: _activeRowBorder, width: 1.1)
+                    : null;
 
                 return TableRow(
-                  decoration: BoxDecoration(color: rowColor),
+                  decoration: BoxDecoration(
+                    color: rowColor,
+                    border: rowBorder,
+                  ),
                   children: [
                     _buildDataCell(
                       text: formatHourRange(hour),
-                      style: baseStyle,
+                      style: hourStyle,
                       alignment: Alignment.centerLeft,
                     ),
                     _buildDataCell(

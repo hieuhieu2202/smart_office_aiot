@@ -11,6 +11,7 @@ class OtTable extends StatefulWidget {
   const OtTable({
     super.key,
     required this.view,
+    this.activeHourIndex,
     this.onStationTap,
     this.onSectionTap,
   });
@@ -20,6 +21,7 @@ class OtTable extends StatefulWidget {
   static const double rowGap = _OtTableState.kRowGap;
 
   final OtViewState view;
+  final int? activeHourIndex;
   final void Function(OtRowView row)? onStationTap;
   final void Function(OtRowView row, String section)? onSectionTap;
 
@@ -51,6 +53,9 @@ class _OtTableState extends State<OtTable> {
   static const Color kRailBackground = Color(0xFF0E1F36);
   static const Color kHourBackground = Color(0xFF10253F);
   static const Color kGridBorder = Color(0xFF1C2F4A);
+  static const Color kActiveHeaderBackground = Color(0xFF245B94);
+  static const Color kActiveHourBackground = Color(0xFF1B3D63);
+  static const Color kActiveBorder = Color(0xFF3D6BAA);
 
   static double get kDividerTotal =>
       kDividerGapBefore + kDividerWidth + kDividerGapAfter;
@@ -87,16 +92,23 @@ class _OtTableState extends State<OtTable> {
   final ScrollController _vLeftCtrl = ScrollController();
   final ScrollController _vRightCtrl = ScrollController();
   bool _isSyncing = false;
+  int? _activeHourIndex;
 
   @override
   void initState() {
     super.initState();
+
+    _activeHourIndex = widget.activeHourIndex;
 
     _hHeaderCtrl.addListener(() => _syncHorizontal(_hHeaderCtrl, _hBodyCtrl));
     _hBodyCtrl.addListener(() => _syncHorizontal(_hBodyCtrl, _hHeaderCtrl));
 
     _vLeftCtrl.addListener(() => _syncVertical(_vLeftCtrl, _vRightCtrl));
     _vRightCtrl.addListener(() => _syncVertical(_vRightCtrl, _vLeftCtrl));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToActiveHour(animated: false);
+    });
   }
 
   @override
@@ -106,6 +118,17 @@ class _OtTableState extends State<OtTable> {
     _vLeftCtrl.dispose();
     _vRightCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant OtTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeHourIndex != widget.activeHourIndex) {
+      _activeHourIndex = widget.activeHourIndex;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToActiveHour(animated: true);
+      });
+    }
   }
 
   void _syncHorizontal(ScrollController source, ScrollController target) {
@@ -126,6 +149,36 @@ class _OtTableState extends State<OtTable> {
       target.position.minScrollExtent,
       target.position.maxScrollExtent,
     ));
+  }
+
+  void _scrollToActiveHour({required bool animated}) {
+    final int? index = _activeHourIndex;
+    if (index == null) return;
+    if (!_hBodyCtrl.hasClients || !_hHeaderCtrl.hasClients) return;
+
+    final double columnWidth = kHourWidth + kHourGap;
+    final double targetOffset = index * columnWidth;
+
+    final double bodyMax = _hBodyCtrl.position.maxScrollExtent;
+    final double headerMax = _hHeaderCtrl.position.maxScrollExtent;
+    final double bodyOffset = targetOffset.clamp(0.0, bodyMax);
+    final double headerOffset = targetOffset.clamp(0.0, headerMax);
+
+    if (animated) {
+      _hBodyCtrl.animateTo(
+        bodyOffset,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+      _hHeaderCtrl.animateTo(
+        headerOffset,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _hBodyCtrl.jumpTo(bodyOffset);
+      _hHeaderCtrl.jumpTo(headerOffset);
+    }
   }
 
   double _modelWidthForText(String text) {
@@ -231,40 +284,51 @@ class _OtTableState extends State<OtTable> {
                             final row = rows[rowIndex];
                             return Row(
                               children: List.generate(hours.length, (col) {
-                                  final metric = row.metrics.length > col
-                                      ? row.metrics[col]
-                                      : const OtCellMetrics(pass: 0, yr: 0, rr: 0);
-                                  return Container(
-                                    width: kHourWidth,
-                                    height: kRowHeight,
-                                    decoration: BoxDecoration(
-                                      color: kHourBackground,
-                                      border: Border.all(
-                                        color: borderColor.withOpacity(.65),
-                                        width: .7,
-                                      ),
-                                      borderRadius: kCellRadius,
+                                final metric = row.metrics.length > col
+                                    ? row.metrics[col]
+                                    : const OtCellMetrics(pass: 0, yr: 0, rr: 0);
+                                final bool isActive =
+                                    _activeHourIndex != null && col == _activeHourIndex;
+                                final Color cellColor =
+                                    isActive ? kActiveHourBackground : kHourBackground;
+                                final Color cellBorder = isActive
+                                    ? kActiveBorder
+                                    : borderColor.withOpacity(.65);
+                                final double borderWidth = isActive ? 1.05 : .7;
+
+                                return Container(
+                                  width: kHourWidth,
+                                  height: kRowHeight,
+                                  decoration: BoxDecoration(
+                                    color: cellColor,
+                                    border: Border.all(
+                                      color: cellBorder,
+                                      width: borderWidth,
                                     ),
-                                    child: TripleCell(
-                                      pass: metric.pass,
-                                      yr: metric.yr,
-                                      rr: metric.rr,
-                                      compact: true,
-                                      onTapYr: widget.onSectionTap != null && metric.yr > 0
-                                          ? () => widget.onSectionTap!(
-                                                row,
-                                                hours[col],
-                                              )
-                                          : null,
-                                      onTapRr: widget.onSectionTap != null && metric.pass > 0 && metric.rr > 0
-                                          ? () => widget.onSectionTap!(
-                                                row,
-                                                hours[col],
-                                              )
-                                          : null,
-                                    ),
-                                  );
-                                }),
+                                    borderRadius: kCellRadius,
+                                  ),
+                                  child: TripleCell(
+                                    pass: metric.pass,
+                                    yr: metric.yr,
+                                    rr: metric.rr,
+                                    compact: true,
+                                    onTapYr: widget.onSectionTap != null && metric.yr > 0
+                                        ? () => widget.onSectionTap!(
+                                              row,
+                                              hours[col],
+                                            )
+                                        : null,
+                                    onTapRr: widget.onSectionTap != null &&
+                                            metric.pass > 0 &&
+                                            metric.rr > 0
+                                        ? () => widget.onSectionTap!(
+                                              row,
+                                              hours[col],
+                                            )
+                                        : null,
+                                  ),
+                                );
+                              }),
                             );
                           },
                         ),
@@ -326,6 +390,7 @@ class _OtTableState extends State<OtTable> {
                       ),
                       child: _HourHeaderCell(
                         label: formatHourRange(hours[i]),
+                        isActive: _activeHourIndex != null && i == _activeHourIndex,
                       ),
                     ),
                 ],
@@ -561,20 +626,37 @@ class _RailDivider extends StatelessWidget {
 }
 
 class _HourHeaderCell extends StatelessWidget {
-  const _HourHeaderCell({required this.label});
+  const _HourHeaderCell({
+    required this.label,
+    this.isActive = false,
+  });
 
   final String label;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
+    final Color background = isActive
+        ? _OtTableState.kActiveHeaderBackground
+        : _OtTableState.kHeaderBackground;
+    final Color border = isActive
+        ? _OtTableState.kActiveBorder
+        : _OtTableState.kHeaderBorder;
+    final TextStyle labelStyle = const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      letterSpacing: .25,
+      color: Colors.white,
+    );
+
     return Container(
       width: _OtTableState.kHourWidth,
       height: _OtTableState.kHeaderHeight,
       decoration: BoxDecoration(
-        color: _OtTableState.kHeaderBackground,
+        color: background,
         border: Border.all(
-          color: _OtTableState.kHeaderBorder.withOpacity(.7),
-          width: .8,
+          color: border.withOpacity(.82),
+          width: isActive ? 1.2 : .8,
         ),
         borderRadius: _OtTableState.kCellRadius,
       ),
@@ -589,11 +671,7 @@ class _HourHeaderCell extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: .25,
-                  ),
+                  style: labelStyle,
                 ),
               ),
             ),
@@ -602,7 +680,7 @@ class _HourHeaderCell extends StatelessWidget {
             height: 1,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: _OtTableState.kHeaderBorder.withOpacity(.65),
+                color: border.withOpacity(.65),
               ),
             ),
           ),

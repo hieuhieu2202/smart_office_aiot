@@ -9,6 +9,7 @@ import '../widgets/filter_panel.dart';
 import '../widgets/detail_dialogs.dart';
 import '../widgets/mobile_cards.dart';
 import '../viewmodels/output_tracking_view_state.dart';
+import '../viewmodels/series_utils.dart';
 import '../widgets/table.dart';
 
 class OutputTrackingPage extends StatefulWidget {
@@ -321,6 +322,10 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
       ];
     }
 
+    final int? activeHourIndex = hasView
+        ? findActiveHourIndex(hours, _selectedDate)
+        : null;
+
     if (!hasView) {
       return [
         SliverFillRemaining(
@@ -349,6 +354,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
                   child: OtMobileRowCard(
                     row: row,
                     hours: hours,
+                    activeHourIndex: activeHourIndex,
                     onStationTap: () => _showStationTrend(row),
                     onSectionTap: (section) => _showSectionDetail(row, section),
                   ),
@@ -379,6 +385,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
               ),
               child: OtTable(
                 view: view!,
+                activeHourIndex: activeHourIndex,
                 onStationTap: _showStationTrend,
                 onSectionTap: _showSectionDetail,
               ),
