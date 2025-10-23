@@ -499,6 +499,9 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     const gradientTop = Color(0xFF162B4F);
     const gradientBottom = Color(0xFF101C32);
 
+    final headerHeight = isMobile ? 46.0 : 54.0;
+    final horizontalPadding = isMobile ? 16.0 : 24.0;
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -517,54 +520,56 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(16, isMobile ? 14 : 18, 16, 20),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            isMobile ? 14 : 20,
+            horizontalPadding,
+            isMobile ? 18 : 22,
+          ),
           child: Column(
-            crossAxisAlignment:
-                isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: BackButton(
-                      color: Colors.white,
-                      onPressed: onBack,
+              SizedBox(
+                height: headerHeight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _HeaderActionButton(
+                      icon: Icons.arrow_back_ios_new,
+                      tooltip: 'Quay lại',
+                      onTap: onBack,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
-                      textAlign: TextAlign.left,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            letterSpacing: .4,
-                          ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  IconButton(
-                    tooltip: 'Tải lại ngay',
-                    onPressed: onRefresh,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-                    icon: isBusy
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: .3,
+                            ) ??
+                            const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: .3,
                             ),
-                          )
-                        : const Icon(Icons.refresh, color: Colors.white),
-                  ),
-                ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    _HeaderActionButton(
+                      icon: Icons.refresh,
+                      tooltip: 'Tải lại ngay',
+                      onTap: onRefresh,
+                      isBusy: isBusy,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 20),
               OtFilterToolbar(
                 dateText: dateText,
                 shift: shift,
@@ -580,6 +585,56 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
                 isTablet: isTablet,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderActionButton extends StatelessWidget {
+  const _HeaderActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.isBusy = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    final buttonSize = 46.0;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.white.withOpacity(0.08),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: isBusy ? null : onTap,
+          child: SizedBox(
+            width: buttonSize,
+            height: buttonSize,
+            child: Center(
+              child: isBusy
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
+                      ),
+                    )
+                  : Icon(
+                      icon,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+            ),
           ),
         ),
       ),
