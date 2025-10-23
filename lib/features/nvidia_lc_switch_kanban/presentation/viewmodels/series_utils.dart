@@ -35,9 +35,12 @@ Shader build3dColumnShader(ui.Rect rect, Color baseColor) {
   final shadow = _darken(baseColor, 0.22);
   final deepShadow = _darken(baseColor, 0.42);
 
+  final topCenter = ui.Offset(rect.left + rect.width / 2, rect.top);
+  final bottomCenter = ui.Offset(rect.left + rect.width / 2, rect.bottom);
+
   return ui.Gradient.linear(
-    rect.topLeft,
-    rect.bottomRight,
+    topCenter,
+    bottomCenter,
     [highlight, midHighlight, baseColor, shadow, deepShadow],
     const [0.0, 0.32, 0.6, 0.82, 1.0],
   );
