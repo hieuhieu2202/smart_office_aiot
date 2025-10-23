@@ -27,9 +27,9 @@ class OtStationTrendDialog extends StatelessWidget {
       backgroundColor: const Color(0xFF10233F),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 780, minWidth: 320),
+        constraints: const BoxConstraints(maxWidth: 880, minWidth: 340),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          padding: const EdgeInsets.fromLTRB(28, 20, 28, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,9 +169,9 @@ class OtSectionDetailDialog extends StatelessWidget {
       backgroundColor: const Color(0xFF10233F),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 820, minWidth: 340),
+        constraints: const BoxConstraints(maxWidth: 920, minWidth: 380),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          padding: const EdgeInsets.fromLTRB(28, 20, 28, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,13 +198,13 @@ class OtSectionDetailDialog extends StatelessWidget {
                 'Yield & Retest analysis',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               _buildBarChart(
                 title: 'Top Error Codes',
                 points: errorPoints,
                 emptyMessage: 'Không có lỗi nào trong khung giờ này.',
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               _buildBarChart(
                 title: 'Top Tester Stations',
                 points: testerPoints,
@@ -227,8 +227,8 @@ class OtSectionDetailDialog extends StatelessWidget {
     final hasData = effectivePoints.isNotEmpty;
 
     final baseHeight = hasData
-        ? math.min(360.0, 64.0 * math.max(4, effectivePoints.length))
-        : 160.0;
+        ? math.min(320.0, 58.0 * math.max(4, effectivePoints.length))
+        : 150.0;
 
     return SizedBox(
       height: baseHeight,
