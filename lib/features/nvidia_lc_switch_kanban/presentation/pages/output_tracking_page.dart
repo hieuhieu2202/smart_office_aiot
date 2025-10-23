@@ -596,13 +596,13 @@ class _HeaderActionButton extends StatelessWidget {
   const _HeaderActionButton({
     required this.icon,
     required this.tooltip,
-    required this.onTap,
+    this.onTap,
     this.isBusy = false,
   });
 
   final IconData icon;
   final String tooltip;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool isBusy;
 
   @override
