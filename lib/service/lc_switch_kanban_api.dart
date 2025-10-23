@@ -163,8 +163,19 @@ class KanbanApi {
     final data = jsonDecode(res.body);
     final detail = KanbanOutputTrackingDetail.fromAny(data);
     KanbanApiLog.net(
-      () =>
-          '[KanbanApi] detail response -> errors=${detail.errorDetails.length} testers=${detail.testerDetails.length}',
+      () {
+        final errSample = detail.errorDetails
+            .take(5)
+            .map((e) => '${e.code}:${e.failQty}')
+            .join(', ');
+        final testerSample = detail.testerDetails
+            .take(5)
+            .map((e) => '${e.stationName}:${e.failQty}')
+            .join(', ');
+        return '[KanbanApi] detail response -> errors=${detail.errorDetails.length} '
+            'testers=${detail.testerDetails.length} | '
+            'errorSample=[$errSample] | testerSample=[$testerSample]';
+      },
     );
     return detail;
   }

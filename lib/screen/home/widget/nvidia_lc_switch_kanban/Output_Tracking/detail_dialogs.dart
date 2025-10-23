@@ -349,23 +349,17 @@ class OtSectionDetailDialog extends StatelessWidget {
   List<_DetailPoint> _effectivePoints(List<_DetailPoint> points) {
     if (points.isEmpty) return const [];
 
-    const limit = 12;
-    final positive = points.where((p) => p.value > 0).toList();
-    if (positive.isEmpty) {
-      final take = math.min(limit, points.length);
-      return points.take(take).toList();
+    final positive = <_DetailPoint>[];
+    final zeros = <_DetailPoint>[];
+    for (final point in points) {
+      if (point.value > 0) {
+        positive.add(point);
+      } else {
+        zeros.add(point);
+      }
     }
 
-    if (positive.length >= limit) {
-      return positive.take(limit).toList();
-    }
-
-    final zeros = points
-        .where((p) => p.value <= 0)
-        .take(limit - positive.length)
-        .toList();
-
-    return [...positive, ...zeros];
+    return <_DetailPoint>[...positive, ...zeros];
   }
 }
 
