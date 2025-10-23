@@ -358,9 +358,10 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
         padding: EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 12),
         sliver: SliverToBoxAdapter(
           child: Container(
+            width: double.infinity,
             color: const Color(0xFF0D213A),
-            padding: const EdgeInsets.all(12),
             child: SizedBox(
+              width: double.infinity,
               height: _computeTableHeight(context, isMobile, isTablet),
               child: OtTable(
                 view: view!,
