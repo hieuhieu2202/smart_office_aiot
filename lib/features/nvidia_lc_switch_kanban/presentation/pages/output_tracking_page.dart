@@ -187,7 +187,12 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     }
   }
 
-  double _computeTableHeight(BuildContext context, bool isMobile, bool isTablet) {
+  double _computeTableHeight(
+    BuildContext context,
+    bool isMobile,
+    bool isTablet,
+    int rowCount,
+  ) {
     final size = MediaQuery.of(context).size;
     final reserved = isMobile
         ? 210.0
@@ -196,11 +201,15 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
             : 255.0;
     final base = size.height - reserved;
     final fallback = size.height * (isMobile ? 0.9 : 0.82);
-    final candidate = base.isFinite && base > 300 ? base : fallback;
-    final maxHeight = size.height * 0.985;
-    return candidate
-        .clamp(380.0, math.max(380.0, maxHeight))
-        .toDouble();
+    final candidate = base.isFinite && base > 320 ? base : fallback;
+    final maxHeight = math.min(size.height * 0.98, math.max(320.0, candidate));
+
+    final effectiveRows = rowCount <= 0 ? 1 : rowCount;
+    final rowsHeight =
+        (effectiveRows * OtTable.rowHeight) + ((effectiveRows - 1) * OtTable.rowGap);
+    final naturalHeight = OtTable.headerHeight + rowsHeight;
+
+    return naturalHeight <= maxHeight ? naturalHeight : maxHeight;
   }
 
   String _formatDate(DateTime d) {
@@ -362,7 +371,12 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
             color: const Color(0xFF0D213A),
             child: SizedBox(
               width: double.infinity,
-              height: _computeTableHeight(context, isMobile, isTablet),
+              height: _computeTableHeight(
+                context,
+                isMobile,
+                isTablet,
+                rows.length,
+              ),
               child: OtTable(
                 view: view!,
                 onStationTap: _showStationTrend,

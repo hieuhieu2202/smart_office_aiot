@@ -15,6 +15,10 @@ class OtTable extends StatefulWidget {
     this.onSectionTap,
   });
 
+  static const double rowHeight = _OtTableState.kRowHeight;
+  static const double headerHeight = _OtTableState.kHeaderHeight;
+  static const double rowGap = _OtTableState.kRowGap;
+
   final OtViewState view;
   final void Function(OtRowView row)? onStationTap;
   final void Function(OtRowView row, String section)? onSectionTap;
