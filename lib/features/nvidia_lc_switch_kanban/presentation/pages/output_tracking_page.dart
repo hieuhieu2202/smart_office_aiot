@@ -829,8 +829,11 @@ class OtFilterToolbar extends StatelessWidget {
         );
       }
 
-      return SizedBox(
-        width: isTablet ? 200 : 220,
+      final actionWidth = isTablet ? 200 : 220;
+      return _FilterField(
+        width: actionWidth,
+        label: 'Action',
+        labelStyle: labelStyle,
         child: query,
       );
     }
@@ -838,7 +841,7 @@ class OtFilterToolbar extends StatelessWidget {
     return Wrap(
       spacing: 14,
       runSpacing: 14,
-      crossAxisAlignment: WrapCrossAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.start,
       alignment: isMobile ? WrapAlignment.center : WrapAlignment.start,
       children: [
         buildDateField(),
