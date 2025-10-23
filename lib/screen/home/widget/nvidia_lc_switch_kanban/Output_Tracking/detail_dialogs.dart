@@ -222,11 +222,16 @@ class OtSectionDetailDialog extends StatelessWidget {
     required List<_DetailPoint> points,
     required String emptyMessage,
   }) {
+    const panelColor = Color(0xFF162C4B);
     final effectivePoints = _effectivePoints(points);
+    final hasData = effectivePoints.isNotEmpty;
+
+    final baseHeight = hasData
+        ? math.min(360, 64.0 * math.max(4, effectivePoints.length))
+        : 160.0;
+
     return SizedBox(
-      height: effectivePoints.isEmpty
-          ? 140
-          : math.min(320, 56.0 * math.max(4, effectivePoints.length)),
+      height: baseHeight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -240,11 +245,52 @@ class OtSectionDetailDialog extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: effectivePoints.isEmpty
-                ? Container(
+            child: hasData
+                ? LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth >= 640;
+
+                      final chart = Expanded(
+                        child: _buildDetailChart(
+                          effectivePoints,
+                          panelColor,
+                          isWide ? 0 : math.max(0, baseHeight - 170),
+                        ),
+                      );
+
+                      final list = _DetailList(
+                        points: effectivePoints,
+                        backgroundColor: panelColor,
+                      );
+
+                      if (isWide) {
+                        final listWidth = math.min(240.0, constraints.maxWidth * 0.35);
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            chart,
+                            const SizedBox(width: 16),
+                            SizedBox(width: listWidth, child: list),
+                          ],
+                        );
+                      }
+
+                      return Column(
+                        children: [
+                          chart,
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: math.min(180.0, constraints.maxHeight * 0.45),
+                            child: list,
+                          ),
+                        ],
+                      );
+                    },
+                  )
+                : Container(
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF162C4B),
+                      color: panelColor,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
@@ -252,38 +298,50 @@ class OtSectionDetailDialog extends StatelessWidget {
                       style: const TextStyle(color: Colors.white60),
                       textAlign: TextAlign.center,
                     ),
-                  )
-                : SfCartesianChart(
-                    backgroundColor: const Color(0xFF162C4B),
-                    plotAreaBorderWidth: 0,
-                    primaryXAxis: CategoryAxis(
-                      majorGridLines: const MajorGridLines(width: 0),
-                      labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
-                      labelRotation: effectivePoints.length > 6 ? -35 : 0,
-                    ),
-                    primaryYAxis: NumericAxis(
-                      majorGridLines: const MajorGridLines(dashArray: [4, 4], color: Colors.white24),
-                      labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
-                      axisLine: const AxisLine(color: Colors.transparent),
-                    ),
-                    tooltipBehavior: TooltipBehavior(enable: true),
-                    series: <CartesianSeries<dynamic, dynamic>>[
-                      ColumnSeries<_DetailPoint, String>(
-                        dataSource: effectivePoints,
-                        xValueMapper: (p, _) => p.label,
-                        yValueMapper: (p, _) => p.value.toDouble(),
-                        color: const Color(0xFF66D9EF),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                        dataLabelSettings: const DataLabelSettings(
-                          isVisible: true,
-                          textStyle: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
-                        ),
-                        dataLabelMapper: (p, _) => p.value.toString(),
-                      ),
-                    ],
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDetailChart(
+    List<_DetailPoint> points,
+    Color panelColor,
+    double minHeight,
+  ) {
+    return SizedBox.expand(
+      child: Container(
+        constraints: BoxConstraints(minHeight: minHeight),
+        child: SfCartesianChart(
+          backgroundColor: panelColor,
+          plotAreaBorderWidth: 0,
+          primaryXAxis: CategoryAxis(
+            majorGridLines: const MajorGridLines(width: 0),
+            labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
+            labelRotation: points.length > 6 ? -35 : 0,
+          ),
+          primaryYAxis: NumericAxis(
+            majorGridLines: const MajorGridLines(dashArray: [4, 4], color: Colors.white24),
+            labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
+            axisLine: const AxisLine(color: Colors.transparent),
+          ),
+          tooltipBehavior: TooltipBehavior(enable: true),
+          series: <CartesianSeries<dynamic, dynamic>>[
+            ColumnSeries<_DetailPoint, String>(
+              dataSource: points,
+              xValueMapper: (p, _) => p.label,
+              yValueMapper: (p, _) => p.value.toDouble(),
+              color: const Color(0xFF66D9EF),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+              dataLabelSettings: const DataLabelSettings(
+                isVisible: true,
+                textStyle: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+              ),
+              dataLabelMapper: (p, _) => p.value.toString(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -321,4 +379,65 @@ class _DetailPoint {
 
   final String label;
   final int value;
+}
+
+class _DetailList extends StatelessWidget {
+  const _DetailList({
+    super.key,
+    required this.points,
+    required this.backgroundColor,
+  });
+
+  final List<_DetailPoint> points;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: ListView.separated(
+        physics: const ClampingScrollPhysics(),
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        itemCount: points.length,
+        separatorBuilder: (_, __) => const Divider(
+          height: 12,
+          thickness: 0.6,
+          color: Color(0xFF233755),
+        ),
+        itemBuilder: (context, index) {
+          final point = points[index];
+          return Row(
+            children: [
+              Expanded(
+                child: Text(
+                  point.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                point.value.toString(),
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
