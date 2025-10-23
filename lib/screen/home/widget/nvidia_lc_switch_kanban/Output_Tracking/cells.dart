@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Hiển thị 3 ô nhỏ trong mỗi “giờ”: PASS | YR | RR
-/// - PASS: in đậm nếu > 0
-/// - YR:   <95% đỏ ; 95–<98% vàng ; ≥98% trắng đậm
-/// - RR:   ≥5% đỏ ; 3–<5% vàng ; <3% trắng đậm
+/// Hiển thị 3 giá trị PASS | YR | RR theo bố cục bảng giống web.
 class TripleCell extends StatelessWidget {
   const TripleCell({
     super.key,
@@ -18,8 +15,8 @@ class TripleCell extends StatelessWidget {
   });
 
   final double pass; // số lượng pass tại giờ đó
-  final double yr;   // Yield Rate %
-  final double rr;   // Retest Rate %
+  final double yr; // Yield Rate %
+  final double rr; // Retest Rate %
   final bool compact;
   final VoidCallback? onTapPass;
   final VoidCallback? onTapYr;
@@ -27,154 +24,108 @@ class TripleCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Màu sử dụng
-    const blue = Color(0xFF42A0FF);
-    const green = Color(0xFF38D893);
-    const red = Color(0xFFFF6B6B);
-    const warning = Color(0xFFFFC56F);
+    const dividerColor = Color(0xFF1C2F4A);
+    const passColor = Color(0xFF38D893);
+    const neutralColor = Colors.white70;
+    const infoColor = Color(0xFF42A0FF);
+    const warnColor = Color(0xFFFFC56F);
+    const dangerColor = Color(0xFFFF6B6B);
 
-    // Kích thước cơ sở (sẽ co giãn theo LayoutBuilder)
-    final baseHeight = compact ? 26.0 : 32.0;
-    final baseGap = compact ? 5.0 : 6.0;
-    final baseFont = compact ? 11.0 : 12.5;
+    final baseFontSize = compact ? 12.0 : 13.0;
 
-    // Chuẩn bị style theo ngưỡng (đồng bộ web)
     final passValue = pass.isFinite ? pass : 0;
-    final passStr = passValue.round().toString();
-    final passBold = passValue > 0;
+    final passText = passValue.round().toString();
+    final passStyle = _metricStyle(
+      fontSize: baseFontSize,
+      color: passValue > 0 ? passColor : neutralColor,
+      isBold: passValue > 0,
+    );
 
-    final yrVal = yr.isFinite ? yr : 0.0;
-    final yrText = _pct(yrVal);
-    _BadgeStyle yrStyle;
-    if (yrVal <= 0) {
-      yrStyle = _BadgeStyle.neutral(blue); // không dữ liệu
-    } else if (yrVal < 95.0) {
-      yrStyle = _BadgeStyle.solid(red);          // đỏ
-    } else if (yrVal < 98.0) {
-      yrStyle = _BadgeStyle.solid(warning);      // vàng
-    } else {
-      yrStyle = _BadgeStyle.neutral(blue, bold: true); // ≥98% trắng đậm
-    }
+    final yrValue = yr.isFinite ? yr : 0.0;
+    final yrText = _pct(yrValue);
+    final yrStyle = _metricStyle(
+      fontSize: baseFontSize,
+      color: yrValue <= 0
+          ? neutralColor
+          : yrValue < 95
+              ? dangerColor
+              : yrValue < 98
+                  ? warnColor
+                  : infoColor,
+      isBold: yrValue >= 98,
+    );
 
-    final rrVal = rr.isFinite ? rr : 0.0;
-    final rrText = _pct(rrVal);
-    _BadgeStyle rrStyle;
-    if (rrVal < 0 || rrVal >= 5.0) {
-      rrStyle = _BadgeStyle.solid(red);          // đỏ
-    } else if (rrVal >= 3.0) {
-      rrStyle = _BadgeStyle.solid(warning);      // vàng
-    } else {
-      rrStyle = _BadgeStyle.neutral(blue, bold: true); // <3% trắng đậm
-    }
+    final rrValue = rr.isFinite ? rr : 0.0;
+    final rrText = _pct(rrValue);
+    final rrStyle = _metricStyle(
+      fontSize: baseFontSize,
+      color: rrValue < 0 || rrValue >= 5
+          ? dangerColor
+          : rrValue >= 3
+              ? warnColor
+              : infoColor,
+      isBold: rrValue > 0 && rrValue < 3,
+    );
 
-    // Dùng LayoutBuilder để chia bề rộng theo không gian thực tế,
-    // tránh tràn (overflow) ở mọi kích thước ô chứa.
-    return LayoutBuilder(
-      builder: (context, c) {
-        final maxW = c.maxWidth;
-
-        // Số khoảng cách giữa 3 pill là 2 (trái-giữa, giữa-phải)
-        // Nếu không gian quá nhỏ, giảm gap và font xuống cho vừa.
-        final gap   = (maxW >= 120) ? baseGap : (baseGap * 0.6);
-        final gapsW = 2 * gap;
-
-        // Bề rộng khả dụng sau khi trừ khoảng cách giữa các pill
-        final available = (maxW - gapsW).clamp(0.0, double.infinity);
-        double pillW = available / 3;
-        if (!pillW.isFinite) {
-          pillW = 0;
-        }
-
-        // Thu nhỏ chiều cao/font nếu không gian bị hạn chế
-        final minWidth = compact ? 40.0 : 48.0;
-        double scale = 1.0;
-        if (pillW > 0 && pillW < minWidth) {
-          scale = (pillW / minWidth).clamp(0.75, 1.0);
-        }
-        final h = baseHeight * scale;
-        final fs = baseFont * scale;
-
-        return Row(
-          children: [
-            _pill(
-              text: passStr,
-              width: pillW,
-              height: h,
-              fs: fs,
-              // PASS neutral xanh, đậm khi >0
-              style: _BadgeStyle.neutral(green, bold: passBold),
-              onTap: onTapPass,
-            ),
-            SizedBox(width: gap),
-            _pill(
-              text: yrText,
-              width: pillW,
-              height: h,
-              fs: fs,
-              style: yrStyle,
-              onTap: onTapYr,
-            ),
-            SizedBox(width: gap),
-            _pill(
-              text: rrText,
-              width: pillW,
-              height: h,
-              fs: fs,
-              style: rrStyle,
-              onTap: onTapRr,
-            ),
-          ],
-        );
-      },
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _valueCell(text: passText, style: passStyle, onTap: onTapPass),
+        _divider(dividerColor),
+        _valueCell(text: yrText, style: yrStyle, onTap: onTapYr),
+        _divider(dividerColor),
+        _valueCell(text: rrText, style: rrStyle, onTap: onTapRr),
+      ],
     );
   }
 
-  // ---- Widgets & helpers ----
-  Widget _pill({
+  TextStyle _metricStyle({
+    required double fontSize,
+    required Color color,
+    bool isBold = false,
+  }) {
+    return TextStyle(
+      fontSize: fontSize,
+      fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+      letterSpacing: .15,
+      color: color,
+    );
+  }
+
+  Widget _divider(Color color) => Container(
+        width: 1,
+        color: color.withOpacity(.65),
+      );
+
+  Widget _valueCell({
     required String text,
-    required double width,
-    required double height,
-    required double fs,
-    required _BadgeStyle style,
+    required TextStyle style,
     VoidCallback? onTap,
   }) {
-    Widget pill = Container(
-      width: width,
-      height: height,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: style.fillColor,
-        border: Border.all(color: style.borderColor, width: 1),
-      ),
-      // Đề phòng chữ dài khi pill quá hẹp
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
+    Widget label = Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Text(
           text,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: fs,
-            fontWeight: style.bold ? FontWeight.w700 : FontWeight.w500,
-            color: style.textColor,
-            letterSpacing: .2,
-          ),
+          style: style,
         ),
       ),
     );
 
-    if (onTap == null) {
-      return pill;
+    if (onTap != null) {
+      label = MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: label,
+        ),
+      );
     }
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: pill,
-      ),
-    );
+    return Expanded(child: label);
   }
 
   String _pct(double value) {
@@ -188,38 +139,5 @@ class TripleCell extends StatelessWidget {
       return '${oneDecimal.toStringAsFixed(1)}%';
     }
     return '${clamped.toStringAsFixed(2)}%';
-  }
-}
-
-/// Định nghĩa style cho “pill”: neutral (viền) / solid (nền cảnh báo)
-class _BadgeStyle {
-  final Color fillColor;
-  final Color borderColor;
-  final Color textColor;
-  final bool bold;
-
-  _BadgeStyle({
-    required this.fillColor,
-    required this.borderColor,
-    required this.textColor,
-    required this.bold,
-  });
-
-  factory _BadgeStyle.neutral(Color tone, {bool bold = false}) {
-    return _BadgeStyle(
-      fillColor: Colors.transparent,
-      borderColor: tone.withOpacity(.45),
-      textColor: tone,
-      bold: bold,
-    );
-  }
-
-  factory _BadgeStyle.solid(Color tone) {
-    return _BadgeStyle(
-      fillColor: tone.withOpacity(.25),
-      borderColor: tone.withOpacity(.75),
-      textColor: Colors.white,
-      bold: true,
-    );
   }
 }
