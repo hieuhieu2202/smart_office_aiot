@@ -24,16 +24,16 @@ class OtTable extends StatefulWidget {
 }
 
 class _OtTableState extends State<OtTable> {
-  static const double kRowHeight = 56;
-  static const double kHeaderHeight = 56;
+  static const double kRowHeight = 50;
+  static const double kHeaderHeight = 52;
   static const double kRowGap = 0;
   static const double kModelWidth = 220;
-  static const double kChipWidth = 70;
+  static const double kChipWidth = 72;
   static const double kChipGap = 0;
   static const double kStationMinWidth = 132;
-  static const double kStationPadding = 18;
+  static const double kStationPadding = 16;
   static const double kStationMaxWidth = 220;
-  static const double kHourWidth = 148;
+  static const double kHourWidth = 146;
   static const double kHourGap = 0;
   static const double kColumnGap = 0;
   static const double kDividerGapBefore = 2;
@@ -42,11 +42,11 @@ class _OtTableState extends State<OtTable> {
   static const double kHeaderPaddingY = 0;
   static const BorderRadius kCellRadius = BorderRadius.zero;
 
-  static const Color kHeaderBackground = Color(0xFF143A64);
-  static const Color kHeaderBorder = Color(0xFF2C5C8F);
-  static const Color kRailBackground = Color(0xFF0F223F);
-  static const Color kHourBackground = Color(0xFF112B4B);
-  static const Color kGridBorder = Color(0xFF1E3F66);
+  static const Color kHeaderBackground = Color(0xFF17375E);
+  static const Color kHeaderBorder = Color(0xFF2A4B7A);
+  static const Color kRailBackground = Color(0xFF0E1F36);
+  static const Color kHourBackground = Color(0xFF10253F);
+  static const Color kGridBorder = Color(0xFF1C2F4A);
 
   static double get kDividerTotal =>
       kDividerGapBefore + kDividerWidth + kDividerGapAfter;
@@ -239,14 +239,17 @@ class _OtTableState extends State<OtTable> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: kHourBackground,
-                                      border: Border.all(color: borderColor),
+                                      border: Border.all(
+                                        color: borderColor.withOpacity(.65),
+                                        width: .7,
+                                      ),
                                       borderRadius: kCellRadius,
                                     ),
                                     child: TripleCell(
                                       pass: metric.pass,
                                       yr: metric.yr,
                                       rr: metric.rr,
-                                      compact: false,
+                                      compact: true,
                                       onTapYr: widget.onSectionTap != null && metric.yr > 0
                                           ? () => widget.onSectionTap!(
                                                 row,
@@ -296,7 +299,7 @@ class _OtTableState extends State<OtTable> {
           padding: const EdgeInsets.symmetric(vertical: kHeaderPaddingY),
           decoration: BoxDecoration(
             color: kHeaderBackground,
-            border: Border.all(color: kHeaderBorder),
+            border: Border.all(color: kHeaderBorder.withOpacity(.7), width: .8),
             borderRadius: kCellRadius,
           ),
           child: _buildRailHeaderContent(
@@ -327,7 +330,7 @@ class _OtTableState extends State<OtTable> {
                     height: kHeaderHeight,
                     decoration: BoxDecoration(
                       color: kHeaderBackground,
-                      border: Border.all(color: kHeaderBorder),
+                      border: Border.all(color: kHeaderBorder.withOpacity(.7), width: .8),
                       borderRadius: kCellRadius,
                     ),
                     child: Column(
@@ -465,8 +468,11 @@ class _OtTableState extends State<OtTable> {
     );
   }
 
-  Widget _divider(Color borderColor) =>
-      Container(width: 1, height: double.infinity, color: borderColor.withOpacity(.9));
+  Widget _divider(Color borderColor) => Container(
+        width: 1,
+        height: double.infinity,
+        color: borderColor.withOpacity(.7),
+      );
 
   Widget _headerCell(String text, {required double width, TextAlign align = TextAlign.center}) {
     return SizedBox(
@@ -527,19 +533,19 @@ class _LeftRail extends StatelessWidget {
     final displaySummaryWidth = summaryWidth;
 
     final summaryChildren = <Widget>[];
-    if (rows.isEmpty) {
-      summaryChildren.add(
-        SizedBox(
-          height: _OtTableState.kRowHeight,
-          width: displaySummaryWidth,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: _OtTableState.kRailBackground,
-              border: Border.all(color: borderColor),
+      if (rows.isEmpty) {
+        summaryChildren.add(
+          SizedBox(
+            height: _OtTableState.kRowHeight,
+            width: displaySummaryWidth,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: _OtTableState.kRailBackground,
+                border: Border.all(color: borderColor.withOpacity(.65), width: .7),
+              ),
             ),
           ),
-        ),
-      );
+        );
     } else {
       for (var i = 0; i < rows.length; i++) {
         final row = rows[i];
@@ -620,7 +626,7 @@ class _RailDivider extends StatelessWidget {
     return Container(
       width: _OtTableState.kDividerWidth,
       height: double.infinity,
-      color: color.withOpacity(.85),
+      color: color.withOpacity(.7),
     );
   }
 }
@@ -648,7 +654,7 @@ class _MergedModelCell extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: _OtTableState.kRailBackground,
-          border: Border.all(color: borderColor),
+          border: Border.all(color: borderColor.withOpacity(.65), width: .7),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -659,7 +665,7 @@ class _MergedModelCell extends StatelessWidget {
               child: Text(
                 display,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   height: 1.3,
                   color: Colors.white,
@@ -696,7 +702,7 @@ class _LeftRow extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: _OtTableState.kRailBackground,
-          border: Border.all(color: borderColor),
+          border: Border.all(color: borderColor.withOpacity(.65), width: .7),
         ),
         child: Row(
           children: [
@@ -761,7 +767,7 @@ class _LeftRow extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: _OtTableState.kRailBackground,
-          border: Border.all(color: borderColor.withOpacity(.9)),
+          border: Border.all(color: borderColor.withOpacity(.65), width: .7),
         ),
         child: Align(
           alignment: Alignment.center,
@@ -770,7 +776,7 @@ class _LeftRow extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               color: color,
               letterSpacing: .2,

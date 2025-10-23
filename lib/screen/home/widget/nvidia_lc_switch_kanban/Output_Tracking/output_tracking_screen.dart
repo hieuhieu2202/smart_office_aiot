@@ -187,12 +187,6 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
     }
   }
 
-  void _onExport() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Tính năng Export Excel sẽ sớm có mặt.')),
-    );
-  }
-
   double _computeTableHeight(BuildContext context, bool isMobile, bool isTablet) {
     final size = MediaQuery.of(context).size;
     final reserved = isMobile
@@ -240,6 +234,7 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
               title: title,
               isMobile: isMobile,
               isTablet: isTablet,
+              onBack: Get.back,
               dateText: _formatDate(_selectedDate),
               shift: _selectedShift,
               shiftOptions: _shiftOptions,
@@ -249,7 +244,6 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
               onPickDate: _pickDate,
               onShiftChanged: _onShiftChanged,
               onSelectModels: _openModelPicker,
-              onExport: _onExport,
               onQuery: _onQuery,
               onRefresh: isLoading ? null : () { _controller.loadAll(); },
             ),
@@ -363,28 +357,15 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
       SliverPadding(
         padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 28),
         sliver: SliverToBoxAdapter(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0xFF0D213A),
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: const Color(0xFF1E3F66).withOpacity(.6)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black54,
-                  blurRadius: 18,
-                  offset: Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                height: _computeTableHeight(context, isMobile, isTablet),
-                child: OtTable(
-                  view: view!,
-                  onStationTap: _showStationTrend,
-                  onSectionTap: _showSectionDetail,
-                ),
+          child: Container(
+            color: const Color(0xFF0D213A),
+            padding: const EdgeInsets.all(12),
+            child: SizedBox(
+              height: _computeTableHeight(context, isMobile, isTablet),
+              child: OtTable(
+                view: view!,
+                onStationTap: _showStationTrend,
+                onSectionTap: _showSectionDetail,
               ),
             ),
           ),
@@ -473,6 +454,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     required this.isMobile,
     required this.isTablet,
+    required this.onBack,
     required this.dateText,
     required this.shift,
     required this.shiftOptions,
@@ -482,7 +464,6 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onPickDate,
     required this.onShiftChanged,
     required this.onSelectModels,
-    required this.onExport,
     required this.onQuery,
     required this.onRefresh,
   }) : preferredSize = Size.fromHeight(
@@ -496,6 +477,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool isMobile;
   final bool isTablet;
+  final VoidCallback? onBack;
   final String dateText;
   final String shift;
   final List<String> shiftOptions;
@@ -505,7 +487,6 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onPickDate;
   final ValueChanged<String?> onShiftChanged;
   final VoidCallback onSelectModels;
-  final VoidCallback onExport;
   final VoidCallback onQuery;
   final VoidCallback? onRefresh;
 
@@ -543,6 +524,12 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  IconButton(
+                    tooltip: 'Quay lại',
+                    onPressed: onBack,
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       title,
@@ -582,7 +569,6 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
                 onPickDate: onPickDate,
                 onShiftChanged: onShiftChanged,
                 onSelectModels: onSelectModels,
-                onExport: onExport,
                 onQuery: onQuery,
                 isMobile: isMobile,
                 isTablet: isTablet,
@@ -607,7 +593,6 @@ class OtFilterToolbar extends StatelessWidget {
     required this.onPickDate,
     required this.onShiftChanged,
     required this.onSelectModels,
-    required this.onExport,
     required this.onQuery,
     required this.isMobile,
     required this.isTablet,
@@ -622,7 +607,6 @@ class OtFilterToolbar extends StatelessWidget {
   final VoidCallback onPickDate;
   final ValueChanged<String?> onShiftChanged;
   final VoidCallback onSelectModels;
-  final VoidCallback onExport;
   final VoidCallback onQuery;
   final bool isMobile;
   final bool isTablet;
@@ -765,12 +749,6 @@ class OtFilterToolbar extends StatelessWidget {
     }
 
     Widget buildActions() {
-      final export = OtToolbarButton(
-        label: 'EXPORT EXCEL',
-        icon: Icons.file_download_outlined,
-        backgroundColor: const Color(0xFF1E7B4E),
-        onPressed: isBusy ? null : onExport,
-      );
       final query = OtToolbarButton(
         label: isBusy ? 'LOADING...' : 'QUERY',
         icon: Icons.search,
@@ -784,8 +762,6 @@ class OtFilterToolbar extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              export,
-              const SizedBox(height: 10),
               query,
             ],
           ),
@@ -793,14 +769,8 @@ class OtFilterToolbar extends StatelessWidget {
       }
 
       return SizedBox(
-        width: isTablet ? 320 : 360,
-        child: Row(
-          children: [
-            Expanded(child: export),
-            const SizedBox(width: 12),
-            Expanded(child: query),
-          ],
-        ),
+        width: isTablet ? 200 : 220,
+        child: query,
       );
     }
 
