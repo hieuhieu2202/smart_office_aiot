@@ -850,7 +850,7 @@ class OtFilterToolbar extends StatelessWidget {
         );
       }
 
-      final actionWidth = isTablet ? 200 : 220;
+      final actionWidth = isTablet ? 200.0 : 220.0;
       return _FilterField(
         width: actionWidth,
         label: 'Action',
