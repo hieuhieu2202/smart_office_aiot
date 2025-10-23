@@ -239,7 +239,14 @@ class OtSectionDetailDialog extends StatelessWidget {
   }) {
     const panelColor = Color(0xFF162C4B);
     final effectivePoints = _effectivePoints(points);
-    final hasData = effectivePoints.isNotEmpty;
+    final chartPoints = effectivePoints.where((p) => p.value > 0).toList();
+    if (chartPoints.isEmpty && effectivePoints.isNotEmpty) {
+      chartPoints.addAll(
+        effectivePoints.take(math.min(6, effectivePoints.length)),
+      );
+    }
+
+    final hasData = chartPoints.isNotEmpty;
 
     final baseHeight = hasData
         ? math.min(320.0, 58.0 * math.max(4, effectivePoints.length))
@@ -309,7 +316,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                             const SizedBox(height: 12),
                             Expanded(
                               child: _buildDetailChart(
-                                effectivePoints,
+                                chartPoints,
                                 panelColor,
                                 0,
                               ),
@@ -329,7 +336,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                       Flexible(
                         flex: 3,
                         child: _buildDetailChart(
-                          effectivePoints,
+                          chartPoints,
                           panelColor,
                           0,
                         ),
@@ -363,7 +370,7 @@ class OtSectionDetailDialog extends StatelessWidget {
           primaryXAxis: CategoryAxis(
             majorGridLines: const MajorGridLines(width: 0),
             labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
-            labelRotation: points.length > 6 ? -35 : 0,
+            labelRotation: points.length > 6 ? -30 : 0,
           ),
           primaryYAxis: NumericAxis(
             majorGridLines: const MajorGridLines(dashArray: [4, 4], color: Colors.white24),
@@ -498,29 +505,36 @@ class _DetailListHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            primaryHeader,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C3357),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              primaryHeader,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                letterSpacing: .6,
+              ),
+            ),
+          ),
+          Text(
+            valueHeader,
             style: const TextStyle(
               color: Colors.white70,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               fontSize: 12,
               letterSpacing: .6,
             ),
           ),
-        ),
-        Text(
-          valueHeader,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-            letterSpacing: .6,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
