@@ -686,15 +686,16 @@ class _MergedModelCell extends StatelessWidget {
           message: display,
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Text(
                 display,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  height: 1.25,
+                  height: 1.5,
                   color: Colors.white,
+                  letterSpacing: .2,
                 ),
               ),
             ),

@@ -62,7 +62,7 @@ class TripleCell extends StatelessWidget {
   Widget build(BuildContext context) {
     const dividerColor = Color(0xFF1C2F4A);
 
-    final baseFontSize = compact ? 12.0 : 13.0;
+    final baseFontSize = compact ? 14.0 : 15.0;
 
     final passValue = pass.isFinite ? pass : 0;
     final passText = passValue.round().toString();
@@ -125,7 +125,7 @@ class TripleCell extends StatelessWidget {
   }) {
     Widget label = Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 9),
         child: Text(
           text,
           maxLines: 1,
