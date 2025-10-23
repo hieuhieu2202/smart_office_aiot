@@ -314,67 +314,18 @@ class _OtTableState extends State<OtTable> {
             child: SizedBox(
               width: hourColumnsWidth,
               child: Row(
-                children: List.generate(hours.length, (index) {
-                  final label = formatHourRange(hours[index]);
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      right: index == hours.length - 1 ? 0 : kHourGap,
-                    ),
-                    child: Container(
-                      width: kHourWidth,
-                      height: kHeaderHeight,
-                      decoration: BoxDecoration(
-                        color: kHeaderBackground,
-                        border: Border.all(
-                          color: kHeaderBorder.withOpacity(.7),
-                          width: .8,
-                        ),
-                        borderRadius: kCellRadius,
+                children: [
+                  for (var i = 0; i < hours.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        right: i == hours.length - 1 ? 0 : kHourGap,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
-                                child: Text(
-                                  label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: .25,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            height: 1,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: kHeaderBorder.withOpacity(.65),
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            height: 22,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: const [
-                                _HourLegendCell(label: 'PASS', showRightBorder: true),
-                                _HourLegendCell(label: 'YR', showRightBorder: true),
-                                _HourLegendCell(label: 'RR', showRightBorder: false),
-                              ],
-                            ),
-                          ),
-                        ],
+                      child: _HourHeaderCell(
+                        label: formatHourRange(hours[i]),
                       ),
                     ),
-                  );
-              }),
+                ],
+              ),
             ),
           ),
         ),
@@ -601,6 +552,69 @@ class _RailDivider extends StatelessWidget {
       width: _OtTableState.kDividerWidth,
       height: double.infinity,
       color: color.withOpacity(.7),
+    );
+  }
+}
+
+class _HourHeaderCell extends StatelessWidget {
+  const _HourHeaderCell({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: _OtTableState.kHourWidth,
+      height: _OtTableState.kHeaderHeight,
+      decoration: BoxDecoration(
+        color: _OtTableState.kHeaderBackground,
+        border: Border.all(
+          color: _OtTableState.kHeaderBorder.withOpacity(.7),
+          width: .8,
+        ),
+        borderRadius: _OtTableState.kCellRadius,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: .25,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 1,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: _OtTableState.kHeaderBorder.withOpacity(.65),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 22,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: const [
+                _HourLegendCell(label: 'PASS', showRightBorder: true),
+                _HourLegendCell(label: 'YR', showRightBorder: true),
+                _HourLegendCell(label: 'RR', showRightBorder: false),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
