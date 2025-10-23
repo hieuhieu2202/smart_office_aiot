@@ -22,12 +22,18 @@ class OtStationTrendDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = _buildPoints();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double dialogMaxWidth =
+        (screenWidth * 0.8).clamp(360.0, 1280.0).toDouble();
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       backgroundColor: const Color(0xFF10233F),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 880, minWidth: 340),
+        constraints: BoxConstraints(
+          maxWidth: dialogMaxWidth,
+          minWidth: math.min(dialogMaxWidth, 360.0),
+        ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(28, 20, 28, 24),
           child: Column(
@@ -163,13 +169,19 @@ class OtSectionDetailDialog extends StatelessWidget {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     final sectionLabel = formatHourRange(section);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double dialogMaxWidth =
+        (screenWidth * 0.8).clamp(380.0, 1320.0).toDouble();
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       backgroundColor: const Color(0xFF10233F),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 920, minWidth: 380),
+        constraints: BoxConstraints(
+          maxWidth: dialogMaxWidth,
+          minWidth: math.min(dialogMaxWidth, 380.0),
+        ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(28, 20, 28, 24),
           child: Column(
