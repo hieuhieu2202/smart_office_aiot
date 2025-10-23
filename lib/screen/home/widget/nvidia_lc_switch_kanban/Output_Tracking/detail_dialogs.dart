@@ -227,7 +227,7 @@ class OtSectionDetailDialog extends StatelessWidget {
     final hasData = effectivePoints.isNotEmpty;
 
     final baseHeight = hasData
-        ? math.min(360, 64.0 * math.max(4, effectivePoints.length))
+        ? math.min(360.0, 64.0 * math.max(4, effectivePoints.length))
         : 160.0;
 
     return SizedBox(
@@ -254,7 +254,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                         child: _buildDetailChart(
                           effectivePoints,
                           panelColor,
-                          isWide ? 0 : math.max(0, baseHeight - 170),
+                          isWide ? 0.0 : math.max(0.0, baseHeight - 170.0),
                         ),
                       );
 
