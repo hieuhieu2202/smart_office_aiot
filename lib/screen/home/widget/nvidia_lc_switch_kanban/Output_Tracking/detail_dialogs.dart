@@ -99,6 +99,8 @@ class OtStationTrendDialog extends StatelessWidget {
                       yValueMapper: (p, _) => p.pass,
                       color: const Color(0xFF44CA71),
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                      onCreateShader: (details) =>
+                          build3dColumnShader(details.rect, const Color(0xFF44CA71)),
                       dataLabelSettings: const DataLabelSettings(
                         isVisible: true,
                         labelAlignment: ChartDataLabelAlignment.outer,
@@ -113,6 +115,9 @@ class OtStationTrendDialog extends StatelessWidget {
                       yValueMapper: (p, _) => p.rr,
                       yAxisName: 'rrAxis',
                       markerSettings: const MarkerSettings(isVisible: true, color: Colors.white),
+                      width: 3.2,
+                      onCreateShader: (details) =>
+                          build3dLineShader(details.rect, const Color(0xFFE36269)),
                       dataLabelSettings: const DataLabelSettings(
                         isVisible: true,
                         textStyle: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
@@ -216,11 +221,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                 points: errorPoints,
                 emptyMessage: 'Không có lỗi nào trong khung giờ này.',
                 primaryHeader: 'Error Code',
-                barGradient: const LinearGradient(
-                  colors: [Color(0xFFFFA8A8), Color(0xFFFF4E50)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
+                barColor: const Color(0xFFE45A61),
               ),
               const SizedBox(height: 20),
               _buildBarChart(
@@ -242,8 +243,7 @@ class OtSectionDetailDialog extends StatelessWidget {
     required List<_DetailPoint> points,
     required String emptyMessage,
     required String primaryHeader,
-    LinearGradient? barGradient,
-    Color? barColor,
+    required Color barColor,
   }) {
     const panelColor = Color(0xFF162C4B);
     final effectivePoints = _effectivePoints(points);
@@ -327,8 +327,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                                 chartPoints,
                                 panelColor,
                                 0,
-                                gradient: barGradient,
-                                color: barColor,
+                                baseColor: barColor,
                               ),
                             ),
                           ],
@@ -349,8 +348,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                           chartPoints,
                           panelColor,
                           0,
-                          gradient: barGradient,
-                          color: barColor,
+                          baseColor: barColor,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -372,8 +370,7 @@ class OtSectionDetailDialog extends StatelessWidget {
     List<_DetailPoint> points,
     Color panelColor,
     double minHeight, {
-    LinearGradient? gradient,
-    Color? color,
+    required Color baseColor,
   }) {
     return SizedBox.expand(
       child: Container(
@@ -397,8 +394,8 @@ class OtSectionDetailDialog extends StatelessWidget {
               dataSource: points,
               xValueMapper: (p, _) => p.label,
               yValueMapper: (p, _) => p.value.toDouble(),
-              gradient: gradient,
-              color: gradient == null ? (color ?? const Color(0xFF66D9EF)) : null,
+              color: baseColor,
+              onCreateShader: (details) => build3dColumnShader(details.rect, baseColor),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
               dataLabelSettings: const DataLabelSettings(
                 isVisible: true,
