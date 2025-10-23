@@ -34,9 +34,9 @@ class TripleCell extends StatelessWidget {
     const warning = Color(0xFFFFC56F);
 
     // Kích thước cơ sở (sẽ co giãn theo LayoutBuilder)
-    final baseHeight = compact ? 28.0 : 34.0;
-    final baseGap = compact ? 6.0 : 8.0;
-    final baseFont = compact ? 12.0 : 13.5;
+    final baseHeight = compact ? 26.0 : 32.0;
+    final baseGap = compact ? 5.0 : 6.0;
+    final baseFont = compact ? 11.0 : 12.5;
 
     // Chuẩn bị style theo ngưỡng (đồng bộ web)
     final passValue = pass.isFinite ? pass : 0;
@@ -207,8 +207,8 @@ class _BadgeStyle {
 
   factory _BadgeStyle.neutral(Color tone, {bool bold = false}) {
     return _BadgeStyle(
-      fillColor: tone.withOpacity(.18),
-      borderColor: tone.withOpacity(.48),
+      fillColor: Colors.transparent,
+      borderColor: tone.withOpacity(.45),
       textColor: tone,
       bold: bold,
     );
@@ -216,9 +216,9 @@ class _BadgeStyle {
 
   factory _BadgeStyle.solid(Color tone) {
     return _BadgeStyle(
-      fillColor: tone.withOpacity(.28),
-      borderColor: tone.withOpacity(.72),
-      textColor: tone,
+      fillColor: tone.withOpacity(.25),
+      borderColor: tone.withOpacity(.75),
+      textColor: Colors.white,
       bold: true,
     );
   }

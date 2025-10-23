@@ -24,20 +24,20 @@ class OtTable extends StatefulWidget {
 }
 
 class _OtTableState extends State<OtTable> {
-  static const double kRowHeight = 60;
-  static const double kHeaderHeight = 60;
-  static const double kRowGap = 4;
-  static const double kModelWidth = 236;
-  static const double kChipWidth = 74;
-  static const double kChipGap = 6;
-  static const double kStationMinWidth = 140;
-  static const double kStationPadding = 16;
-  static const double kStationMaxWidth = 240;
-  static const double kHourWidth = 150;
-  static const double kHourGap = 8;
-  static const double kColumnGap = 16;
-  static const double kDividerGapBefore = 4;
-  static const double kDividerGapAfter = 6;
+  static const double kRowHeight = 56;
+  static const double kHeaderHeight = 56;
+  static const double kRowGap = 0;
+  static const double kModelWidth = 220;
+  static const double kChipWidth = 70;
+  static const double kChipGap = 0;
+  static const double kStationMinWidth = 132;
+  static const double kStationPadding = 18;
+  static const double kStationMaxWidth = 220;
+  static const double kHourWidth = 148;
+  static const double kHourGap = 0;
+  static const double kColumnGap = 0;
+  static const double kDividerGapBefore = 2;
+  static const double kDividerGapAfter = 2;
   static const double kDividerWidth = 1;
   static const double kHeaderPaddingY = 0;
   static const BorderRadius kCellRadius = BorderRadius.zero;
@@ -209,7 +209,7 @@ class _OtTableState extends State<OtTable> {
                       onStationTap: widget.onStationTap,
                     ),
                   ),
-                  SizedBox(width: kColumnGap),
+                  if (kColumnGap > 0) SizedBox(width: kColumnGap),
                   Expanded(
                     child: SingleChildScrollView(
                       controller: _hBodyCtrl,
@@ -225,54 +225,44 @@ class _OtTableState extends State<OtTable> {
                           itemCount: rows.length,
                           itemBuilder: (_, rowIndex) {
                             final row = rows[rowIndex];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: kRowGap),
-                              child: Row(
-                                children: List.generate(hours.length, (col) {
+                            return Row(
+                              children: List.generate(hours.length, (col) {
                                   final metric = row.metrics.length > col
                                       ? row.metrics[col]
                                       : const OtCellMetrics(pass: 0, yr: 0, rr: 0);
-                                  return Padding(
-                                    padding: EdgeInsets.only(
-                                      right: col == hours.length - 1 ? 0 : kHourGap,
+                                  return Container(
+                                    width: kHourWidth,
+                                    height: kRowHeight,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
                                     ),
-                                    child: Container(
-                                      width: kHourWidth,
-                                      height: kRowHeight,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 10,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: kHourBackground,
-                                        border: Border.all(color: borderColor),
-                                        borderRadius: kCellRadius,
-                                      ),
-                                      child: TripleCell(
-                                        pass: metric.pass,
-                                        yr: metric.yr,
-                                        rr: metric.rr,
-                                        compact: false,
-                                        onTapYr: widget.onSectionTap != null &&
-                                                metric.yr > 0
-                                            ? () => widget.onSectionTap!(
-                                                  row,
-                                                  hours[col],
-                                                )
-                                            : null,
-                                        onTapRr: widget.onSectionTap != null &&
-                                                metric.pass > 0 &&
-                                                metric.rr > 0
-                                            ? () => widget.onSectionTap!(
-                                                  row,
-                                                  hours[col],
-                                                )
-                                            : null,
-                                      ),
+                                    decoration: BoxDecoration(
+                                      color: kHourBackground,
+                                      border: Border.all(color: borderColor),
+                                      borderRadius: kCellRadius,
+                                    ),
+                                    child: TripleCell(
+                                      pass: metric.pass,
+                                      yr: metric.yr,
+                                      rr: metric.rr,
+                                      compact: false,
+                                      onTapYr: widget.onSectionTap != null && metric.yr > 0
+                                          ? () => widget.onSectionTap!(
+                                                row,
+                                                hours[col],
+                                              )
+                                          : null,
+                                      onTapRr:
+                                          widget.onSectionTap != null && metric.pass > 0 && metric.rr > 0
+                                              ? () => widget.onSectionTap!(
+                                                    row,
+                                                    hours[col],
+                                                  )
+                                              : null,
                                     ),
                                   );
                                 }),
-                              ),
                             );
                           },
                         ),
@@ -317,7 +307,7 @@ class _OtTableState extends State<OtTable> {
             stationWidth,
           ),
         ),
-        SizedBox(width: kColumnGap),
+        if (kColumnGap > 0) SizedBox(width: kColumnGap),
         Expanded(
           child: SingleChildScrollView(
             controller: _hHeaderCtrl,
@@ -350,7 +340,7 @@ class _OtTableState extends State<OtTable> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.w700,
                               letterSpacing: .25,
                             ),
@@ -365,7 +355,7 @@ class _OtTableState extends State<OtTable> {
                                   child: Text(
                                     'PASS',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.white70,
                                       letterSpacing: 1.2,
@@ -378,7 +368,7 @@ class _OtTableState extends State<OtTable> {
                                   child: Text(
                                     'YR',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.white70,
                                       letterSpacing: 1.2,
@@ -391,7 +381,7 @@ class _OtTableState extends State<OtTable> {
                                   child: Text(
                                     'RR',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.white70,
                                       letterSpacing: 1.2,
@@ -435,7 +425,7 @@ class _OtTableState extends State<OtTable> {
             child: const Align(
               alignment: Alignment.centerLeft,
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4),
+                padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
                   'STATION',
                   maxLines: 1,
@@ -481,17 +471,21 @@ class _OtTableState extends State<OtTable> {
   Widget _headerCell(String text, {required double width, TextAlign align = TextAlign.center}) {
     return SizedBox(
       width: width,
-      child: Center(
-        child: Text(
-          text,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: align,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            letterSpacing: .25,
-            color: Colors.white,
+      child: Align(
+        alignment: align == TextAlign.left ? Alignment.centerLeft : Alignment.center,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: align == TextAlign.left ? 10 : 0),
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: align,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: .25,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
@@ -656,17 +650,20 @@ class _MergedModelCell extends StatelessWidget {
           color: _OtTableState.kRailBackground,
           border: Border.all(color: borderColor),
         ),
-        child: Align(
-          alignment: Alignment.topLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Tooltip(
             message: display,
-            child: Text(
-              display,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                height: 1.3,
-                color: Colors.white,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Text(
+                display,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -715,7 +712,7 @@ class _LeftRow extends StatelessWidget {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
                         row.station,
                         maxLines: 1,
@@ -763,8 +760,8 @@ class _LeftRow extends StatelessWidget {
       height: double.infinity,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: color.withOpacity(.05),
-          border: Border.all(color: color.withOpacity(.4)),
+          color: _OtTableState.kRailBackground,
+          border: Border.all(color: borderColor.withOpacity(.9)),
         ),
         child: Align(
           alignment: Alignment.center,
@@ -773,7 +770,7 @@ class _LeftRow extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
               color: color,
               letterSpacing: .2,
