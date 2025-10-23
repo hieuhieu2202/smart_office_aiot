@@ -190,16 +190,16 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
   double _computeTableHeight(BuildContext context, bool isMobile, bool isTablet) {
     final size = MediaQuery.of(context).size;
     final reserved = isMobile
-        ? 320.0
+        ? 260.0
         : isTablet
-            ? 360.0
-            : 380.0;
+            ? 300.0
+            : 320.0;
     final base = size.height - reserved;
-    final fallback = size.height * (isMobile ? 0.78 : 0.68);
-    final candidate = base.isFinite && base > 220 ? base : fallback;
-    final maxHeight = size.height * 0.92;
+    final fallback = size.height * (isMobile ? 0.85 : 0.75);
+    final candidate = base.isFinite && base > 260 ? base : fallback;
+    final maxHeight = size.height * 0.96;
     return candidate
-        .clamp(320.0, math.max(320.0, maxHeight))
+        .clamp(360.0, math.max(360.0, maxHeight))
         .toDouble();
   }
 
@@ -349,13 +349,13 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
             ),
           ),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 28)),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
       ];
     }
 
     return [
       SliverPadding(
-        padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 28),
+        padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 16),
         sliver: SliverToBoxAdapter(
           child: Container(
             color: const Color(0xFF0D213A),
@@ -371,7 +371,7 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
           ),
         ),
       ),
-      const SliverToBoxAdapter(child: SizedBox(height: 28)),
+      const SliverToBoxAdapter(child: SizedBox(height: 16)),
     ];
   }
 }
@@ -527,13 +527,15 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
                   IconButton(
                     tooltip: 'Quay lại',
                     onPressed: onBack,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(width: 44, height: 44),
                     icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       title,
-                      textAlign: isMobile ? TextAlign.center : TextAlign.left,
+                      textAlign: TextAlign.left,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -545,6 +547,8 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
                   IconButton(
                     tooltip: 'Tải lại ngay',
                     onPressed: onRefresh,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(width: 44, height: 44),
                     icon: isBusy
                         ? const SizedBox(
                             width: 22,
