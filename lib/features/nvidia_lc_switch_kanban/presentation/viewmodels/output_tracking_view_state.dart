@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
 
-import '../../../../../../service/lc_switch_kanban_api.dart';
+import '../../domain/entities/kanban_entities.dart';
 
 class OtViewState {
   OtViewState({
@@ -17,22 +17,25 @@ class OtViewState {
 
   factory OtViewState.fromResponse({
     required List<String> hours,
-    required List<KanbanOutputGroup> groups,
+    required List<OutputGroupEntity> groups,
     required Map<String, String> modelByStation,
     required List<String> fallbackModels,
   }) {
-    final sanitizedHours = hours.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final sanitizedHours =
+        hours.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     final fallback = _buildFallbackModelText(fallbackModels);
     final seenStations = <String>{};
 
     final rows = <OtRowView>[];
-    for (final group in groups) {
-      final station = group.groupName.trim();
+    for (final OutputGroupEntity group in groups) {
+      final String station = group.groupName.trim();
       if (station.isEmpty) continue;
       if (!seenStations.add(station)) continue;
 
-      final metrics = _buildMetrics(sanitizedHours.length, group);
-      final modelText = _resolveModel(group, station, modelByStation, fallback);
+      final List<OtCellMetrics> metrics =
+          _buildMetrics(sanitizedHours.length, group);
+      final String modelText =
+          _resolveModel(group, station, modelByStation, fallback);
 
       rows.add(
         OtRowView(
@@ -53,43 +56,47 @@ class OtViewState {
     );
   }
 
-  static List<OtCellMetrics> _buildMetrics(int hourCount, KanbanOutputGroup group) {
+  static List<OtCellMetrics> _buildMetrics(
+    int hourCount,
+    OutputGroupEntity group,
+  ) {
     if (hourCount <= 0) return const <OtCellMetrics>[];
 
     OtCellMetrics buildAt(int index) {
-      final pass = index < group.pass.length ? group.pass[index] : 0.0;
-      final yr = index < group.yr.length ? group.yr[index] : 0.0;
-      final rr = index < group.rr.length ? group.rr[index] : 0.0;
-      return OtCellMetrics(pass: pass.toDouble(), yr: yr.toDouble(), rr: rr.toDouble());
+      final double pass =
+          index < group.pass.length ? group.pass[index] : 0.0;
+      final double yr = index < group.yr.length ? group.yr[index] : 0.0;
+      final double rr = index < group.rr.length ? group.rr[index] : 0.0;
+      return OtCellMetrics(pass: pass, yr: yr, rr: rr);
     }
 
     return List<OtCellMetrics>.generate(hourCount, buildAt, growable: false);
   }
 
   static String _resolveModel(
-    KanbanOutputGroup group,
+    OutputGroupEntity group,
     String station,
     Map<String, String> modelByStation,
     String fallback,
   ) {
-    final direct = group.modelName.trim();
+    final String direct = group.modelName.trim();
     if (direct.isNotEmpty) return direct;
 
-    final mapped = modelByStation[station]?.trim();
+    final String? mapped = modelByStation[station]?.trim();
     if (mapped != null && mapped.isNotEmpty) return mapped;
 
     return fallback;
   }
 
   static int _sum(List<double> values) =>
-      values.fold<int>(0, (sum, value) => sum + value.round());
+      values.fold<int>(0, (int sum, double value) => sum + value.round());
 
   static String _buildFallbackModelText(List<String> models) {
-    final compact = models
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
+    final Iterable<String> compact = models
+        .map((String e) => e.trim())
+        .where((String e) => e.isNotEmpty)
         .toSet()
-        .sorted((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+        .sorted((String a, String b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
     if (compact.isEmpty) return '-';
     if (compact.length == 1) return compact.first;

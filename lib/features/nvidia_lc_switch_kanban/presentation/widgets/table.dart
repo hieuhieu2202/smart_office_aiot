@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'cells.dart';
-import 'output_tracking_view_state.dart';
-import 'series_utils.dart';
+import '../viewmodels/output_tracking_view_state.dart';
+import '../viewmodels/series_utils.dart';
 
 class OtTable extends StatefulWidget {
   const OtTable({

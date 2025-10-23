@@ -4,22 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 
-import '../../../controller/nvidia_lc_switch_kanban_controller.dart';
-import 'filter_panel.dart';
-import 'detail_dialogs.dart';
-import 'mobile_cards.dart';
-import 'output_tracking_view_state.dart';
-import 'table.dart';
+import '../controllers/output_tracking_controller.dart';
+import '../widgets/filter_panel.dart';
+import '../widgets/detail_dialogs.dart';
+import '../widgets/mobile_cards.dart';
+import '../viewmodels/output_tracking_view_state.dart';
+import '../widgets/table.dart';
 
-class OutputTrackingScreen extends StatefulWidget {
-  const OutputTrackingScreen({super.key});
+class OutputTrackingPage extends StatefulWidget {
+  const OutputTrackingPage({super.key});
 
   @override
-  State<OutputTrackingScreen> createState() => _OutputTrackingScreenState();
+  State<OutputTrackingPage> createState() => _OutputTrackingPageState();
 }
 
-class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
-  late final KanbanController _controller;
+class _OutputTrackingPageState extends State<OutputTrackingPage> {
+  late final OutputTrackingController _controller;
   late DateTime _selectedDate;
   late String _selectedShift;
   List<String> _selectedModels = const [];
@@ -31,9 +31,9 @@ class _OutputTrackingScreenState extends State<OutputTrackingScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = Get.isRegistered<KanbanController>()
-        ? Get.find<KanbanController>()
-        : Get.put(KanbanController());
+    _controller = Get.isRegistered<OutputTrackingController>()
+        ? Get.find<OutputTrackingController>()
+        : Get.put(OutputTrackingController());
 
     _selectedDate = _controller.date.value;
     _selectedShift = _controller.shift.value;

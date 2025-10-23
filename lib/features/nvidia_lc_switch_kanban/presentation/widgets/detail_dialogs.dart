@@ -3,9 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-import '../../../../../../service/lc_switch_kanban_api.dart';
-import 'output_tracking_view_state.dart';
-import 'series_utils.dart';
+import '../../domain/entities/kanban_entities.dart';
+import '../viewmodels/output_tracking_view_state.dart';
+import '../viewmodels/series_utils.dart';
 
 class OtStationTrendDialog extends StatelessWidget {
   const OtStationTrendDialog({
@@ -69,27 +69,28 @@ class OtStationTrendDialog extends StatelessWidget {
                   ),
                   primaryYAxis: NumericAxis(
                     name: 'passAxis',
-                    majorGridLines: const MajorGridLines(dashArray: [4, 4], color: Colors.white24),
+                    majorGridLines:
+                        const MajorGridLines(dashArray: [4, 4], color: Colors.white24),
                     labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
                     axisLine: const AxisLine(color: Colors.transparent),
                   ),
-                  axes: <ChartAxis>[
+                  axes: const <ChartAxis>[
                     NumericAxis(
                       name: 'rrAxis',
                       opposedPosition: true,
-                      axisLine: const AxisLine(color: Colors.transparent),
-                      majorGridLines: const MajorGridLines(width: 0),
+                      axisLine: AxisLine(color: Colors.transparent),
+                      majorGridLines: MajorGridLines(width: 0),
                       minimum: 0,
                       maximum: 100,
                       labelFormat: '{value}%',
-                      labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
+                      labelStyle: TextStyle(color: Colors.white70, fontSize: 11),
                     ),
                   ],
-                  legend: Legend(
+                  legend: const Legend(
                     isVisible: true,
                     position: LegendPosition.bottom,
                     overflowMode: LegendItemOverflowMode.wrap,
-                    textStyle: const TextStyle(color: Colors.white70),
+                    textStyle: TextStyle(color: Colors.white70),
                   ),
                   series: <CartesianSeries<dynamic, dynamic>>[
                     ColumnSeries<_StationTrendPoint, String>(
@@ -98,13 +99,18 @@ class OtStationTrendDialog extends StatelessWidget {
                       xValueMapper: (p, _) => p.label,
                       yValueMapper: (p, _) => p.pass,
                       color: const Color(0xFF44CA71),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(6)),
                       onCreateShader: (details) =>
                           build3dColumnShader(details.rect, const Color(0xFF44CA71)),
                       dataLabelSettings: const DataLabelSettings(
                         isVisible: true,
                         labelAlignment: ChartDataLabelAlignment.outer,
-                        textStyle: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                        textStyle: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       dataLabelMapper: (p, _) => p.pass.toStringAsFixed(0),
                     ),
@@ -114,13 +120,18 @@ class OtStationTrendDialog extends StatelessWidget {
                       xValueMapper: (p, _) => p.label,
                       yValueMapper: (p, _) => p.rr,
                       yAxisName: 'rrAxis',
-                      markerSettings: const MarkerSettings(isVisible: true, color: Colors.white),
+                      markerSettings:
+                          const MarkerSettings(isVisible: true, color: Colors.white),
                       width: 3.2,
                       onCreateShader: (details) =>
                           build3dLineShader(details.rect, const Color(0xFFE36269)),
                       dataLabelSettings: const DataLabelSettings(
                         isVisible: true,
-                        textStyle: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                        textStyle: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
                         labelAlignment: ChartDataLabelAlignment.outer,
                       ),
                       dataLabelMapper: (p, _) => '${p.rr.toStringAsFixed(2)}%',
@@ -138,7 +149,7 @@ class OtStationTrendDialog extends StatelessWidget {
 
   List<_StationTrendPoint> _buildPoints() {
     final count = math.min(hours.length, metrics.length);
-    return List<_StationTrendPoint>.generate(count, (index) {
+    return List<_StationTrendPoint>.generate(count, (int index) {
       final label = formatHourRange(hours[index]);
       final metric = metrics[index];
       return _StationTrendPoint(
@@ -160,15 +171,15 @@ class OtSectionDetailDialog extends StatelessWidget {
 
   final String station;
   final String section;
-  final KanbanOutputTrackingDetail detail;
+  final OutputTrackingDetailEntity detail;
 
   @override
   Widget build(BuildContext context) {
-    final errorPoints = detail.errorDetails
+    final List<_DetailPoint> errorPoints = detail.errorDetails
         .map((e) => _DetailPoint(label: e.code, value: e.failQty))
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final testerPoints = detail.testerDetails
+    final List<_DetailPoint> testerPoints = detail.testerDetails
         .map((e) => _DetailPoint(label: e.stationName, value: e.failQty))
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -213,7 +224,8 @@ class OtSectionDetailDialog extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Yield & Retest analysis',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60),
+                style:
+                    Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60),
               ),
               const SizedBox(height: 18),
               _buildBarChart(
@@ -246,17 +258,18 @@ class OtSectionDetailDialog extends StatelessWidget {
     required Color barColor,
   }) {
     const panelColor = Color(0xFF162C4B);
-    final effectivePoints = _effectivePoints(points);
-    final chartPoints = effectivePoints.where((p) => p.value > 0).toList();
+    final List<_DetailPoint> effectivePoints = _effectivePoints(points);
+    final List<_DetailPoint> chartPoints =
+        effectivePoints.where((p) => p.value > 0).toList();
     if (chartPoints.isEmpty && effectivePoints.isNotEmpty) {
       chartPoints.addAll(
         effectivePoints.take(math.min(6, effectivePoints.length)),
       );
     }
 
-    final hasData = chartPoints.isNotEmpty;
+    final bool hasData = chartPoints.isNotEmpty;
 
-    final baseHeight = hasData
+    final double baseHeight = hasData
         ? math.min(320.0, 58.0 * math.max(4, effectivePoints.length))
         : 150.0;
 
@@ -280,7 +293,7 @@ class OtSectionDetailDialog extends StatelessWidget {
             );
           }
 
-          final isWide = constraints.maxWidth >= 640;
+          final bool isWide = constraints.maxWidth >= 640;
           final double listWidth = math.min(280.0, constraints.maxWidth * 0.38);
           final headerStyle = const TextStyle(
             color: Colors.white,
@@ -306,7 +319,7 @@ class OtSectionDetailDialog extends StatelessWidget {
             );
           }
 
-          final panel = Container(
+          final Widget chartPanel = Container(
             decoration: BoxDecoration(
               color: panelColor,
               borderRadius: BorderRadius.circular(16),
@@ -326,7 +339,6 @@ class OtSectionDetailDialog extends StatelessWidget {
                               child: _buildDetailChart(
                                 chartPoints,
                                 panelColor,
-                                0,
                                 baseColor: barColor,
                               ),
                             ),
@@ -347,7 +359,6 @@ class OtSectionDetailDialog extends StatelessWidget {
                         child: _buildDetailChart(
                           chartPoints,
                           panelColor,
-                          0,
                           baseColor: barColor,
                         ),
                       ),
@@ -360,7 +371,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                   ),
           );
 
-          return panel;
+          return chartPanel;
         },
       ),
     );
@@ -368,61 +379,52 @@ class OtSectionDetailDialog extends StatelessWidget {
 
   Widget _buildDetailChart(
     List<_DetailPoint> points,
-    Color panelColor,
-    double minHeight, {
+    Color panelColor, {
     required Color baseColor,
   }) {
-    return SizedBox.expand(
-      child: Container(
-        constraints: BoxConstraints(minHeight: minHeight),
-        child: SfCartesianChart(
-          backgroundColor: panelColor,
-          plotAreaBorderWidth: 0,
-          primaryXAxis: CategoryAxis(
-            majorGridLines: const MajorGridLines(width: 0),
-            labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
-            labelRotation: points.length > 6 ? -30 : 0,
-          ),
-          primaryYAxis: NumericAxis(
-            majorGridLines: const MajorGridLines(dashArray: [4, 4], color: Colors.white24),
-            labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
-            axisLine: const AxisLine(color: Colors.transparent),
-          ),
-          tooltipBehavior: TooltipBehavior(enable: true),
-          series: <CartesianSeries<dynamic, dynamic>>[
-            ColumnSeries<_DetailPoint, String>(
-              dataSource: points,
-              xValueMapper: (p, _) => p.label,
-              yValueMapper: (p, _) => p.value.toDouble(),
-              color: baseColor,
-              onCreateShader: (details) => build3dColumnShader(details.rect, baseColor),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-              dataLabelSettings: const DataLabelSettings(
-                isVisible: true,
-                textStyle: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
-              ),
-              dataLabelMapper: (p, _) => p.value.toString(),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: panelColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: SfCartesianChart(
+        backgroundColor: panelColor,
+        plotAreaBorderWidth: 0,
+        primaryXAxis: CategoryAxis(
+          majorGridLines: const MajorGridLines(width: 0),
+          labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
+          labelRotation: points.length > 6 ? -30 : 0,
         ),
+        primaryYAxis: NumericAxis(
+          majorGridLines:
+              const MajorGridLines(dashArray: [4, 4], color: Colors.white24),
+          labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
+          axisLine: const AxisLine(color: Colors.transparent),
+        ),
+        tooltipBehavior: TooltipBehavior(enable: true),
+        series: <CartesianSeries<dynamic, dynamic>>[
+          ColumnSeries<_DetailPoint, String>(
+            dataSource: points,
+            xValueMapper: (p, _) => p.label,
+            yValueMapper: (p, _) => p.value.toDouble(),
+            color: baseColor,
+            onCreateShader: (details) => build3dColumnShader(details.rect, baseColor),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+            dataLabelSettings: const DataLabelSettings(
+              isVisible: true,
+              textStyle: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+              labelAlignment: ChartDataLabelAlignment.outer,
+            ),
+            dataLabelMapper: (p, _) => p.value.toString(),
+          ),
+        ],
       ),
     );
   }
 
   List<_DetailPoint> _effectivePoints(List<_DetailPoint> points) {
-    if (points.isEmpty) return const [];
-
-    final positive = <_DetailPoint>[];
-    final zeros = <_DetailPoint>[];
-    for (final point in points) {
-      if (point.value > 0) {
-        positive.add(point);
-      } else {
-        zeros.add(point);
-      }
-    }
-
-    return <_DetailPoint>[...positive, ...zeros];
+    if (points.isEmpty) return const <_DetailPoint>[];
+    return points.take(18).toList();
   }
 }
 
@@ -439,75 +441,14 @@ class _StationTrendPoint {
 }
 
 class _DetailPoint {
-  _DetailPoint({
-    required this.label,
-    required this.value,
-  });
+  _DetailPoint({required this.label, required this.value});
 
   final String label;
   final int value;
 }
 
-class _DetailList extends StatelessWidget {
-  const _DetailList({
-    super.key,
-    required this.points,
-  });
-
-  final List<_DetailPoint> points;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        color: const Color(0xFF1C3357),
-        child: ListView.separated(
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          itemBuilder: (context, index) {
-            final point = points[index];
-            return Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    point.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  point.value.toString(),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            );
-          },
-          separatorBuilder: (_, __) => const Divider(
-            height: 12,
-            thickness: 0.7,
-            color: Color(0xFF274066),
-          ),
-          itemCount: points.length,
-        ),
-      ),
-    );
-  }
-}
-
 class _DetailListHeader extends StatelessWidget {
   const _DetailListHeader({
-    super.key,
     required this.primaryHeader,
     required this.valueHeader,
   });
@@ -518,9 +459,9 @@ class _DetailListHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C3357),
+        color: const Color(0xFF1B3358),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -530,9 +471,8 @@ class _DetailListHeader extends StatelessWidget {
               primaryHeader,
               style: const TextStyle(
                 color: Colors.white70,
-                fontWeight: FontWeight.w700,
                 fontSize: 12,
-                letterSpacing: .6,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -540,13 +480,68 @@ class _DetailListHeader extends StatelessWidget {
             valueHeader,
             style: const TextStyle(
               color: Colors.white70,
-              fontWeight: FontWeight.w700,
               fontSize: 12,
-              letterSpacing: .6,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DetailList extends StatelessWidget {
+  const _DetailList({required this.points});
+
+  final List<_DetailPoint> points;
+
+  @override
+  Widget build(BuildContext context) {
+    if (points.isEmpty) {
+      return const Center(
+        child: Text(
+          'Không có dữ liệu',
+          style: TextStyle(color: Colors.white54),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      itemCount: points.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final point = points[index];
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B3358),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  point.label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                point.value.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
