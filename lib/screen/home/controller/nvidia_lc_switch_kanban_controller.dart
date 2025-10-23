@@ -199,13 +199,15 @@ class KanbanController extends GetxController {
       throw Exception('Không có model nào được chọn.');
     }
 
+    final normalizedSection = _normalizeSectionParam(section);
+
     return KanbanApi.getOutputTrackingDataDetail(
       modelSerial: modelSerial.value,
       date: _fmt(date.value),
       shift: shift.value,
       groups: groupList,
       station: station,
-      section: section,
+      section: normalizedSection,
     );
   }
 
@@ -416,6 +418,21 @@ class KanbanController extends GetxController {
     if (l.isEmpty) return 0;
     final total = l.fold<double>(0.0, (s, v) => s + v);
     return total / l.length;
+  }
+
+  String _normalizeSectionParam(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    final digitsOnly = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.isEmpty) return trimmed;
+
+    final parsed = int.tryParse(digitsOnly);
+    if (parsed == null) return trimmed;
+    if (parsed == 24) return '24';
+
+    final bounded = parsed % 100;
+    return bounded.toString().padLeft(2, '0');
   }
 
   double get avgRr {
