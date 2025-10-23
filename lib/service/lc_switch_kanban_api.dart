@@ -336,25 +336,26 @@ class KanbanErrorDetail {
 
   factory KanbanErrorDetail.fromJson(Map<String, dynamic> json) {
     String readCode() {
-      for (final key in ['ERROR_CODE', 'errorCode', 'code']) {
-        final value = json[key];
-        if (value != null) return value.toString();
-      }
-      return '';
+      final value = _valueFor(
+        json,
+        const ['ERROR_CODE', 'erroR_CODE', 'errorCode', 'code'],
+      );
+      return value == null ? '' : value.toString();
     }
 
     int readQty() {
-      for (final key in ['FAIL_QTY', 'failQty', 'qty']) {
-        final value = json[key];
-        if (value == null) continue;
-        if (value is num) return value.round();
-        final text = value.toString().trim();
-        if (text.isEmpty) continue;
-        final parsedInt = int.tryParse(text);
-        if (parsedInt != null) return parsedInt;
-        final parsedDouble = double.tryParse(text);
-        if (parsedDouble != null) return parsedDouble.round();
-      }
+      final value = _valueFor(
+        json,
+        const ['FAIL_QTY', 'failQty', 'faiL_QTY', 'qty'],
+      );
+      if (value == null) return 0;
+      if (value is num) return value.round();
+      final text = value.toString().trim();
+      if (text.isEmpty) return 0;
+      final parsedInt = int.tryParse(text);
+      if (parsedInt != null) return parsedInt;
+      final parsedDouble = double.tryParse(text);
+      if (parsedDouble != null) return parsedDouble.round();
       return 0;
     }
 
@@ -376,25 +377,26 @@ class KanbanTesterDetail {
 
   factory KanbanTesterDetail.fromJson(Map<String, dynamic> json) {
     String readStation() {
-      for (final key in ['STATION_NAME', 'stationName', 'station']) {
-        final value = json[key];
-        if (value != null) return value.toString();
-      }
-      return '';
+      final value = _valueFor(
+        json,
+        const ['STATION_NAME', 'statioN_NAME', 'stationName', 'station'],
+      );
+      return value == null ? '' : value.toString();
     }
 
     int readQty() {
-      for (final key in ['FAIL_QTY', 'failQty', 'qty']) {
-        final value = json[key];
-        if (value == null) continue;
-        if (value is num) return value.round();
-        final text = value.toString().trim();
-        if (text.isEmpty) continue;
-        final parsedInt = int.tryParse(text);
-        if (parsedInt != null) return parsedInt;
-        final parsedDouble = double.tryParse(text);
-        if (parsedDouble != null) return parsedDouble.round();
-      }
+      final value = _valueFor(
+        json,
+        const ['FAIL_QTY', 'failQty', 'faiL_QTY', 'qty'],
+      );
+      if (value == null) return 0;
+      if (value is num) return value.round();
+      final text = value.toString().trim();
+      if (text.isEmpty) return 0;
+      final parsedInt = int.tryParse(text);
+      if (parsedInt != null) return parsedInt;
+      final parsedDouble = double.tryParse(text);
+      if (parsedDouble != null) return parsedDouble.round();
       return 0;
     }
 
