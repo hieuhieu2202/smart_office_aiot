@@ -114,7 +114,6 @@ class TrayDetailDialog extends StatelessWidget {
                             index: index + 1,
                             serial:
                                 (item['SerialNumber'] ?? '').toString().trim(),
-                            model: (item['ModelName'] ?? '').toString().trim(),
                             time: (item['DisplayTime'] ??
                                     item['InStationTime'] ??
                                     '')
@@ -183,15 +182,6 @@ class _TrayHeaderRow extends StatelessWidget {
           ),
           SizedBox(width: columnSpacing),
           Expanded(
-            child: Text(
-              'Model Name',
-              style: textStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          SizedBox(width: columnSpacing),
-          Expanded(
             flex: 2,
             child: Align(
               alignment: Alignment.centerLeft,
@@ -212,7 +202,6 @@ class _TrayHeaderRow extends StatelessWidget {
 class _TrayDataRow extends StatelessWidget {
   final int index;
   final String serial;
-  final String model;
   final String time;
   final bool isDark;
   final bool highlight;
@@ -222,7 +211,6 @@ class _TrayDataRow extends StatelessWidget {
   const _TrayDataRow({
     required this.index,
     required this.serial,
-    required this.model,
     required this.time,
     required this.isDark,
     required this.highlight,
@@ -277,15 +265,6 @@ class _TrayDataRow extends StatelessWidget {
             child: Text(
               serial.isEmpty ? '-' : serial,
               style: TextStyle(color: textColor, fontSize: baseTextSize),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          SizedBox(width: columnSpacing),
-          Expanded(
-            child: Text(
-              model.isEmpty ? '-' : model,
-              style: TextStyle(color: subtitle, fontSize: secondaryTextSize),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
