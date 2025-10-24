@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'circular_kpi.dart';
-import 'model_pass_tile.dart';
+import 'Circular_Kpi.dart';
+import 'Model_Pass_Tile.dart';
 
 class RightSidebar extends StatelessWidget {
   final List<Map<String, dynamic>> passDetails;
@@ -60,13 +60,6 @@ class RightSidebar extends StatelessWidget {
             : isMediumPanel
                 ? 86.0
                 : 96.0;
-        final iconSize = isCompactPanel
-            ? 28.0
-            : isMediumPanel
-                ? 32.0
-                : 36.0;
-        final labelFont = isCompactPanel ? 11.0 : 12.0;
-        final valueFont = isCompactPanel ? 16.0 : isMediumPanel ? 17.0 : 18.0;
         final stackKpis = isMobile || isCompactPanel;
 
         Widget buildPassList(bool scrollable) {
@@ -156,24 +149,22 @@ class RightSidebar extends StatelessWidget {
                     ? Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          CircularKpi(
-                            label: "WIP",
-                            valueText: "$wip PCS",
-                            iconData: Icons.hourglass_bottom,
-                            circleSize: circleSize,
-                            iconSize: iconSize,
-                            labelSize: labelFont,
-                            valueSize: valueFont,
+                          SizedBox(
+                            width: circleSize,
+                            child: CircularKpi(
+                              label: "WIP",
+                              valueText: "$wip PCS",
+                              iconData: Icons.hourglass_bottom,
+                            ),
                           ),
                           SizedBox(height: sectionSpacing - 2),
-                          CircularKpi(
-                            label: "PASS",
-                            valueText: "$pass PCS",
-                            iconData: Icons.local_shipping,
-                            circleSize: circleSize,
-                            iconSize: iconSize,
-                            labelSize: labelFont,
-                            valueSize: valueFont,
+                          SizedBox(
+                            width: circleSize,
+                            child: CircularKpi(
+                              label: "PASS",
+                              valueText: "$pass PCS",
+                              iconData: Icons.local_shipping,
+                            ),
                           ),
                         ],
                       )
@@ -182,14 +173,13 @@ class RightSidebar extends StatelessWidget {
                           Expanded(
                             child: Align(
                               alignment: Alignment.center,
-                              child: CircularKpi(
-                                label: "WIP",
-                                valueText: "$wip PCS",
-                                iconData: Icons.hourglass_bottom,
-                                circleSize: circleSize,
-                                iconSize: iconSize,
-                                labelSize: labelFont,
-                                valueSize: valueFont,
+                              child: SizedBox(
+                                width: circleSize,
+                                child: CircularKpi(
+                                  label: "WIP",
+                                  valueText: "$wip PCS",
+                                  iconData: Icons.hourglass_bottom,
+                                ),
                               ),
                             ),
                           ),
@@ -197,14 +187,13 @@ class RightSidebar extends StatelessWidget {
                           Expanded(
                             child: Align(
                               alignment: Alignment.center,
-                              child: CircularKpi(
-                                label: "PASS",
-                                valueText: "$pass PCS",
-                                iconData: Icons.local_shipping,
-                                circleSize: circleSize,
-                                iconSize: iconSize,
-                                labelSize: labelFont,
-                                valueSize: valueFont,
+                              child: SizedBox(
+                                width: circleSize,
+                                child: CircularKpi(
+                                  label: "PASS",
+                                  valueText: "$pass PCS",
+                                  iconData: Icons.local_shipping,
+                                ),
                               ),
                             ),
                           ),
