@@ -999,7 +999,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     const gradientTop = Color(0xFF162B4F);
     const gradientBottom = Color(0xFF101C32);
 
-    final headerHeight = useCompactHeader ? 48.0 : 54.0;
+    final headerMinHeight = useCompactHeader ? 48.0 : 54.0;
     final horizontalPadding = useCompactHeader ? 16.0 : 24.0;
 
     Widget buildHeader() {
@@ -1071,8 +1071,8 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
       );
 
       if (!useCompactHeader) {
-        return SizedBox(
-          height: headerHeight,
+        return ConstrainedBox(
+          constraints: BoxConstraints(minHeight: headerMinHeight),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -1090,8 +1090,8 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
         );
       }
 
-      return SizedBox(
-        height: headerHeight,
+      return ConstrainedBox(
+        constraints: BoxConstraints(minHeight: headerMinHeight),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
