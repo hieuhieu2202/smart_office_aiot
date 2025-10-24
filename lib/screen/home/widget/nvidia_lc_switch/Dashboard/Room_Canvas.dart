@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 class RoomCanvas extends StatefulWidget {
   final List<Map<String, dynamic>> sensors;
   final List<Map<String, dynamic>> racks;
+  final ValueChanged<Map<String, dynamic>>? onRackTap;
 
   const RoomCanvas({
     super.key,
     required this.sensors,
     required this.racks,
+    this.onRackTap,
   });
 
   @override
@@ -186,17 +188,20 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
       double rackHeight, bool isDark) {
     final rackCards = widget.racks
         .map((r) => RackCard(
-      name: r['Name'] ?? '',
-      time: r['Time'] ?? '',
-      modelName: r['ModelName'] ?? '',
-      pcs: '${r['Number'] ?? 0}',
-      status: r['Status'] ?? '',
-      percent: (r['Percent'] ?? 0).toDouble(),
-      isDark: isDark,
-      glowCtrl: _glowCtrl,
-      width: rackWidth,
-      height: rackHeight,
-    ))
+              name: r['Name'] ?? '',
+              time: r['Time'] ?? '',
+              modelName: r['ModelName'] ?? '',
+              pcs: '${r['Number'] ?? 0}',
+              status: r['Status'] ?? '',
+              percent: (r['Percent'] ?? 0).toDouble(),
+              isDark: isDark,
+              glowCtrl: _glowCtrl,
+              width: rackWidth,
+              height: rackHeight,
+              onTap: widget.onRackTap == null
+                  ? null
+                  : () => widget.onRackTap!(r),
+            ))
         .toList();
 
     if (isMobile) {
@@ -390,10 +395,10 @@ class _AnimatedSensorBadgeState extends State<AnimatedSensorBadge>
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: widget.isDark ? Colors.white : Colors.black87,
-          ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -410,6 +415,7 @@ class RackCard extends StatefulWidget {
   final AnimationController glowCtrl;
   final double width;
   final double height;
+  final VoidCallback? onTap;
 
   const RackCard({
     super.key,
@@ -423,6 +429,7 @@ class RackCard extends StatefulWidget {
     required this.glowCtrl,
     required this.width,
     required this.height,
+    this.onTap,
   });
 
   @override
@@ -487,150 +494,159 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
     final statusSize = isCompactCard ? 11.0 : 12.0;
     final barHeight = isCompactCard ? 7.0 : 8.0;
 
-    return Container(
-      width: widget.width,
-      height: widget.height,
-      padding: padding,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            baseColor.withOpacity(0.95),
-            baseColor.withOpacity(0.7),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: widget.onTap,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(.3)),
-        boxShadow: [glow],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ===== HEADER =====
-          Row(
+        child: Container(
+          width: widget.width,
+          height: widget.height,
+          padding: padding,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                baseColor.withOpacity(0.95),
+                baseColor.withOpacity(0.7),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.cyanAccent.withOpacity(.3)),
+            boxShadow: [glow],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  widget.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontSize: headerSize,
+              // ===== HEADER =====
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: headerSize,
+                      ),
+                    ),
                   ),
+                  Icon(
+                    Icons.circle,
+                    size: 7,
+                    color: _isFinished
+                        ? Colors.greenAccent
+                        : (_isRunning ? Colors.amber : Colors.grey),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _isFinished ? "00:00" : widget.time,
+                style: TextStyle(
+                  fontSize: timeSize,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
               ),
-              Icon(
-                Icons.circle,
-                size: 7,
-                color: _isFinished
-                    ? Colors.greenAccent
-                    : (_isRunning ? Colors.amber : Colors.grey),
+              const SizedBox(height: 2),
+              Text(
+                '${widget.modelName} • ${widget.pcs} PCS',
+                style: TextStyle(color: Colors.white70, fontSize: detailSize),
+              ),
+              const SizedBox(height: 8),
+
+              // ===== PROGRESS BAR =====
+              ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: Stack(
+                  children: [
+                    Container(height: barHeight, color: Colors.white10),
+                    if (_isRunning)
+                      AnimatedBuilder(
+                        animation: _runCtrl,
+                        builder: (_, __) {
+                          final t = _runCtrl.value;
+                          final width = (progress * widget.width)
+                              .clamp(0.0, widget.width);
+                          final x = (t < 0.5 ? t : 1 - t) * (width - 50);
+                          return Stack(
+                            children: [
+                              Container(
+                                width: width,
+                                height: barHeight,
+                                color: Colors.amber.withOpacity(.3),
+                              ),
+                              Positioned(
+                                left: x,
+                                top: 0,
+                                bottom: 0,
+                                child: Container(
+                                  width: 50,
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Color(0xFFFFF59D),
+                                        Color(0xFFFFC107),
+                                        Color(0xFFFFA000),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )
+                            ],
+                          );
+                        },
+                      ),
+                    if (_isFinished)
+                      AnimatedBuilder(
+                        animation: _finishCtrl,
+                        builder: (_, __) {
+                          final t = _finishCtrl.value;
+                          final x = t * (widget.width - 40);
+                          return Stack(
+                            children: [
+                              Container(
+                                  height: barHeight, color: Colors.greenAccent),
+                              Positioned(
+                                left: x,
+                                child: Container(
+                                  width: 40,
+                                  height: barHeight,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.white.withOpacity(0),
+                                        Colors.white.withOpacity(.6),
+                                        Colors.white.withOpacity(0),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 6),
+              Text(
+                _isFinished ? "FINISHED" : "RUNNING",
+                style: TextStyle(
+                  color: _isFinished ? Colors.greenAccent : Colors.amber,
+                  fontWeight: FontWeight.bold,
+                  fontSize: statusSize,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            _isFinished ? "00:00" : widget.time,
-            style: TextStyle(
-              fontSize: timeSize,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${widget.modelName} • ${widget.pcs} PCS',
-            style: TextStyle(color: Colors.white70, fontSize: detailSize),
-          ),
-          const SizedBox(height: 8),
-
-          // ===== PROGRESS BAR =====
-          ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: Stack(
-              children: [
-                Container(height: barHeight, color: Colors.white10),
-                if (_isRunning)
-                  AnimatedBuilder(
-                    animation: _runCtrl,
-                    builder: (_, __) {
-                      final t = _runCtrl.value;
-                      final width = (progress * widget.width)
-                          .clamp(0.0, widget.width);
-                      final x = (t < 0.5 ? t : 1 - t) * (width - 50);
-                      return Stack(
-                        children: [
-                          Container(
-                            width: width,
-                            height: barHeight,
-                            color: Colors.amber.withOpacity(.3),
-                          ),
-                          Positioned(
-                            left: x,
-                            top: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 50,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Color(0xFFFFF59D),
-                                    Color(0xFFFFC107),
-                                    Color(0xFFFFA000),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )
-                        ],
-                      );
-                    },
-                  ),
-                if (_isFinished)
-                  AnimatedBuilder(
-                    animation: _finishCtrl,
-                    builder: (_, __) {
-                      final t = _finishCtrl.value;
-                      final x = t * (widget.width - 40);
-                      return Stack(
-                        children: [
-                          Container(height: barHeight, color: Colors.greenAccent),
-                          Positioned(
-                            left: x,
-                            child: Container(
-                              width: 40,
-                              height: barHeight,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.white.withOpacity(0),
-                                    Colors.white.withOpacity(.6),
-                                    Colors.white.withOpacity(0),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 6),
-          Text(
-            _isFinished ? "FINISHED" : "RUNNING",
-            style: TextStyle(
-              color: _isFinished ? Colors.greenAccent : Colors.amber,
-              fontWeight: FontWeight.bold,
-              fontSize: statusSize,
-            ),
-          ),
-        ],
+        ),
       ),
-    );
+    ),
+  );
   }
 }

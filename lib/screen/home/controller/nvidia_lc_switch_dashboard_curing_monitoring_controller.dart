@@ -192,6 +192,32 @@ class CuringMonitoringController extends GetxController {
 
   void refreshAll() => fetchData(showLoading: true);
 
+  Future<List<Map<String, dynamic>>> fetchTrayDetails(String tray) async {
+    final trimmedTray = tray.trim();
+    if (trimmedTray.isEmpty) {
+      return const [];
+    }
+
+    try {
+      final response = await CuringMonitoringApi.fetchTrayData(
+        customer: customer.value,
+        factory: factoryName.value,
+        floor: floor.value,
+        room: location.value,
+        modelSerial: modelSerial.value,
+        tray: trimmedTray,
+      );
+
+      final normalized = _normalizeTrayDetails(response, trimmedTray);
+      _log(() =>
+          'ℹ️ Tray "$trimmedTray" contains ${normalized.length} serials');
+      return normalized;
+    } catch (e) {
+      _log(() => '❌ Lỗi khi fetch tray "$trimmedTray": $e');
+      rethrow;
+    }
+  }
+
   Map<String, dynamic> _normalizePayload(Map<String, dynamic> payload) {
     if (payload.containsKey('Data') &&
         payload['Data'] is Map<String, dynamic>) {
@@ -260,6 +286,46 @@ class CuringMonitoringController extends GetxController {
       'RackDetails': rackDetails,
       'SensorDatas': sensorDatas,
     };
+  }
+
+  List<Map<String, dynamic>> _normalizeTrayDetails(
+    List<Map<String, dynamic>> payload,
+    String fallbackTray,
+  ) {
+    String _string(dynamic value) => value?.toString() ?? '';
+
+    return payload
+        .map((item) => Map<String, dynamic>.from(item))
+        .map((item) {
+      final serial = _string(
+        item['serialNumber'] ?? item['seriaL_NUMBER'],
+      );
+      final model = _string(
+        item['modelName'] ?? item['modeL_NAME'],
+      );
+      final tray = _string(
+        item['trayNo'] ?? item['traY_NO'] ?? fallbackTray,
+      );
+      final wipGroup = _string(
+        item['wipGroup'] ?? item['wiP_GROUP'],
+      );
+      final timeRaw = _string(
+        item['inStationTime'] ?? item['iN_STATION_TIME'],
+      );
+      final displayTime = timeRaw.contains('T')
+          ? timeRaw.replaceFirst('T', ' ').replaceAll('Z', '')
+          : timeRaw;
+
+      return {
+        'SerialNumber': serial,
+        'ModelName': model,
+        'TrayNo': tray,
+        'WipGroup': wipGroup,
+        'InStationTime': timeRaw,
+        'DisplayTime': displayTime,
+        '_raw': item,
+      };
+    }).toList();
   }
 
   // ===== AUTO REFRESH (Timer) =====

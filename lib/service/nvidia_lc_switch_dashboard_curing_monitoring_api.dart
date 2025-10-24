@@ -5,6 +5,8 @@ import 'auth/auth_config.dart';
 class CuringMonitoringApi {
   static const String _url =
       'https://10.220.130.117/newweb/api/nvidia/dashboard/CuringMonitor/GetCuringData';
+  static const String _trayUrl =
+      'https://10.220.130.117/newweb/api/nvidia/dashboard/CuringMonitor/GetCuringTrayData';
 
   /// Gọi API lấy dữ liệu Curing Monitoring (POST)
   static Future<Map<String, dynamic>> fetch({
@@ -56,6 +58,55 @@ class CuringMonitoringApi {
     } else {
       throw Exception(
         'Failed to load Curing Monitoring data (${res.statusCode})',
+      );
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchTrayData({
+    String customer = 'NVIDIA',
+    String factory = 'F16',
+    String floor = '3F',
+    String room = 'ROOM1',
+    String modelSerial = 'SWITCH',
+    required String tray,
+  }) async {
+    final bodyMap = {
+      'customer': customer,
+      'modelSerial': modelSerial,
+      'factory': factory,
+      'floor': floor,
+      'room': room,
+      'tray': tray,
+    };
+
+    final headers = {
+      ...AuthConfig.getAuthorizedHeaders(),
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Content-Type': 'application/json',
+    };
+
+    final res = await http.post(
+      Uri.parse(_trayUrl),
+      headers: headers,
+      body: json.encode(bodyMap),
+    );
+
+    if (res.statusCode == 200 && res.body.isNotEmpty) {
+      final jsonBody = json.decode(res.body);
+      if (jsonBody is List) {
+        return jsonBody
+            .whereType<Map<String, dynamic>>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+      throw Exception('Unexpected tray response format');
+    } else if (res.statusCode == 204) {
+      return const [];
+    } else {
+      throw Exception(
+        'Failed to load tray data (${res.statusCode})',
       );
     }
   }
