@@ -588,16 +588,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     }
 
     Widget buildUpdateBanner() {
-      return AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: showUpdateBanner && (updateBannerLabel?.isNotEmpty ?? false)
-            ? Padding(
-                key: const ValueKey('update-banner-visible'),
-                padding: EdgeInsets.fromLTRB(horizontalPadding, 12, horizontalPadding, 6),
-                child: _UpdateBadge(text: updateBannerLabel!),
-              )
-            : const SizedBox.shrink(key: ValueKey('update-banner-hidden')),
-      );
+      return const SizedBox.shrink();
     }
 
     if (useCardList) {
@@ -1031,13 +1022,12 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
         child: hasStatus
             ? Padding(
                 key: ValueKey(
-                  'status-visible-${statusHighlight ? 1 : 0}-${isRefreshing ? 1 : 0}-${statusText}',
+                  'status-visible-${statusHighlight ? 1 : 0}-${statusText}',
                 ),
                 padding: const EdgeInsets.only(top: 6),
                 child: _StatusChip(
                   text: statusText!.trim(),
                   highlight: statusHighlight,
-                  isRefreshing: isRefreshing,
                 ),
               )
             : const SizedBox.shrink(key: ValueKey('status-hidden')),
@@ -1174,12 +1164,10 @@ class _StatusChip extends StatelessWidget {
   const _StatusChip({
     required this.text,
     required this.highlight,
-    required this.isRefreshing,
   });
 
   final String text;
   final bool highlight;
-  final bool isRefreshing;
 
   @override
   Widget build(BuildContext context) {
@@ -1207,85 +1195,12 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: borderColor),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isRefreshing)
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color?>(Colors.cyanAccent),
-              ),
-            )
-          else
-            const Icon(Icons.check_circle, size: 16, color: Colors.cyanAccent),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textStyle,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UpdateBadge extends StatelessWidget {
-  const _UpdateBadge({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextStyle textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              letterSpacing: .2,
-            ) ??
-        const TextStyle(
-          color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          letterSpacing: .2,
-        );
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF113054),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.5)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x8010203A),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.auto_awesome, color: Colors.cyanAccent, size: 18),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textStyle,
-              ),
-            ),
-          ],
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: textStyle,
       ),
     );
   }
