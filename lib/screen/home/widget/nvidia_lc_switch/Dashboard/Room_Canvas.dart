@@ -95,10 +95,9 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
               // Sensor badges
               if (widget.sensors.isNotEmpty)
                 Align(
-                  alignment:
-                      isMobile ? Alignment.topCenter : Alignment.center,
+                  alignment: Alignment.topCenter,
                   child: Padding(
-                    padding: EdgeInsets.only(top: isMobile ? 12 : 0),
+                    padding: EdgeInsets.only(top: isMobile ? 12 : 24),
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
