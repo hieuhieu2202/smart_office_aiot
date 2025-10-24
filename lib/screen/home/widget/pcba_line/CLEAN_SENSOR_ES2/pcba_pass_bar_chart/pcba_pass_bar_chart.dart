@@ -1,26 +1,15 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-
-import 'package:smart_factory/widget/animation/loading/eva_loading_view.dart';
-
 import '../../../../controller/pcba_line_controller.dart';
 import 'pcba_pass_detail_screen.dart';
+import 'package:smart_factory/widget/animation/loading/eva_loading_view.dart';
 
-// ----- Config -----
-const double _barWidth         = 20.0;
-const double _labelFontSize    = 12.0;
-const double _labelHeight      = 16.0;
-const double _labelPad         = 4.0;
-const double _bottomReserve    = 24.0;
-const double _bottomSafePad    = 2.0;
-const double _outsideIfShortPx = 54.0;
-const double _outsideOffset    = 14.0;
-
-class PcbaPassBarChart extends StatelessWidget {
+class PcbaPassBarChart3D extends StatelessWidget {
   final PcbaLineDashboardController controller;
-  const PcbaPassBarChart({super.key, required this.controller});
+  const PcbaPassBarChart3D({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -28,32 +17,13 @@ class PcbaPassBarChart extends StatelessWidget {
 
     return Obx(() {
       if (controller.loading.value) return const EvaLoadingView(size: 240);
-      if (controller.passFailPoints.isEmpty) return const Center(child: Text('No data'));
-
-      final groups = <BarChartGroupData>[];
-      final labels = <String>[];
-      double maxY = 0;
-
-      for (int i = 0; i < controller.passFailPoints.length; i++) {
-        final p = controller.passFailPoints[i];
-        final y = p.pass.toDouble();
-        if (y > maxY) maxY = y;
-
-        groups.add(
-          BarChartGroupData(
-            x: i,
-            barRods: [
-              BarChartRodData(
-                toY: y,
-                width: _barWidth,
-                color: Colors.greenAccent, // GIỮ NGUYÊN màu cột
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ],
-          ),
-        );
-        labels.add(DateFormat('MM/dd').format(p.date));
+      if (controller.passFailPoints.isEmpty) {
+        return const Center(child: Text('No data'));
       }
+
+      final points = controller.passFailPoints;
+      final maxValue = points.map((e) => e.pass).reduce(math.max);
+      final labels = points.map((e) => DateFormat('MM/dd').format(e.date)).toList();
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,141 +31,196 @@ class PcbaPassBarChart extends StatelessWidget {
           Text(
             'Pass Quantity',
             style: TextStyle(
-              color: isDark ? Colors.white : Colors.black, // ✅ theo theme
+              color: isDark ? Colors.white : const Color(0xFF003333),
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 12),
-          AspectRatio(
-            aspectRatio: 1.8,
-            child: LayoutBuilder(builder: (context, c) {
-              final w = c.maxWidth;
-              final h = c.maxHeight;
-              final n = groups.length;
-
-              final chartMaxY = maxY * (1 + (_labelHeight + _labelPad) / h + 0.05);
-
-              return Stack(children: [
-                BarChart(
-                  BarChartData(
-                    maxY: chartMaxY,
-                    barGroups: groups,
-                    alignment: BarChartAlignment.spaceAround,
-                    borderData: FlBorderData(show: false),
-                    gridData: FlGridData(
-                      show: true,
-                      drawHorizontalLine: true,
-                      drawVerticalLine: true,
-                      horizontalInterval: null,
-                      getDrawingHorizontalLine: (v) => FlLine(
-                        color: isDark ? const Color(0x22FFFFFF) : const Color(0x22000000), // ✅
-                        strokeWidth: 1,
-                      ),
-                      getDrawingVerticalLine: (v) => FlLine(
-                        color: isDark ? const Color(0x22FFFFFF) : const Color(0x22000000), // ✅
-                        strokeWidth: 1,
-                      ),
-                    ),
-                    titlesData: FlTitlesData(
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (v, m) {
-                            final i = v.toInt();
-                            return Text(
-                              (i >= 0 && i < labels.length) ? labels[i] : '',
-                              style: TextStyle(
-                                color: isDark ? Colors.white : Colors.black, // ✅ theo theme
-                                fontSize: 10,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    ),
-                    barTouchData: BarTouchData(
-                      enabled: true,
-                      touchCallback: (event, response) {
-                        if (event is FlTapUpEvent && response?.spot != null) {
-                          final idx = response!.spot!.touchedBarGroupIndex;
-                          final tapped = controller.passFailPoints[idx];
-                          Get.to(() => PcbaPassDetailScreen(
-                            controller: controller,
-                            selectedDate: tapped.date,
-                          ));
-                        }
-                      },
-                    ),
-                  ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [const Color(0xFF081414), const Color(0xFF0E2A2A)]
+                      : [const Color(0xFFDFF9FB), const Color(0xFFE7FDFE)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-
-                // Overlay labels (giữ logic, đổi màu theo theme)
-                IgnorePointer(
-                  child: Stack(
-                    children: List.generate(n, (i) {
-                      final y = controller.passFailPoints[i].pass.toDouble();
-
-                      // tâm cột (spaceAround)
-                      final centerX = w * ((i + 0.5) / n);
-
-                      final barTopPx    = (1 - (y / chartMaxY)) * h;
-                      final barHeightPx = h - barTopPx;
-
-                      // ranh giới trên của vùng ngày
-                      final bottomSafeTop = h - _bottomReserve - _labelHeight - _bottomSafePad;
-
-                      // vị trí trong/ngoài
-                      final insideTop  = barTopPx + _labelPad;
-                      final outsideTop = barTopPx - _labelHeight - _labelPad - _outsideOffset;
-
-                      final isShortBar = barHeightPx < _outsideIfShortPx;
-
-                      final bool canPlaceInside =
-                          !isShortBar &&
-                              barHeightPx >= (_labelHeight + _labelPad * 2) &&
-                              insideTop <= bottomSafeTop;
-
-                      double labelTop =
-                      (y == 0) ? bottomSafeTop : (canPlaceInside ? insideTop : outsideTop);
-                      // bảo vệ vùng ngày + không cho vượt top
-                      labelTop = labelTop.clamp(0, bottomSafeTop);
-
-                      return Positioned(
-                        left: centerX - (_barWidth / 2),
-                        top: labelTop,
-                        child: SizedBox(
-                          width: _barWidth,
-                          height: _labelHeight,
-                          child: Center(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                '${y.toInt()}',
-                                maxLines: 1,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: isDark ? Colors.white : Colors.black87, // ✅ theo theme
-                                  fontSize: _labelFontSize,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.0,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withOpacity(0.4)
+                        : Colors.teal.withOpacity(0.12),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
                   ),
-                ),
-              ]);
-            }),
+                ],
+              ),
+              padding: const EdgeInsets.all(12),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return GestureDetector(
+                    onTapUp: (d) {},
+                    child: CustomPaint(
+                      painter: _Pcba3DBarPainter(
+                        values: points.map((e) => e.pass.toDouble()).toList(),
+                        labels: labels,
+                        isDark: isDark,
+                        maxValue: maxValue.toDouble(),
+                      ),
+                      size: Size(constraints.maxWidth, constraints.maxHeight),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         ],
       );
     });
   }
+}
+
+class _Pcba3DBarPainter extends CustomPainter {
+  final List<double> values;
+  final List<String> labels;
+  final bool isDark;
+  final double maxValue;
+
+  _Pcba3DBarPainter({
+    required this.values,
+    required this.labels,
+    required this.isDark,
+    required this.maxValue,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const barGap = 28.0; // tăng khoảng cách giữa các cột
+    final barWidth = (size.width - (values.length + 1) * barGap) / values.length * 0.85;
+    final depth = barWidth * 0.35;
+
+    final chartHeight = size.height * 0.8;
+    final chartBaseY = size.height * 0.9;
+    final textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+
+    final baseColor = isDark ? const Color(0xFF00FFFF) : const Color(0xFF00B0B0);
+
+    for (int i = 0; i < values.length; i++) {
+      final val = values[i];
+      final barHeight = (val / maxValue) * chartHeight;
+      final left = barGap + i * (barWidth + barGap);
+      final bottom = chartBaseY;
+      final top = bottom - barHeight;
+
+      final rect = Rect.fromLTWH(left, top, barWidth, barHeight);
+
+      final topFace = Path()
+        ..moveTo(rect.left, rect.top)
+        ..lineTo(rect.right, rect.top)
+        ..lineTo(rect.right + depth, rect.top - depth)
+        ..lineTo(rect.left + depth, rect.top - depth)
+        ..close();
+
+      final rightFace = Path()
+        ..moveTo(rect.right, rect.top)
+        ..lineTo(rect.right + depth, rect.top - depth)
+        ..lineTo(rect.right + depth, rect.bottom - depth)
+        ..lineTo(rect.right, rect.bottom)
+        ..close();
+
+      final frontFace = Path()..addRect(rect);
+
+      // gradient cho từng mặt
+      final topPaint = Paint()
+        ..shader = LinearGradient(
+          colors: [
+            baseColor.withOpacity(0.9),
+            baseColor.withOpacity(0.5),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ).createShader(topFace.getBounds());
+
+      final rightPaint = Paint()
+        ..shader = LinearGradient(
+          colors: [
+            baseColor.withOpacity(0.7),
+            baseColor.withOpacity(0.3),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(rightFace.getBounds());
+
+      final frontPaint = Paint()
+        ..shader = LinearGradient(
+          colors: [
+            baseColor.withOpacity(0.9),
+            baseColor.withOpacity(0.5),
+            baseColor.withOpacity(0.3),
+          ],
+          stops: const [0.0, 0.6, 1.0],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(frontFace.getBounds());
+
+      // vẽ khối
+      canvas.drawPath(frontFace, frontPaint);
+      canvas.drawPath(topFace, topPaint);
+      canvas.drawPath(rightFace, rightPaint);
+
+      // bóng
+      canvas.drawShadow(frontFace, baseColor.withOpacity(0.5), 6, false);
+
+      // label trên đầu
+      final label = val.toInt().toString();
+      final labelText = TextSpan(
+        text: label,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          color: isDark ? Colors.black : Colors.white,
+        ),
+      );
+      textPainter.text = labelText;
+      textPainter.layout();
+
+      final badgeW = textPainter.width + 16;
+      final badgeH = 20.0;
+      final badgeX = rect.left + (barWidth - badgeW) / 2;
+      final badgeY = rect.top - depth - badgeH - 4;
+
+      final badgeR = RRect.fromRectAndRadius(
+        Rect.fromLTWH(badgeX, badgeY, badgeW, badgeH),
+        const Radius.circular(999),
+      );
+
+      final badgePaint = Paint()
+        ..shader = LinearGradient(
+          colors: [baseColor, baseColor.withOpacity(0.6)],
+        ).createShader(badgeR.outerRect);
+      canvas.drawRRect(badgeR, badgePaint);
+      textPainter.paint(canvas, Offset(badgeX + 8, badgeY + 3));
+
+      // vẽ label ngày
+      final dateText = TextSpan(
+        text: labels[i],
+        style: TextStyle(
+          fontSize: 10,
+          color: isDark
+              ? Colors.white.withOpacity(0.8)
+              : Colors.black.withOpacity(0.7),
+        ),
+      );
+      textPainter.text = dateText;
+      textPainter.layout();
+      textPainter.paint(
+          canvas, Offset(rect.left + (barWidth - textPainter.width) / 2, chartBaseY + 6));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
