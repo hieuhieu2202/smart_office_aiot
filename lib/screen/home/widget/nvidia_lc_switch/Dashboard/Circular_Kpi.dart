@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 class CircularKpi extends StatefulWidget {
@@ -48,16 +50,17 @@ class _CircularKpiState extends State<CircularKpi>
       builder: (context, constraints) {
         final availableWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
-            : MediaQuery.of(context).size.width;
+            : MediaQuery.of(context).size.width * 0.28;
 
-        final circleSize = availableWidth.isFinite && availableWidth > 0
-            ? availableWidth.clamp(120.0, 220.0)
-            : 160.0;
-        final iconSize = (circleSize * 0.35).clamp(36.0, 72.0);
+        final baseSize = availableWidth > 0 ? availableWidth : 140.0;
+        final circleSize = baseSize.clamp(72.0, 200.0);
+        final ringDiameter = circleSize * 0.88;
+        final haloDiameter = circleSize * 0.78;
+        final iconSize = (haloDiameter * 0.62).clamp(36.0, 84.0);
         final labelSize = (circleSize * 0.12).clamp(13.0, 18.0);
-        final valueSize = (circleSize * 0.18).clamp(20.0, 28.0);
-        final strokeWidth = (circleSize / 12).clamp(5.0, 10.0);
-        final gap = (circleSize * 0.08).clamp(10.0, 18.0);
+        final valueSize = (circleSize * 0.18).clamp(20.0, 30.0);
+        final strokeWidth = (ringDiameter / 18).clamp(4.0, 8.0);
+        final gap = (circleSize * 0.075).clamp(10.0, 18.0);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -68,19 +71,42 @@ class _CircularKpiState extends State<CircularKpi>
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  RotationTransition(
-                    turns: _spinCtrl,
-                    child: CircularProgressIndicator(
-                      value: 1.0,
-                      strokeWidth: strokeWidth,
-                      valueColor: AlwaysStoppedAnimation<Color>(ring),
-                      backgroundColor: ringBg,
+                  SizedBox(
+                    width: ringDiameter,
+                    height: ringDiameter,
+                    child: RotationTransition(
+                      turns: _spinCtrl,
+                      child: CircularProgressIndicator(
+                        value: 1.0,
+                        strokeWidth: strokeWidth,
+                        valueColor: AlwaysStoppedAnimation<Color>(ring),
+                        backgroundColor: ringBg,
+                      ),
                     ),
                   ),
-                  RotationTransition(
-                    turns: ReverseAnimation(_spinCtrl),
-                    child: Icon(widget.iconData, size: iconSize, color: ring),
+                  AnimatedBuilder(
+                    animation: _spinCtrl,
+                    builder: (context, child) => Transform.rotate(
+                      angle: _spinCtrl.value * math.pi,
+                      child: child,
+                    ),
+                    child: Container(
+                      width: haloDiameter,
+                      height: haloDiameter,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: ring.withOpacity(isDark ? 0.28 : 0.2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: ring.withOpacity(isDark ? 0.22 : 0.18),
+                            blurRadius: haloDiameter * 0.18,
+                            spreadRadius: haloDiameter * 0.02,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
+                  Icon(widget.iconData, size: iconSize, color: ring),
                 ],
               ),
             ),
