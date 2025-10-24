@@ -42,17 +42,12 @@ class CuringRoomMonitoringScreen extends StatelessWidget {
           return Center(child: Text(c.errorMessage.value));
         }
 
-        // ÉP REBUILD widget con khi data đổi (tránh giữ props cũ)
-        final canvasKey  = ValueKey('canvas_${c.lastFetchIso.value}');
-        final sidebarKey = ValueKey('sidebar_${c.lastFetchIso.value}');
-
         return LayoutBuilder(
           builder: (context, constraints) {
             final isNarrow = constraints.maxWidth < 480;
 
             final room = ClipRect(
               child: RoomCanvas(
-                key: canvasKey,
                 sensors: c.sensorDatas,
                 racks: c.rackDetails,
               ),
@@ -61,7 +56,6 @@ class CuringRoomMonitoringScreen extends StatelessWidget {
             final sidebar = SingleChildScrollView(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: RightSidebar(
-                key: sidebarKey,
                 passDetails: c.passDetails,
                 wip: c.wip,
                 pass: c.pass,
