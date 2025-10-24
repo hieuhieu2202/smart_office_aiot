@@ -419,10 +419,12 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
     final baseColor =
     _isFinished ? const Color(0xFF007A3D) : const Color(0xFF0E354B);
 
+    final glowOpacity = (0.25 + 0.35 * sin(widget.glowCtrl.value * 2 * pi))
+        .clamp(0.0, 1.0) as double;
+
     final glow = _isRunning
         ? BoxShadow(
-      color: Colors.amberAccent.withOpacity(
-          0.25 + 0.35 * sin(widget.glowCtrl.value * 2 * pi)),
+      color: Colors.amberAccent.withOpacity(glowOpacity),
       blurRadius: 18,
       spreadRadius: 5,
     )
