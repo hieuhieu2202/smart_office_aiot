@@ -56,11 +56,11 @@ class RightSidebar extends StatelessWidget {
         final sectionSpacing = isCompactPanel ? 12.0 : 14.0;
         final passSpacing = isCompactPanel ? 4.0 : 6.0;
         final circleSize = isCompactPanel
-            ? 82.0
+            ? (panelWidth < 300 ? 74.0 : 86.0)
             : isMediumPanel
                 ? 96.0
                 : 116.0;
-        final stackKpis = isMobile || isCompactPanel;
+        final stackKpis = panelWidth < 300;
 
         Widget buildPassList(bool scrollable) {
           if (passDetails.isEmpty) {

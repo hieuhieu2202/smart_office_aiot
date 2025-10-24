@@ -74,8 +74,8 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
 
         final isTablet = width < 1024 && width >= 600;
         final isMobile = width < 600;
-        final rackWidth = isMobile ? 160.0 : 180.0;
-        final rackHeight = isMobile ? 155.0 : 170.0;
+        final rackWidth = isMobile ? 148.0 : 180.0;
+        final rackHeight = isMobile ? 142.0 : 170.0;
 
         return SizedBox(
           width: width,
@@ -159,7 +159,7 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
 
     if (isMobile) {
       return SizedBox(
-        height: rackHeight + 40,
+        height: rackHeight + 36,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
