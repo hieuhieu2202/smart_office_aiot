@@ -156,15 +156,19 @@ class CuringMonitoringController extends GetxController {
         customer: customer.value,
         factory: factoryName.value,
         floor: floor.value,
-        location: location.value,
+        room: location.value,
         modelSerial: modelSerial.value,
       );
 
-      rawJson.value = res;
+      final normalized = _normalizePayload(res);
+      rawJson.value = {
+        'Data': normalized,
+        '_raw': res,
+      };
       lastFetchIso.value = DateTime.now().toIso8601String();
       update();
 
-      final data = res['Data'] ?? {};
+      final data = normalized;
       final racks = List<Map<String, dynamic>>.from(
         data['RackDetails'] ?? const [],
       );
@@ -187,6 +191,76 @@ class CuringMonitoringController extends GetxController {
   }
 
   void refreshAll() => fetchData(showLoading: true);
+
+  Map<String, dynamic> _normalizePayload(Map<String, dynamic> payload) {
+    if (payload.containsKey('Data') &&
+        payload['Data'] is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(
+        payload['Data'] as Map<String, dynamic>,
+      );
+    }
+
+    num? _asNum(dynamic value) {
+      if (value is num) return value;
+      if (value is String) return num.tryParse(value);
+      return null;
+    }
+
+    int _asInt(dynamic value) => _asNum(value)?.toInt() ?? 0;
+
+    double _asDouble(dynamic value) => _asNum(value)?.toDouble() ?? 0;
+
+    List<Map<String, dynamic>> _toList(dynamic value) {
+      if (value is List) {
+        return value
+            .map((e) => e is Map<String, dynamic>
+                ? Map<String, dynamic>.from(e)
+                : <String, dynamic>{})
+            .toList();
+      }
+      return <Map<String, dynamic>>[];
+    }
+
+    final passDetails = _toList(
+      payload['passDetails'] ?? payload['PassDetails'],
+    )
+        .map((item) => {
+              'ModelName': item['modelName'] ?? item['ModelName'] ?? '',
+              'Qty': _asInt(item['qty'] ?? item['Qty']),
+            })
+        .toList();
+
+    final rackDetails = _toList(
+      payload['rackDetails'] ?? payload['RackDetails'],
+    )
+        .map((item) => {
+              'Name': item['name'] ?? item['Name'] ?? '',
+              'Time': item['time'] ?? item['Time'] ?? '',
+              'ModelName': item['modelName'] ?? item['ModelName'] ?? '',
+              'Number': _asInt(item['number'] ?? item['Number']),
+              'Status': item['status'] ?? item['Status'] ?? '',
+              'Percent': _asDouble(item['percent'] ?? item['Percent']),
+            })
+        .toList();
+
+    final sensorDatas = _toList(
+      payload['sensorDatas'] ?? payload['SensorDatas'],
+    )
+        .map((item) => {
+              'Name': item['name'] ?? item['Name'] ?? '',
+              'Status': item['status'] ?? item['Status'] ?? '',
+              'Value': _asDouble(item['value'] ?? item['Value']),
+            })
+        .toList();
+
+    return {
+      'Wip': _asInt(payload['wip'] ?? payload['Wip']),
+      'Pass': _asInt(payload['pass'] ?? payload['Pass']),
+      'PassDetails': passDetails,
+      'RackDetails': rackDetails,
+      'SensorDatas': sensorDatas,
+    };
+  }
 
   // ===== AUTO REFRESH (Timer) =====
   void _startTimer() {

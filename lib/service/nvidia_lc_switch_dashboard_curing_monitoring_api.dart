@@ -4,23 +4,24 @@ import 'auth/auth_config.dart';
 
 class CuringMonitoringApi {
   static const String _url =
-      'https://10.220.130.117/NVIDIA/DashBoard/GetCuringDataMonitoring';
+      'https://10.220.130.117/newweb/api/nvidia/dashboard/CuringMonitor/GetCuringData';
 
   /// Gọi API lấy dữ liệu Curing Monitoring (POST)
   static Future<Map<String, dynamic>> fetch({
     String customer = 'NVIDIA',
     String factory = 'F16',
     String floor = '3F',
-    String location = 'ROOM1',
+    String room = 'ROOM1',
     String modelSerial = 'SWITCH',
+    String tray = '',
   }) async {
     final bodyMap = {
-      'Customer': customer,
-      'Factory': factory,
-      'Floor': floor,
-      'Location': location,
-      'ModelSerial': modelSerial,
-      '_ts': DateTime.now().millisecondsSinceEpoch,
+      'customer': customer,
+      'modelSerial': modelSerial,
+      'factory': factory,
+      'floor': floor,
+      'room': room,
+      'tray': tray,
     };
 
     // print('[CuringApi] POST body => ${json.encode(bodyMap)}');
