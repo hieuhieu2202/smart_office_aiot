@@ -94,27 +94,31 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
 
               // Sensor badges
               if (widget.sensors.isNotEmpty)
-                Positioned(
-                  top: isMobile ? 12 : 20,
-                  left: 0,
-                  right: 0,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(widget.sensors.length, (i) {
-                        final s = widget.sensors[i];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: AnimatedSensorBadge(
-                            value: s['Value'],
-                            status: (s['Status'] ?? '').toString(),
-                            isDark: isDark,
-                            delay: Duration(milliseconds: 150 * i),
-                          ),
-                        );
-                      }),
+                Align(
+                  alignment:
+                      isMobile ? Alignment.topCenter : Alignment.center,
+                  child: Padding(
+                    padding: EdgeInsets.only(top: isMobile ? 12 : 0),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(widget.sensors.length, (i) {
+                          final s = widget.sensors[i];
+                          return Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 10),
+                            child: AnimatedSensorBadge(
+                              value: s['Value'],
+                              status: (s['Status'] ?? '').toString(),
+                              isDark: isDark,
+                              delay: Duration(milliseconds: 150 * i),
+                            ),
+                          );
+                        }),
+                      ),
                     ),
                   ),
                 ),
