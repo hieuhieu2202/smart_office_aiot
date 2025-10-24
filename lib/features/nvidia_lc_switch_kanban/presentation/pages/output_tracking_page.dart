@@ -224,6 +224,134 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     });
   }
 
+  Future<void> _openFilterDrawer() async {
+    if (!mounted) return;
+    await showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Bộ lọc',
+      barrierColor: Colors.black.withOpacity(0.55),
+      transitionDuration: const Duration(milliseconds: 320),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        final media = MediaQuery.of(dialogContext);
+        final size = media.size;
+        final bool isCompactWidth = size.width < 700;
+        final double panelWidth = math.min(
+          isCompactWidth ? size.width * 0.92 : size.width * 0.6,
+          isCompactWidth ? 420.0 : 520.0,
+        );
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Builder(
+                builder: (panelContext) {
+                  final navigator = Navigator.of(panelContext);
+
+                  return StatefulBuilder(
+                    builder: (context, setSheetState) {
+                      Future<void> handlePickDate() async {
+                        await _pickDate();
+                        if (!mounted) return;
+                        setSheetState(() {});
+                      }
+
+                      void handleShiftChange(String? value) {
+                        _onShiftChanged(value);
+                        setSheetState(() {});
+                      }
+
+                      Future<void> handleModelSelect() async {
+                        await _openModelPicker();
+                        if (!mounted) return;
+                        setSheetState(() {});
+                      }
+
+                      void handleSearchChanged(String value) {
+                        _handleSearchChanged(value);
+                        setSheetState(() {});
+                      }
+
+                      void handleClearSearch() {
+                        _clearSearch();
+                        setSheetState(() {});
+                      }
+
+                      Future<void> handleQuery() async {
+                        await _onQuery();
+                        if (navigator.canPop()) navigator.pop();
+                      }
+
+                      return Obx(() {
+                        final bool isBusy = _controller.isLoading.value;
+                        final bool isLoadingModels =
+                            _controller.isLoadingModels.value;
+
+                        return Material(
+                          color: Colors.transparent,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: panelWidth,
+                              minWidth: math.min(panelWidth, 320),
+                              maxHeight: size.height - 24,
+                            ),
+                            child: _FilterDrawer(
+                              onClose: () {
+                                if (navigator.canPop()) navigator.pop();
+                              },
+                              child: OtFilterToolbar(
+                                dateText: _formatDate(_selectedDate),
+                                shift: _selectedShift,
+                                shiftOptions: _shiftOptions,
+                                selectedModelCount: _selectedModels.length,
+                                isBusy: isBusy,
+                                isLoadingModels: isLoadingModels,
+                                onPickDate: handlePickDate,
+                                onShiftChanged: handleShiftChange,
+                                onSelectModels: handleModelSelect,
+                                onQuery: handleQuery,
+                                isMobile: true,
+                                isTablet: false,
+                                useFullWidthLayout: true,
+                                searchController: _searchCtl,
+                                searchText: _searchCtl.text,
+                                onSearchChanged: handleSearchChanged,
+                                onClearSearch: handleClearSearch,
+                              ),
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   double _computeTableHeight(
     BuildContext context,
     bool isMobile,
@@ -232,9 +360,9 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
   ) {
     final size = MediaQuery.of(context).size;
     final reserved = isMobile
-        ? 210.0
+        ? 160.0
         : isTablet
-            ? 240.0
+            ? 210.0
             : 255.0;
     final base = size.height - reserved;
     final fallback = size.height * (isMobile ? 0.9 : 0.82);
@@ -269,6 +397,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
         final bool isLargeTablet = isTabletDevice && !isCompactTablet;
         final bool useCardList = isPhone;
         final bool useCardWrap = isCompactTablet;
+        final bool showInlineFilters = !useCompactChrome;
         final double horizontalPadding = useCardList
             ? 12.0
             : useCardWrap
@@ -305,6 +434,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
               isMobile: isPhone,
               isTablet: isLargeTablet,
               useCompactHeader: useCompactChrome,
+              showInlineFilters: showInlineFilters,
               useFullWidthFilters: isPhone,
               onBack: Get.back,
               dateText: _formatDate(_selectedDate),
@@ -322,6 +452,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
               searchText: _searchCtl.text,
               onSearchChanged: _handleSearchChanged,
               onClearSearch: _clearSearch,
+              onOpenFilters: showInlineFilters ? null : _openFilterDrawer,
             ),
             body: SafeArea(
               top: false,
@@ -672,6 +803,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.isMobile,
     required this.isTablet,
     required this.useCompactHeader,
+    required this.showInlineFilters,
     required this.useFullWidthFilters,
     required this.onBack,
     required this.dateText,
@@ -689,18 +821,20 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.searchText,
     required this.onSearchChanged,
     required this.onClearSearch,
+    this.onOpenFilters,
   }) : preferredSize = Size.fromHeight(
-          useCompactHeader
-              ? 252
-              : isTablet
-                  ? 220
-                  : 206,
+          _calcPreferredHeight(
+            useCompactHeader: useCompactHeader,
+            isTablet: isTablet,
+            showInlineFilters: showInlineFilters,
+          ),
         );
 
   final String title;
   final bool isMobile;
   final bool isTablet;
   final bool useCompactHeader;
+  final bool showInlineFilters;
   final bool useFullWidthFilters;
   final VoidCallback? onBack;
   final String dateText;
@@ -718,9 +852,29 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String searchText;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
+  final VoidCallback? onOpenFilters;
 
   @override
   final Size preferredSize;
+
+  static double _calcPreferredHeight({
+    required bool useCompactHeader,
+    required bool isTablet,
+    required bool showInlineFilters,
+  }) {
+    if (!showInlineFilters) {
+      return useCompactHeader
+          ? 118
+          : isTablet
+              ? 170
+              : 160;
+    }
+    return useCompactHeader
+        ? 252
+        : isTablet
+            ? 220
+            : 206;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -743,6 +897,13 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
         tooltip: 'Tải lại ngay',
         onTap: onRefresh,
         isBusy: isBusy,
+        size: useCompactHeader ? 42.0 : 46.0,
+      );
+
+      final filterButton = _HeaderActionButton(
+        icon: Icons.tune,
+        tooltip: 'Bộ lọc',
+        onTap: onOpenFilters,
         size: useCompactHeader ? 42.0 : 46.0,
       );
 
@@ -776,31 +937,31 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
               titleWidget,
               const SizedBox(width: 12),
               refreshButton,
+              if (!showInlineFilters) ...[
+                const SizedBox(width: 10),
+                filterButton,
+              ],
             ],
           ),
         );
       }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            height: headerHeight,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                backButton,
-                const SizedBox(width: 12),
-                titleWidget,
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: refreshButton,
-          ),
-        ],
+      return SizedBox(
+        height: headerHeight,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            backButton,
+            const SizedBox(width: 12),
+            titleWidget,
+            const SizedBox(width: 12),
+            refreshButton,
+            if (!showInlineFilters) ...[
+              const SizedBox(width: 10),
+              filterButton,
+            ],
+          ],
+        ),
       );
     }
 
@@ -826,35 +987,121 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
             horizontalPadding,
             useCompactHeader ? 14 : 20,
             horizontalPadding,
-            useCompactHeader ? 18 : 22,
+            useCompactHeader
+                ? (showInlineFilters ? 18 : 14)
+                : (showInlineFilters ? 22 : 18),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               buildHeader(),
-              SizedBox(height: useCompactHeader ? 16 : 20),
-              OtFilterToolbar(
-                dateText: dateText,
-                shift: shift,
-                shiftOptions: shiftOptions,
-                selectedModelCount: selectedModelCount,
-                isBusy: isBusy,
-                isLoadingModels: isLoadingModels,
-                onPickDate: onPickDate,
-                onShiftChanged: onShiftChanged,
-                onSelectModels: onSelectModels,
-                onQuery: onQuery,
-                isMobile: isMobile,
-                isTablet: isTablet,
-                useFullWidthLayout: useFullWidthFilters,
-                searchController: searchController,
-                searchText: searchText,
-                onSearchChanged: onSearchChanged,
-                onClearSearch: onClearSearch,
-              ),
+              if (showInlineFilters) ...[
+                SizedBox(height: useCompactHeader ? 16 : 20),
+                OtFilterToolbar(
+                  dateText: dateText,
+                  shift: shift,
+                  shiftOptions: shiftOptions,
+                  selectedModelCount: selectedModelCount,
+                  isBusy: isBusy,
+                  isLoadingModels: isLoadingModels,
+                  onPickDate: onPickDate,
+                  onShiftChanged: onShiftChanged,
+                  onSelectModels: onSelectModels,
+                  onQuery: onQuery,
+                  isMobile: isMobile,
+                  isTablet: isTablet,
+                  useFullWidthLayout: useFullWidthFilters,
+                  searchController: searchController,
+                  searchText: searchText,
+                  onSearchChanged: onSearchChanged,
+                  onClearSearch: onClearSearch,
+                ),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterDrawer extends StatelessWidget {
+  const _FilterDrawer({
+    required this.onClose,
+    required this.child,
+  });
+
+  final VoidCallback onClose;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(22),
+        bottomLeft: Radius.circular(22),
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF0F233F),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black54,
+              blurRadius: 18,
+              offset: Offset(-6, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 18, 12, 18),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF1A3057), Color(0xFF13233D)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.tune, color: Colors.cyanAccent, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Bộ lọc',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ) ??
+                          const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: onClose,
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: Color(0xFF1F314F),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                child: child,
+              ),
+            ),
+          ],
         ),
       ),
     );
