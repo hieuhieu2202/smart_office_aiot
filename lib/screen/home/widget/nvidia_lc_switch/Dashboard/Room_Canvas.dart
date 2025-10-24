@@ -74,8 +74,53 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
 
         final isTablet = width < 1024 && width >= 600;
         final isMobile = width < 600;
-        final rackWidth = isMobile ? 148.0 : 180.0;
-        final rackHeight = isMobile ? 142.0 : 170.0;
+        final isCompactMobile = isMobile && width < 360;
+        final rackWidth = isMobile
+            ? (isCompactMobile
+                ? 132.0
+                : width < 420
+                    ? 140.0
+                    : 150.0)
+            : isTablet
+                ? 170.0
+                : 180.0;
+        final rackHeight = isMobile
+            ? (isCompactMobile
+                ? 122.0
+                : width < 420
+                    ? 132.0
+                    : 144.0)
+            : isTablet
+                ? 162.0
+                : 170.0;
+
+        Widget buildSensorStrip() {
+          if (widget.sensors.isEmpty) return const SizedBox.shrink();
+
+          return Padding(
+            padding: EdgeInsets.only(top: isMobile ? 10 : 24),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(widget.sensors.length, (i) {
+                  final s = widget.sensors[i];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: AnimatedSensorBadge(
+                      value: s['Value'],
+                      status: (s['Status'] ?? '').toString(),
+                      isDark: isDark,
+                      delay: Duration(milliseconds: 150 * i),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          );
+        }
 
         return SizedBox(
           width: width,
@@ -92,46 +137,43 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
                 ),
               ),
 
-              // Sensor badges
-              if (widget.sensors.isNotEmpty)
-                Align(
-                  alignment: Alignment.topCenter,
+              if (isMobile)
+                Positioned.fill(
                   child: Padding(
-                    padding: EdgeInsets.only(top: isMobile ? 12 : 24),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(widget.sensors.length, (i) {
-                          final s = widget.sensors[i];
-                          return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 10),
-                            child: AnimatedSensorBadge(
-                              value: s['Value'],
-                              status: (s['Status'] ?? '').toString(),
-                              isDark: isDark,
-                              delay: Duration(milliseconds: 150 * i),
-                            ),
-                          );
-                        }),
-                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (widget.sensors.isNotEmpty) buildSensorStrip(),
+                        if (widget.sensors.isNotEmpty)
+                          const SizedBox(height: 12),
+                        const Spacer(),
+                        if (widget.racks.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildRackGrid(
+                                true, isTablet, rackWidth, rackHeight, isDark),
+                          ),
+                      ],
                     ),
                   ),
-                ),
-
-              // Racks
-              if (widget.racks.isNotEmpty)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _buildRackGrid(
-                        isMobile, isTablet, rackWidth, rackHeight, isDark),
+                )
+              else ...[
+                if (widget.sensors.isNotEmpty)
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: buildSensorStrip(),
                   ),
-                ),
+                if (widget.racks.isNotEmpty)
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _buildRackGrid(
+                          false, isTablet, rackWidth, rackHeight, isDark),
+                    ),
+                  ),
+              ],
             ],
           ),
         );
@@ -159,10 +201,10 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
 
     if (isMobile) {
       return SizedBox(
-        height: rackHeight + 36,
+        height: rackHeight + 28,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           separatorBuilder: (_, __) => const SizedBox(width: 12),
           itemCount: rackCards.length,
           itemBuilder: (_, i) => rackCards[i],
@@ -427,20 +469,28 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
 
     final glow = _isRunning
         ? BoxShadow(
-      color: Colors.amberAccent.withOpacity(glowOpacity),
-      blurRadius: 18,
-      spreadRadius: 5,
-    )
+            color: Colors.amberAccent.withOpacity(glowOpacity),
+            blurRadius: 18,
+            spreadRadius: 5,
+          )
         : BoxShadow(
-      color: Colors.black.withOpacity(.3),
-      blurRadius: 10,
-      spreadRadius: 1,
-    );
+            color: Colors.black.withOpacity(.3),
+            blurRadius: 10,
+            spreadRadius: 1,
+          );
+
+    final isCompactCard = widget.width < 145;
+    final padding = EdgeInsets.all(isCompactCard ? 10 : 12);
+    final headerSize = isCompactCard ? 12.0 : 13.0;
+    final timeSize = isCompactCard ? 20.0 : 22.0;
+    final detailSize = isCompactCard ? 10.5 : 11.0;
+    final statusSize = isCompactCard ? 11.0 : 12.0;
+    final barHeight = isCompactCard ? 7.0 : 8.0;
 
     return Container(
       width: widget.width,
       height: widget.height,
-      padding: const EdgeInsets.all(12),
+      padding: padding,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -463,10 +513,10 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
               Expanded(
                 child: Text(
                   widget.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    fontSize: 13,
+                    fontSize: headerSize,
                   ),
                 ),
               ),
@@ -482,8 +532,8 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
           const SizedBox(height: 4),
           Text(
             _isFinished ? "00:00" : widget.time,
-            style: const TextStyle(
-              fontSize: 22,
+            style: TextStyle(
+              fontSize: timeSize,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
@@ -491,7 +541,7 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
           const SizedBox(height: 2),
           Text(
             '${widget.modelName} • ${widget.pcs} PCS',
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
+            style: TextStyle(color: Colors.white70, fontSize: detailSize),
           ),
           const SizedBox(height: 8),
 
@@ -500,7 +550,7 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(5),
             child: Stack(
               children: [
-                Container(height: 8, color: Colors.white10),
+                Container(height: barHeight, color: Colors.white10),
                 if (_isRunning)
                   AnimatedBuilder(
                     animation: _runCtrl,
@@ -513,7 +563,7 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
                         children: [
                           Container(
                             width: width,
-                            height: 8,
+                            height: barHeight,
                             color: Colors.amber.withOpacity(.3),
                           ),
                           Positioned(
@@ -545,12 +595,12 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
                       final x = t * (widget.width - 40);
                       return Stack(
                         children: [
-                          Container(height: 8, color: Colors.greenAccent),
+                          Container(height: barHeight, color: Colors.greenAccent),
                           Positioned(
                             left: x,
                             child: Container(
                               width: 40,
-                              height: 8,
+                              height: barHeight,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
@@ -576,7 +626,7 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
             style: TextStyle(
               color: _isFinished ? Colors.greenAccent : Colors.amber,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontSize: statusSize,
             ),
           ),
         ],
