@@ -35,34 +35,82 @@ class RightSidebar extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final hasBoundedHeight = constraints.hasBoundedHeight &&
-            constraints.maxHeight.isFinite;
+        final hasBoundedHeight =
+            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+        final panelWidth = constraints.maxWidth.isFinite &&
+                constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : width;
+        final isCompactPanel = panelWidth < 340;
+        final isMediumPanel = panelWidth < 420;
+        final outerPadding = isCompactPanel
+            ? const EdgeInsets.all(12)
+            : isMediumPanel
+                ? const EdgeInsets.all(14)
+                : const EdgeInsets.all(16);
+        final titleSize = isCompactPanel
+            ? 14.0
+            : isMediumPanel
+                ? 15.0
+                : 16.0;
+        final sectionSpacing = isCompactPanel ? 12.0 : 14.0;
+        final passSpacing = isCompactPanel ? 4.0 : 6.0;
+        final circleSize = isCompactPanel
+            ? 76.0
+            : isMediumPanel
+                ? 86.0
+                : 96.0;
+        final iconSize = isCompactPanel
+            ? 28.0
+            : isMediumPanel
+                ? 32.0
+                : 36.0;
+        final labelFont = isCompactPanel ? 11.0 : 12.0;
+        final valueFont = isCompactPanel ? 16.0 : isMediumPanel ? 17.0 : 18.0;
+        final stackKpis = isMobile || isCompactPanel;
 
-        Widget buildPassList() {
-          return SingleChildScrollView(
-            child: Column(
-              children: [
-                ...List.generate(passDetails.length, (i) {
-                  final item = passDetails[i];
-                  return ModelPassTile(
-                    modelName: item['ModelName'] ?? '',
-                    qty: item['Qty'] ?? 0,
-                    maxQty: maxQty,
-                    colorIndex: i,
-                    isMobile: isMobile,
-                  );
-                }),
-              ],
-            ),
+        Widget buildPassList(bool scrollable) {
+          if (passDetails.isEmpty) {
+            final emptyColor = isDark ? Colors.white30 : Colors.black38;
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: sectionSpacing * 1.5),
+                child: Text(
+                  'No data',
+                  style: TextStyle(color: emptyColor, fontSize: titleSize - 2),
+                ),
+              ),
+            );
+          }
+
+          return ListView.separated(
+            primary: false,
+            shrinkWrap: !scrollable,
+            physics: scrollable
+                ? const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics())
+                : const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            itemCount: passDetails.length,
+            separatorBuilder: (_, __) => SizedBox(height: passSpacing),
+            itemBuilder: (_, i) {
+              final item = passDetails[i];
+              return ModelPassTile(
+                modelName: item['ModelName'] ?? '',
+                qty: item['Qty'] ?? 0,
+                maxQty: maxQty,
+                colorIndex: i,
+                isMobile: isMobile,
+              );
+            },
           );
         }
 
         final passList = hasBoundedHeight
-            ? Expanded(child: buildPassList())
-            : Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: buildPassList(),
-              );
+            ? Expanded(child: buildPassList(true))
+            : buildPassList(false);
+
+        final dividerColor = isDark ? Colors.white12 : Colors.black12;
 
         return Container(
           margin: const EdgeInsets.all(8),
@@ -77,7 +125,7 @@ class RightSidebar extends StatelessWidget {
                   spreadRadius: 2)
             ],
           ),
-          padding: const EdgeInsets.all(16),
+          padding: outerPadding,
           child: Column(
             mainAxisSize:
                 hasBoundedHeight ? MainAxisSize.max : MainAxisSize.min,
@@ -88,22 +136,23 @@ class RightSidebar extends StatelessWidget {
                 "MODEL PASS",
                 style: TextStyle(
                   color: borderClr,
-                  fontSize: 16,
+                  fontSize: titleSize,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: sectionSpacing),
 
               // === MODEL PASS LIST ===
               passList,
+              SizedBox(height: sectionSpacing),
 
-              const Divider(height: 28, color: Colors.white12),
+              Divider(height: sectionSpacing + 16, color: dividerColor),
 
               // === KPI SECTION (WIP + PASS) ===
               Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: isMobile
+                padding: EdgeInsets.only(bottom: stackKpis ? 4.0 : 0.0),
+                child: stackKpis
                     ? Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -111,33 +160,52 @@ class RightSidebar extends StatelessWidget {
                             label: "WIP",
                             valueText: "$wip PCS",
                             iconData: Icons.hourglass_bottom,
+                            circleSize: circleSize,
+                            iconSize: iconSize,
+                            labelSize: labelFont,
+                            valueSize: valueFont,
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: sectionSpacing - 2),
                           CircularKpi(
                             label: "PASS",
                             valueText: "$pass PCS",
                             iconData: Icons.local_shipping,
+                            circleSize: circleSize,
+                            iconSize: iconSize,
+                            labelSize: labelFont,
+                            valueSize: valueFont,
                           ),
                         ],
                       )
                     : Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          Flexible(
-                            flex: 1,
-                            child: CircularKpi(
-                              label: "WIP",
-                              valueText: "$wip PCS",
-                              iconData: Icons.hourglass_bottom,
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: CircularKpi(
+                                label: "WIP",
+                                valueText: "$wip PCS",
+                                iconData: Icons.hourglass_bottom,
+                                circleSize: circleSize,
+                                iconSize: iconSize,
+                                labelSize: labelFont,
+                                valueSize: valueFont,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Flexible(
-                            flex: 1,
-                            child: CircularKpi(
-                              label: "PASS",
-                              valueText: "$pass PCS",
-                              iconData: Icons.local_shipping,
+                          SizedBox(width: sectionSpacing),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: CircularKpi(
+                                label: "PASS",
+                                valueText: "$pass PCS",
+                                iconData: Icons.local_shipping,
+                                circleSize: circleSize,
+                                iconSize: iconSize,
+                                labelSize: labelFont,
+                                valueSize: valueFont,
+                              ),
                             ),
                           ),
                         ],
