@@ -48,7 +48,7 @@ class PcbaLineDashboardScreen extends StatelessWidget {
         ),
 
         // ==============================
-        // Responsive Body
+        // 🧭 Responsive Body
         // ==============================
         body: controller.loading.value
             ? const EvaLoadingView(size: 280)
@@ -74,7 +74,7 @@ class PcbaLineDashboardScreen extends StatelessWidget {
             PcbaYieldRateLineChart(controller: controller);
 
             // =======================
-            // Desktop / Tablet
+            // 🖥️ Desktop / 💻 Tablet
             // =======================
             if (isWide) {
               return SafeArea(
@@ -146,7 +146,7 @@ class PcbaLineDashboardScreen extends StatelessWidget {
             }
 
             // =======================
-            // Mobile layout
+            // 📱 Mobile layout
             // =======================
             return RefreshIndicator(
               onRefresh: () async => controller.refreshAll(),
@@ -187,7 +187,7 @@ class PcbaLineDashboardScreen extends StatelessWidget {
   }
 
   // ============================================================
-  // KPI HEADER CARD
+  // 🧮 KPI HEADER CARD (phiên bản có icon + hiệu ứng hover)
   // ============================================================
   Widget _buildKpiCard(PcbaLineDashboardController controller, bool isDark) {
     return Card(
@@ -243,7 +243,7 @@ class PcbaLineDashboardScreen extends StatelessWidget {
   }
 
   // ============================================================
-  // MINI KPI BOX
+  // 🧩 MINI KPI BOX — có hiệu ứng hover/chạm nhẹ
   // ============================================================
   Widget _buildMiniKpiBox({
     required IconData icon,
