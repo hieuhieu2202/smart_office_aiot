@@ -157,15 +157,21 @@ class _TrayHeaderRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          Expanded(child: Text('Serial Number', style: textStyle)),
-          const SizedBox(width: 6),
-          Expanded(child: Text('Model Name', style: textStyle)),
+          Expanded(
+            child: Text(
+              'Serial Number',
+              style: textStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
           const SizedBox(width: 6),
           Expanded(
-            flex: 2,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('WIP Group', style: textStyle),
+            child: Text(
+              'Model Name',
+              style: textStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 6),
@@ -173,7 +179,25 @@ class _TrayHeaderRow extends StatelessWidget {
             flex: 2,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Curing Time', style: textStyle),
+              child: Text(
+                'WIP Group',
+                style: textStyle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Curing Time',
+                style: textStyle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ],
@@ -243,6 +267,8 @@ class _TrayDataRow extends StatelessWidget {
             child: Text(
               serial.isEmpty ? '-' : serial,
               style: TextStyle(color: textColor, fontSize: 13.5),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 6),
@@ -250,6 +276,8 @@ class _TrayDataRow extends StatelessWidget {
             child: Text(
               model.isEmpty ? '-' : model,
               style: TextStyle(color: subtitle, fontSize: 13),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 6),
@@ -260,6 +288,8 @@ class _TrayDataRow extends StatelessWidget {
               child: Text(
                 wipGroup.isEmpty ? '-' : wipGroup,
                 style: TextStyle(color: subtitle, fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
@@ -271,6 +301,8 @@ class _TrayDataRow extends StatelessWidget {
               child: Text(
                 time.isEmpty ? '-' : time,
                 style: TextStyle(color: subtitle, fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
