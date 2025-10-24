@@ -72,6 +72,7 @@ dependencies:
   mobile_scanner: ^7.0.1
   syncfusion_flutter_core: ^30.2.7
   camera: ^0.10.5+5
+  equatable: ^2.0.5
   camera_android_camerax: ^0.6.19+1
   camera_windows: ^0.2.6+2
   image: ^4.1.7
