@@ -370,8 +370,6 @@ class OutputTrackingController extends GetxController {
     );
   }
 
-  void setNetworkLog(bool on) => NvidiaKanbanLogger.network = on;
-
   void startAutoRefresh() {
     _timer?.cancel();
     if (!isAutoRefreshEnabled.value) return;
@@ -486,7 +484,6 @@ class OutputTrackingController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    setNetworkLog(true);
     isLoading.value = true;
     Future.microtask(() async {
       await ensureModels(force: true, selectAll: true);

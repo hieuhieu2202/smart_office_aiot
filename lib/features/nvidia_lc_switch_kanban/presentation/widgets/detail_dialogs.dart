@@ -239,56 +239,60 @@ class _OtSectionDetailDialogState extends State<OtSectionDetailDialog> {
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(28, 20, 28, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${widget.station} · $sectionLabel',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${widget.station} · $sectionLabel',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Colors.white70),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Yield & Retest analysis',
-                style:
-                    Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60),
-              ),
-              const SizedBox(height: 18),
-              _buildBarChart(
-                title: 'Top Error Codes',
-                points: errorPoints,
-                emptyMessage: 'Không có lỗi nào trong khung giờ này.',
-                primaryHeader: 'Error Code',
-                barColor: const Color(0xFFE45A61),
-              ),
-              const SizedBox(height: 20),
-              _buildBarChart(
-                title: 'Top Tester Stations',
-                points: testerPoints,
-                emptyMessage: testerEmptyMessage,
-                primaryHeader: 'Tester Station',
-                barColor: const Color(0xFF66D9EF),
-                enableSearch: true,
-                searchController: _testerSearchController,
-                searchQuery: _testerQuery,
-                onSearchChanged: _onTesterSearchChanged,
-                onClearSearch: _clearTesterSearch,
-                searchPlaceholder: 'Tìm tester station',
-              ),
-            ],
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Yield & Retest analysis',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Colors.white60),
+                ),
+                const SizedBox(height: 18),
+                _buildBarChart(
+                  title: 'Top Error Codes',
+                  points: errorPoints,
+                  emptyMessage: 'Không có lỗi nào trong khung giờ này.',
+                  primaryHeader: 'Error Code',
+                  barColor: const Color(0xFFE45A61),
+                ),
+                const SizedBox(height: 20),
+                _buildBarChart(
+                  title: 'Top Tester Stations',
+                  points: testerPoints,
+                  emptyMessage: testerEmptyMessage,
+                  primaryHeader: 'Tester Station',
+                  barColor: const Color(0xFF66D9EF),
+                  enableSearch: true,
+                  searchController: _testerSearchController,
+                  searchQuery: _testerQuery,
+                  onSearchChanged: _onTesterSearchChanged,
+                  onClearSearch: _clearTesterSearch,
+                  searchPlaceholder: 'Tìm tester station',
+                ),
+              ],
+            ),
           ),
         ),
       ),
