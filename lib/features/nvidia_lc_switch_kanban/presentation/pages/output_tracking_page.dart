@@ -1020,15 +1020,12 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
       final Widget statusWidget = AnimatedSwitcher(
         duration: const Duration(milliseconds: 250),
         child: hasStatus
-            ? Padding(
+            ? _StatusChip(
                 key: ValueKey(
                   'status-visible-${statusHighlight ? 1 : 0}-${statusText}',
                 ),
-                padding: const EdgeInsets.only(top: 6),
-                child: _StatusChip(
-                  text: statusText!.trim(),
-                  highlight: statusHighlight,
-                ),
+                text: statusText!.trim(),
+                highlight: statusHighlight,
               )
             : const SizedBox.shrink(key: ValueKey('status-hidden')),
       );
@@ -1055,7 +1052,6 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
                     letterSpacing: .3,
                   ),
             ),
-            statusWidget,
           ],
         ),
       );
@@ -1075,6 +1071,10 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
                 const SizedBox(width: 10),
                 filterButton,
               ],
+              if (hasStatus) ...[
+                const SizedBox(width: 16),
+                statusWidget,
+              ],
             ],
           ),
         );
@@ -1093,6 +1093,10 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
             if (!showInlineFilters) ...[
               const SizedBox(width: 10),
               filterButton,
+            ],
+            if (hasStatus) ...[
+              const SizedBox(width: 12),
+              statusWidget,
             ],
           ],
         ),
@@ -1162,6 +1166,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
 
 class _StatusChip extends StatelessWidget {
   const _StatusChip({
+    super.key,
     required this.text,
     required this.highlight,
   });
