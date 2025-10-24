@@ -51,13 +51,13 @@ class _CircularKpiState extends State<CircularKpi>
             : MediaQuery.of(context).size.width;
 
         final circleSize = availableWidth.isFinite && availableWidth > 0
-            ? availableWidth.clamp(96.0, 168.0)
-            : 128.0;
-        final iconSize = (circleSize * 0.35).clamp(30.0, 52.0);
-        final labelSize = (circleSize * 0.12).clamp(12.0, 16.0);
-        final valueSize = (circleSize * 0.18).clamp(18.0, 24.0);
-        final strokeWidth = (circleSize / 14).clamp(4.0, 8.0);
-        final gap = (circleSize * 0.075).clamp(8.0, 14.0);
+            ? availableWidth.clamp(120.0, 220.0)
+            : 160.0;
+        final iconSize = (circleSize * 0.35).clamp(36.0, 72.0);
+        final labelSize = (circleSize * 0.12).clamp(13.0, 18.0);
+        final valueSize = (circleSize * 0.18).clamp(20.0, 28.0);
+        final strokeWidth = (circleSize / 12).clamp(5.0, 10.0);
+        final gap = (circleSize * 0.08).clamp(10.0, 18.0);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
