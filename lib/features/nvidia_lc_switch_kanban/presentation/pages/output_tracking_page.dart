@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -13,7 +14,12 @@ import '../viewmodels/series_utils.dart';
 import '../widgets/table.dart';
 
 class OutputTrackingPage extends StatefulWidget {
-  const OutputTrackingPage({super.key});
+  const OutputTrackingPage({
+    super.key,
+    this.initialModelSerial = 'SWITCH',
+  });
+
+  final String initialModelSerial;
 
   @override
   State<OutputTrackingPage> createState() => _OutputTrackingPageState();
@@ -33,9 +39,15 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
   @override
   void initState() {
     super.initState();
+    final String desiredSerial = widget.initialModelSerial.trim().isEmpty
+        ? 'SWITCH'
+        : widget.initialModelSerial.trim().toUpperCase();
+
     _controller = Get.isRegistered<OutputTrackingController>()
         ? Get.find<OutputTrackingController>()
-        : Get.put(OutputTrackingController());
+        : Get.put(
+            OutputTrackingController(initialModelSerial: desiredSerial),
+          );
 
     _selectedDate = _controller.date.value;
     _selectedShift = _controller.shift.value;
@@ -48,6 +60,16 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
         _selectedModels = List<String>.from(list);
       });
     });
+
+    if (_controller.modelSerial.value != desiredSerial) {
+      Future.microtask(() {
+        if (!mounted) return;
+        _controller.updateFilter(
+          newModelSerial: desiredSerial,
+          newGroups: const <String>[],
+        );
+      });
+    }
 
     if (_controller.groups.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -238,9 +260,20 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
   Widget build(BuildContext context) {
     return ResponsiveBuilder(
       builder: (context, sizing) {
-        final isMobile = sizing.deviceScreenType == DeviceScreenType.mobile;
-        final isTablet = sizing.deviceScreenType == DeviceScreenType.tablet;
-        final horizontalPadding = isMobile ? 12.0 : 20.0;
+        final bool isPhone = sizing.deviceScreenType == DeviceScreenType.mobile;
+        final bool isTabletDevice = sizing.deviceScreenType == DeviceScreenType.tablet;
+        final double screenWidth = sizing.screenSize.width;
+        final bool isCompactTablet =
+            isTabletDevice && screenWidth < 900;
+        final bool useCompactChrome = isPhone || isCompactTablet;
+        final bool isLargeTablet = isTabletDevice && !isCompactTablet;
+        final bool useCardList = isPhone;
+        final bool useCardWrap = isCompactTablet;
+        final double horizontalPadding = useCardList
+            ? 12.0
+            : useCardWrap
+                ? 18.0
+                : 20.0;
         final title = 'NVIDIA ${_controller.modelSerial.value} Output Tracking';
 
         return Obx(() {
@@ -269,8 +302,10 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
             backgroundColor: _pageBackground,
             appBar: OtTopBar(
               title: title,
-              isMobile: isMobile,
-              isTablet: isTablet,
+              isMobile: isPhone,
+              isTablet: isLargeTablet,
+              useCompactHeader: useCompactChrome,
+              useFullWidthFilters: isPhone,
               onBack: Get.back,
               dateText: _formatDate(_selectedDate),
               shift: _selectedShift,
@@ -298,8 +333,10 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: _buildContentSlivers(
                     context: context,
-                    isMobile: isMobile,
-                    isTablet: isTablet,
+                    isMobile: isPhone,
+                    isTablet: isLargeTablet,
+                    useCardList: useCardList,
+                    useCardWrap: useCardWrap,
                     horizontalPadding: horizontalPadding,
                     isLoading: isLoading,
                     error: error,
@@ -324,6 +361,8 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     required BuildContext context,
     required bool isMobile,
     required bool isTablet,
+    required bool useCardList,
+    required bool useCardWrap,
     required double horizontalPadding,
     required bool isLoading,
     required String? error,
@@ -388,7 +427,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
       ];
     }
 
-    if (isMobile) {
+    if (useCardList) {
       return [
         SliverPadding(
           padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 20),
@@ -408,6 +447,54 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
                 );
               },
               childCount: rows.length,
+            ),
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+      ];
+    }
+
+    if (useCardWrap) {
+      return [
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 24),
+          sliver: SliverToBoxAdapter(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const double spacing = 18.0;
+                final double maxWidth = constraints.maxWidth;
+                final int columnCount = maxWidth >= 1024
+                    ? 3
+                    : maxWidth >= 720
+                        ? 2
+                        : 1;
+                final double itemWidth = columnCount <= 1
+                    ? maxWidth
+                    : (maxWidth - spacing * (columnCount - 1)) / columnCount;
+
+                return Align(
+                  alignment:
+                      columnCount <= 1 ? Alignment.center : Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: [
+                      for (final row in rows)
+                        SizedBox(
+                          width: itemWidth,
+                          child: OtMobileRowCard(
+                            row: row,
+                            hours: hours,
+                            activeHourIndex: activeHourIndex,
+                            onStationTap: () => _showStationTrend(row),
+                            onSectionTap: (section) =>
+                                _showSectionDetail(row, section),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -584,6 +671,8 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     required this.isMobile,
     required this.isTablet,
+    required this.useCompactHeader,
+    required this.useFullWidthFilters,
     required this.onBack,
     required this.dateText,
     required this.shift,
@@ -601,8 +690,8 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onSearchChanged,
     required this.onClearSearch,
   }) : preferredSize = Size.fromHeight(
-          isMobile
-              ? 240
+          useCompactHeader
+              ? 252
               : isTablet
                   ? 220
                   : 206,
@@ -611,6 +700,8 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool isMobile;
   final bool isTablet;
+  final bool useCompactHeader;
+  final bool useFullWidthFilters;
   final VoidCallback? onBack;
   final String dateText;
   final String shift;
@@ -636,8 +727,82 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     const gradientTop = Color(0xFF162B4F);
     const gradientBottom = Color(0xFF101C32);
 
-    final headerHeight = isMobile ? 46.0 : 54.0;
-    final horizontalPadding = isMobile ? 16.0 : 24.0;
+    final headerHeight = useCompactHeader ? 48.0 : 54.0;
+    final horizontalPadding = useCompactHeader ? 16.0 : 24.0;
+
+    Widget buildHeader() {
+      final backButton = _HeaderActionButton(
+        icon: Icons.arrow_back_ios_new,
+        tooltip: 'Quay lại',
+        onTap: onBack,
+        size: useCompactHeader ? 42.0 : 46.0,
+      );
+
+      final refreshButton = _HeaderActionButton(
+        icon: Icons.refresh,
+        tooltip: 'Tải lại ngay',
+        onTap: onRefresh,
+        isBusy: isBusy,
+        size: useCompactHeader ? 42.0 : 46.0,
+      );
+
+      final titleWidget = Expanded(
+        child: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: .3,
+                  ) ??
+              const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: .3,
+              ),
+        ),
+      );
+
+      if (!useCompactHeader) {
+        return SizedBox(
+          height: headerHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              backButton,
+              const SizedBox(width: 14),
+              titleWidget,
+              const SizedBox(width: 12),
+              refreshButton,
+            ],
+          ),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: headerHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                backButton,
+                const SizedBox(width: 12),
+                titleWidget,
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: refreshButton,
+          ),
+        ],
+      );
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -659,54 +824,16 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
         child: Padding(
           padding: EdgeInsets.fromLTRB(
             horizontalPadding,
-            isMobile ? 14 : 20,
+            useCompactHeader ? 14 : 20,
             horizontalPadding,
-            isMobile ? 18 : 22,
+            useCompactHeader ? 18 : 22,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                height: headerHeight,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _HeaderActionButton(
-                      icon: Icons.arrow_back_ios_new,
-                      tooltip: 'Quay lại',
-                      onTap: onBack,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: .3,
-                            ) ??
-                            const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: .3,
-                            ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    _HeaderActionButton(
-                      icon: Icons.refresh,
-                      tooltip: 'Tải lại ngay',
-                      onTap: onRefresh,
-                      isBusy: isBusy,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+              buildHeader(),
+              SizedBox(height: useCompactHeader ? 16 : 20),
               OtFilterToolbar(
                 dateText: dateText,
                 shift: shift,
@@ -720,6 +847,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
                 onQuery: onQuery,
                 isMobile: isMobile,
                 isTablet: isTablet,
+                useFullWidthLayout: useFullWidthFilters,
                 searchController: searchController,
                 searchText: searchText,
                 onSearchChanged: onSearchChanged,
@@ -739,16 +867,17 @@ class _HeaderActionButton extends StatelessWidget {
     required this.tooltip,
     this.onTap,
     this.isBusy = false,
+    this.size = 46.0,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback? onTap;
   final bool isBusy;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    final buttonSize = 46.0;
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -758,8 +887,8 @@ class _HeaderActionButton extends StatelessWidget {
           customBorder: const CircleBorder(),
           onTap: isBusy ? null : onTap,
           child: SizedBox(
-            width: buttonSize,
-            height: buttonSize,
+            width: size,
+            height: size,
             child: Center(
               child: isBusy
                   ? const SizedBox(
@@ -798,6 +927,7 @@ class OtFilterToolbar extends StatelessWidget {
     required this.onQuery,
     required this.isMobile,
     required this.isTablet,
+    required this.useFullWidthLayout,
     required this.searchController,
     required this.searchText,
     required this.onSearchChanged,
@@ -816,6 +946,7 @@ class OtFilterToolbar extends StatelessWidget {
   final VoidCallback onQuery;
   final bool isMobile;
   final bool isTablet;
+  final bool useFullWidthLayout;
   final TextEditingController searchController;
   final String searchText;
   final ValueChanged<String> onSearchChanged;
@@ -826,12 +957,13 @@ class OtFilterToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double wideField = isMobile
+    final bool stretchFields = useFullWidthLayout || isMobile;
+    final double wideField = stretchFields
         ? double.infinity
         : isTablet
             ? 240
             : 260;
-    final double compactField = isMobile
+    final double compactField = stretchFields
         ? double.infinity
         : isTablet
             ? 190
@@ -905,6 +1037,7 @@ class OtFilterToolbar extends StatelessWidget {
               ],
               iconEnabledColor: Colors.cyanAccent,
               iconDisabledColor: Colors.white38,
+              isExpanded: true,
             ),
           ),
         ),
@@ -1008,7 +1141,7 @@ class OtFilterToolbar extends StatelessWidget {
         onPressed: isBusy ? null : onQuery,
       );
 
-      if (isMobile) {
+      if (useFullWidthLayout || isMobile) {
         return SizedBox(
           width: double.infinity,
           child: Column(
@@ -1033,7 +1166,8 @@ class OtFilterToolbar extends StatelessWidget {
       spacing: 14,
       runSpacing: 14,
       crossAxisAlignment: WrapCrossAlignment.start,
-      alignment: isMobile ? WrapAlignment.center : WrapAlignment.start,
+      alignment:
+          (useFullWidthLayout || isMobile) ? WrapAlignment.center : WrapAlignment.start,
       children: [
         buildDateField(),
         buildShiftField(),

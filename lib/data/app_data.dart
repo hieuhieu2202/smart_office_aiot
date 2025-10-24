@@ -117,6 +117,22 @@ List<AppProject> appProjects = [
         status: "Ready",
         icon: Icons.view_kanban,
         screenType: "kanban_tracking",
+        subProjects: [
+          AppProject(
+            name: "Output Tracking (Switch)",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.align_horizontal_left,
+            screenType: "output_tracking_switch",
+          ),
+          AppProject(
+            name: "Output Tracking (Adapter)",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.align_horizontal_left,
+            screenType: "output_tracking_adapter",
+          ),
+        ],
       ),
       AppProject(
         name: "OP PERFORMANCE",
@@ -236,7 +252,8 @@ List<AppProject> appProjects = [
         status: "Ready",
         icon: Icons.meeting_room,
         screenType: "room_monitoring",
-      ),AppProject(
+      ),
+      AppProject(
         name: "KANBAN TRACKING",
         progress: 1.0,
         status: "Ready",
@@ -244,11 +261,18 @@ List<AppProject> appProjects = [
         screenType: "kanban_tracking",
         subProjects: [
           AppProject(
-            name: "Output Tracking",
+            name: "Output Tracking (Switch)",
             progress: 1.0,
             status: "Ready",
             icon: Icons.align_horizontal_left,
-            screenType: "output_tracking",
+            screenType: "output_tracking_switch",
+          ),
+          AppProject(
+            name: "Output Tracking (Adapter)",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.align_horizontal_left,
+            screenType: "output_tracking_adapter",
           ),
           AppProject(
             name: "Uph Tracking",
