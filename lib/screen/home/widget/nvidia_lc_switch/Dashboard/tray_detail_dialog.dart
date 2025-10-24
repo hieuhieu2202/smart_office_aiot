@@ -115,8 +115,6 @@ class TrayDetailDialog extends StatelessWidget {
                             serial:
                                 (item['SerialNumber'] ?? '').toString().trim(),
                             model: (item['ModelName'] ?? '').toString().trim(),
-                            wipGroup:
-                                (item['WipGroup'] ?? '').toString().trim(),
                             time: (item['DisplayTime'] ??
                                     item['InStationTime'] ??
                                     '')
@@ -198,19 +196,6 @@ class _TrayHeaderRow extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'WIP Group',
-                style: textStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-          SizedBox(width: columnSpacing),
-          Expanded(
-            flex: 2,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
                 'Curing Time',
                 style: textStyle,
                 maxLines: 1,
@@ -228,7 +213,6 @@ class _TrayDataRow extends StatelessWidget {
   final int index;
   final String serial;
   final String model;
-  final String wipGroup;
   final String time;
   final bool isDark;
   final bool highlight;
@@ -239,7 +223,6 @@ class _TrayDataRow extends StatelessWidget {
     required this.index,
     required this.serial,
     required this.model,
-    required this.wipGroup,
     required this.time,
     required this.isDark,
     required this.highlight,
@@ -305,19 +288,6 @@ class _TrayDataRow extends StatelessWidget {
               style: TextStyle(color: subtitle, fontSize: secondaryTextSize),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          SizedBox(width: columnSpacing),
-          Expanded(
-            flex: 2,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                wipGroup.isEmpty ? '-' : wipGroup,
-                style: TextStyle(color: subtitle, fontSize: secondaryTextSize),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
             ),
           ),
           SizedBox(width: columnSpacing),
