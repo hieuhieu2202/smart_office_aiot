@@ -452,6 +452,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
               searchText: _searchCtl.text,
               onSearchChanged: _handleSearchChanged,
               onClearSearch: _clearSearch,
+              screenWidth: screenWidth,
               onOpenFilters: showInlineFilters ? null : _openFilterDrawer,
             ),
             body: SafeArea(
@@ -821,12 +822,14 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.searchText,
     required this.onSearchChanged,
     required this.onClearSearch,
+    required this.screenWidth,
     this.onOpenFilters,
   }) : preferredSize = Size.fromHeight(
           _calcPreferredHeight(
             useCompactHeader: useCompactHeader,
             isTablet: isTablet,
             showInlineFilters: showInlineFilters,
+            screenWidth: screenWidth,
           ),
         );
 
@@ -852,6 +855,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String searchText;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
+  final double screenWidth;
   final VoidCallback? onOpenFilters;
 
   @override
@@ -861,19 +865,83 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required bool useCompactHeader,
     required bool isTablet,
     required bool showInlineFilters,
+    required double screenWidth,
   }) {
+    const double desktopHeaderHeight = 54.0;
+    const double compactHeaderHeight = 48.0;
+    final double headerHeight = useCompactHeader ? compactHeaderHeight : desktopHeaderHeight;
+    final double topPadding = useCompactHeader ? 14.0 : 20.0;
+    final double bottomPadding = useCompactHeader
+        ? (showInlineFilters ? 18.0 : 14.0)
+        : (showInlineFilters ? 22.0 : 18.0);
+
+    double totalHeight = topPadding + headerHeight + bottomPadding;
+
     if (!showInlineFilters) {
-      return useCompactHeader
-          ? 118
-          : isTablet
-              ? 170
-              : 160;
+      return totalHeight;
     }
-    return useCompactHeader
-        ? 252
-        : isTablet
-            ? 220
-            : 206;
+
+    final double contentWidth = math.max(
+      320.0,
+      screenWidth - ((useCompactHeader ? 16.0 : 24.0) * 2),
+    );
+    final int filterRows = _estimateFilterRows(
+      contentWidth: contentWidth,
+      isTablet: isTablet,
+    );
+
+    const double labelHeight = 20.0;
+    const double labelToFieldSpacing = 6.0;
+    const double fieldHeight = 48.0;
+    const double rowSpacing = 14.0;
+    final double rowHeight = labelHeight + labelToFieldSpacing + fieldHeight;
+    final int additionalRows = math.max(0, filterRows - 1);
+    final double filterBlockHeight = (filterRows * rowHeight) + (additionalRows * rowSpacing);
+
+    final double betweenHeaderAndFilters = useCompactHeader ? 16.0 : 20.0;
+
+    return totalHeight + betweenHeaderAndFilters + filterBlockHeight;
+  }
+
+  static int _estimateFilterRows({
+    required double contentWidth,
+    required bool isTablet,
+  }) {
+    if (contentWidth.isNaN || !contentWidth.isFinite || contentWidth <= 0) {
+      return 1;
+    }
+
+    final double wideField = isTablet ? 240.0 : 260.0;
+    final double compactField = isTablet ? 190.0 : 200.0;
+    final double actionField = isTablet ? 200.0 : 220.0;
+    const double spacing = 14.0;
+
+    final List<double> fieldWidths = <double>[
+      wideField,
+      compactField,
+      wideField,
+      wideField,
+      actionField,
+    ];
+
+    int rows = 1;
+    double usedWidth = 0;
+
+    for (final rawWidth in fieldWidths) {
+      final double fieldWidth = math.min(rawWidth, contentWidth);
+      final double candidateWidth = usedWidth == 0
+          ? fieldWidth
+          : usedWidth + spacing + fieldWidth;
+
+      if (candidateWidth <= contentWidth + 0.1) {
+        usedWidth = candidateWidth;
+      } else {
+        rows += 1;
+        usedWidth = fieldWidth;
+      }
+    }
+
+    return rows;
   }
 
   @override
