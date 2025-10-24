@@ -145,20 +145,37 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
                 Positioned.fill(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        if (widget.sensors.isNotEmpty) buildSensorStrip(),
-                        if (widget.sensors.isNotEmpty)
-                          const SizedBox(height: 12),
-                        const Spacer(),
-                        if (widget.racks.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _buildRackGrid(
-                                true, isTablet, rackWidth, rackHeight, isDark),
-                          ),
-                      ],
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      physics: const BouncingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: height),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment:
+                              widget.sensors.isNotEmpty && widget.racks.isNotEmpty
+                                  ? MainAxisAlignment.spaceBetween
+                                  : MainAxisAlignment.center,
+                          children: [
+                            if (widget.sensors.isNotEmpty)
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  buildSensorStrip(),
+                                  if (widget.racks.isNotEmpty)
+                                    const SizedBox(height: 12),
+                                ],
+                              ),
+                            if (widget.racks.isNotEmpty)
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: _buildRackGrid(
+                                    true, isTablet, rackWidth, rackHeight, isDark),
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 )
