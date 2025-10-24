@@ -224,6 +224,134 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     });
   }
 
+  Future<void> _openFilterDrawer() async {
+    if (!mounted) return;
+    await showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Bộ lọc',
+      barrierColor: Colors.black.withOpacity(0.55),
+      transitionDuration: const Duration(milliseconds: 320),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        final media = MediaQuery.of(dialogContext);
+        final size = media.size;
+        final bool isCompactWidth = size.width < 700;
+        final double panelWidth = math.min(
+          isCompactWidth ? size.width * 0.92 : size.width * 0.6,
+          isCompactWidth ? 420.0 : 520.0,
+        );
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Builder(
+                builder: (panelContext) {
+                  final navigator = Navigator.of(panelContext);
+
+                  return StatefulBuilder(
+                    builder: (context, setSheetState) {
+                      Future<void> handlePickDate() async {
+                        await _pickDate();
+                        if (!mounted) return;
+                        setSheetState(() {});
+                      }
+
+                      void handleShiftChange(String? value) {
+                        _onShiftChanged(value);
+                        setSheetState(() {});
+                      }
+
+                      Future<void> handleModelSelect() async {
+                        await _openModelPicker();
+                        if (!mounted) return;
+                        setSheetState(() {});
+                      }
+
+                      void handleSearchChanged(String value) {
+                        _handleSearchChanged(value);
+                        setSheetState(() {});
+                      }
+
+                      void handleClearSearch() {
+                        _clearSearch();
+                        setSheetState(() {});
+                      }
+
+                      Future<void> handleQuery() async {
+                        await _onQuery();
+                        if (navigator.canPop()) navigator.pop();
+                      }
+
+                      return Obx(() {
+                        final bool isBusy = _controller.isLoading.value;
+                        final bool isLoadingModels =
+                            _controller.isLoadingModels.value;
+
+                        return Material(
+                          color: Colors.transparent,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: panelWidth,
+                              minWidth: math.min(panelWidth, 320),
+                              maxHeight: size.height - 24,
+                            ),
+                            child: _FilterDrawer(
+                              onClose: () {
+                                if (navigator.canPop()) navigator.pop();
+                              },
+                              child: OtFilterToolbar(
+                                dateText: _formatDate(_selectedDate),
+                                shift: _selectedShift,
+                                shiftOptions: _shiftOptions,
+                                selectedModelCount: _selectedModels.length,
+                                isBusy: isBusy,
+                                isLoadingModels: isLoadingModels,
+                                onPickDate: handlePickDate,
+                                onShiftChanged: handleShiftChange,
+                                onSelectModels: handleModelSelect,
+                                onQuery: handleQuery,
+                                isMobile: true,
+                                isTablet: false,
+                                useFullWidthLayout: true,
+                                searchController: _searchCtl,
+                                searchText: _searchCtl.text,
+                                onSearchChanged: handleSearchChanged,
+                                onClearSearch: handleClearSearch,
+                              ),
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   double _computeTableHeight(
     BuildContext context,
     bool isMobile,
@@ -232,9 +360,9 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
   ) {
     final size = MediaQuery.of(context).size;
     final reserved = isMobile
-        ? 210.0
+        ? 160.0
         : isTablet
-            ? 240.0
+            ? 210.0
             : 255.0;
     final base = size.height - reserved;
     final fallback = size.height * (isMobile ? 0.9 : 0.82);
@@ -260,9 +388,21 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
   Widget build(BuildContext context) {
     return ResponsiveBuilder(
       builder: (context, sizing) {
-        final isMobile = sizing.deviceScreenType == DeviceScreenType.mobile;
-        final isTablet = sizing.deviceScreenType == DeviceScreenType.tablet;
-        final horizontalPadding = isMobile ? 12.0 : 20.0;
+        final bool isPhone = sizing.deviceScreenType == DeviceScreenType.mobile;
+        final bool isTabletDevice = sizing.deviceScreenType == DeviceScreenType.tablet;
+        final double screenWidth = sizing.screenSize.width;
+        final bool isCompactTablet =
+            isTabletDevice && screenWidth < 900;
+        final bool useCompactChrome = isPhone || isCompactTablet;
+        final bool isLargeTablet = isTabletDevice && !isCompactTablet;
+        final bool useCardList = isPhone;
+        final bool useCardWrap = isCompactTablet;
+        final bool showInlineFilters = !useCompactChrome;
+        final double horizontalPadding = useCardList
+            ? 12.0
+            : useCardWrap
+                ? 18.0
+                : 20.0;
         final title = 'NVIDIA ${_controller.modelSerial.value} Output Tracking';
 
         return Obx(() {
@@ -291,8 +431,11 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
             backgroundColor: _pageBackground,
             appBar: OtTopBar(
               title: title,
-              isMobile: isMobile,
-              isTablet: isTablet,
+              isMobile: isPhone,
+              isTablet: isLargeTablet,
+              useCompactHeader: useCompactChrome,
+              showInlineFilters: showInlineFilters,
+              useFullWidthFilters: isPhone,
               onBack: Get.back,
               dateText: _formatDate(_selectedDate),
               shift: _selectedShift,
@@ -309,6 +452,8 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
               searchText: _searchCtl.text,
               onSearchChanged: _handleSearchChanged,
               onClearSearch: _clearSearch,
+              screenWidth: screenWidth,
+              onOpenFilters: showInlineFilters ? null : _openFilterDrawer,
             ),
             body: SafeArea(
               top: false,
@@ -320,8 +465,10 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: _buildContentSlivers(
                     context: context,
-                    isMobile: isMobile,
-                    isTablet: isTablet,
+                    isMobile: isPhone,
+                    isTablet: isLargeTablet,
+                    useCardList: useCardList,
+                    useCardWrap: useCardWrap,
                     horizontalPadding: horizontalPadding,
                     isLoading: isLoading,
                     error: error,
@@ -346,6 +493,8 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     required BuildContext context,
     required bool isMobile,
     required bool isTablet,
+    required bool useCardList,
+    required bool useCardWrap,
     required double horizontalPadding,
     required bool isLoading,
     required String? error,
@@ -410,7 +559,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
       ];
     }
 
-    if (isMobile) {
+    if (useCardList) {
       return [
         SliverPadding(
           padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 20),
@@ -430,6 +579,54 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
                 );
               },
               childCount: rows.length,
+            ),
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+      ];
+    }
+
+    if (useCardWrap) {
+      return [
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 24),
+          sliver: SliverToBoxAdapter(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const double spacing = 18.0;
+                final double maxWidth = constraints.maxWidth;
+                final int columnCount = maxWidth >= 1024
+                    ? 3
+                    : maxWidth >= 720
+                        ? 2
+                        : 1;
+                final double itemWidth = columnCount <= 1
+                    ? maxWidth
+                    : (maxWidth - spacing * (columnCount - 1)) / columnCount;
+
+                return Align(
+                  alignment:
+                      columnCount <= 1 ? Alignment.center : Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: [
+                      for (final row in rows)
+                        SizedBox(
+                          width: itemWidth,
+                          child: OtMobileRowCard(
+                            row: row,
+                            hours: hours,
+                            activeHourIndex: activeHourIndex,
+                            onStationTap: () => _showStationTrend(row),
+                            onSectionTap: (section) =>
+                                _showSectionDetail(row, section),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -606,6 +803,9 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     required this.isMobile,
     required this.isTablet,
+    required this.useCompactHeader,
+    required this.showInlineFilters,
+    required this.useFullWidthFilters,
     required this.onBack,
     required this.dateText,
     required this.shift,
@@ -622,17 +822,23 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.searchText,
     required this.onSearchChanged,
     required this.onClearSearch,
+    required this.screenWidth,
+    this.onOpenFilters,
   }) : preferredSize = Size.fromHeight(
-          isMobile
-              ? 240
-              : isTablet
-                  ? 220
-                  : 206,
+          _calcPreferredHeight(
+            useCompactHeader: useCompactHeader,
+            isTablet: isTablet,
+            showInlineFilters: showInlineFilters,
+            screenWidth: screenWidth,
+          ),
         );
 
   final String title;
   final bool isMobile;
   final bool isTablet;
+  final bool useCompactHeader;
+  final bool showInlineFilters;
+  final bool useFullWidthFilters;
   final VoidCallback? onBack;
   final String dateText;
   final String shift;
@@ -649,17 +855,183 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String searchText;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
+  final double screenWidth;
+  final VoidCallback? onOpenFilters;
 
   @override
   final Size preferredSize;
+
+  static double _calcPreferredHeight({
+    required bool useCompactHeader,
+    required bool isTablet,
+    required bool showInlineFilters,
+    required double screenWidth,
+  }) {
+    const double desktopHeaderHeight = 54.0;
+    const double compactHeaderHeight = 48.0;
+    final double headerHeight = useCompactHeader ? compactHeaderHeight : desktopHeaderHeight;
+    final double topPadding = useCompactHeader ? 14.0 : 20.0;
+    final double bottomPadding = useCompactHeader
+        ? (showInlineFilters ? 18.0 : 14.0)
+        : (showInlineFilters ? 22.0 : 18.0);
+
+    double totalHeight = topPadding + headerHeight + bottomPadding;
+
+    if (!showInlineFilters) {
+      return totalHeight;
+    }
+
+    final double contentWidth = math.max(
+      320.0,
+      screenWidth - ((useCompactHeader ? 16.0 : 24.0) * 2),
+    );
+    final int filterRows = _estimateFilterRows(
+      contentWidth: contentWidth,
+      isTablet: isTablet,
+    );
+
+    const double labelHeight = 20.0;
+    const double labelToFieldSpacing = 6.0;
+    const double fieldHeight = 48.0;
+    const double rowSpacing = 14.0;
+    final double rowHeight = labelHeight + labelToFieldSpacing + fieldHeight;
+    final int additionalRows = math.max(0, filterRows - 1);
+    final double filterBlockHeight = (filterRows * rowHeight) + (additionalRows * rowSpacing);
+
+    final double betweenHeaderAndFilters = useCompactHeader ? 16.0 : 20.0;
+
+    return totalHeight + betweenHeaderAndFilters + filterBlockHeight;
+  }
+
+  static int _estimateFilterRows({
+    required double contentWidth,
+    required bool isTablet,
+  }) {
+    if (contentWidth.isNaN || !contentWidth.isFinite || contentWidth <= 0) {
+      return 1;
+    }
+
+    final double wideField = isTablet ? 240.0 : 260.0;
+    final double compactField = isTablet ? 190.0 : 200.0;
+    final double actionField = isTablet ? 200.0 : 220.0;
+    const double spacing = 14.0;
+
+    final List<double> fieldWidths = <double>[
+      wideField,
+      compactField,
+      wideField,
+      wideField,
+      actionField,
+    ];
+
+    int rows = 1;
+    double usedWidth = 0;
+
+    for (final rawWidth in fieldWidths) {
+      final double fieldWidth = math.min(rawWidth, contentWidth);
+      final double candidateWidth = usedWidth == 0
+          ? fieldWidth
+          : usedWidth + spacing + fieldWidth;
+
+      if (candidateWidth <= contentWidth + 0.1) {
+        usedWidth = candidateWidth;
+      } else {
+        rows += 1;
+        usedWidth = fieldWidth;
+      }
+    }
+
+    return rows;
+  }
 
   @override
   Widget build(BuildContext context) {
     const gradientTop = Color(0xFF162B4F);
     const gradientBottom = Color(0xFF101C32);
 
-    final headerHeight = isMobile ? 46.0 : 54.0;
-    final horizontalPadding = isMobile ? 16.0 : 24.0;
+    final headerHeight = useCompactHeader ? 48.0 : 54.0;
+    final horizontalPadding = useCompactHeader ? 16.0 : 24.0;
+
+    Widget buildHeader() {
+      final backButton = _HeaderActionButton(
+        icon: Icons.arrow_back_ios_new,
+        tooltip: 'Quay lại',
+        onTap: onBack,
+        size: useCompactHeader ? 42.0 : 46.0,
+      );
+
+      final refreshButton = _HeaderActionButton(
+        icon: Icons.refresh,
+        tooltip: 'Tải lại ngay',
+        onTap: onRefresh,
+        isBusy: isBusy,
+        size: useCompactHeader ? 42.0 : 46.0,
+      );
+
+      final filterButton = _HeaderActionButton(
+        icon: Icons.tune,
+        tooltip: 'Bộ lọc',
+        onTap: onOpenFilters,
+        size: useCompactHeader ? 42.0 : 46.0,
+      );
+
+      final titleWidget = Expanded(
+        child: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: .3,
+                  ) ??
+              const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: .3,
+              ),
+        ),
+      );
+
+      if (!useCompactHeader) {
+        return SizedBox(
+          height: headerHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              backButton,
+              const SizedBox(width: 14),
+              titleWidget,
+              const SizedBox(width: 12),
+              refreshButton,
+              if (!showInlineFilters) ...[
+                const SizedBox(width: 10),
+                filterButton,
+              ],
+            ],
+          ),
+        );
+      }
+
+      return SizedBox(
+        height: headerHeight,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            backButton,
+            const SizedBox(width: 12),
+            titleWidget,
+            const SizedBox(width: 12),
+            refreshButton,
+            if (!showInlineFilters) ...[
+              const SizedBox(width: 10),
+              filterButton,
+            ],
+          ],
+        ),
+      );
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -681,74 +1053,123 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
         child: Padding(
           padding: EdgeInsets.fromLTRB(
             horizontalPadding,
-            isMobile ? 14 : 20,
+            useCompactHeader ? 14 : 20,
             horizontalPadding,
-            isMobile ? 18 : 22,
+            useCompactHeader
+                ? (showInlineFilters ? 18 : 14)
+                : (showInlineFilters ? 22 : 18),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                height: headerHeight,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _HeaderActionButton(
-                      icon: Icons.arrow_back_ios_new,
-                      tooltip: 'Quay lại',
-                      onTap: onBack,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: .3,
-                            ) ??
-                            const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: .3,
-                            ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    _HeaderActionButton(
-                      icon: Icons.refresh,
-                      tooltip: 'Tải lại ngay',
-                      onTap: onRefresh,
-                      isBusy: isBusy,
-                    ),
-                  ],
+              buildHeader(),
+              if (showInlineFilters) ...[
+                SizedBox(height: useCompactHeader ? 16 : 20),
+                OtFilterToolbar(
+                  dateText: dateText,
+                  shift: shift,
+                  shiftOptions: shiftOptions,
+                  selectedModelCount: selectedModelCount,
+                  isBusy: isBusy,
+                  isLoadingModels: isLoadingModels,
+                  onPickDate: onPickDate,
+                  onShiftChanged: onShiftChanged,
+                  onSelectModels: onSelectModels,
+                  onQuery: onQuery,
+                  isMobile: isMobile,
+                  isTablet: isTablet,
+                  useFullWidthLayout: useFullWidthFilters,
+                  searchController: searchController,
+                  searchText: searchText,
+                  onSearchChanged: onSearchChanged,
+                  onClearSearch: onClearSearch,
                 ),
-              ),
-              const SizedBox(height: 20),
-              OtFilterToolbar(
-                dateText: dateText,
-                shift: shift,
-                shiftOptions: shiftOptions,
-                selectedModelCount: selectedModelCount,
-                isBusy: isBusy,
-                isLoadingModels: isLoadingModels,
-                onPickDate: onPickDate,
-                onShiftChanged: onShiftChanged,
-                onSelectModels: onSelectModels,
-                onQuery: onQuery,
-                isMobile: isMobile,
-                isTablet: isTablet,
-                searchController: searchController,
-                searchText: searchText,
-                onSearchChanged: onSearchChanged,
-                onClearSearch: onClearSearch,
-              ),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterDrawer extends StatelessWidget {
+  const _FilterDrawer({
+    required this.onClose,
+    required this.child,
+  });
+
+  final VoidCallback onClose;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(22),
+        bottomLeft: Radius.circular(22),
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF0F233F),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black54,
+              blurRadius: 18,
+              offset: Offset(-6, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 18, 12, 18),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF1A3057), Color(0xFF13233D)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.tune, color: Colors.cyanAccent, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Bộ lọc',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ) ??
+                          const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: onClose,
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: Color(0xFF1F314F),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                child: child,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -761,16 +1182,17 @@ class _HeaderActionButton extends StatelessWidget {
     required this.tooltip,
     this.onTap,
     this.isBusy = false,
+    this.size = 46.0,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback? onTap;
   final bool isBusy;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    final buttonSize = 46.0;
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -780,8 +1202,8 @@ class _HeaderActionButton extends StatelessWidget {
           customBorder: const CircleBorder(),
           onTap: isBusy ? null : onTap,
           child: SizedBox(
-            width: buttonSize,
-            height: buttonSize,
+            width: size,
+            height: size,
             child: Center(
               child: isBusy
                   ? const SizedBox(
@@ -820,6 +1242,7 @@ class OtFilterToolbar extends StatelessWidget {
     required this.onQuery,
     required this.isMobile,
     required this.isTablet,
+    required this.useFullWidthLayout,
     required this.searchController,
     required this.searchText,
     required this.onSearchChanged,
@@ -838,6 +1261,7 @@ class OtFilterToolbar extends StatelessWidget {
   final VoidCallback onQuery;
   final bool isMobile;
   final bool isTablet;
+  final bool useFullWidthLayout;
   final TextEditingController searchController;
   final String searchText;
   final ValueChanged<String> onSearchChanged;
@@ -848,12 +1272,13 @@ class OtFilterToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double wideField = isMobile
+    final bool stretchFields = useFullWidthLayout || isMobile;
+    final double wideField = stretchFields
         ? double.infinity
         : isTablet
             ? 240
             : 260;
-    final double compactField = isMobile
+    final double compactField = stretchFields
         ? double.infinity
         : isTablet
             ? 190
@@ -927,6 +1352,7 @@ class OtFilterToolbar extends StatelessWidget {
               ],
               iconEnabledColor: Colors.cyanAccent,
               iconDisabledColor: Colors.white38,
+              isExpanded: true,
             ),
           ),
         ),
@@ -1030,7 +1456,7 @@ class OtFilterToolbar extends StatelessWidget {
         onPressed: isBusy ? null : onQuery,
       );
 
-      if (isMobile) {
+      if (useFullWidthLayout || isMobile) {
         return SizedBox(
           width: double.infinity,
           child: Column(
@@ -1055,7 +1481,8 @@ class OtFilterToolbar extends StatelessWidget {
       spacing: 14,
       runSpacing: 14,
       crossAxisAlignment: WrapCrossAlignment.start,
-      alignment: isMobile ? WrapAlignment.center : WrapAlignment.start,
+      alignment:
+          (useFullWidthLayout || isMobile) ? WrapAlignment.center : WrapAlignment.start,
       children: [
         buildDateField(),
         buildShiftField(),
