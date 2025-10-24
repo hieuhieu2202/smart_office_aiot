@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 
@@ -19,8 +20,10 @@ class CircularKpi extends StatefulWidget {
 }
 
 class _CircularKpiState extends State<CircularKpi>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _spinCtrl;
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _iconScale;
 
   @override
   void initState() {
@@ -29,12 +32,21 @@ class _CircularKpiState extends State<CircularKpi>
       vsync: this,
       duration: const Duration(seconds: 6),
     )..repeat();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+    _iconScale = Tween(begin: 0.94, end: 1.06).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
     if (_spinCtrl.isAnimating) _spinCtrl.stop();
     _spinCtrl.dispose();
+    if (_pulseCtrl.isAnimating) _pulseCtrl.stop();
+    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -84,29 +96,50 @@ class _CircularKpiState extends State<CircularKpi>
                       ),
                     ),
                   ),
-                  AnimatedBuilder(
-                    animation: _spinCtrl,
-                    builder: (context, child) => Transform.rotate(
-                      angle: _spinCtrl.value * math.pi,
-                      child: child,
-                    ),
-                    child: Container(
-                      width: haloDiameter,
-                      height: haloDiameter,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: ring.withOpacity(isDark ? 0.28 : 0.2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: ring.withOpacity(isDark ? 0.22 : 0.18),
-                            blurRadius: haloDiameter * 0.18,
-                            spreadRadius: haloDiameter * 0.02,
+                  RotationTransition(
+                    turns: _spinCtrl,
+                    child: AnimatedBuilder(
+                      animation: _pulseCtrl,
+                      builder: (context, child) {
+                        final pulseT = _pulseCtrl.value;
+                        final glowOpacity = lerpDouble(
+                          isDark ? 0.28 : 0.2,
+                          isDark ? 0.42 : 0.3,
+                          pulseT,
+                        )!;
+                        final glowShadow = lerpDouble(
+                          isDark ? 0.22 : 0.18,
+                          isDark ? 0.34 : 0.26,
+                          pulseT,
+                        )!;
+                        final blur = lerpDouble(0.18, 0.28, pulseT)!;
+                        final spread = lerpDouble(0.02, 0.05, pulseT)!;
+
+                        return Transform.scale(
+                          scale: lerpDouble(0.96, 1.04, pulseT)!,
+                          child: Container(
+                            width: haloDiameter,
+                            height: haloDiameter,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: ring.withOpacity(glowOpacity),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: ring.withOpacity(glowShadow),
+                                  blurRadius: haloDiameter * blur,
+                                  spreadRadius: haloDiameter * spread,
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
-                  Icon(widget.iconData, size: iconSize, color: ring),
+                  ScaleTransition(
+                    scale: _iconScale,
+                    child: Icon(widget.iconData, size: iconSize, color: ring),
+                  ),
                 ],
               ),
             ),

@@ -1,10 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+typedef RackTapCallback = Future<void> Function(Map<String, dynamic> rack);
+
 class RoomCanvas extends StatefulWidget {
   final List<Map<String, dynamic>> sensors;
   final List<Map<String, dynamic>> racks;
-  final ValueChanged<Map<String, dynamic>>? onRackTap;
+  final RackTapCallback? onRackTap;
 
   const RoomCanvas({
     super.key,
@@ -143,20 +145,37 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
                 Positioned.fill(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        if (widget.sensors.isNotEmpty) buildSensorStrip(),
-                        if (widget.sensors.isNotEmpty)
-                          const SizedBox(height: 12),
-                        const Spacer(),
-                        if (widget.racks.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _buildRackGrid(
-                                true, isTablet, rackWidth, rackHeight, isDark),
-                          ),
-                      ],
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      physics: const BouncingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: height),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment:
+                              widget.sensors.isNotEmpty && widget.racks.isNotEmpty
+                                  ? MainAxisAlignment.spaceBetween
+                                  : MainAxisAlignment.center,
+                          children: [
+                            if (widget.sensors.isNotEmpty)
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  buildSensorStrip(),
+                                  if (widget.racks.isNotEmpty)
+                                    const SizedBox(height: 12),
+                                ],
+                              ),
+                            if (widget.racks.isNotEmpty)
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: _buildRackGrid(
+                                    true, isTablet, rackWidth, rackHeight, isDark),
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 )
@@ -200,7 +219,9 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
               height: rackHeight,
               onTap: widget.onRackTap == null
                   ? null
-                  : () => widget.onRackTap!(r),
+                  : () {
+                      widget.onRackTap!(r);
+                    },
             ))
         .toList();
 
@@ -395,10 +416,10 @@ class _AnimatedSensorBadgeState extends State<AnimatedSensorBadge>
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: widget.isDark ? Colors.white : Colors.black87,
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -646,7 +667,6 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
