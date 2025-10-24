@@ -236,7 +236,58 @@ List<AppProject> appProjects = [
         status: "Ready",
         icon: Icons.meeting_room,
         screenType: "room_monitoring",
+      ),AppProject(
+        name: "KANBAN TRACKING",
+        progress: 1.0,
+        status: "Ready",
+        icon: Icons.view_kanban,
+        screenType: "kanban_tracking",
+        subProjects: [
+          AppProject(
+            name: "Output Tracking",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.align_horizontal_left,
+            screenType: "output_tracking",
+          ),
+          AppProject(
+            name: "Uph Tracking",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.show_chart,
+            screenType: "uph_tracking",
+          ),
+          AppProject(
+            name: "Upd Tracking",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.show_chart,
+            screenType: "upd_tracking",
+          ),
+          AppProject(
+            name: "Output Monitoring",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.show_chart,
+            screenType: "output_monitoring",
+          ),
+          AppProject(
+            name: "Wip Status",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.show_chart,
+            screenType: "wip_status",
+          ),
+          AppProject(
+            name: "Output & Yield Rate",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.show_chart,
+            screenType: "output_yield_rate",
+          ),
+        ],
       ),
+
       AppProject(
         name: "ICT MANAGEMENT",
         progress: 1.0,
@@ -245,13 +296,7 @@ List<AppProject> appProjects = [
         screenType: "ict_management",
       ),
 
-      AppProject(
-        name: "KANBAN TRACKING",
-        progress: 1.0,
-        status: "Ready",
-        icon: Icons.view_kanban,
-        screenType: "kanban_tracking",
-      ),
+
       AppProject(
         name: "OP PERFORMANCE",
         progress: 1.0,

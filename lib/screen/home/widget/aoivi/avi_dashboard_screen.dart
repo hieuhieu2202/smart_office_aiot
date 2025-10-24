@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:responsive_builder/responsive_builder.dart';
 import '../../../../config/global_color.dart';
 import '../../../../widget/animation/loading/eva_scanner.dart';
 import '../../controller/avi_dashboard_controller.dart';
@@ -322,135 +323,161 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
     final titleColor = theme.colorScheme.onSurface;
     final subtitleColor = titleColor.withOpacity(0.7);
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16, topPadding + 10, 16, 12),
-      decoration: BoxDecoration(
-        color: headerBackground,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-        border: Border(bottom: BorderSide(color: borderColor)),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withOpacity(isDark ? 0.25 : 0.08),
-            offset: const Offset(0, 4),
-            blurRadius: 12,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              AnimatedScale(
-                scale: _backPressed ? 0.94 : 1,
-                duration: const Duration(milliseconds: 120),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () {
-                      Navigator.of(context).maybePop();
-                    },
-                    onTapDown: (_) => setState(() => _backPressed = true),
-                    onTapCancel: () => setState(() => _backPressed = false),
-                    onTapUp: (_) => setState(() => _backPressed = false),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: titleColor.withOpacity(isDark ? 0.08 : 0.05),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: borderColor),
-                      ),
-                      child: Icon(
-                        Icons.arrow_back_rounded,
-                        color: titleColor,
-                        size: 18,
-                      ),
+    final headerContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AnimatedScale(
+              scale: _backPressed ? 0.94 : 1,
+              duration: const Duration(milliseconds: 120),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    Navigator.of(context).maybePop();
+                  },
+                  onTapDown: (_) => setState(() => _backPressed = true),
+                  onTapCancel: () => setState(() => _backPressed = false),
+                  onTapUp: (_) => setState(() => _backPressed = false),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: titleColor.withOpacity(isDark ? 0.08 : 0.05),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: titleColor,
+                      size: 18,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Obx(
-                      () => Text(
-                        _resolvePrimaryTitle(),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                              color: titleColor,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
-                            ) ??
-                            TextStyle(
-                              color: titleColor,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
-                            ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Obx(
-                      () => Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Icon(Icons.calendar_today_rounded,
-                              color: subtitleColor, size: 14),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              controller.selectedRangeDateTime.value,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: subtitleColor,
-                                    fontWeight: FontWeight.w500,
-                                  ) ??
-                                  TextStyle(
-                                    color: subtitleColor,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Obx(
+                    () => Text(
+                      _resolvePrimaryTitle(),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                            color: titleColor,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.2,
+                          ) ??
+                          TextStyle(
+                            color: titleColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.2,
                           ),
-                        ],
-                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Obx(
+                    () => Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(Icons.calendar_today_rounded,
+                            color: subtitleColor, size: 14),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            controller.selectedRangeDateTime.value,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: subtitleColor,
+                                  fontWeight: FontWeight.w500,
+                                ) ??
+                                TextStyle(
+                                  color: subtitleColor,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Obx(
-                () => _buildToolbarButton(
-                  context,
-                  icon: Icons.filter_list_rounded,
-                  tooltip: 'Bộ lọc',
-                  highlight: filterPanelOpen || _hasActiveFilters,
-                  onTap: () {
-                    if (filterPanelOpen) {
-                      closeFilter();
-                    } else {
-                      openFilter();
-                    }
-                  },
-                ),
+            ),
+            const SizedBox(width: 10),
+            Obx(
+              () => _buildToolbarButton(
+                context,
+                icon: Icons.filter_list_rounded,
+                tooltip: 'Bộ lọc',
+                highlight: filterPanelOpen || _hasActiveFilters,
+                onTap: () {
+                  if (filterPanelOpen) {
+                    closeFilter();
+                  } else {
+                    openFilter();
+                  }
+                },
               ),
-              const SizedBox(width: 6),
-              _buildRefreshButton(context),
+            ),
+            const SizedBox(width: 6),
+            _buildRefreshButton(context),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildFilterSummaryRow(context),
+        const SizedBox(height: 10),
+        _buildLastUpdatedRow(context),
+      ],
+    );
+
+    return ResponsiveBuilder(
+      builder: (context, sizingInfo) {
+        final bool isMobile =
+            sizingInfo.deviceScreenType == DeviceScreenType.mobile;
+        final bool isDesktop =
+            sizingInfo.deviceScreenType == DeviceScreenType.desktop;
+        final double horizontalPadding = isMobile ? 16 : (isDesktop ? 32 : 24);
+        final double maxWidth = isDesktop ? 1320 : 1040;
+
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            topPadding + 10,
+            horizontalPadding,
+            12,
+          ),
+          decoration: BoxDecoration(
+            color: headerBackground,
+            borderRadius:
+                const BorderRadius.vertical(bottom: Radius.circular(16)),
+            border: Border(bottom: BorderSide(color: borderColor)),
+            boxShadow: [
+              BoxShadow(
+                color: theme.shadowColor.withOpacity(isDark ? 0.25 : 0.08),
+                offset: const Offset(0, 4),
+                blurRadius: 12,
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          _buildFilterSummaryRow(context),
-          const SizedBox(height: 10),
-          _buildLastUpdatedRow(context),
-        ],
-      ),
+          child: isMobile
+              ? headerContent
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxWidth),
+                    child: headerContent,
+                  ),
+                ),
+        );
+      },
     );
   }
 
@@ -463,16 +490,27 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    return ResponsiveBuilder(
+      builder: (context, sizingInfo) {
+        if (sizingInfo.deviceScreenType == DeviceScreenType.mobile) {
+          return _buildMobileLayout(context);
+        }
+        return _buildLargeLayout(context, sizingInfo);
+      },
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
+          backgroundColor:
+              isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
           body: Column(
             children: [
               _buildHeader(context),
-              // Nội dung dashboard
               Expanded(
                 child: Obx(() {
                   final data = controller.monitoringData.value ?? {};
@@ -494,28 +532,233 @@ class _AOIVIDashboardScreenState extends State<AOIVIDashboardScreen>
             ],
           ),
         ),
-        // ===== FILTER PANEL SLIDE IN/OUT =====
-        PTHDashboardFilterPanel(
-          show: filterPanelOpen,
-          onClose: closeFilter,
-          onApply: (filters) async {
-            await controller.fetchMonitoring(filters: filters, showLoading: true);
-            _lastUpdateTime.value = DateTime.now();
-            closeFilter();
-          },
-        ),
-        // Loading overlay
-        Obx(
-          () => controller.isLoading.value
-              ? Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: Center(
-                    child: EvaScanner(size: 300), // hoặc 340 tuỳ layout
-                  ),
-                )
-              : const SizedBox.shrink(),
-        ),
+        _buildFilterPanel(),
+        _buildLoadingOverlay(),
       ],
+    );
+  }
+
+  Widget _buildLargeLayout(
+      BuildContext context, SizingInformation sizingInfo) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final deviceType = sizingInfo.deviceScreenType;
+    final bool isDesktop = deviceType == DeviceScreenType.desktop;
+
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor:
+              isDark ? GlobalColors.bodyDarkBg : GlobalColors.bodyLightBg,
+          body: Column(
+            children: [
+              _buildHeader(context),
+              Expanded(
+                child: Obx(() {
+                  final data = controller.monitoringData.value ?? {};
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final bool forceScroll = constraints.maxHeight < 720;
+                      final EdgeInsets padding = EdgeInsets.fromLTRB(
+                        isDesktop ? 28 : 20,
+                        isDesktop ? 28 : 22,
+                        isDesktop ? 28 : 20,
+                        isDesktop ? 32 : 26,
+                      );
+
+                      Widget content = Padding(
+                        padding: padding,
+                        child: _LargeDashboardContent(
+                          data: data,
+                          isDesktop: isDesktop,
+                          expandToViewport: !forceScroll,
+                        ),
+                      );
+
+                      if (forceScroll) {
+                        content = SingleChildScrollView(
+                          padding: EdgeInsets.zero,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight,
+                            ),
+                            child: content,
+                          ),
+                        );
+                      }
+
+                      return content;
+                    },
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+        _buildFilterPanel(),
+        _buildLoadingOverlay(),
+      ],
+    );
+  }
+
+  Widget _buildFilterPanel() {
+    return PTHDashboardFilterPanel(
+      show: filterPanelOpen,
+      onClose: closeFilter,
+      onApply: (filters) async {
+        await controller.fetchMonitoring(filters: filters, showLoading: true);
+        _lastUpdateTime.value = DateTime.now();
+        closeFilter();
+      },
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return Obx(
+      () => controller.isLoading.value
+          ? Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: EvaScanner(size: 300),
+              ),
+            )
+          : const SizedBox.shrink(),
+    );
+  }
+}
+
+class _LargeDashboardContent extends StatelessWidget {
+  final Map data;
+  final bool isDesktop;
+  final bool expandToViewport;
+
+  const _LargeDashboardContent({
+    required this.data,
+    required this.isDesktop,
+    this.expandToViewport = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double spacing = isDesktop ? 28.0 : 22.0;
+    final double verticalSpacing = isDesktop ? 28.0 : 22.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        final bool sideBySide = width >= (isDesktop ? 1200 : 1080);
+        final bool ultraWide = width >= (isDesktop ? 1440 : 1280);
+        final int leftFlex = ultraWide ? 12 : 11;
+        final int rightFlex = ultraWide ? 5 : 6;
+        final int runtimeFlex = ultraWide ? 7 : 6;
+        final int outputFlex = ultraWide ? 5 : 4;
+
+        if (expandToViewport && sideBySide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PTHDashboardSummary(data: data),
+              SizedBox(height: verticalSpacing),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      flex: leftFlex,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            flex: runtimeFlex,
+                            child: _ResponsiveSection(
+                              builder: (height) => PTHDashboardRuntimeChart(
+                                data: data,
+                                height: height,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: verticalSpacing),
+                          Expanded(
+                            flex: outputFlex,
+                            child: _ResponsiveSection(
+                              builder: (height) => PTHDashboardOutputChart(
+                                data: data,
+                                height: height,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: spacing),
+                    Expanded(
+                      flex: rightFlex,
+                      child: _ResponsiveSection(
+                        builder: (height) => PTHDashboardMachineDetail(
+                          data: data,
+                          height: height,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PTHDashboardSummary(data: data),
+            SizedBox(height: verticalSpacing),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ResponsiveSection(
+                  builder: (height) => PTHDashboardRuntimeChart(
+                    data: data,
+                    height: height,
+                  ),
+                ),
+                SizedBox(height: verticalSpacing),
+                _ResponsiveSection(
+                  builder: (height) => PTHDashboardOutputChart(
+                    data: data,
+                    height: height,
+                  ),
+                ),
+                SizedBox(height: verticalSpacing),
+                _ResponsiveSection(
+                  builder: (height) => PTHDashboardMachineDetail(
+                    data: data,
+                    height: height,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ResponsiveSection extends StatelessWidget {
+  final Widget Function(double height) builder;
+
+  const _ResponsiveSection({required this.builder});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double availableHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : (constraints.biggest.height.isFinite
+                ? constraints.biggest.height
+                : 0);
+        return builder(availableHeight);
+      },
     );
   }
 }

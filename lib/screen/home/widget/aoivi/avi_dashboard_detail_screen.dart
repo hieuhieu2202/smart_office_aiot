@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:responsive_builder/responsive_builder.dart';
 import '../../../../config/global_color.dart';
 import '../../../../service/aoivi_dashboard_api.dart';
 import '../../../../widget/animation/loading/eva_loading_view.dart';
@@ -92,74 +93,121 @@ class _PTHDashboardDetailScreenState extends State<PTHDashboardDetailScreen> {
         ],
         elevation: 0.5,
       ),
-      body: Obx(() {
-        if (_isLoading.value) {
-          return const EvaLoadingView();
-        }
-        // Search/filter logic
-        final filteredList = _detailList.where((item) {
-          final query = _searchText.value.toLowerCase();
-          if (query.isEmpty) return true;
-          return [
-            item['serialNumber'],
-            item['modelName'],
-            item['employeeID'],
-            item['inspectionTime'] != null
-                ? DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.tryParse(item['inspectionTime']) ?? DateTime(2000))
-                : ''
-          ].join(" ").toLowerCase().contains(query);
-        }).toList();
+      body: ResponsiveBuilder(
+        builder: (context, sizingInfo) {
+          final bool isMobile =
+              sizingInfo.deviceScreenType == DeviceScreenType.mobile;
+          final bool isDesktop =
+              sizingInfo.deviceScreenType == DeviceScreenType.desktop;
+          final double outerPadding = isMobile ? 0 : (isDesktop ? 32 : 24);
+          final double searchHorizontal = isMobile ? 16 : 24;
+          final double searchVertical = isMobile ? 10 : 16;
+          final double contentMaxWidth = isDesktop ? 1080 : 860;
+          final EdgeInsets listPadding = EdgeInsets.fromLTRB(
+            isMobile ? 12 : 20,
+            8,
+            isMobile ? 12 : 20,
+            isMobile ? 14 : 24,
+          );
 
-        return Column(
-          children: [
-            // SEARCH BAR
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: TextField(
-                controller: _searchController,
-                style: TextStyle(fontSize: 15),
-                decoration: InputDecoration(
-                  hintText: 'Tìm SN, Model, Nhân viên, Thời gian...',
-                  prefixIcon: Icon(Icons.search, color: GlobalColors.iconLight),
-                  filled: true,
-                  fillColor: isDark
-                      ? GlobalColors.inputDarkFill
-                      : GlobalColors.inputLightFill,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
+          return Obx(() {
+            if (_isLoading.value) {
+              return const EvaLoadingView();
+            }
+
+            final filteredList = _detailList.where((item) {
+              final query = _searchText.value.toLowerCase();
+              if (query.isEmpty) return true;
+              return [
+                item['serialNumber'],
+                item['modelName'],
+                item['employeeID'],
+                item['inspectionTime'] != null
+                    ? DateFormat('yyyy/MM/dd HH:mm:ss').format(
+                        DateTime.tryParse(item['inspectionTime']) ??
+                            DateTime(2000),
+                      )
+                    : ''
+              ].join(" ").toLowerCase().contains(query);
+            }).toList();
+
+            final content = Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: searchHorizontal,
+                    vertical: searchVertical,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                  suffixIcon: Obx(() => _searchText.value.isNotEmpty
-                      ? IconButton(
-                    icon: Icon(Icons.clear, size: 20, color: Colors.grey[500]),
-                    onPressed: () {
-                      _searchController.clear();
-                      _searchText.value = '';
-                    },
-                  )
-                      : const SizedBox.shrink()
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(fontSize: 15),
+                    decoration: InputDecoration(
+                      hintText: 'Tìm SN, Model, Nhân viên, Thời gian...',
+                      prefixIcon:
+                          Icon(Icons.search, color: GlobalColors.iconLight),
+                      filled: true,
+                      fillColor: isDark
+                          ? GlobalColors.inputDarkFill
+                          : GlobalColors.inputLightFill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 0, horizontal: 12),
+                      suffixIcon: Obx(
+                        () => _searchText.value.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear,
+                                  size: 20,
+                                  color: Colors.grey[500],
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _searchText.value = '';
+                                },
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ),
+                    onChanged: (text) => _searchText.value = text.trim(),
                   ),
                 ),
-                onChanged: (text) => _searchText.value = text.trim(),
-              ),
-            ),
-            Expanded(
-              child: filteredList.isEmpty
-                  ? PTHDashboardDetailEmpty(isDark: isDark)
-                  : ListView.separated(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
-                itemCount: filteredList.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, idx) {
-                  final item = filteredList[idx];
-                  return PTHDashboardDetailCard(item: item);
-                },
-              ),
-            ),
-          ],
-        );
-      }),
+                Expanded(
+                  child: filteredList.isEmpty
+                      ? PTHDashboardDetailEmpty(isDark: isDark)
+                      : ListView.separated(
+                          padding: listPadding,
+                          itemCount: filteredList.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, idx) {
+                            final item = filteredList[idx];
+                            return PTHDashboardDetailCard(item: item);
+                          },
+                        ),
+                ),
+              ],
+            );
+
+            final wrappedContent = isMobile
+                ? content
+                : Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                      child: content,
+                    ),
+                  );
+
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: outerPadding),
+              child: wrappedContent,
+            );
+          });
+        },
+      ),
     );
   }
 }
