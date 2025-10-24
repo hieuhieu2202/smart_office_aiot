@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -13,7 +14,12 @@ import '../viewmodels/series_utils.dart';
 import '../widgets/table.dart';
 
 class OutputTrackingPage extends StatefulWidget {
-  const OutputTrackingPage({super.key});
+  const OutputTrackingPage({
+    super.key,
+    this.initialModelSerial = 'SWITCH',
+  });
+
+  final String initialModelSerial;
 
   @override
   State<OutputTrackingPage> createState() => _OutputTrackingPageState();
@@ -33,9 +39,15 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
   @override
   void initState() {
     super.initState();
+    final String desiredSerial = widget.initialModelSerial.trim().isEmpty
+        ? 'SWITCH'
+        : widget.initialModelSerial.trim().toUpperCase();
+
     _controller = Get.isRegistered<OutputTrackingController>()
         ? Get.find<OutputTrackingController>()
-        : Get.put(OutputTrackingController());
+        : Get.put(
+            OutputTrackingController(initialModelSerial: desiredSerial),
+          );
 
     _selectedDate = _controller.date.value;
     _selectedShift = _controller.shift.value;
@@ -48,6 +60,16 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
         _selectedModels = List<String>.from(list);
       });
     });
+
+    if (_controller.modelSerial.value != desiredSerial) {
+      Future.microtask(() {
+        if (!mounted) return;
+        _controller.updateFilter(
+          newModelSerial: desiredSerial,
+          newGroups: const <String>[],
+        );
+      });
+    }
 
     if (_controller.groups.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

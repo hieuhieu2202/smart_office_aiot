@@ -55,6 +55,10 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
       ),
   'curing_monitoring_dashboard': (project) => CuringRoomMonitoringScreen(),
   'output_tracking': (project) => const OutputTrackingPage(),
+  'output_tracking_switch':
+      (project) => const OutputTrackingPage(initialModelSerial: 'SWITCH'),
+  'output_tracking_adapter':
+      (project) => const OutputTrackingPage(initialModelSerial: 'ADAPTER'),
   /// HUB CDU (mặc định F16-3F; có dropdown để đổi)
   'cdu_monitoring': (project) {
     final ctrl = Get.put(

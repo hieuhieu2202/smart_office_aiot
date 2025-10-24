@@ -18,6 +18,7 @@ class OutputTrackingController extends GetxController {
     GetOutputTrackingDetail? getOutputTrackingDetail,
     GetUphTracking? getUphTracking,
     NvidiaKanbanRepositoryImpl? repository,
+    String initialModelSerial = 'SWITCH',
   }) : _repository = repository ??
           NvidiaKanbanRepositoryImpl(
             remoteDataSource: NvidiaKanbanRemoteDataSource(),
@@ -28,6 +29,14 @@ class OutputTrackingController extends GetxController {
     _getOutputTrackingDetail =
         getOutputTrackingDetail ?? GetOutputTrackingDetail(repo);
     _getUphTracking = getUphTracking ?? GetUphTracking(repo);
+
+    final String serial = initialModelSerial.trim().isEmpty
+        ? 'SWITCH'
+        : initialModelSerial.trim().toUpperCase();
+    modelSerial.value = serial;
+    if (serial != 'SWITCH') {
+      groups.clear();
+    }
   }
 
   final NvidiaKanbanRepositoryImpl _repository;
