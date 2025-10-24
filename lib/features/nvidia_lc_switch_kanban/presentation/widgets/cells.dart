@@ -125,7 +125,7 @@ class TripleCell extends StatelessWidget {
   }) {
     Widget label = Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 3),
         child: Text(
           text,
           maxLines: 1,
