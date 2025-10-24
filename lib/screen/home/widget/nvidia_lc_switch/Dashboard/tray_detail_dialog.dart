@@ -161,14 +161,20 @@ class _TrayHeaderRow extends StatelessWidget {
           const SizedBox(width: 6),
           Expanded(child: Text('Model Name', style: textStyle)),
           const SizedBox(width: 6),
-          SizedBox(
-            width: 120,
-            child: Text('WIP Group', style: textStyle),
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('WIP Group', style: textStyle),
+            ),
           ),
           const SizedBox(width: 6),
-          SizedBox(
-            width: 150,
-            child: Text('Curing Time', style: textStyle),
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Curing Time', style: textStyle),
+            ),
           ),
         ],
       ),
@@ -247,19 +253,25 @@ class _TrayDataRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          SizedBox(
-            width: 120,
-            child: Text(
-              wipGroup.isEmpty ? '-' : wipGroup,
-              style: TextStyle(color: subtitle, fontSize: 13),
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                wipGroup.isEmpty ? '-' : wipGroup,
+                style: TextStyle(color: subtitle, fontSize: 13),
+              ),
             ),
           ),
           const SizedBox(width: 6),
-          SizedBox(
-            width: 150,
-            child: Text(
-              time.isEmpty ? '-' : time,
-              style: TextStyle(color: subtitle, fontSize: 13),
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                time.isEmpty ? '-' : time,
+                style: TextStyle(color: subtitle, fontSize: 13),
+              ),
             ),
           ),
         ],
