@@ -384,6 +384,13 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     return '$y-$m-$day';
   }
 
+  String _formatTime(DateTime d) {
+    final hh = d.hour.toString().padLeft(2, '0');
+    final mm = d.minute.toString().padLeft(2, '0');
+    final ss = d.second.toString().padLeft(2, '0');
+    return '$hh:$mm:$ss';
+  }
+
   @override
   Widget build(BuildContext context) {
     return ResponsiveBuilder(
@@ -408,11 +415,14 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
         return Obx(() {
           final isLoading = _controller.isLoading.value;
           final isLoadingModels = _controller.isLoadingModels.value;
+          final isRefreshing = _controller.isRefreshing.value;
           final error = _controller.error.value;
           final view = _controller.outputTrackingView.value;
           final allRows = view?.rows ?? const <OtRowView>[];
           final hours = view?.hours ?? const <String>[];
           final hasView = allRows.isNotEmpty && hours.isNotEmpty;
+          final DateTime? lastUpdatedAt = _controller.lastUpdatedAt.value;
+          final bool showUpdateBadge = _controller.showUpdateBadge.value;
           final searchTerm = _searchCtl.text.trim().toLowerCase();
           final filteredRows = searchTerm.isEmpty
               ? allRows
@@ -426,6 +436,17 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
                   .toList();
           final isFiltering = searchTerm.isNotEmpty;
           final hasLoadedOnce = _controller.hasLoadedOnce.value;
+          final String? statusText = isRefreshing
+              ? 'Đang cập nhật dữ liệu…'
+              : lastUpdatedAt != null
+                  ? (showUpdateBadge
+                      ? 'Đã cập nhật lúc ${_formatTime(lastUpdatedAt)}'
+                      : 'Cập nhật: ${_formatTime(lastUpdatedAt)}')
+                  : null;
+          final bool statusHighlight = !isRefreshing && showUpdateBadge;
+          final String? updateBannerLabel = showUpdateBadge && lastUpdatedAt != null
+              ? 'Đã cập nhật lúc ${_formatTime(lastUpdatedAt)}'
+              : null;
 
           return Scaffold(
             backgroundColor: _pageBackground,
@@ -437,6 +458,9 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
               showInlineFilters: showInlineFilters,
               useFullWidthFilters: isPhone,
               onBack: Get.back,
+              statusText: statusText,
+              statusHighlight: statusHighlight,
+              isRefreshing: isRefreshing,
               dateText: _formatDate(_selectedDate),
               shift: _selectedShift,
               shiftOptions: _shiftOptions,
@@ -479,6 +503,8 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
                     hours: hours,
                     isFiltering: isFiltering,
                     onClearSearch: _clearSearch,
+                    showUpdateBanner: showUpdateBadge,
+                    updateBannerLabel: updateBannerLabel,
                   ),
                 ),
               ),
@@ -505,6 +531,8 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     required List<String> hours,
     required bool isFiltering,
     required VoidCallback onClearSearch,
+    required bool showUpdateBanner,
+    required String? updateBannerLabel,
   }) {
     if (isLoading && view == null) {
       return const [
@@ -515,7 +543,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
       ];
     }
 
-    if (error != null && error.isNotEmpty) {
+    if (error != null && error.isNotEmpty && view == null) {
       return [
         SliverFillRemaining(
           hasScrollBody: false,
@@ -559,8 +587,13 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
       ];
     }
 
+    Widget buildUpdateBanner() {
+      return const SizedBox.shrink();
+    }
+
     if (useCardList) {
       return [
+        SliverToBoxAdapter(child: buildUpdateBanner()),
         SliverPadding(
           padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 20),
           sliver: SliverList(
@@ -588,6 +621,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
 
     if (useCardWrap) {
       return [
+        SliverToBoxAdapter(child: buildUpdateBanner()),
         SliverPadding(
           padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 24),
           sliver: SliverToBoxAdapter(
@@ -635,6 +669,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     }
 
     return [
+      SliverToBoxAdapter(child: buildUpdateBanner()),
       SliverPadding(
         padding: EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 12),
         sliver: SliverToBoxAdapter(
@@ -807,6 +842,9 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.showInlineFilters,
     required this.useFullWidthFilters,
     required this.onBack,
+    this.statusText,
+    this.statusHighlight = false,
+    this.isRefreshing = false,
     required this.dateText,
     required this.shift,
     required this.shiftOptions,
@@ -840,6 +878,9 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showInlineFilters;
   final bool useFullWidthFilters;
   final VoidCallback? onBack;
+  final String? statusText;
+  final bool statusHighlight;
+  final bool isRefreshing;
   final String dateText;
   final String shift;
   final List<String> shiftOptions;
@@ -949,7 +990,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     const gradientTop = Color(0xFF162B4F);
     const gradientBottom = Color(0xFF101C32);
 
-    final headerHeight = useCompactHeader ? 48.0 : 54.0;
+    final headerMinHeight = useCompactHeader ? 48.0 : 54.0;
     final horizontalPadding = useCompactHeader ? 16.0 : 24.0;
 
     Widget buildHeader() {
@@ -975,28 +1016,49 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
         size: useCompactHeader ? 42.0 : 46.0,
       );
 
+      final bool hasStatus = statusText != null && statusText!.trim().isNotEmpty;
+      final Widget statusWidget = AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        child: hasStatus
+            ? _StatusChip(
+                key: ValueKey(
+                  'status-visible-${statusHighlight ? 1 : 0}-${statusText}',
+                ),
+                text: statusText!.trim(),
+                highlight: statusHighlight,
+              )
+            : const SizedBox.shrink(key: ValueKey('status-hidden')),
+      );
+
       final titleWidget = Expanded(
-        child: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: .3,
+                      ) ??
+                  const TextStyle(
+                    fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     letterSpacing: .3,
-                  ) ??
-              const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: .3,
-              ),
+                  ),
+            ),
+          ],
         ),
       );
 
       if (!useCompactHeader) {
-        return SizedBox(
-          height: headerHeight,
+        return ConstrainedBox(
+          constraints: BoxConstraints(minHeight: headerMinHeight),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -1009,13 +1071,17 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
                 const SizedBox(width: 10),
                 filterButton,
               ],
+              if (hasStatus) ...[
+                const SizedBox(width: 16),
+                statusWidget,
+              ],
             ],
           ),
         );
       }
 
-      return SizedBox(
-        height: headerHeight,
+      return ConstrainedBox(
+        constraints: BoxConstraints(minHeight: headerMinHeight),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -1027,6 +1093,10 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
             if (!showInlineFilters) ...[
               const SizedBox(width: 10),
               filterButton,
+            ],
+            if (hasStatus) ...[
+              const SizedBox(width: 12),
+              statusWidget,
             ],
           ],
         ),
@@ -1089,6 +1159,53 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    super.key,
+    required this.text,
+    required this.highlight,
+  });
+
+  final String text;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color background = highlight
+        ? const Color(0xFF1E3C5F)
+        : Colors.white.withOpacity(0.08);
+    final Color borderColor = highlight
+        ? Colors.cyanAccent.withOpacity(0.45)
+        : Colors.white.withOpacity(0.12);
+    final TextStyle textStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: highlight ? FontWeight.w700 : FontWeight.w500,
+              letterSpacing: .1,
+            ) ??
+        TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: highlight ? FontWeight.w700 : FontWeight.w500,
+          letterSpacing: .1,
+        );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: borderColor),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: textStyle,
       ),
     );
   }

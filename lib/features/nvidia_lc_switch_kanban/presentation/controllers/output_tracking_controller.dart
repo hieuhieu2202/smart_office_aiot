@@ -63,6 +63,9 @@ class OutputTrackingController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxnString error = RxnString();
   final RxBool hasLoadedOnce = false.obs;
+  final RxBool isRefreshing = false.obs;
+  final Rx<DateTime?> lastUpdatedAt = Rx<DateTime?>(null);
+  final RxBool showUpdateBadge = false.obs;
 
   // Payloads
   final Rxn<OutputTrackingEntity> outputTracking = Rxn<OutputTrackingEntity>();
@@ -77,6 +80,7 @@ class OutputTrackingController extends GetxController {
   final RxBool isAutoRefreshEnabled = true.obs;
   final RxInt refreshSec = 60.obs;
   Timer? _timer;
+  Timer? _updateBadgeTimer;
 
   // ---------------- Public API ----------------
   Future<void> updateFilter({
@@ -129,9 +133,16 @@ class OutputTrackingController extends GetxController {
   }
 
   Future<void> loadAll() async {
+    final bool hadView = outputTrackingView.value != null;
     isLoading.value = true;
+    isRefreshing.value = hadView;
     error.value = null;
-    outputTrackingView.value = null;
+    if (!hadView) {
+      outputTrackingView.value = null;
+    } else {
+      _updateBadgeTimer?.cancel();
+      showUpdateBadge.value = false;
+    }
 
     try {
       final KanbanRequest request = _currentRequest();
@@ -148,12 +159,21 @@ class OutputTrackingController extends GetxController {
       await _rebuildModelByStation();
       _mergeModelsFromResponses();
       _rebuildOutputTrackingView();
+
+      if (outputTrackingView.value != null) {
+        _markUpdated(highlight: hadView);
+      }
     } catch (e) {
       error.value = e.toString();
-      outputTrackingView.value = null;
+      if (!hadView) {
+        outputTrackingView.value = null;
+      }
+      _updateBadgeTimer?.cancel();
+      showUpdateBadge.value = false;
       NvidiaKanbanLogger.net(() => '[OutputTrackingController] loadAll ERROR: $e');
     } finally {
       isLoading.value = false;
+      isRefreshing.value = false;
       hasLoadedOnce.value = true;
       if (isAutoRefreshEnabled.value) {
         startAutoRefresh();
@@ -511,7 +531,23 @@ class OutputTrackingController extends GetxController {
   @override
   void onClose() {
     _timer?.cancel();
+    _updateBadgeTimer?.cancel();
     super.onClose();
+  }
+
+  void _markUpdated({required bool highlight}) {
+    final DateTime now = DateTime.now();
+    lastUpdatedAt.value = now;
+    _updateBadgeTimer?.cancel();
+
+    if (highlight) {
+      showUpdateBadge.value = true;
+      _updateBadgeTimer = Timer(const Duration(seconds: 3), () {
+        showUpdateBadge.value = false;
+      });
+    } else {
+      showUpdateBadge.value = false;
+    }
   }
 
   KanbanRequest _currentRequest({List<String>? groups, String? section}) {
