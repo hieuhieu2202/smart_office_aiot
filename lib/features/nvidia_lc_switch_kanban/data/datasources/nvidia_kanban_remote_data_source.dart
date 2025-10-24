@@ -12,14 +12,7 @@ import '../models/uph_tracking_model.dart';
 class NvidiaKanbanLogger {
   NvidiaKanbanLogger._();
 
-  static bool network = false;
-
-  static void net(String Function() build) {
-    if (network) {
-      // ignore: avoid_print
-      print(build());
-    }
-  }
+  static void net(String Function() _) {}
 }
 
 class NvidiaKanbanRemoteDataSource {
