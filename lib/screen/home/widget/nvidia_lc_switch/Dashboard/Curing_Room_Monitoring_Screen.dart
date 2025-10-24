@@ -3,8 +3,8 @@ import 'package:get/get.dart';
 import 'package:smart_factory/config/responsive_helper.dart';
 import '../../../../../widget/animation/loading/eva_loading_view.dart';
 import '../../../controller/nvidia_lc_switch_dashboard_curing_monitoring_controller.dart';
-import 'room_canvas.dart';
-import 'right_sidebar.dart';
+import 'Room_Canvas.dart';
+import 'Right_Sidebar.dart';
 import 'tray_detail_dialog.dart';
 
 class CuringRoomMonitoringScreen extends StatelessWidget {
