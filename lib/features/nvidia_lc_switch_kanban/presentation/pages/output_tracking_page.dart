@@ -1182,16 +1182,16 @@ class _StatusChip extends StatelessWidget {
     final Color borderColor = highlight
         ? Colors.cyanAccent.withOpacity(0.45)
         : Colors.white.withOpacity(0.12);
-    final TextStyle textStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+    final TextStyle textStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
               color: Colors.white,
               fontWeight: highlight ? FontWeight.w700 : FontWeight.w500,
-              letterSpacing: .2,
+              letterSpacing: .1,
             ) ??
         TextStyle(
           color: Colors.white,
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: highlight ? FontWeight.w700 : FontWeight.w500,
-          letterSpacing: .2,
+          letterSpacing: .1,
         );
 
     return Container(
@@ -1200,7 +1200,7 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: borderColor),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Text(
         text,
         maxLines: 1,
