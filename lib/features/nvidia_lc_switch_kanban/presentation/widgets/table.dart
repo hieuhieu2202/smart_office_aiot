@@ -11,6 +11,7 @@ class OtTable extends StatefulWidget {
   const OtTable({
     super.key,
     required this.view,
+    this.rowsOverride,
     this.activeHourIndex,
     this.onStationTap,
     this.onSectionTap,
@@ -21,6 +22,7 @@ class OtTable extends StatefulWidget {
   static const double rowGap = _OtTableState.kRowGap;
 
   final OtViewState view;
+  final List<OtRowView>? rowsOverride;
   final int? activeHourIndex;
   final void Function(OtRowView row)? onStationTap;
   final void Function(OtRowView row, String section)? onSectionTap;
@@ -213,7 +215,7 @@ class _OtTableState extends State<OtTable> {
 
   @override
   Widget build(BuildContext context) {
-    final rows = widget.view.rows;
+    final rows = widget.rowsOverride ?? widget.view.rows;
     final hours = widget.view.hours;
     const borderColor = kGridBorder;
     final hourColumnsWidth = hours.isEmpty

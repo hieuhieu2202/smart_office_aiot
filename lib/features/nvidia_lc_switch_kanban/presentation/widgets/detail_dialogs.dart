@@ -161,7 +161,7 @@ class OtStationTrendDialog extends StatelessWidget {
   }
 }
 
-class OtSectionDetailDialog extends StatelessWidget {
+class OtSectionDetailDialog extends StatefulWidget {
   const OtSectionDetailDialog({
     super.key,
     required this.station,
@@ -174,20 +174,59 @@ class OtSectionDetailDialog extends StatelessWidget {
   final OutputTrackingDetailEntity detail;
 
   @override
+  State<OtSectionDetailDialog> createState() => _OtSectionDetailDialogState();
+}
+
+class _OtSectionDetailDialogState extends State<OtSectionDetailDialog> {
+  late final TextEditingController _testerSearchController;
+  String _testerQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _testerSearchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _testerSearchController.dispose();
+    super.dispose();
+  }
+
+  void _onTesterSearchChanged(String value) {
+    setState(() => _testerQuery = value.trim());
+  }
+
+  void _clearTesterSearch() {
+    if (_testerSearchController.text.isEmpty) return;
+    _testerSearchController.clear();
+    _onTesterSearchChanged('');
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final List<_DetailPoint> errorPoints = detail.errorDetails
+    final List<_DetailPoint> errorPoints = widget.detail.errorDetails
         .map((e) => _DetailPoint(label: e.code, value: e.failQty))
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final List<_DetailPoint> testerPoints = detail.testerDetails
+    final List<_DetailPoint> testerPointsBase = widget.detail.testerDetails
         .map((e) => _DetailPoint(label: e.stationName, value: e.failQty))
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    final sectionLabel = formatHourRange(section);
+    final List<_DetailPoint> testerPoints = _filterTesterPoints(testerPointsBase);
+
+    final sectionLabel = formatHourRange(widget.section);
     final screenWidth = MediaQuery.of(context).size.width;
     final double dialogMaxWidth =
         (screenWidth * 0.8).clamp(380.0, 1320.0).toDouble();
+
+    final bool isSearching = _testerQuery.isNotEmpty;
+    final String testerEmptyMessage = testerPoints.isEmpty &&
+            testerPointsBase.isNotEmpty &&
+            isSearching
+        ? 'Không tìm thấy tester trùng khớp.'
+        : 'Không có dữ liệu máy test trong khung giờ này.';
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -208,7 +247,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      '$station · $sectionLabel',
+                      '${widget.station} · $sectionLabel',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -239,9 +278,15 @@ class OtSectionDetailDialog extends StatelessWidget {
               _buildBarChart(
                 title: 'Top Tester Stations',
                 points: testerPoints,
-                emptyMessage: 'Không có dữ liệu máy test trong khung giờ này.',
+                emptyMessage: testerEmptyMessage,
                 primaryHeader: 'Tester Station',
                 barColor: const Color(0xFF66D9EF),
+                enableSearch: true,
+                searchController: _testerSearchController,
+                searchQuery: _testerQuery,
+                onSearchChanged: _onTesterSearchChanged,
+                onClearSearch: _clearTesterSearch,
+                searchPlaceholder: 'Tìm tester station',
               ),
             ],
           ),
@@ -250,12 +295,26 @@ class OtSectionDetailDialog extends StatelessWidget {
     );
   }
 
+  List<_DetailPoint> _filterTesterPoints(List<_DetailPoint> source) {
+    if (_testerQuery.isEmpty) return source;
+    final lower = _testerQuery.toLowerCase();
+    return source
+        .where((point) => point.label.toLowerCase().contains(lower))
+        .toList();
+  }
+
   Widget _buildBarChart({
     required String title,
     required List<_DetailPoint> points,
     required String emptyMessage,
     required String primaryHeader,
     required Color barColor,
+    bool enableSearch = false,
+    TextEditingController? searchController,
+    String searchQuery = '',
+    ValueChanged<String>? onSearchChanged,
+    VoidCallback? onClearSearch,
+    String searchPlaceholder = 'Search',
   }) {
     const panelColor = Color(0xFF162C4B);
     final List<_DetailPoint> effectivePoints = _effectivePoints(points);
@@ -277,18 +336,82 @@ class OtSectionDetailDialog extends StatelessWidget {
       height: baseHeight,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          Widget? buildSearchBox() {
+            if (!(enableSearch &&
+                searchController != null &&
+                onSearchChanged != null)) {
+              return null;
+            }
+            return TextField(
+              controller: searchController,
+              onChanged: onSearchChanged,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: InputDecoration(
+                hintText: searchPlaceholder,
+                hintStyle: const TextStyle(color: Colors.white54, fontSize: 12),
+                prefixIcon:
+                    const Icon(Icons.search, size: 18, color: Colors.white54),
+                suffixIcon:
+                    searchQuery.isNotEmpty && onClearSearch != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear,
+                                size: 18, color: Colors.white54),
+                            onPressed: onClearSearch,
+                          )
+                        : null,
+                filled: true,
+                fillColor: const Color(0xFF1F3458),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF2A4165),
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.cyanAccent,
+                    width: 1.2,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
+            );
+          }
+
           if (!hasData) {
+            final searchBox = buildSearchBox();
             return Container(
-              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: panelColor,
                 borderRadius: BorderRadius.circular(16),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                emptyMessage,
-                style: const TextStyle(color: Colors.white60),
-                textAlign: TextAlign.center,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (searchBox != null) ...[
+                    searchBox,
+                    const SizedBox(height: 12),
+                  ],
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        emptyMessage,
+                        style: const TextStyle(color: Colors.white60),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           }
@@ -302,9 +425,14 @@ class OtSectionDetailDialog extends StatelessWidget {
           );
 
           Widget buildListColumn() {
+            final searchBox = buildSearchBox();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (searchBox != null) ...[
+                  searchBox,
+                  const SizedBox(height: 8),
+                ],
                 _DetailListHeader(
                   primaryHeader: primaryHeader,
                   valueHeader: 'Fail Qty',
@@ -313,6 +441,7 @@ class OtSectionDetailDialog extends StatelessWidget {
                 Expanded(
                   child: _DetailList(
                     points: effectivePoints,
+                    emptyMessage: emptyMessage,
                   ),
                 ),
               ],
@@ -491,17 +620,22 @@ class _DetailListHeader extends StatelessWidget {
 }
 
 class _DetailList extends StatelessWidget {
-  const _DetailList({required this.points});
+  const _DetailList({
+    required this.points,
+    this.emptyMessage = 'Không có dữ liệu',
+  });
 
   final List<_DetailPoint> points;
+  final String emptyMessage;
 
   @override
   Widget build(BuildContext context) {
     if (points.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Không có dữ liệu',
-          style: TextStyle(color: Colors.white54),
+          emptyMessage,
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+          textAlign: TextAlign.center,
         ),
       );
     }

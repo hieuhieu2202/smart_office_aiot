@@ -24,6 +24,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
   late DateTime _selectedDate;
   late String _selectedShift;
   List<String> _selectedModels = const [];
+  late final TextEditingController _searchCtl;
   Worker? _groupsWorker;
 
   static const List<String> _shiftOptions = ['Day', 'Night', 'All'];
@@ -39,6 +40,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     _selectedDate = _controller.date.value;
     _selectedShift = _controller.shift.value;
     _selectedModels = _controller.groups.toList();
+    _searchCtl = TextEditingController();
 
     _groupsWorker = ever<List<String>>(_controller.groups, (list) {
       if (!mounted) return;
@@ -57,6 +59,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
   @override
   void dispose() {
     _groupsWorker?.dispose();
+    _searchCtl.dispose();
     super.dispose();
   }
 
@@ -188,6 +191,17 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     }
   }
 
+  void _handleSearchChanged(String value) {
+    setState(() {});
+  }
+
+  void _clearSearch() {
+    if (_searchCtl.text.isEmpty) return;
+    setState(() {
+      _searchCtl.clear();
+    });
+  }
+
   double _computeTableHeight(
     BuildContext context,
     bool isMobile,
@@ -234,9 +248,21 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
           final isLoadingModels = _controller.isLoadingModels.value;
           final error = _controller.error.value;
           final view = _controller.outputTrackingView.value;
-          final rows = view?.rows ?? const <OtRowView>[];
+          final allRows = view?.rows ?? const <OtRowView>[];
           final hours = view?.hours ?? const <String>[];
-          final hasView = rows.isNotEmpty && hours.isNotEmpty;
+          final hasView = allRows.isNotEmpty && hours.isNotEmpty;
+          final searchTerm = _searchCtl.text.trim().toLowerCase();
+          final filteredRows = searchTerm.isEmpty
+              ? allRows
+              : allRows
+                  .where((row) {
+                    final station = row.station.toLowerCase();
+                    final model = row.model.toLowerCase();
+                    return station.contains(searchTerm) ||
+                        model.contains(searchTerm);
+                  })
+                  .toList();
+          final isFiltering = searchTerm.isNotEmpty;
           final hasLoadedOnce = _controller.hasLoadedOnce.value;
 
           return Scaffold(
@@ -257,6 +283,10 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
               onSelectModels: _openModelPicker,
               onQuery: _onQuery,
               onRefresh: isLoading ? null : () { _controller.loadAll(); },
+              searchController: _searchCtl,
+              searchText: _searchCtl.text,
+              onSearchChanged: _handleSearchChanged,
+              onClearSearch: _clearSearch,
             ),
             body: SafeArea(
               top: false,
@@ -276,8 +306,10 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
                     hasView: hasView,
                     hasLoadedOnce: hasLoadedOnce,
                     view: view,
-                    rows: rows,
+                    rows: filteredRows,
                     hours: hours,
+                    isFiltering: isFiltering,
+                    onClearSearch: _clearSearch,
                   ),
                 ),
               ),
@@ -300,6 +332,8 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
     required OtViewState? view,
     required List<OtRowView> rows,
     required List<String> hours,
+    required bool isFiltering,
+    required VoidCallback onClearSearch,
   }) {
     if (isLoading && view == null) {
       return const [
@@ -339,6 +373,17 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
         SliverFillRemaining(
           hasScrollBody: false,
           child: const _EmptyNotice(),
+        ),
+      ];
+    }
+
+    if (rows.isEmpty) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: isFiltering
+              ? _FilteredEmptyNotice(onClear: onClearSearch)
+              : const _EmptyNotice(),
         ),
       ];
     }
@@ -387,6 +432,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
               ),
               child: OtTable(
                 view: view!,
+                rowsOverride: rows,
                 activeHourIndex: activeHourIndex,
                 onStationTap: _showStationTrend,
                 onSectionTap: _showSectionDetail,
@@ -485,6 +531,53 @@ class _EmptyNotice extends StatelessWidget {
   }
 }
 
+class _FilteredEmptyNotice extends StatelessWidget {
+  const _FilteredEmptyNotice({required this.onClear});
+
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.search_off, size: 56, color: Colors.white54),
+          const SizedBox(height: 16),
+          Text(
+            'Không tìm thấy kết quả phù hợp',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Vui lòng điều chỉnh từ khóa tìm kiếm.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white60,
+            ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: onClear,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF4C2CF6),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Xóa tìm kiếm'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   OtTopBar({
     super.key,
@@ -503,6 +596,10 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onSelectModels,
     required this.onQuery,
     required this.onRefresh,
+    required this.searchController,
+    required this.searchText,
+    required this.onSearchChanged,
+    required this.onClearSearch,
   }) : preferredSize = Size.fromHeight(
           isMobile
               ? 240
@@ -526,6 +623,10 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onSelectModels;
   final VoidCallback onQuery;
   final VoidCallback? onRefresh;
+  final TextEditingController searchController;
+  final String searchText;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClearSearch;
 
   @override
   final Size preferredSize;
@@ -619,6 +720,10 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
                 onQuery: onQuery,
                 isMobile: isMobile,
                 isTablet: isTablet,
+                searchController: searchController,
+                searchText: searchText,
+                onSearchChanged: onSearchChanged,
+                onClearSearch: onClearSearch,
               ),
             ],
           ),
@@ -693,6 +798,10 @@ class OtFilterToolbar extends StatelessWidget {
     required this.onQuery,
     required this.isMobile,
     required this.isTablet,
+    required this.searchController,
+    required this.searchText,
+    required this.onSearchChanged,
+    required this.onClearSearch,
   });
 
   final String dateText;
@@ -707,6 +816,10 @@ class OtFilterToolbar extends StatelessWidget {
   final VoidCallback onQuery;
   final bool isMobile;
   final bool isTablet;
+  final TextEditingController searchController;
+  final String searchText;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClearSearch;
 
   static const Color _fieldColor = Color(0xFF1A2740);
   static const Color _borderColor = Color(0xFF2C3B5A);
@@ -845,6 +958,48 @@ class OtFilterToolbar extends StatelessWidget {
       );
     }
 
+    Widget buildSearchField() {
+      return _FilterField(
+        width: wideField,
+        label: 'Search',
+        labelStyle: labelStyle,
+        child: TextField(
+          controller: searchController,
+          onChanged: onSearchChanged,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Search station or model',
+            hintStyle: const TextStyle(color: Colors.white54, fontSize: 12),
+            prefixIcon:
+                const Icon(Icons.search, color: Colors.white54, size: 18),
+            suffixIcon: searchText.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear,
+                        color: Colors.white54, size: 18),
+                    onPressed: onClearSearch,
+                  )
+                : null,
+            filled: true,
+            fillColor: _fieldColor,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: _borderColor.withOpacity(.8)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.cyanAccent, width: 1.2),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+        ),
+      );
+    }
+
     Widget buildActions() {
       final query = OtToolbarButton(
         label: isBusy ? 'LOADING...' : 'QUERY',
@@ -883,6 +1038,7 @@ class OtFilterToolbar extends StatelessWidget {
         buildDateField(),
         buildShiftField(),
         buildModelField(),
+        buildSearchField(),
         buildActions(),
       ],
     );
