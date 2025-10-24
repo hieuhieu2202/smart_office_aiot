@@ -1,10 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+typedef RackTapCallback = Future<void> Function(Map<String, dynamic> rack);
+
 class RoomCanvas extends StatefulWidget {
   final List<Map<String, dynamic>> sensors;
   final List<Map<String, dynamic>> racks;
-  final ValueChanged<Map<String, dynamic>>? onRackTap;
+  final RackTapCallback? onRackTap;
 
   const RoomCanvas({
     super.key,
@@ -200,7 +202,9 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
               height: rackHeight,
               onTap: widget.onRackTap == null
                   ? null
-                  : () => widget.onRackTap!(r),
+                  : () {
+                      widget.onRackTap!(r);
+                    },
             ))
         .toList();
 
