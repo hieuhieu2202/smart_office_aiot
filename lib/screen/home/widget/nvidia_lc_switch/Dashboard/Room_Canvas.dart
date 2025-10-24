@@ -395,10 +395,10 @@ class _AnimatedSensorBadgeState extends State<AnimatedSensorBadge>
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: widget.isDark ? Colors.white : Colors.black87,
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -646,7 +646,6 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
