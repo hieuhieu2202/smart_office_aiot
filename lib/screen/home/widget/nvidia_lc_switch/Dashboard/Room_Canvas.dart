@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 class RoomCanvas extends StatefulWidget {
   final List<Map<String, dynamic>> sensors;
   final List<Map<String, dynamic>> racks;
+  final ValueChanged<Map<String, dynamic>>? onRackTap;
 
   const RoomCanvas({
     super.key,
     required this.sensors,
     required this.racks,
+    this.onRackTap,
   });
 
   @override
@@ -74,8 +76,53 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
 
         final isTablet = width < 1024 && width >= 600;
         final isMobile = width < 600;
-        final rackWidth = isMobile ? 160.0 : 180.0;
-        final rackHeight = isMobile ? 155.0 : 170.0;
+        final isCompactMobile = isMobile && width < 360;
+        final rackWidth = isMobile
+            ? (isCompactMobile
+                ? 132.0
+                : width < 420
+                    ? 140.0
+                    : 150.0)
+            : isTablet
+                ? 170.0
+                : 180.0;
+        final rackHeight = isMobile
+            ? (isCompactMobile
+                ? 122.0
+                : width < 420
+                    ? 132.0
+                    : 144.0)
+            : isTablet
+                ? 162.0
+                : 170.0;
+
+        Widget buildSensorStrip() {
+          if (widget.sensors.isEmpty) return const SizedBox.shrink();
+
+          return Padding(
+            padding: EdgeInsets.only(top: isMobile ? 10 : 24),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(widget.sensors.length, (i) {
+                  final s = widget.sensors[i];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: AnimatedSensorBadge(
+                      value: s['Value'],
+                      status: (s['Status'] ?? '').toString(),
+                      isDark: isDark,
+                      delay: Duration(milliseconds: 150 * i),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          );
+        }
 
         return SizedBox(
           width: width,
@@ -92,43 +139,43 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
                 ),
               ),
 
-              // Sensor badges
-              if (widget.sensors.isNotEmpty)
-                Positioned(
-                  top: isMobile ? 12 : 20,
-                  left: 0,
-                  right: 0,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(widget.sensors.length, (i) {
-                        final s = widget.sensors[i];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: AnimatedSensorBadge(
-                            value: s['Value'],
-                            status: (s['Status'] ?? '').toString(),
-                            isDark: isDark,
-                            delay: Duration(milliseconds: 150 * i),
+              if (isMobile)
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (widget.sensors.isNotEmpty) buildSensorStrip(),
+                        if (widget.sensors.isNotEmpty)
+                          const SizedBox(height: 12),
+                        const Spacer(),
+                        if (widget.racks.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildRackGrid(
+                                true, isTablet, rackWidth, rackHeight, isDark),
                           ),
-                        );
-                      }),
+                      ],
                     ),
                   ),
-                ),
-
-              // Racks
-              if (widget.racks.isNotEmpty)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _buildRackGrid(
-                        isMobile, isTablet, rackWidth, rackHeight, isDark),
+                )
+              else ...[
+                if (widget.sensors.isNotEmpty)
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: buildSensorStrip(),
                   ),
-                ),
+                if (widget.racks.isNotEmpty)
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _buildRackGrid(
+                          false, isTablet, rackWidth, rackHeight, isDark),
+                    ),
+                  ),
+              ],
             ],
           ),
         );
@@ -141,25 +188,28 @@ class _RoomCanvasState extends State<RoomCanvas> with TickerProviderStateMixin {
       double rackHeight, bool isDark) {
     final rackCards = widget.racks
         .map((r) => RackCard(
-      name: r['Name'] ?? '',
-      time: r['Time'] ?? '',
-      modelName: r['ModelName'] ?? '',
-      pcs: '${r['Number'] ?? 0}',
-      status: r['Status'] ?? '',
-      percent: (r['Percent'] ?? 0).toDouble(),
-      isDark: isDark,
-      glowCtrl: _glowCtrl,
-      width: rackWidth,
-      height: rackHeight,
-    ))
+              name: r['Name'] ?? '',
+              time: r['Time'] ?? '',
+              modelName: r['ModelName'] ?? '',
+              pcs: '${r['Number'] ?? 0}',
+              status: r['Status'] ?? '',
+              percent: (r['Percent'] ?? 0).toDouble(),
+              isDark: isDark,
+              glowCtrl: _glowCtrl,
+              width: rackWidth,
+              height: rackHeight,
+              onTap: widget.onRackTap == null
+                  ? null
+                  : () => widget.onRackTap!(r),
+            ))
         .toList();
 
     if (isMobile) {
       return SizedBox(
-        height: rackHeight + 40,
+        height: rackHeight + 28,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           separatorBuilder: (_, __) => const SizedBox(width: 12),
           itemCount: rackCards.length,
           itemBuilder: (_, i) => rackCards[i],
@@ -345,10 +395,10 @@ class _AnimatedSensorBadgeState extends State<AnimatedSensorBadge>
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: widget.isDark ? Colors.white : Colors.black87,
-          ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -365,6 +415,7 @@ class RackCard extends StatefulWidget {
   final AnimationController glowCtrl;
   final double width;
   final double height;
+  final VoidCallback? onTap;
 
   const RackCard({
     super.key,
@@ -378,6 +429,7 @@ class RackCard extends StatefulWidget {
     required this.glowCtrl,
     required this.width,
     required this.height,
+    this.onTap,
   });
 
   @override
@@ -419,163 +471,182 @@ class _RackCardState extends State<RackCard> with TickerProviderStateMixin {
     final baseColor =
     _isFinished ? const Color(0xFF007A3D) : const Color(0xFF0E354B);
 
+    final glowOpacity = (0.25 + 0.35 * sin(widget.glowCtrl.value * 2 * pi))
+        .clamp(0.0, 1.0) as double;
+
     final glow = _isRunning
         ? BoxShadow(
-      color: Colors.amberAccent.withOpacity(
-          0.25 + 0.35 * sin(widget.glowCtrl.value * 2 * pi)),
-      blurRadius: 18,
-      spreadRadius: 5,
-    )
+            color: Colors.amberAccent.withOpacity(glowOpacity),
+            blurRadius: 18,
+            spreadRadius: 5,
+          )
         : BoxShadow(
-      color: Colors.black.withOpacity(.3),
-      blurRadius: 10,
-      spreadRadius: 1,
-    );
+            color: Colors.black.withOpacity(.3),
+            blurRadius: 10,
+            spreadRadius: 1,
+          );
 
-    return Container(
-      width: widget.width,
-      height: widget.height,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            baseColor.withOpacity(0.95),
-            baseColor.withOpacity(0.7),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+    final isCompactCard = widget.width < 145;
+    final padding = EdgeInsets.all(isCompactCard ? 10 : 12);
+    final headerSize = isCompactCard ? 12.0 : 13.0;
+    final timeSize = isCompactCard ? 20.0 : 22.0;
+    final detailSize = isCompactCard ? 10.5 : 11.0;
+    final statusSize = isCompactCard ? 11.0 : 12.0;
+    final barHeight = isCompactCard ? 7.0 : 8.0;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: widget.onTap,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(.3)),
-        boxShadow: [glow],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ===== HEADER =====
-          Row(
+        child: Container(
+          width: widget.width,
+          height: widget.height,
+          padding: padding,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                baseColor.withOpacity(0.95),
+                baseColor.withOpacity(0.7),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.cyanAccent.withOpacity(.3)),
+            boxShadow: [glow],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  widget.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontSize: 13,
+              // ===== HEADER =====
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: headerSize,
+                      ),
+                    ),
                   ),
+                  Icon(
+                    Icons.circle,
+                    size: 7,
+                    color: _isFinished
+                        ? Colors.greenAccent
+                        : (_isRunning ? Colors.amber : Colors.grey),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _isFinished ? "00:00" : widget.time,
+                style: TextStyle(
+                  fontSize: timeSize,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
               ),
-              Icon(
-                Icons.circle,
-                size: 7,
-                color: _isFinished
-                    ? Colors.greenAccent
-                    : (_isRunning ? Colors.amber : Colors.grey),
+              const SizedBox(height: 2),
+              Text(
+                '${widget.modelName} • ${widget.pcs} PCS',
+                style: TextStyle(color: Colors.white70, fontSize: detailSize),
+              ),
+              const SizedBox(height: 8),
+
+              // ===== PROGRESS BAR =====
+              ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: Stack(
+                  children: [
+                    Container(height: barHeight, color: Colors.white10),
+                    if (_isRunning)
+                      AnimatedBuilder(
+                        animation: _runCtrl,
+                        builder: (_, __) {
+                          final t = _runCtrl.value;
+                          final width = (progress * widget.width)
+                              .clamp(0.0, widget.width);
+                          final x = (t < 0.5 ? t : 1 - t) * (width - 50);
+                          return Stack(
+                            children: [
+                              Container(
+                                width: width,
+                                height: barHeight,
+                                color: Colors.amber.withOpacity(.3),
+                              ),
+                              Positioned(
+                                left: x,
+                                top: 0,
+                                bottom: 0,
+                                child: Container(
+                                  width: 50,
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Color(0xFFFFF59D),
+                                        Color(0xFFFFC107),
+                                        Color(0xFFFFA000),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )
+                            ],
+                          );
+                        },
+                      ),
+                    if (_isFinished)
+                      AnimatedBuilder(
+                        animation: _finishCtrl,
+                        builder: (_, __) {
+                          final t = _finishCtrl.value;
+                          final x = t * (widget.width - 40);
+                          return Stack(
+                            children: [
+                              Container(
+                                  height: barHeight, color: Colors.greenAccent),
+                              Positioned(
+                                left: x,
+                                child: Container(
+                                  width: 40,
+                                  height: barHeight,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.white.withOpacity(0),
+                                        Colors.white.withOpacity(.6),
+                                        Colors.white.withOpacity(0),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 6),
+              Text(
+                _isFinished ? "FINISHED" : "RUNNING",
+                style: TextStyle(
+                  color: _isFinished ? Colors.greenAccent : Colors.amber,
+                  fontWeight: FontWeight.bold,
+                  fontSize: statusSize,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            _isFinished ? "00:00" : widget.time,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${widget.modelName} • ${widget.pcs} PCS',
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
-          ),
-          const SizedBox(height: 8),
-
-          // ===== PROGRESS BAR =====
-          ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: Stack(
-              children: [
-                Container(height: 8, color: Colors.white10),
-                if (_isRunning)
-                  AnimatedBuilder(
-                    animation: _runCtrl,
-                    builder: (_, __) {
-                      final t = _runCtrl.value;
-                      final width = (progress * widget.width)
-                          .clamp(0.0, widget.width);
-                      final x = (t < 0.5 ? t : 1 - t) * (width - 50);
-                      return Stack(
-                        children: [
-                          Container(
-                            width: width,
-                            height: 8,
-                            color: Colors.amber.withOpacity(.3),
-                          ),
-                          Positioned(
-                            left: x,
-                            top: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 50,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Color(0xFFFFF59D),
-                                    Color(0xFFFFC107),
-                                    Color(0xFFFFA000),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )
-                        ],
-                      );
-                    },
-                  ),
-                if (_isFinished)
-                  AnimatedBuilder(
-                    animation: _finishCtrl,
-                    builder: (_, __) {
-                      final t = _finishCtrl.value;
-                      final x = t * (widget.width - 40);
-                      return Stack(
-                        children: [
-                          Container(height: 8, color: Colors.greenAccent),
-                          Positioned(
-                            left: x,
-                            child: Container(
-                              width: 40,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.white.withOpacity(0),
-                                    Colors.white.withOpacity(.6),
-                                    Colors.white.withOpacity(0),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 6),
-          Text(
-            _isFinished ? "FINISHED" : "RUNNING",
-            style: TextStyle(
-              color: _isFinished ? Colors.greenAccent : Colors.amber,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
-        ],
+        ),
       ),
-    );
+    ),
+  );
   }
 }

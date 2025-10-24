@@ -5,6 +5,7 @@ import '../../../../../widget/animation/loading/eva_loading_view.dart';
 import '../../../controller/nvidia_lc_switch_dashboard_curing_monitoring_controller.dart';
 import 'room_canvas.dart';
 import 'right_sidebar.dart';
+import 'tray_detail_dialog.dart';
 
 class CuringRoomMonitoringScreen extends StatelessWidget {
   const CuringRoomMonitoringScreen({super.key});
@@ -79,6 +80,42 @@ class CuringRoomMonitoringScreen extends StatelessWidget {
       // ===================== BODY =====================
       body: GetBuilder<CuringMonitoringController>(
         builder: (_) {
+          Future<void> openRackTray(Map<String, dynamic> rack) async {
+            final trayName = (rack['Name'] ?? '').toString().trim();
+            if (trayName.isEmpty) return;
+
+            if (Get.isDialogOpen ?? false) {
+              Get.back();
+            }
+
+            Get.dialog(const _BlockingLoader(), barrierDismissible: false);
+
+            try {
+              final entries = await c.fetchTrayDetails(trayName);
+              if (Get.isDialogOpen ?? false) {
+                Get.back();
+              }
+
+              Get.dialog(
+                TrayDetailDialog(trayName: trayName, entries: entries),
+                barrierDismissible: true,
+              );
+            } catch (e) {
+              if (Get.isDialogOpen ?? false) {
+                Get.back();
+              }
+
+              Get.snackbar(
+                'Failed to load $trayName',
+                e.toString(),
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.redAccent.withOpacity(0.85),
+                colorText: Colors.white,
+                duration: const Duration(seconds: 4),
+              );
+            }
+          }
+
           if (c.isLoading.value) return const EvaLoadingView(size: 260);
           if (c.errorMessage.isNotEmpty) {
             return Center(child: Text(c.errorMessage.value));
@@ -91,6 +128,7 @@ class CuringRoomMonitoringScreen extends StatelessWidget {
             key: canvasKey,
             sensors: c.sensorDatas,
             racks: c.rackDetails,
+            onRackTap: openRackTray,
           );
 
           final sidebar = RightSidebar(
@@ -154,6 +192,46 @@ class CuringRoomMonitoringScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _BlockingLoader extends StatelessWidget {
+  const _BlockingLoader();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark
+        ? const Color(0xFF041521).withOpacity(0.94)
+        : Colors.white.withOpacity(0.96);
+    final shadowColor =
+        isDark ? Colors.cyanAccent.withOpacity(0.25) : Colors.black26;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 120, vertical: 24),
+      child: Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: shadowColor,
+              blurRadius: 24,
+              spreadRadius: 2,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: const SizedBox(
+          height: 56,
+          width: 56,
+          child: CircularProgressIndicator(strokeWidth: 3),
+        ),
       ),
     );
   }
