@@ -51,10 +51,7 @@ class LcrDashboardController extends GetxController {
   final RxString selectedMachine = 'ALL'.obs;
   final RxString selectedStatus = 'ALL'.obs;
   final Rx<DateTimeRange> selectedDateRange =
-      DateTimeRange(
-        start: DateTime.now().subtract(const Duration(days: 6)),
-        end: DateTime.now(),
-      ).obs;
+      Rx<DateTimeRange>(_defaultDateRange());
 
   final RxList<LcrRecord> trackingRecords = <LcrRecord>[].obs;
   final Rxn<LcrDashboardViewState> dashboardView = Rxn<LcrDashboardViewState>();
@@ -166,6 +163,13 @@ class LcrDashboardController extends GetxController {
 
   void updateDateRange(DateTimeRange range) {
     selectedDateRange.value = range;
+  }
+
+  static DateTimeRange _defaultDateRange() {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day, 7, 30);
+    final end = DateTime(now.year, now.month, now.day, 19, 30);
+    return DateTimeRange(start: start, end: end);
   }
 
   LcrRequest _buildRequest() {
