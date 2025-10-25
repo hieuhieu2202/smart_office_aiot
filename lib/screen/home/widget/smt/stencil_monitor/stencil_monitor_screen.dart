@@ -358,41 +358,45 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
           child: LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
-              final isDesktop = width >= 1200;
-              final isTablet = width >= 900 && width < 1200;
+              final isWide = width >= 900;
 
-              final overviewSection = AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                child: KeyedSubtree(
-                  key: ValueKey<String>(activeCard.title),
-                  child: _buildOverviewCard(context, activeCard),
-                ),
-              );
+              Widget buildOverviewSection() {
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: KeyedSubtree(
+                    key: ValueKey<String>(activeCard.title),
+                    child: _buildOverviewCard(context, activeCard),
+                  ),
+                );
+              }
 
-              final Widget? insightsSection = insights.isEmpty
-                  ? null
-                  : _InsightsStrip(items: insights);
+              Widget? buildInsightsSection() {
+                if (insights.isEmpty) return null;
+                return _InsightsStrip(items: insights);
+              }
 
-              final usageSection = _buildUsageAnalyticsCard(
-                context,
-                usingTimeSlices,
-                checkSlices,
-              );
+              Widget buildUsageSection() {
+                return _buildUsageAnalyticsCard(
+                  context,
+                  usingTimeSlices,
+                  checkSlices,
+                );
+              }
 
-              final lineTrackingSection =
-                  _buildLineTrackingCard(context, lineTracking);
+              Widget buildLineTrackingSection() {
+                return _buildLineTrackingCard(context, lineTracking);
+              }
 
-              List<Widget> buildWideLayout() {
-                final rightColumnChildren = <Widget>[
-                  overviewSection,
-                  const SizedBox(height: sectionSpacing),
-                  lineTrackingSection,
-                ];
+              final overviewSection = buildOverviewSection();
+              final insightsSection = buildInsightsSection();
+              final usageSection = buildUsageSection();
+              final lineTrackingSection = buildLineTrackingSection();
 
-                return [
-                  Row(
+              if (isWide) {
+                return IntrinsicHeight(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
@@ -401,7 +405,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             if (insightsSection != null) ...[
-                              insightsSection!,
+                              insightsSection,
                               const SizedBox(height: sectionSpacing),
                             ],
                             Expanded(child: usageSection),
@@ -413,35 +417,31 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
                         flex: 5,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: rightColumnChildren,
+                          children: [
+                            overviewSection,
+                            const SizedBox(height: sectionSpacing),
+                            lineTrackingSection,
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ];
+                );
               }
-
-              List<Widget> buildMobileLayout() {
-                return [
-                  overviewSection,
-                  if (insightsSection != null) ...[
-                    SizedBox(height: sectionSpacing),
-                    insightsSection,
-                  ],
-                  SizedBox(height: sectionSpacing),
-                  usageSection,
-                  SizedBox(height: sectionSpacing),
-                  lineTrackingSection,
-                ];
-              }
-
-              final children = (isDesktop || isTablet)
-                  ? buildWideLayout()
-                  : buildMobileLayout();
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children,
+                children: [
+                  overviewSection,
+                  if (insightsSection != null) ...[
+                    const SizedBox(height: sectionSpacing),
+                    insightsSection,
+                  ],
+                  const SizedBox(height: sectionSpacing),
+                  usageSection,
+                  const SizedBox(height: sectionSpacing),
+                  lineTrackingSection,
+                ],
               );
             },
           ),
