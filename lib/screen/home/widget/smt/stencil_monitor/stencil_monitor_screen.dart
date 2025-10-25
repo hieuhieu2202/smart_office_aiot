@@ -536,7 +536,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               ],
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           if (total == 0)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -552,10 +552,10 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
             Align(
               alignment: Alignment.center,
               child: Wrap(
-                alignment: WrapAlignment.center,
+                alignment: WrapAlignment.spaceEvenly,
                 runAlignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 12,
+                spacing: 18,
+                runSpacing: 16,
                 children: [
                   for (final slice in data.slices)
                     _buildSliceChip(slice, data.accent, palette),
@@ -632,7 +632,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
 
     final container = Container(
       margin: margin ?? EdgeInsets.zero,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
       decoration: BoxDecoration(
         borderRadius: borderRadius,
         border: Border.all(color: accent.withOpacity(0.3), width: 1),

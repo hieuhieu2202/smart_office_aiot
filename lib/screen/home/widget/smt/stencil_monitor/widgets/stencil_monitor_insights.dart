@@ -75,12 +75,12 @@ class _InsightsStrip extends StatelessWidget {
                 letterSpacing: 1,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  const itemWidth = 168.0;
-                  const itemSpacing = 14.0;
+                  const itemWidth = 174.0;
+                  const itemSpacing = 18.0;
                   final spacingCount = items.length > 1 ? items.length - 1 : 0;
                   final contentWidth =
                       (items.length * itemWidth) + (spacingCount * itemSpacing);
@@ -94,6 +94,93 @@ class _InsightsStrip extends StatelessWidget {
                     }
                   }
 
+                  Widget buildMetricCard(_InsightMetric metric) {
+                    final accent = metric.accent;
+
+                    return Container(
+                      width: itemWidth,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 18),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: accent.withOpacity(0.6)),
+                        gradient: LinearGradient(
+                          colors: [
+                            accent.withOpacity(palette.isDark ? 0.24 : 0.18),
+                            palette.cardBackground.withOpacity(0.82),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: palette.cardShadow,
+                            blurRadius: 18,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            metric.label,
+                            textAlign: TextAlign.center,
+                            style: GlobalTextStyles.bodySmall(
+                                    isDark: palette.isDark)
+                                .copyWith(
+                              fontFamily: _StencilTypography.heading,
+                              fontSize: 12,
+                              color: accent,
+                              letterSpacing: 0.8,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            metric.value,
+                            textAlign: TextAlign.center,
+                            style: GlobalTextStyles.bodyLarge(
+                                    isDark: palette.isDark)
+                                .copyWith(
+                              fontFamily: _StencilTypography.heading,
+                              fontSize: 30,
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Flexible(
+                            child: Text(
+                              metric.description,
+                              textAlign: TextAlign.center,
+                              style: GlobalTextStyles.bodySmall(
+                                      isDark: palette.isDark)
+                                  .copyWith(
+                                fontFamily: _StencilTypography.numeric,
+                                fontSize: 11,
+                                color: muted,
+                                height: 1.45,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  if (constraints.maxWidth.isFinite &&
+                      contentWidth <= constraints.maxWidth) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        for (final metric in items) buildMetricCard(metric),
+                      ],
+                    );
+                  }
+
                   return ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -101,80 +188,7 @@ class _InsightsStrip extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(width: itemSpacing),
                     itemBuilder: (_, index) {
                       final metric = items[index];
-                      final accent = metric.accent;
-
-                      return Container(
-                        width: itemWidth,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: accent.withOpacity(0.6)),
-                          gradient: LinearGradient(
-                            colors: [
-                              accent.withOpacity(palette.isDark ? 0.22 : 0.16),
-                              palette.cardBackground.withOpacity(0.8),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: palette.cardShadow,
-                              blurRadius: 16,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              metric.label,
-                              textAlign: TextAlign.center,
-                              style: GlobalTextStyles.bodySmall(
-                                      isDark: palette.isDark)
-                                  .copyWith(
-                                fontFamily: _StencilTypography.heading,
-                                fontSize: 12,
-                                color: accent,
-                                letterSpacing: 0.8,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              metric.value,
-                              textAlign: TextAlign.center,
-                              style: GlobalTextStyles.bodyLarge(
-                                      isDark: palette.isDark)
-                                  .copyWith(
-                                fontFamily: _StencilTypography.heading,
-                                fontSize: 28,
-                                color: textColor,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Flexible(
-                              child: Text(
-                                metric.description,
-                                textAlign: TextAlign.center,
-                                style: GlobalTextStyles.bodySmall(
-                                        isDark: palette.isDark)
-                                    .copyWith(
-                                  fontFamily: _StencilTypography.numeric,
-                                  fontSize: 11,
-                                  color: muted,
-                                  height: 1.4,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
+                      return buildMetricCard(metric);
                     },
                   );
                 },
