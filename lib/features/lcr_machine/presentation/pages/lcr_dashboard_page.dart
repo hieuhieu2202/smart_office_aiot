@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -232,7 +233,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
   }
 
   String _fmt(DateTime date) {
-    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return DateFormat('yyyy-MM-dd HH:mm').format(date);
   }
 }
 
