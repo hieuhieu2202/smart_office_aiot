@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -60,7 +59,6 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     _ColumnDef(label: 'PASS', width: 110),
     _ColumnDef(label: 'TOTAL PASS', width: 130),
     _ColumnDef(label: 'F.P.R', width: 110),
-    _ColumnDef(label: 'S.P.R', width: 110),
     _ColumnDef(label: 'Y.R', width: 110),
     _ColumnDef(label: 'R.R', width: 100),
   ];
@@ -297,67 +295,6 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     }
   }
 
-  Future<void> _exportCsv(List<TEReportGroup> groups) async {
-    if (groups.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No data to export.')),
-        );
-      }
-      return;
-    }
-
-    final buffer = StringBuffer();
-    buffer.writeln([
-      '#',
-      'MODEL NAME',
-      'GROUP NAME',
-      'WIP QTY',
-      'INPUT',
-      'FIRST FAIL',
-      'REPAIR QTY',
-      'FIRST PASS',
-      'REPAIR PASS',
-      'PASS',
-      'TOTAL PASS',
-      'F.P.R',
-      'S.P.R',
-      'Y.R',
-      'R.R',
-    ].join(','));
-
-    for (var i = 0; i < groups.length; i++) {
-      final group = groups[i];
-      for (var rowIndex = 0; rowIndex < group.rows.length; rowIndex++) {
-        final row = group.rows[rowIndex];
-        final cells = [
-          if (rowIndex == 0) '${i + 1}' else '',
-          if (rowIndex == 0) group.modelName else '',
-          row.groupName,
-          row.wipQty.toString(),
-          row.input.toString(),
-          row.firstFail.toString(),
-          row.repairQty.toString(),
-          row.firstPass.toString(),
-          row.repairPass.toString(),
-          row.pass.toString(),
-          row.totalPass.toString(),
-          '${row.fpr.toStringAsFixed(2)}%',
-          '${row.spr.toStringAsFixed(2)}%',
-          '${row.yr.toStringAsFixed(2)}%',
-          '${row.rr.toStringAsFixed(2)}%',
-        ];
-        buffer.writeln(cells.map(_escapeCsv).join(','));
-      }
-    }
-
-    await Clipboard.setData(ClipboardData(text: buffer.toString()));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('CSV copied to clipboard.')),
-      );
-    }
-  }
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -422,7 +359,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
         child: IconButton(
           onPressed: _handleBackNavigation,
           tooltip: 'Back',
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _accentCyan),
+          icon: const Icon(Icons.arrow_back, color: _textMuted),
         ),
       ),
       title: Column(
@@ -461,14 +398,6 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                 backgroundColor: Colors.transparent,
                 foregroundColor: _accentCyan,
                 borderColor: _accentCyan.withOpacity(.7),
-              ),
-              const SizedBox(width: 10),
-              _AppBarActionButton(
-                label: 'EXPORT',
-                icon: Icons.file_download_outlined,
-                onTap: () => _exportCsv(controller.filteredData),
-                backgroundColor: const Color(0xFF16A34A),
-                foregroundColor: Colors.white,
               ),
               const SizedBox(width: 10),
               _AppBarActionButton(
@@ -559,8 +488,6 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     switch (type) {
       case RateType.fpr:
         return 'F.P.R';
-      case RateType.spr:
-        return 'S.P.R';
       case RateType.yr:
         return 'Y.R';
       case RateType.rr:
@@ -572,8 +499,6 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     switch (type) {
       case RateType.fpr:
         return row.fpr;
-      case RateType.spr:
-        return row.spr;
       case RateType.yr:
         return row.yr;
       case RateType.rr:
@@ -730,6 +655,36 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     );
   }
 
+  Widget _buildTooltipText(
+    String text,
+    TextStyle style, {
+    int maxLines = 1,
+    TextAlign? textAlign,
+  }) {
+    final widget = Text(
+      text,
+      style: style,
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+      textAlign: textAlign,
+    );
+
+    if (text.trim().isEmpty) {
+      return widget;
+    }
+
+    return Tooltip(
+      message: text,
+      waitDuration: const Duration(milliseconds: 300),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(.85),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      textStyle: const TextStyle(color: Colors.white),
+      child: widget,
+    );
+  }
+
   Widget _buildHeaderCell(String label, double width,
       {Alignment alignment = Alignment.center}) {
     return Container(
@@ -744,15 +699,13 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
           bottom: BorderSide(color: _borderColor),
         ),
       ),
-      child: Text(
+      child: _buildTooltipText(
         label,
-        style: const TextStyle(
+        const TextStyle(
           color: _textPrimary,
           fontSize: 14,
           fontWeight: FontWeight.w700,
         ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -795,15 +748,14 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
         color: background,
         border: Border.all(color: _borderColor),
       ),
-      child: Text(
+      child: _buildTooltipText(
         text,
-        style: const TextStyle(
+        const TextStyle(
           color: _textPrimary,
           fontWeight: FontWeight.w600,
           fontSize: 15,
         ),
         maxLines: maxLines,
-        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -842,15 +794,13 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
         color: background,
         border: Border.all(color: _borderColor),
       ),
-      child: Text(
+      child: _buildTooltipText(
         text,
-        style: TextStyle(
+        TextStyle(
           color: textColor,
           fontWeight: rateType == null ? FontWeight.w500 : FontWeight.w700,
           fontSize: 14,
         ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
       ),
     );
 
@@ -872,10 +822,8 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       case 9:
         return RateType.fpr;
       case 10:
-        return RateType.spr;
-      case 11:
         return RateType.yr;
-      case 12:
+      case 11:
         return RateType.rr;
       default:
         return null;
@@ -887,10 +835,8 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       case 9:
         return row.fpr;
       case 10:
-        return row.spr;
-      case 11:
         return row.yr;
-      case 12:
+      case 11:
         return row.rr;
       default:
         return null;
@@ -919,7 +865,6 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   Color? _rateBaseColor(RateType type, double value) {
     switch (type) {
       case RateType.fpr:
-      case RateType.spr:
       case RateType.yr:
         if (value <= 90) return const Color(0xFFE11D48);
         if (value <= 97) return const Color(0xFFF59E0B);
@@ -956,22 +901,14 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       case 9:
         return '${row.fpr.toStringAsFixed(2)}%';
       case 10:
-        return '${row.spr.toStringAsFixed(2)}%';
-      case 11:
         return '${row.yr.toStringAsFixed(2)}%';
-      case 12:
+      case 11:
         return '${row.rr.toStringAsFixed(2)}%';
       default:
         return '';
     }
   }
 
-  static String _escapeCsv(String value) {
-    if (value.contains(',') || value.contains('\n') || value.contains('"')) {
-      return '"' + value.replaceAll('"', '""') + '"';
-    }
-    return value;
-  }
 }
 
 class _AppBarActionButton extends StatelessWidget {
@@ -2140,4 +2077,4 @@ class _ColumnDef {
   final EdgeInsets padding;
 }
 
-enum RateType { fpr, spr, yr, rr }
+enum RateType { fpr, yr, rr }
