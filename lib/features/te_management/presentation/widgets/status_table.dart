@@ -122,7 +122,10 @@ class _TEStatusTableState extends State<TEStatusTable> {
                 groupIndex++;
               }
 
-              return Column(children: rows);
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: rows,
+              );
             },
           );
         }
