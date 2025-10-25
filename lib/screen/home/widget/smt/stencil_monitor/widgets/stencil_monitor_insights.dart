@@ -95,88 +95,30 @@ class _InsightsStrip extends StatelessWidget {
                   }
 
                   Widget buildMetricCard(_InsightMetric metric) {
-                    final accent = metric.accent;
-
-                    return Container(
+                    return _InsightMetricCard(
+                      metric: metric,
+                      palette: palette,
+                      textColor: textColor,
+                      mutedColor: muted,
                       width: itemWidth,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 18),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: accent.withOpacity(0.6)),
-                        gradient: LinearGradient(
-                          colors: [
-                            accent.withOpacity(palette.isDark ? 0.24 : 0.18),
-                            palette.cardBackground.withOpacity(0.82),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: palette.cardShadow,
-                            blurRadius: 18,
-                            offset: const Offset(0, 12),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Text(
-                            metric.label,
-                            textAlign: TextAlign.center,
-                            style: GlobalTextStyles.bodySmall(
-                                    isDark: palette.isDark)
-                                .copyWith(
-                              fontFamily: _StencilTypography.heading,
-                              fontSize: 12,
-                              color: accent,
-                              letterSpacing: 0.8,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            metric.value,
-                            textAlign: TextAlign.center,
-                            style: GlobalTextStyles.bodyLarge(
-                                    isDark: palette.isDark)
-                                .copyWith(
-                              fontFamily: _StencilTypography.heading,
-                              fontSize: 30,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            metric.description,
-                            textAlign: TextAlign.center,
-                            style: GlobalTextStyles.bodySmall(
-                                    isDark: palette.isDark)
-                                .copyWith(
-                              fontFamily: _StencilTypography.numeric,
-                              fontSize: 11,
-                              color: muted,
-                              height: 1.4,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
                     );
                   }
 
                   if (constraints.maxWidth.isFinite &&
                       contentWidth <= constraints.maxWidth) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        for (final metric in items) buildMetricCard(metric),
-                      ],
+                    return Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var i = 0; i < items.length; i++) ...[
+                            if (i > 0) const SizedBox(width: itemSpacing),
+                            buildMetricCard(items[i]),
+                          ],
+                        ],
+                      ),
                     );
                   }
 
@@ -196,6 +138,206 @@ class _InsightsStrip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _InsightMetricCard extends StatefulWidget {
+  const _InsightMetricCard({
+    required this.metric,
+    required this.palette,
+    required this.textColor,
+    required this.mutedColor,
+    required this.width,
+  });
+
+  final _InsightMetric metric;
+  final _StencilColorScheme palette;
+  final Color textColor;
+  final Color mutedColor;
+  final double width;
+
+  @override
+  State<_InsightMetricCard> createState() => _InsightMetricCardState();
+}
+
+class _InsightMetricCardState extends State<_InsightMetricCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+      lowerBound: 0,
+      upperBound: 1,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final metric = widget.metric;
+    final palette = widget.palette;
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = Curves.easeInOut.transform(_controller.value);
+        final accent = metric.accent;
+        final glowStrength = 0.5 + (0.35 * t);
+        final borderColor = Color.lerp(
+          accent.withOpacity(0.55),
+          accent.withOpacity(0.85),
+          t,
+        )!;
+        final startGlow = Color.lerp(
+          accent.withOpacity(palette.isDark ? 0.18 : 0.14),
+          accent.withOpacity(palette.isDark ? 0.32 : 0.24),
+          t,
+        )!;
+        final shadowColor = Color.lerp(
+          palette.cardShadow,
+          accent.withOpacity(palette.isDark ? 0.55 : 0.45),
+          t,
+        )!;
+
+        return Container(
+          width: widget.width,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: borderColor, width: 1.4),
+            gradient: LinearGradient(
+              colors: [
+                startGlow,
+                palette.cardBackground.withOpacity(0.88),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: shadowColor.withOpacity(glowStrength * 0.6),
+                blurRadius: 18 + (10 * t),
+                spreadRadius: 1.2 + (2 * t),
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: _InsightCardContent(
+        metric: metric,
+        palette: palette,
+        textColor: widget.textColor,
+        mutedColor: widget.mutedColor,
+      ),
+    );
+  }
+}
+
+class _InsightCardContent extends StatelessWidget {
+  const _InsightCardContent({
+    required this.metric,
+    required this.palette,
+    required this.textColor,
+    required this.mutedColor,
+  });
+
+  final _InsightMetric metric;
+  final _StencilColorScheme palette;
+  final Color textColor;
+  final Color mutedColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          metric.label,
+          textAlign: TextAlign.center,
+          style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+            fontFamily: _StencilTypography.heading,
+            fontSize: 13,
+            color: metric.accent,
+            letterSpacing: 1.1,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          metric.value,
+          textAlign: TextAlign.center,
+          style: GlobalTextStyles.bodyLarge(isDark: palette.isDark).copyWith(
+            fontFamily: _StencilTypography.heading,
+            fontSize: 34,
+            color: textColor,
+            letterSpacing: 0.6,
+          ),
+        ),
+        const SizedBox(height: 18),
+        _DashedRule(color: metric.accent.withOpacity(palette.isDark ? 0.5 : 0.35)),
+        const SizedBox(height: 14),
+        Text(
+          metric.description,
+          textAlign: TextAlign.center,
+          style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+            fontFamily: _StencilTypography.numeric,
+            fontSize: 12,
+            color: mutedColor.withOpacity(palette.isDark ? 0.95 : 0.9),
+            height: 1.4,
+          ),
+          softWrap: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _DashedRule extends StatelessWidget {
+  const _DashedRule({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final dashWidth = 6.0;
+        final dashSpace = 4.0;
+        final available = constraints.maxWidth;
+        final dashCount = math.max(
+          1,
+          (available / (dashWidth + dashSpace)).floor(),
+        );
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < dashCount; i++)
+              Container(
+                width: dashWidth,
+                height: 1.4,
+                margin: EdgeInsets.symmetric(horizontal: dashSpace / 2),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
