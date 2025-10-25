@@ -172,8 +172,7 @@ class LcrDashboardController extends GetxController {
     final machine = _normalize(selectedMachine.value);
     final status = _normalize(selectedStatus.value);
     final range = selectedDateRange.value;
-    final formattedRange =
-        '${_fmt(range.start)} - ${_fmt(range.end)}';
+    final formattedRange = '${_fmt(range.start)}-${_fmt(range.end)}';
 
     return LcrRequest(
       factory: factory,
@@ -225,7 +224,7 @@ class LcrDashboardController extends GetxController {
   }
 
   String _fmt(DateTime date) {
-    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return '${date.year.toString().padLeft(4, '0')}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
   }
 
   String _normalize(String value) {
