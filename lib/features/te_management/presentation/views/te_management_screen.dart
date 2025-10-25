@@ -891,46 +891,10 @@ class _ChartCardState extends State<_ChartCard> {
       return _ChartEmptyState(key: ValueKey('breakdown_empty_${cluster.label}'));
     }
 
-    final listHeight = math.min<double>(200, points.length * 44);
-    return Column(
+    return _BreakdownChart(
       key: ValueKey('breakdown_body_${cluster.label}'),
-      children: [
-        Expanded(
-          child: _BreakdownChart(
-            points: points,
-            gradient: widget.breakdownGradient ?? _tealGradient,
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (points.isNotEmpty)
-          SizedBox(
-            height: listHeight,
-            child: ListView.separated(
-              itemBuilder: (context, index) {
-                final point = points[index];
-                return ListTile(
-                  dense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                  title: Text(
-                    point.label,
-                    style: const TextStyle(color: Colors.white),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: Text(
-                    point.value.toString(),
-                    style: const TextStyle(
-                      color: kTeAccentColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                );
-              },
-              separatorBuilder: (_, __) => const Divider(color: Color(0x331F3A5F), height: 1),
-              itemCount: points.length,
-            ),
-          ),
-      ],
+      points: points,
+      gradient: widget.breakdownGradient ?? _tealGradient,
     );
   }
 }
@@ -949,6 +913,43 @@ class _ChartCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final columnSeries = ColumnSeries<_ChartPoint, String>(
+      dataSource: points,
+      xValueMapper: (point, _) => point.label,
+      yValueMapper: (point, _) => point.value,
+      dataLabelSettings: const DataLabelSettings(
+        isVisible: true,
+        textStyle: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      width: 0.58,
+      borderRadius: const BorderRadius.all(Radius.circular(8)),
+      gradient: gradient,
+      onPointTap: (details) {
+        if (details.pointIndex != null) {
+          onPointTap(points[details.pointIndex!].cluster);
+        }
+      },
+    );
+
+    final splineSeries = SplineSeries<_ChartPoint, String>(
+      dataSource: points,
+      xValueMapper: (point, _) => point.label,
+      yValueMapper: (point, _) => point.value,
+      color: Colors.white.withOpacity(0.85),
+      width: 2.5,
+      markerSettings: const MarkerSettings(
+        isVisible: true,
+        shape: DataMarkerType.circle,
+        width: 8,
+        height: 8,
+        borderWidth: 2,
+        borderColor: Colors.black,
+      ),
+    );
+
     return SfCartesianChart(
       plotAreaBorderWidth: 0,
       primaryXAxis: CategoryAxis(
@@ -977,26 +978,11 @@ class _ChartCanvas extends StatelessWidget {
         enable: true,
         format: '{point.x}: {point.y}',
       ),
-        series: <CartesianSeries<dynamic, dynamic>>[
-          ColumnSeries<_ChartPoint, String>(
-            dataSource: points,
-            xValueMapper: (point, _) => point.label,
-            yValueMapper: (point, _) => point.value,
-            dataLabelSettings: const DataLabelSettings(
-              isVisible: true,
-            textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          width: 0.58,
-          borderRadius: const BorderRadius.all(Radius.circular(8)),
-          gradient: gradient,
-          onPointTap: (details) {
-            if (details.pointIndex != null) {
-              onPointTap(points[details.pointIndex!].cluster);
-            }
-          },
-          ) as CartesianSeries<dynamic, dynamic>,
-        ],
-      );
+      series: <CartesianSeries<dynamic, dynamic>>[
+        columnSeries as CartesianSeries<dynamic, dynamic>,
+        splineSeries as CartesianSeries<dynamic, dynamic>,
+      ],
+    );
   }
 }
 
@@ -1011,6 +997,38 @@ class _BreakdownChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final columnSeries = ColumnSeries<_BreakdownPoint, String>(
+      dataSource: points,
+      xValueMapper: (point, _) => point.label,
+      yValueMapper: (point, _) => point.value,
+      dataLabelSettings: const DataLabelSettings(
+        isVisible: true,
+        textStyle: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      width: 0.58,
+      borderRadius: const BorderRadius.all(Radius.circular(8)),
+      gradient: gradient,
+    );
+
+    final splineSeries = SplineSeries<_BreakdownPoint, String>(
+      dataSource: points,
+      xValueMapper: (point, _) => point.label,
+      yValueMapper: (point, _) => point.value,
+      color: Colors.white.withOpacity(0.85),
+      width: 2.5,
+      markerSettings: const MarkerSettings(
+        isVisible: true,
+        shape: DataMarkerType.circle,
+        width: 8,
+        height: 8,
+        borderWidth: 2,
+        borderColor: Colors.black,
+      ),
+    );
+
     return SfCartesianChart(
       key: ValueKey('breakdown_chart_${points.length}'),
       plotAreaBorderWidth: 0,
@@ -1037,21 +1055,11 @@ class _BreakdownChart extends StatelessWidget {
       ),
       legend: const Legend(isVisible: false),
       tooltipBehavior: TooltipBehavior(enable: true, format: '{point.x}: {point.y}'),
-        series: <CartesianSeries<dynamic, dynamic>>[
-          ColumnSeries<_BreakdownPoint, String>(
-            dataSource: points,
-            xValueMapper: (point, _) => point.label,
-            yValueMapper: (point, _) => point.value,
-            dataLabelSettings: const DataLabelSettings(
-              isVisible: true,
-            textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          width: 0.58,
-          borderRadius: const BorderRadius.all(Radius.circular(8)),
-          gradient: gradient,
-          ) as CartesianSeries<dynamic, dynamic>,
-        ],
-      );
+      series: <CartesianSeries<dynamic, dynamic>>[
+        columnSeries as CartesianSeries<dynamic, dynamic>,
+        splineSeries as CartesianSeries<dynamic, dynamic>,
+      ],
+    );
   }
 }
 
