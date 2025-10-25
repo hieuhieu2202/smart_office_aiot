@@ -173,38 +173,69 @@ class TEErrorDetailCluster {
     required this.label,
     required this.totalFail,
     required this.breakdowns,
+    required this.isMachineCluster,
   });
 
   factory TEErrorDetailCluster.fromMaps(List<Map<String, dynamic>> maps) {
     if (maps.isEmpty) {
-      return const TEErrorDetailCluster(label: '', totalFail: 0, breakdowns: []);
+      return const TEErrorDetailCluster(
+        label: '',
+        totalFail: 0,
+        breakdowns: [],
+        isMachineCluster: false,
+      );
     }
+
     final head = maps.first;
-    final label =
-        _string(_lookupInsensitive(head, 'ERROR_CODE')) ??
-        _string(_lookupInsensitive(head, 'MACHINE_NAME')) ??
-        '';
+    final headError = _normalizedString(_lookupInsensitive(head, 'ERROR_CODE'));
+    final headMachine =
+        _normalizedString(_lookupInsensitive(head, 'MACHINE_NAME'));
+
+    final isMachineCluster =
+        headMachine.isNotEmpty && headError.isEmpty ? true : false;
+
+    final initialLabel = isMachineCluster
+        ? headMachine
+        : (headError.isNotEmpty ? headError : headMachine);
+
     final total = _int(_lookupInsensitive(head, 'FAIL_QTY'));
     final breakdowns = <TEErrorDetailBreakdown>[];
+
     for (final map in maps.skip(1)) {
-      final breakdownLabel =
-          _string(_lookupInsensitive(map, 'MACHINE_NAME')) ??
-          _string(_lookupInsensitive(map, 'ERROR_CODE')) ??
-          '';
-      if (breakdownLabel.isEmpty) {
-        continue;
-      }
+      final breakdownError =
+          _normalizedString(_lookupInsensitive(map, 'ERROR_CODE'));
+      final breakdownMachine =
+          _normalizedString(_lookupInsensitive(map, 'MACHINE_NAME'));
+
+      final breakdownLabel = isMachineCluster
+          ? (breakdownError.isNotEmpty ? breakdownError : breakdownMachine)
+          : (breakdownMachine.isNotEmpty ? breakdownMachine : breakdownError);
+      final normalizedLabel = breakdownLabel.trim();
+
       breakdowns.add(
         TEErrorDetailBreakdown(
-          label: breakdownLabel,
+          label: normalizedLabel,
           failQty: _int(_lookupInsensitive(map, 'FAIL_QTY')),
         ),
       );
     }
+
+    var resolvedLabel = initialLabel;
+    if (resolvedLabel.isEmpty) {
+      for (final breakdown in breakdowns) {
+        final trimmed = breakdown.label.trim();
+        if (trimmed.isNotEmpty) {
+          resolvedLabel = trimmed;
+          break;
+        }
+      }
+    }
+
     return TEErrorDetailCluster(
-      label: label,
+      label: resolvedLabel,
       totalFail: total,
       breakdowns: breakdowns,
+      isMachineCluster: isMachineCluster,
     );
   }
 
@@ -226,6 +257,7 @@ class TEErrorDetailCluster {
   final String label;
   final int totalFail;
   final List<TEErrorDetailBreakdown> breakdowns;
+  final bool isMachineCluster;
 
   bool get hasBreakdown => breakdowns.isNotEmpty;
 }
@@ -247,6 +279,11 @@ String? _string(dynamic value) {
   if (value == null) return null;
   if (value is String) return value;
   return value.toString();
+}
+
+String _normalizedString(dynamic value) {
+  final raw = _string(value) ?? '';
+  return raw.trim();
 }
 
 List<dynamic> _readListInsensitive(Map<String, dynamic> json, String key) {
