@@ -106,7 +106,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
               ),
               const Spacer(),
               IconButton(
-                onPressed: () => controller.loadTrackingData(),
+                onPressed: () => controller.resetToCurrentShiftAndReload(),
                 icon: const Icon(Icons.refresh, color: Colors.white70),
               ),
             ],
@@ -130,7 +130,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                     final picked =
                         await _pickDashboardDateTimeRange(context, current);
                     if (picked != null) {
-                      controller.updateDateRange(picked);
+                      await controller.updateDateRange(picked);
                     }
                   },
                 ),

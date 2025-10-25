@@ -172,8 +172,14 @@ class LcrDashboardController extends GetxController {
     selectedStatus.value = value;
   }
 
-  void updateDateRange(DateTimeRange range) {
+  Future<void> updateDateRange(DateTimeRange range) async {
     selectedDateRange.value = range;
+    await loadTrackingData();
+  }
+
+  Future<void> resetToCurrentShiftAndReload() async {
+    _applyDefaultShift();
+    await loadTrackingData();
   }
 
   void _applyDefaultShift() {
