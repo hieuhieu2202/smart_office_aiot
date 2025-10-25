@@ -917,6 +917,7 @@ class _ChartCanvas extends StatelessWidget {
       dataSource: points,
       xValueMapper: (point, _) => point.label,
       yValueMapper: (point, _) => point.value,
+      color: gradient.colors.last,
       dataLabelSettings: const DataLabelSettings(
         isVisible: true,
         textStyle: TextStyle(
@@ -1002,6 +1003,7 @@ class _BreakdownChart extends StatelessWidget {
       dataSource: points,
       xValueMapper: (point, _) => point.label,
       yValueMapper: (point, _) => point.value,
+      color: gradient.colors.last,
       dataLabelSettings: const DataLabelSettings(
         isVisible: true,
         textStyle: TextStyle(
