@@ -75,6 +75,14 @@ class _TEStatusTableState extends State<TEStatusTable> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final bool useCompactLayout = constraints.maxWidth < 720;
+        if (useCompactLayout) {
+          return _CompactStatusList(
+            controllerTag: widget.controllerTag,
+            onRateTap: widget.onRateTap,
+          );
+        }
+
         final mediaWidth = MediaQuery.of(context).size.width;
         final availableWidth =
             constraints.maxWidth.isFinite && constraints.maxWidth > 0
@@ -220,6 +228,83 @@ class _TEStatusTableState extends State<TEStatusTable> {
               ),
             ),
           ),
+        );
+      },
+    );
+  }
+}
+
+class _CompactStatusList extends StatelessWidget {
+  const _CompactStatusList({
+    required this.controllerTag,
+    required this.onRateTap,
+  });
+
+  final String controllerTag;
+  final void Function(String rowKey, TERateType type) onRateTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<TEManagementController>(
+      tag: controllerTag,
+      id: 'table',
+      builder: (ctrl) {
+        final groups = ctrl.visibleGroups;
+        if (groups.isEmpty) {
+          if (ctrl.isLoading.value) {
+            return const _TableLoadingPlaceholder();
+          }
+          return const _TableEmptyState();
+        }
+
+        final now = DateTime.now();
+        final items = <_CompactRowData>[];
+        var groupIndex = 1;
+        for (final group in groups) {
+          final rowKeys = group.rowKeys;
+          if (rowKeys.isEmpty) {
+            groupIndex++;
+            continue;
+          }
+          final baseColor = groupIndex.isOdd ? _rowBg : _rowAltBg;
+          for (var i = 0; i < rowKeys.length; i++) {
+            final key = rowKeys[i];
+            final row = ctrl.rowByKey(key);
+            if (row == null) {
+              continue;
+            }
+            final updatedAt = ctrl.rowLastUpdated(key);
+            final highlight =
+                updatedAt != null && now.difference(updatedAt).inMilliseconds < 1200;
+            items.add(
+              _CompactRowData(
+                rowKey: key,
+                entity: row,
+                baseColor: baseColor,
+                shouldHighlight: highlight,
+                groupIndex: groupIndex,
+              ),
+            );
+          }
+          groupIndex++;
+        }
+
+        if (items.isEmpty) {
+          return const _TableEmptyState();
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.only(bottom: 24),
+          itemCount: items.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return _CompactRowCard(
+              key: ValueKey(item.rowKey),
+              data: item,
+              onRateTap: onRateTap,
+            );
+          },
         );
       },
     );
@@ -436,6 +521,345 @@ class _GroupTable extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CompactRowCard extends StatelessWidget {
+  const _CompactRowCard({
+    super.key,
+    required this.data,
+    required this.onRateTap,
+  });
+
+  final _CompactRowData data;
+  final void Function(String rowKey, TERateType type) onRateTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final entity = data.entity;
+    final modelLabel = entity.modelName.isEmpty ? '-' : entity.modelName;
+    final groupLabel = entity.groupName.isEmpty ? '-' : entity.groupName;
+
+    return TweenAnimationBuilder<Color?>(
+      tween: ColorTween(
+        begin: data.shouldHighlight ? _highlight : data.baseColor,
+        end: data.baseColor,
+      ),
+      duration: const Duration(milliseconds: 600),
+      builder: (context, color, child) {
+        return Container(
+          decoration: BoxDecoration(
+            color: color ?? data.baseColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _tableBorder, width: 1),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CompactIndexBadge(index: data.groupIndex),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          modelLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: _successGreen,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                groupLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _CompactMetricsGrid(entity: entity),
+              const SizedBox(height: 16),
+              _CompactRateRow(
+                entity: entity,
+                onTap: (type) => onRateTap(data.rowKey, type),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CompactIndexBadge extends StatelessWidget {
+  const _CompactIndexBadge({required this.index});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F2847),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _tableBorder, width: 1),
+      ),
+      child: Text(
+        index.toString(),
+        style: const TextStyle(
+          color: _textPrimary,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactMetricsGrid extends StatelessWidget {
+  const _CompactMetricsGrid({required this.entity});
+
+  final TEReportRowEntity entity;
+
+  @override
+  Widget build(BuildContext context) {
+    final metrics = <_CompactMetric>[
+      _CompactMetric('WIP QTY', entity.wipQty.toString()),
+      _CompactMetric('INPUT', entity.input.toString()),
+      _CompactMetric('FIRST FAIL', entity.firstFail.toString()),
+      _CompactMetric('REPAIR QTY', entity.repairQty.toString()),
+      _CompactMetric('FIRST PASS', entity.firstPass.toString()),
+      _CompactMetric('REPAIR PASS', entity.repairPass.toString()),
+      _CompactMetric('PASS', entity.pass.toString()),
+      _CompactMetric('TOTAL PASS', entity.totalPass.toString()),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final bool twoColumns = maxWidth > 420;
+        final double tileWidth = twoColumns
+            ? (maxWidth - 12) / 2
+            : maxWidth;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: metrics
+              .map(
+                (metric) => SizedBox(
+                  width: tileWidth,
+                  child: _CompactMetricTile(metric: metric),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _CompactMetric {
+  const _CompactMetric(this.label, this.value);
+
+  final String label;
+  final String value;
+}
+
+class _CompactMetricTile extends StatelessWidget {
+  const _CompactMetricTile({required this.metric});
+
+  final _CompactMetric metric;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B2343),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _tableBorder, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            metric.label,
+            style: const TextStyle(
+              color: _textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            metric.value,
+            style: const TextStyle(
+              color: _textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactRateRow extends StatelessWidget {
+  const _CompactRateRow({
+    required this.entity,
+    required this.onTap,
+  });
+
+  final TEReportRowEntity entity;
+  final ValueChanged<TERateType> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final rates = <_CompactRateData>[
+      _CompactRateData('F.P.R', entity.fpr, TERateType.fpr),
+      _CompactRateData('S.P.R', entity.spr, TERateType.spr),
+      _CompactRateData('R.R', entity.rr, TERateType.rr),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final bool twoColumns = maxWidth > 420;
+        final double tileWidth = twoColumns
+            ? (maxWidth - 12) / 2
+            : maxWidth;
+
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: rates
+              .map(
+                (rate) => SizedBox(
+                  width: tileWidth,
+                  child: _CompactRateChip(
+                    data: rate,
+                    onTap: onTap,
+                  ),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _CompactRateData {
+  const _CompactRateData(this.label, this.value, this.type);
+
+  final String label;
+  final double value;
+  final TERateType type;
+}
+
+class _CompactRateChip extends StatelessWidget {
+  const _CompactRateChip({
+    required this.data,
+    required this.onTap,
+  });
+
+  final _CompactRateData data;
+  final ValueChanged<TERateType> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = _rateStyle(data.type, data.value);
+    final valueText = '${data.value.toStringAsFixed(2)}%';
+
+    return GestureDetector(
+      onTap: () => onTap(data.type),
+      child: Tooltip(
+        message: 'Tap to drill down',
+        waitDuration: const Duration(milliseconds: 200),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: style.background,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                data.label,
+                style: TextStyle(
+                  color: style.foreground,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                valueText,
+                style: TextStyle(
+                  color: style.foreground,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactRowData {
+  const _CompactRowData({
+    required this.rowKey,
+    required this.entity,
+    required this.baseColor,
+    required this.shouldHighlight,
+    required this.groupIndex,
+  });
+
+  final String rowKey;
+  final TEReportRowEntity entity;
+  final Color baseColor;
+  final bool shouldHighlight;
+  final int groupIndex;
 }
 
 class _SpanCell extends StatelessWidget {
