@@ -1,15 +1,22 @@
+import 'dart:collection';
+
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+
+import '../../../model/te_management/te_report_models.dart';
 import '../../../service/te_management_api.dart';
 
 class TEManagementController extends GetxController {
   TEManagementController({
     String initialModelSerial = 'SWITCH',
     String initialModel = '',
-  })  : modelSerial = initialModelSerial.obs,
+  })  : _initialModel = initialModel,
+        modelSerial = initialModelSerial.obs,
         model = initialModel.obs;
 
-  final RxList<List<Map<String, dynamic>>> data = <List<Map<String, dynamic>>>[].obs;
+  final String _initialModel;
+
+  final RxList<TEReportGroup> data = <TEReportGroup>[].obs;
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
   Future<void>? _activeFetch;
@@ -22,6 +29,8 @@ class TEManagementController extends GetxController {
   final RxString model;
   final RxString quickFilter = ''.obs;
   final RxBool filterPanelOpen = false.obs;
+  final RxList<String> availableModels = <String>[].obs;
+  final RxList<String> selectedModels = <String>[].obs;
 
   @override
   void onInit() {
@@ -29,6 +38,14 @@ class TEManagementController extends GetxController {
     final now = DateTime.now();
     startDate = Rx<DateTime>(DateTime(now.year, now.month, now.day, 7, 30));
     endDate = Rx<DateTime>(DateTime(now.year, now.month, now.day, 19, 30));
+    if (_initialModel.trim().isNotEmpty) {
+      final seeds = _initialModel
+          .split(',')
+          .map((e) => e.trim())
+          .where((element) => element.isNotEmpty)
+          .toList();
+      selectedModels.assignAll(LinkedHashSet<String>.from(seeds));
+    }
     fetchData();
   }
 
@@ -49,7 +66,8 @@ class TEManagementController extends GetxController {
     }
 
     final serial = modelSerial.value;
-    final modelName = model.value;
+    final selectedFilter = selectedModelsFilter;
+    final modelName = selectedFilter.isNotEmpty ? selectedFilter : model.value;
     final requestRange = range;
     final stopwatch = Stopwatch()..start();
     print(
@@ -65,7 +83,25 @@ class TEManagementController extends GetxController {
           modelSerial: serial,
           model: modelName,
         );
-        data.value = res;
+        final parsed = res
+            .where((group) => group.isNotEmpty)
+            .map((group) => TEReportGroup.fromMaps(group))
+            .where((group) => group.hasData)
+            .toList();
+        data.value = parsed;
+        final names = parsed
+            .map((group) => group.modelName.trim())
+            .where((name) => name.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+        availableModels.assignAll(names);
+        if (selectedModels.isNotEmpty) {
+          final filteredSelection = LinkedHashSet<String>.from(selectedModels)
+            ..retainAll(names);
+          selectedModels.assignAll(filteredSelection.toList());
+        }
+        model.value = selectedModelsFilter;
         stopwatch.stop();
         print(
           '>> [TEManagement] Fetch success serial=$serial model="$modelName" range="$requestRange" '
@@ -109,29 +145,81 @@ class TEManagementController extends GetxController {
     endDate.value = end;
     modelSerial.value = serial;
     model.value = modelName;
+    if (modelName.trim().isNotEmpty) {
+      final next = modelName
+          .split(',')
+          .map((e) => e.trim())
+          .where((element) => element.isNotEmpty)
+          .toList();
+      selectedModels.assignAll(LinkedHashSet<String>.from(next).toList());
+    } else {
+      selectedModels.clear();
+    }
     fetchData(force: true);
     closeFilterPanel();
   }
 
-  List<List<Map<String, dynamic>>> get filteredData {
-    final q = quickFilter.value.trim().toLowerCase();
-    if (q.isEmpty) return data;
+  void setDateRange(DateTime start, DateTime end) {
+    startDate.value = start;
+    endDate.value = end;
+  }
 
-    final List<List<Map<String, dynamic>>> result = [];
+  void setSelectedModels(List<String> models) {
+    final unique = LinkedHashSet<String>.from(
+      models.map((e) => e.trim()).where((element) => element.isNotEmpty),
+    );
+    selectedModels.assignAll(unique.toList());
+    model.value = selectedModelsFilter;
+  }
+
+  void clearSelectedModels() {
+    selectedModels.clear();
+    model.value = '';
+  }
+
+  List<String> get selectedModelList {
+    final unique = LinkedHashSet<String>.from(selectedModels);
+    return unique.toList();
+  }
+
+  List<String> get availableModelList => List<String>.from(availableModels);
+
+  String get selectedModelsFilter {
+    if (selectedModels.isEmpty) return '';
+    final unique = LinkedHashSet<String>.from(selectedModels);
+    return unique.join(',');
+  }
+
+  List<TEReportGroup> get filteredData {
+    final q = quickFilter.value.trim().toLowerCase();
+    final selection = LinkedHashSet<String>.from(selectedModels);
+    final bool hasSelection = selection.isNotEmpty;
+    if (q.isEmpty) {
+      if (!hasSelection) return data;
+      return data.where((group) => selection.contains(group.modelName)).toList();
+    }
+
+    final List<TEReportGroup> result = [];
     for (final group in data) {
-      if (group.isEmpty) continue;
-      final modelName = (group.first['MODEL_NAME'] ?? '').toString();
-      if (modelName.toLowerCase().contains(q)) {
+      if (hasSelection && !selection.contains(group.modelName)) {
+        continue;
+      }
+      if (group.modelName.toLowerCase().contains(q)) {
         result.add(group);
         continue;
       }
-      final filtered = group.where((row) {
-        for (final v in row.values) {
-          if (v.toString().toLowerCase().contains(q)) return true;
-        }
-        return false;
-      }).toList();
-      if (filtered.isNotEmpty) result.add(filtered);
+      final rows = group.rows.where((row) => row.matches(q)).toList();
+      if (rows.isNotEmpty) {
+        result.add(group.copyWith(rows: rows));
+      }
+    }
+    if (!hasSelection && result.isEmpty) {
+      return data
+          .where((group) => group.rows.any((row) => row.matches(q)))
+          .map((group) =>
+              group.copyWith(rows: group.rows.where((row) => row.matches(q)).toList()))
+          .where((group) => group.rows.isNotEmpty)
+          .toList();
     }
     return result;
   }
