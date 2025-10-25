@@ -803,17 +803,11 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               ),
             )
           else ...[
-            for (final item in top)
-              _buildLineProgressRow(
-                item,
-                normalizedMax,
-                onTap: () {
-                  final detail = _findDetailBySn(item.stencilSn);
-                  if (detail != null) {
-                    _showSingleDetail(context, detail, item.hours);
-                  }
-                },
-              ),
+            _buildLineTrackingList(
+              context,
+              top,
+              normalizedMax,
+            ),
             if ((hasQuery ? filtered.length : data.length) > top.length)
               Align(
                 alignment: Alignment.centerLeft,
@@ -853,6 +847,52 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     if (width >= 1024) return 5;
     if (width >= 720) return 4;
     return 3;
+  }
+
+  Widget _buildLineTrackingList(
+    BuildContext context,
+    List<_LineTrackingDatum> items,
+    double normalizedMax,
+  ) {
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    const itemExtent = 96.0;
+    final estimatedHeight = items.length * itemExtent;
+    final maxHeight = math.min(360.0, estimatedHeight);
+    final minHeight = math.min(maxHeight, 160.0);
+    final showScrollbar = estimatedHeight > maxHeight;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: maxHeight,
+        minHeight: minHeight,
+      ),
+      child: Scrollbar(
+        thumbVisibility: showScrollbar,
+        radius: const Radius.circular(12),
+        child: ListView.builder(
+          primary: false,
+          padding: EdgeInsets.zero,
+          physics: const BouncingScrollPhysics(),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return _buildLineProgressRow(
+              item,
+              normalizedMax,
+              onTap: () {
+                final detail = _findDetailBySn(item.stencilSn);
+                if (detail != null) {
+                  _showSingleDetail(context, detail, item.hours);
+                }
+              },
+            );
+          },
+        ),
+      ),
+    );
   }
 
   Widget _buildLineProgressRow(
