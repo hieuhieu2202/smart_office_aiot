@@ -135,6 +135,8 @@ class TEStatusTable extends StatelessWidget {
                                             isAlt: isAltGroup,
                                             isFirstInGroup: isFirst,
                                             isLastInGroup: isLast,
+                                            groupSize: group.rowKeys.length,
+                                            groupRowIndex: i,
                                             lastUpdated: updatedAt,
                                             onRateTap: onRateTap,
                                           );
@@ -238,6 +240,8 @@ class _TableRow extends StatelessWidget {
     required this.isAlt,
     required this.isFirstInGroup,
     required this.isLastInGroup,
+    required this.groupSize,
+    required this.groupRowIndex,
     required this.lastUpdated,
     required this.onRateTap,
   });
@@ -250,6 +254,8 @@ class _TableRow extends StatelessWidget {
   final bool isAlt;
   final bool isFirstInGroup;
   final bool isLastInGroup;
+  final int groupSize;
+  final int groupRowIndex;
   final DateTime? lastUpdated;
   final void Function(String rowKey, TERateType type) onRateTap;
 
@@ -288,6 +294,8 @@ class _TableRow extends StatelessWidget {
       isLast: isLastInGroup,
       isLeading: true,
       background: backgroundColor,
+      span: groupSize,
+      rowIndex: groupRowIndex,
     ));
     cells.add(_GroupCell(
       width: widths[columnIndex++],
@@ -297,6 +305,8 @@ class _TableRow extends StatelessWidget {
       isLast: isLastInGroup,
       isLeading: false,
       background: backgroundColor,
+      span: groupSize,
+      rowIndex: groupRowIndex,
     ));
     cells.add(_ValueCell(
       width: widths[columnIndex++],
@@ -449,6 +459,8 @@ class _GroupCell extends StatelessWidget {
     required this.isLast,
     required this.isLeading,
     required this.background,
+    required this.span,
+    required this.rowIndex,
   });
 
   final double width;
@@ -458,10 +470,12 @@ class _GroupCell extends StatelessWidget {
   final bool isLast;
   final bool isLeading;
   final Color background;
+  final int span;
+  final int rowIndex;
 
   @override
   Widget build(BuildContext context) {
-    final showContent = isFirst && value.isNotEmpty;
+    final showContent = rowIndex == 0 && value.isNotEmpty;
     final display = value.isEmpty ? '-' : value;
     final message = tooltip.isEmpty ? '-' : tooltip;
 
@@ -489,15 +503,24 @@ class _GroupCell extends StatelessWidget {
           ? Tooltip(
               message: message,
               waitDuration: const Duration(milliseconds: 200),
-              child: Text(
-                display,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: display == '-' ? _textMuted : _textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+              child: OverflowBox(
+                minHeight: _rowHeight * span,
+                maxHeight: _rowHeight * span,
+                alignment: Alignment.center,
+                child: Container(
+                  alignment: Alignment.center,
+                  height: _rowHeight * span,
+                  child: Text(
+                    display,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: display == '-' ? _textMuted : _textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             )
