@@ -43,7 +43,7 @@ class _InsightsStrip extends StatelessWidget {
           ];
 
     return Container(
-      height: 210,
+      height: 280,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: frameBorder),
