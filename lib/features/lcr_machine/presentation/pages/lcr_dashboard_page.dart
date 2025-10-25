@@ -701,25 +701,27 @@ class _AnalysisTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       TextField(
-                          controller: searchController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                    hintText: 'Serial Number Search',
-                    hintStyle: const TextStyle(color: Colors.white54),
-                    prefixIcon: const Icon(Icons.search, color: Colors.cyanAccent),
-                    filled: true,
-                    fillColor: const Color(0xFF03132D),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.white24),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.white24),
-                    ),
-                  ),
-                  onChanged: controller.searchSerial,
-                ),
+                        controller: searchController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Serial Number Search',
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Colors.cyanAccent,
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFF03132D),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.white24),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.white24),
+                          ),
+                        ),
+                        onChanged: controller.searchSerial,
                       ),
                       const SizedBox(height: 16),
                       Expanded(
