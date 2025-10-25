@@ -121,8 +121,9 @@ class _InsightsStrip extends StatelessWidget {
                         ],
                       ),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.max,
                         children: [
                           Text(
                             metric.label,
@@ -137,7 +138,7 @@ class _InsightsStrip extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
                           Text(
                             metric.value,
                             textAlign: TextAlign.center,
@@ -149,22 +150,20 @@ class _InsightsStrip extends StatelessWidget {
                               color: textColor,
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Flexible(
-                            child: Text(
-                              metric.description,
-                              textAlign: TextAlign.center,
-                              style: GlobalTextStyles.bodySmall(
-                                      isDark: palette.isDark)
-                                  .copyWith(
-                                fontFamily: _StencilTypography.numeric,
-                                fontSize: 11,
-                                color: muted,
-                                height: 1.45,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                          const SizedBox(height: 12),
+                          Text(
+                            metric.description,
+                            textAlign: TextAlign.center,
+                            style: GlobalTextStyles.bodySmall(
+                                    isDark: palette.isDark)
+                                .copyWith(
+                              fontFamily: _StencilTypography.numeric,
+                              fontSize: 11,
+                              color: muted,
+                              height: 1.4,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
