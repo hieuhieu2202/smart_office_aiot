@@ -29,95 +29,135 @@ class _InsightsStrip extends StatelessWidget {
     final textColor = palette.onSurface;
     final muted = palette.onSurfaceMuted;
 
-    return SizedBox(
-      height: 132,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          const itemWidth = 168.0;
-          const itemSpacing = 14.0;
-          final spacingCount = items.length > 1 ? items.length - 1 : 0;
-          final contentWidth =
-              (items.length * itemWidth) + (spacingCount * itemSpacing);
+    final frameBorder = palette.dividerColor.withOpacity(palette.isDark ? 0.35 : 0.25);
+    final frameGradient = palette.isDark
+        ? [
+            palette.cardBackground.withOpacity(0.45),
+            palette.surfaceOverlay.withOpacity(0.4),
+            Colors.transparent,
+          ]
+        : [
+            Colors.white.withOpacity(0.92),
+            palette.surfaceOverlay.withOpacity(0.35),
+            Colors.white.withOpacity(0.85),
+          ];
 
-          double horizontalPadding = 0;
-          if (constraints.maxWidth.isFinite) {
-            final centeredPadding = (constraints.maxWidth - contentWidth) / 2;
-            if (centeredPadding > 0) {
-              horizontalPadding = centeredPadding;
+    return Container(
+      height: 152,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: frameBorder),
+        gradient: LinearGradient(
+          colors: frameGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: palette.cardShadow,
+            blurRadius: 22,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const itemWidth = 168.0;
+            const itemSpacing = 14.0;
+            final spacingCount = items.length > 1 ? items.length - 1 : 0;
+            final contentWidth =
+                (items.length * itemWidth) + (spacingCount * itemSpacing);
+
+            double horizontalPadding = 0;
+            if (constraints.maxWidth.isFinite) {
+              final centeredPadding = (constraints.maxWidth - contentWidth) / 2;
+              if (centeredPadding > 0) {
+                horizontalPadding = centeredPadding;
+              }
             }
-          }
 
-          return ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(width: itemSpacing),
-            itemBuilder: (_, index) {
-              final metric = items[index];
-              return Container(
-                width: 168,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: metric.accent.withOpacity(0.5)),
-                  color: palette.cardBackground,
-                  gradient: LinearGradient(
-                    colors: [
-                      metric.accent.withOpacity(0.18),
-                      Colors.transparent,
+            return ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(width: itemSpacing),
+              itemBuilder: (_, index) {
+                final metric = items[index];
+                final accent = metric.accent;
+
+                return Container(
+                  width: itemWidth,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: accent.withOpacity(0.6)),
+                    gradient: LinearGradient(
+                      colors: [
+                        accent.withOpacity(palette.isDark ? 0.22 : 0.16),
+                        palette.cardBackground.withOpacity(0.8),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: palette.cardShadow,
+                        blurRadius: 16,
+                        offset: const Offset(0, 10),
+                      ),
                     ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: palette.cardShadow,
-                      blurRadius: 18,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      metric.label,
-                      style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
-                          .copyWith(
-                        fontFamily: _StencilTypography.heading,
-                        fontSize: 11,
-                        color: metric.accent,
-                        letterSpacing: 0.8,
-                        fontWeight: FontWeight.w600,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        metric.label,
+                        textAlign: TextAlign.center,
+                        style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
+                            .copyWith(
+                          fontFamily: _StencilTypography.heading,
+                          fontSize: 12,
+                          color: accent,
+                          letterSpacing: 0.8,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    Text(
-                      metric.value,
-                      style: GlobalTextStyles.bodyLarge(isDark: palette.isDark)
-                          .copyWith(
-                        fontFamily: _StencilTypography.heading,
-                        fontSize: 26,
-                        color: textColor,
+                      const SizedBox(height: 12),
+                      Text(
+                        metric.value,
+                        textAlign: TextAlign.center,
+                        style: GlobalTextStyles.bodyLarge(isDark: palette.isDark)
+                            .copyWith(
+                          fontFamily: _StencilTypography.heading,
+                          fontSize: 28,
+                          color: textColor,
+                        ),
                       ),
-                    ),
-                    Text(
-                      metric.description,
-                      style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
-                          .copyWith(
-                        fontFamily: _StencilTypography.numeric,
-                        fontSize: 11,
-                        color: muted,
+                      const SizedBox(height: 8),
+                      Text(
+                        metric.description,
+                        textAlign: TextAlign.center,
+                        style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
+                            .copyWith(
+                          fontFamily: _StencilTypography.numeric,
+                          fontSize: 11,
+                          color: muted,
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
