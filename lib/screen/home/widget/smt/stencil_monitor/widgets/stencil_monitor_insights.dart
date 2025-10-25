@@ -43,7 +43,7 @@ class _InsightsStrip extends StatelessWidget {
           ];
 
     return Container(
-      height: 152,
+      height: 180,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: frameBorder),
@@ -62,7 +62,7 @@ class _InsightsStrip extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
         child: LayoutBuilder(
           builder: (context, constraints) {
             const itemWidth = 168.0;
@@ -90,7 +90,7 @@ class _InsightsStrip extends StatelessWidget {
 
                 return Container(
                   width: itemWidth,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(color: accent.withOpacity(0.6)),
@@ -126,7 +126,7 @@ class _InsightsStrip extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Text(
                         metric.value,
                         textAlign: TextAlign.center,
@@ -137,19 +137,21 @@ class _InsightsStrip extends StatelessWidget {
                           color: textColor,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        metric.description,
-                        textAlign: TextAlign.center,
-                        style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
-                            .copyWith(
-                          fontFamily: _StencilTypography.numeric,
-                          fontSize: 11,
-                          color: muted,
-                          height: 1.4,
+                      const SizedBox(height: 6),
+                      Flexible(
+                        child: Text(
+                          metric.description,
+                          textAlign: TextAlign.center,
+                          style: GlobalTextStyles.bodySmall(isDark: palette.isDark)
+                              .copyWith(
+                            fontFamily: _StencilTypography.numeric,
+                            fontSize: 11,
+                            color: muted,
+                            height: 1.4,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
