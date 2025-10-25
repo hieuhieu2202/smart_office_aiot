@@ -576,47 +576,47 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${widget.row.modelName} · ${widget.row.groupName}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${widget.row.modelName} · ${widget.row.groupName}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _rateTitle(widget.rateType),
-                style: const TextStyle(color: Color(0xFF9AB3CF)),
-              ),
-              const SizedBox(height: 16),
-              if (_isLoading)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      valueColor: const AlwaysStoppedAnimation<Color>(kTeAccentColor),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white),
                     ),
-                  ),
-                )
-              else if (_error != null)
-                _buildError()
-              else if (_detail == null || !_detail!.hasData)
-                _buildEmpty()
-              else
-                _buildCharts(),
-            ],
-          ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _rateTitle(widget.rateType),
+                  style: const TextStyle(color: Color(0xFF9AB3CF)),
+                ),
+                const SizedBox(height: 16),
+                if (_isLoading)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: const AlwaysStoppedAnimation<Color>(kTeAccentColor),
+                      ),
+                    ),
+                  )
+                else if (_error != null)
+                  _buildError()
+                else if (_detail == null || !_detail!.hasData)
+                  _buildEmpty()
+                else
+                  _buildCharts(),
+              ],
+            ),
         ),
       ),
     );
@@ -718,8 +718,8 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
     switch (type) {
       case TERateType.fpr:
         return 'First Pass Rate';
-      case TERateType.spr:
-        return 'Second Pass Rate';
+      case TERateType.yr:
+        return 'Yield Rate';
       case TERateType.rr:
         return 'Retest Rate';
     }
@@ -973,13 +973,13 @@ class _ChartCanvas extends StatelessWidget {
         enable: true,
         format: '{point.x}: {point.y}',
       ),
-      series: <CartesianSeries<_ChartPoint, String>>[
-        ColumnSeries<_ChartPoint, String>(
-          dataSource: points,
-          xValueMapper: (point, _) => point.label,
-          yValueMapper: (point, _) => point.value,
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
+        series: <CartesianSeries<dynamic, dynamic>>[
+          ColumnSeries<_ChartPoint, String>(
+            dataSource: points,
+            xValueMapper: (point, _) => point.label,
+            yValueMapper: (point, _) => point.value,
+            dataLabelSettings: const DataLabelSettings(
+              isVisible: true,
             textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           width: 0.58,
@@ -990,9 +990,9 @@ class _ChartCanvas extends StatelessWidget {
               onPointTap(points[details.pointIndex!].cluster);
             }
           },
-        ),
-      ],
-    );
+          ) as CartesianSeries<dynamic, dynamic>,
+        ],
+      );
   }
 }
 
@@ -1033,21 +1033,21 @@ class _BreakdownChart extends StatelessWidget {
       ),
       legend: const Legend(isVisible: false),
       tooltipBehavior: TooltipBehavior(enable: true, format: '{point.x}: {point.y}'),
-      series: <CartesianSeries<_BreakdownPoint, String>>[
-        ColumnSeries<_BreakdownPoint, String>(
-          dataSource: points,
-          xValueMapper: (point, _) => point.label,
-          yValueMapper: (point, _) => point.value,
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
+        series: <CartesianSeries<dynamic, dynamic>>[
+          ColumnSeries<_BreakdownPoint, String>(
+            dataSource: points,
+            xValueMapper: (point, _) => point.label,
+            yValueMapper: (point, _) => point.value,
+            dataLabelSettings: const DataLabelSettings(
+              isVisible: true,
             textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           width: 0.58,
           borderRadius: const BorderRadius.all(Radius.circular(8)),
           gradient: gradient,
-        ),
-      ],
-    );
+          ) as CartesianSeries<dynamic, dynamic>,
+        ],
+      );
   }
 }
 

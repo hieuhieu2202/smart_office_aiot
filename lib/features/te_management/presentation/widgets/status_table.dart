@@ -19,7 +19,7 @@ const Color _successGreen = Color(0xFF4CAF50);
 const Color _highlight = Color(0x332B7FFF);
 const double _rowHeight = 48;
 
-enum TERateType { fpr, spr, rr }
+enum TERateType { fpr, yr, rr }
 
 class TEStatusTable extends StatelessWidget {
   const TEStatusTable({
@@ -44,7 +44,7 @@ class TEStatusTable extends StatelessWidget {
     _ColumnDef('PASS', minWidth: 120, flex: 1.1),
     _ColumnDef('TOTAL PASS', minWidth: 130, flex: 1.2),
     _ColumnDef('F.P.R', minWidth: 130, flex: 1.2),
-    _ColumnDef('S.P.R', minWidth: 130, flex: 1.2),
+    _ColumnDef('Y.R', minWidth: 130, flex: 1.2),
     _ColumnDef('R.R', minWidth: 130, flex: 1.2),
   ];
 
@@ -107,6 +107,7 @@ class TEStatusTable extends StatelessWidget {
                                 final isFirst = i == 0;
                                 final displayIndex = isFirst ? groupIndex.toString() : '';
                                 final displayModel = isFirst ? group.modelName : '';
+                                final isLast = i == group.rowKeys.length - 1;
                                 final isAlt = rowCounter % 2 == 1;
                                 rowCounter++;
 
@@ -127,6 +128,8 @@ class TEStatusTable extends StatelessWidget {
                                         row: row,
                                         rowKey: rowKey,
                                         isAlt: isAlt,
+                                        isFirstInGroup: isFirst,
+                                        isLastInGroup: isLast,
                                         lastUpdated: updatedAt,
                                         onRateTap: onRateTap,
                                       );
@@ -225,6 +228,8 @@ class _TableRow extends StatelessWidget {
     required this.row,
     required this.rowKey,
     required this.isAlt,
+    required this.isFirstInGroup,
+    required this.isLastInGroup,
     required this.lastUpdated,
     required this.onRateTap,
   });
@@ -235,6 +240,8 @@ class _TableRow extends StatelessWidget {
   final TEReportRowEntity row;
   final String rowKey;
   final bool isAlt;
+  final bool isFirstInGroup;
+  final bool isLastInGroup;
   final DateTime? lastUpdated;
   final void Function(String rowKey, TERateType type) onRateTap;
 
@@ -264,15 +271,19 @@ class _TableRow extends StatelessWidget {
     final widths = columnWidths;
     var columnIndex = 0;
     final cells = <Widget>[];
-    cells.add(_ValueCell(
+    cells.add(_GroupCell(
       width: widths[columnIndex++],
       value: indexLabel,
       tooltip: indexLabel,
+      isFirst: isFirstInGroup,
+      isLast: isLastInGroup,
     ));
-    cells.add(_ValueCell(
+    cells.add(_GroupCell(
       width: widths[columnIndex++],
       value: modelLabel,
       tooltip: modelLabel,
+      isFirst: isFirstInGroup,
+      isLast: isLastInGroup,
     ));
     cells.add(_ValueCell(
       width: widths[columnIndex++],
@@ -290,7 +301,7 @@ class _TableRow extends StatelessWidget {
       _numericCell(widths[columnIndex++], row.pass),
       _numericCell(widths[columnIndex++], row.totalPass),
       _rateCell(widths[columnIndex++], row.fpr, TERateType.fpr),
-      _rateCell(widths[columnIndex++], row.spr, TERateType.spr),
+      _rateCell(widths[columnIndex++], row.yr, TERateType.yr),
       _rateCell(widths[columnIndex++], row.rr, TERateType.rr),
     ]);
 
@@ -351,7 +362,7 @@ class _TableRow extends StatelessWidget {
   _RateStyle _rateStyle(TERateType type, double value) {
     switch (type) {
       case TERateType.fpr:
-      case TERateType.spr:
+      case TERateType.yr:
         if (value <= 90) {
           return const _RateStyle(_dangerRed, Colors.white);
         }
@@ -411,6 +422,58 @@ class _ValueCell extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _GroupCell extends StatelessWidget {
+  const _GroupCell({
+    required this.width,
+    required this.value,
+    required this.tooltip,
+    required this.isFirst,
+    required this.isLast,
+  });
+
+  final double width;
+  final String value;
+  final String tooltip;
+  final bool isFirst;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final display = value.isEmpty ? '-' : value;
+    final borderBottom = isLast
+        ? const BorderSide(color: _tableBorder, width: 1)
+        : BorderSide.none;
+    return Container(
+      width: width,
+      height: double.infinity,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          right: const BorderSide(color: _tableBorder, width: 1),
+          bottom: borderBottom,
+        ),
+      ),
+      child: isFirst
+          ? Tooltip(
+              message: tooltip.isEmpty ? '-' : tooltip,
+              waitDuration: const Duration(milliseconds: 200),
+              child: Text(
+                display,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: display == '-' ? _textMuted : _textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 }
