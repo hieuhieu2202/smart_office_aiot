@@ -385,14 +385,6 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
                   _buildLineTrackingCard(context, lineTracking);
 
               List<Widget> buildWideLayout() {
-                final leftColumnChildren = <Widget>[
-                  if (insightsSection != null) ...[
-                    insightsSection!,
-                    const SizedBox(height: sectionSpacing),
-                  ],
-                  usageSection,
-                ];
-
                 final rightColumnChildren = <Widget>[
                   overviewSection,
                   const SizedBox(height: sectionSpacing),
@@ -401,13 +393,19 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
 
                 return [
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
                         flex: 7,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: leftColumnChildren,
+                          children: [
+                            if (insightsSection != null) ...[
+                              insightsSection!,
+                              const SizedBox(height: sectionSpacing),
+                            ],
+                            Expanded(child: usageSection),
+                          ],
                         ),
                       ),
                       const SizedBox(width: sectionSpacing),
@@ -1039,90 +1037,138 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
       color: palette.onSurface,
     );
 
-    return _buildOverviewContainer(
-      accent: usageAccent,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+    final usageLegend = usageData.slices.isEmpty
+        ? null
+        : Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 10,
+            runSpacing: 8,
             children: [
-              Expanded(child: Text(usageData.title, style: titleStyle)),
-              if (usageTotal > 0) ...[
-                Text('$usageTotal', style: totalStyle),
-                const SizedBox(width: 4),
-                Text('items', style: subtitleStyle),
-              ],
+              for (final label in _usageLegendOrder)
+                if (usageData.slices.any((slice) => slice.label == label))
+                  _UsageLegendChip(
+                    label: label,
+                    color: _usageColorForLabel(label, palette),
+                    textStyle: subtitleStyle,
+                    palette: palette,
+                  ),
             ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 190,
-            child: _UsagePrismChart(
-              slices: usageData.slices,
-              palette: palette,
+          );
+
+    final checkingBody = checkingData.slices.isEmpty
+        ? Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              'No checking data recorded',
+              style: subtitleStyle,
             ),
-          ),
-          if (usageData.slices.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 10,
-              runSpacing: 8,
-              children: [
-                for (final label in _usageLegendOrder)
-                  if (usageData.slices.any((slice) => slice.label == label))
-                    _UsageLegendChip(
-                      label: label,
-                      color: _usageColorForLabel(label, palette),
-                      textStyle: subtitleStyle,
-                      palette: palette,
-                    ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 12),
-          Divider(color: palette.dividerColor.withOpacity(0.6)),
-          const SizedBox(height: 12),
-          Row(
+          )
+        : Wrap(
+            alignment: WrapAlignment.center,
+            runAlignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              Expanded(
-                child: Text(
-                  checkingData.title,
-                  style: sectionLabelStyle.copyWith(color: checkingAccent),
-                ),
-              ),
-              if (checkingTotal > 0)
-                Text(
-                  '$checkingTotal',
-                  style: totalStyle.copyWith(fontSize: 20, color: checkingAccent),
-                ),
-              const SizedBox(width: 4),
-              Text('items', style: subtitleStyle.copyWith(fontSize: 11)),
+              for (final slice in checkingData.slices)
+                _buildSliceChip(slice, checkingAccent, palette),
             ],
-          ),
-          const SizedBox(height: 10),
-          if (checkingData.slices.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                'No checking data recorded',
-                style: subtitleStyle,
+          );
+
+    Widget buildContent({required bool expandChart, required BoxConstraints constraints}) {
+      final chart = _UsagePrismChart(
+        slices: usageData.slices,
+        palette: palette,
+      );
+
+      final chartSection = expandChart
+          ? Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: chart),
+                  if (usageLegend != null) ...[
+                    const SizedBox(height: 12),
+                    usageLegend!,
+                  ],
+                ],
               ),
             )
-          else
-            Wrap(
-              alignment: WrapAlignment.center,
-              runAlignment: WrapAlignment.center,
-              spacing: 12,
-              runSpacing: 12,
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final slice in checkingData.slices)
-                  _buildSliceChip(slice, checkingAccent, palette),
+                SizedBox(height: 190, child: chart),
+                if (usageLegend != null) ...[
+                  const SizedBox(height: 10),
+                  usageLegend!,
+                ],
               ],
+            );
+
+      final children = <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(child: Text(usageData.title, style: titleStyle)),
+            if (usageTotal > 0) ...[
+              Text('$usageTotal', style: totalStyle),
+              const SizedBox(width: 4),
+              Text('items', style: subtitleStyle),
+            ],
+          ],
+        ),
+        const SizedBox(height: 14),
+        chartSection,
+        const SizedBox(height: 12),
+        Divider(color: palette.dividerColor.withOpacity(0.6)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                checkingData.title,
+                style: sectionLabelStyle.copyWith(color: checkingAccent),
+              ),
             ),
-        ],
-      ),
+            if (checkingTotal > 0)
+              Text(
+                '$checkingTotal',
+                style: totalStyle.copyWith(fontSize: 20, color: checkingAccent),
+              ),
+            const SizedBox(width: 4),
+            Text('items', style: subtitleStyle.copyWith(fontSize: 11)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        checkingBody,
+      ];
+
+      if (!expandChart) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        );
+      }
+
+      return SizedBox(
+        height: constraints.maxHeight,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final expandChart = constraints.hasBoundedHeight &&
+            constraints.maxHeight.isFinite &&
+            constraints.maxHeight > 0;
+
+        return _buildOverviewContainer(
+          accent: usageAccent,
+          child: buildContent(expandChart: expandChart, constraints: constraints),
+        );
+      },
     );
   }
 
