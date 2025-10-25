@@ -91,7 +91,10 @@ class _InsightsStrip extends StatelessWidget {
                     final extraWidth = constraints.maxWidth - baseContentWidth;
                     if (extraWidth > 0) {
                       if (spacingCount > 0) {
-                        rowSpacing = itemSpacing + (extraWidth / spacingCount);
+                        final spacingGain =
+                            (extraWidth * 0.35).clamp(0.0, spacingCount * itemSpacing);
+                        rowSpacing = itemSpacing + (spacingGain / spacingCount);
+                        horizontalPadding = (extraWidth - spacingGain) / 2;
                       } else {
                         horizontalPadding = extraWidth / 2;
                       }
