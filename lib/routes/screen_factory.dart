@@ -4,7 +4,7 @@ import 'package:smart_factory/screen/home/widget/aoivi/avi_dashboard_screen.dart
 import 'package:smart_factory/screen/home/widget/clean_room/clean_room_screen.dart';
 import 'package:smart_factory/screen/home/widget/racks_monitor/racks_monitor_screen.dart';
 import 'package:smart_factory/screen/home/widget/yield_report/yield_report_screen.dart';
-import 'package:smart_factory/screen/home/widget/te_management/te_management_screen.dart';
+import 'package:smart_factory/features/te_management/presentation/views/te_management_screen.dart';
 import 'package:smart_factory/screen/home/widget/PCBA_LINE/CLEAN_SENSOR_ES2/pcba_line_dashboard_screen.dart';
 import 'package:smart_factory/screen/home/widget/nvidia_lc_switch/Dashboard/Curing_Room_Monitoring_Screen.dart';
 import 'package:smart_factory/screen/home/controller/cdu_controller.dart';
