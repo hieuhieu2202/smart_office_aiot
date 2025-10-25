@@ -111,13 +111,11 @@ class TEManagementApi {
   }
 
   static Future<TEErrorDetail?> fetchErrorDetail({
-    required String modelSerial,
     required String rangeDateTime,
     required String model,
     required String group,
   }) async {
     final uri = _buildUri('ErrorDetail', {
-      'customer': modelSerial,
       'range': rangeDateTime,
       'model': model,
       'group': group,

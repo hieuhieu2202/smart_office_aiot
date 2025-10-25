@@ -186,7 +186,6 @@ class TEManagementController extends GetxController {
 
   Future<TEErrorDetail?> fetchErrorDetail({required TEReportRow row}) {
     return TEManagementApi.fetchErrorDetail(
-      modelSerial: modelSerial.value,
       rangeDateTime: range,
       model: row.modelName,
       group: row.groupName,
