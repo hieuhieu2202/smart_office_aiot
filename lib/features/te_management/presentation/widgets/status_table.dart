@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -16,6 +18,7 @@ const Color _warningAmber = Color(0xFFFFDA6A);
 const Color _successGreen = Color(0xFF4CAF50);
 const Color _highlight = Color(0x3322D3EE);
 const double _rowHeight = 48;
+const double _minColumnWidth = 110;
 
 enum TERateType { fpr, spr, rr }
 
@@ -30,110 +33,129 @@ class TEStatusTable extends StatelessWidget {
   final void Function(String rowKey, TERateType type) onRateTap;
 
   static const List<_ColumnDef> _columns = [
-    _ColumnDef(label: '#', width: 64, alignment: Alignment.center),
-    _ColumnDef(label: 'MODEL NAME', width: 220, alignment: Alignment.centerLeft),
-    _ColumnDef(label: 'GROUP NAME', width: 220, alignment: Alignment.centerLeft),
-    _ColumnDef(label: 'WIP QTY', width: 110),
-    _ColumnDef(label: 'INPUT', width: 110),
-    _ColumnDef(label: 'FIRST FAIL', width: 120),
-    _ColumnDef(label: 'REPAIR QTY', width: 120),
-    _ColumnDef(label: 'FIRST PASS', width: 120),
-    _ColumnDef(label: 'REPAIR PASS', width: 130),
-    _ColumnDef(label: 'PASS', width: 110),
-    _ColumnDef(label: 'TOTAL PASS', width: 130),
-    _ColumnDef(label: 'F.P.R', width: 110),
-    _ColumnDef(label: 'S.P.R', width: 110),
-    _ColumnDef(label: 'R.R', width: 100),
+    _ColumnDef('#'),
+    _ColumnDef('MODEL NAME'),
+    _ColumnDef('GROUP NAME'),
+    _ColumnDef('WIP QTY'),
+    _ColumnDef('INPUT'),
+    _ColumnDef('FIRST FAIL'),
+    _ColumnDef('REPAIR QTY'),
+    _ColumnDef('FIRST PASS'),
+    _ColumnDef('REPAIR PASS'),
+    _ColumnDef('PASS'),
+    _ColumnDef('TOTAL PASS'),
+    _ColumnDef('F.P.R'),
+    _ColumnDef('S.P.R'),
+    _ColumnDef('R.R'),
   ];
-
-  double get _tableWidth =>
-      _columns.fold<double>(0, (previousValue, column) => previousValue + column.width);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _rowBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _tableBorder),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Scrollbar(
-          child: SingleChildScrollView(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: _tableWidth),
-                child: Column(
-                  children: [
-                    _TableHeader(columns: _columns),
-                    GetBuilder<TEManagementController>(
-                      tag: controllerTag,
-                      id: 'table',
-                      builder: (ctrl) {
-                        final groups = ctrl.visibleGroups;
-                        if (groups.isEmpty) {
-                          if (ctrl.isLoading.value) {
-                            return const _TableLoadingPlaceholder();
-                          }
-                          return const _TableEmptyState();
-                        }
-                        final rows = <Widget>[];
-                        var groupIndex = 1;
-                        var rowCounter = 0;
-                        for (final group in groups) {
-                          for (var i = 0; i < group.rowKeys.length; i++) {
-                            final rowKey = group.rowKeys[i];
-                            final isFirst = i == 0;
-                            final displayIndex = isFirst ? groupIndex.toString() : '';
-                            final displayModel = isFirst ? group.modelName : '';
-                            final isAlt = rowCounter % 2 == 1;
-                            rowCounter++;
-                            rows.add(
-                              GetBuilder<TEManagementController>(
-                                tag: controllerTag,
-                                id: 'row_$rowKey',
-                                builder: (rowCtrl) {
-                                  final row = rowCtrl.rowByKey(rowKey);
-                                  if (row == null) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  final updatedAt = rowCtrl.rowLastUpdated(rowKey);
-                                  return _TableRow(
-                                    columns: _columns,
-                                    indexLabel: displayIndex,
-                                    modelLabel: displayModel,
-                                    row: row,
-                                    rowKey: rowKey,
-                                    isAlt: isAlt,
-                                    lastUpdated: updatedAt,
-                                    onRateTap: onRateTap,
-                                  );
-                                },
-                              ),
-                            );
-                          }
-                          groupIndex++;
-                        }
-                        return Column(children: rows);
-                      },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mediaWidth = MediaQuery.of(context).size.width;
+        final availableWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : mediaWidth;
+        final targetWidth = math.max(availableWidth, _columns.length * _minColumnWidth);
+        final columnWidth = targetWidth / _columns.length;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: _rowBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _tableBorder),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Scrollbar(
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: targetWidth),
+                    child: Column(
+                      children: [
+                        _TableHeader(
+                          columns: _columns,
+                          columnWidth: columnWidth,
+                        ),
+                        GetBuilder<TEManagementController>(
+                          tag: controllerTag,
+                          id: 'table',
+                          builder: (ctrl) {
+                            final groups = ctrl.visibleGroups;
+                            if (groups.isEmpty) {
+                              if (ctrl.isLoading.value) {
+                                return const _TableLoadingPlaceholder();
+                              }
+                              return const _TableEmptyState();
+                            }
+
+                            final rows = <Widget>[];
+                            var groupIndex = 1;
+                            var rowCounter = 0;
+                            for (final group in groups) {
+                              for (var i = 0; i < group.rowKeys.length; i++) {
+                                final rowKey = group.rowKeys[i];
+                                final isFirst = i == 0;
+                                final displayIndex = isFirst ? groupIndex.toString() : '';
+                                final displayModel = isFirst ? group.modelName : '';
+                                final isAlt = rowCounter % 2 == 1;
+                                rowCounter++;
+
+                                rows.add(
+                                  GetBuilder<TEManagementController>(
+                                    tag: controllerTag,
+                                    id: 'row_$rowKey',
+                                    builder: (rowCtrl) {
+                                      final row = rowCtrl.rowByKey(rowKey);
+                                      if (row == null) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      final updatedAt = rowCtrl.rowLastUpdated(rowKey);
+                                      return _TableRow(
+                                        columnWidth: columnWidth,
+                                        indexLabel: displayIndex,
+                                        modelLabel: displayModel,
+                                        row: row,
+                                        rowKey: rowKey,
+                                        isAlt: isAlt,
+                                        lastUpdated: updatedAt,
+                                        onRateTap: onRateTap,
+                                      );
+                                    },
+                                  ),
+                                );
+                              }
+                              groupIndex++;
+                            }
+
+                            return Column(children: rows);
+                          },
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
 class _TableHeader extends StatelessWidget {
-  const _TableHeader({required this.columns});
+  const _TableHeader({
+    required this.columns,
+    required this.columnWidth,
+  });
 
   final List<_ColumnDef> columns;
+  final double columnWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -145,8 +167,7 @@ class _TableHeader extends StatelessWidget {
             .map(
               (column) => _HeaderCell(
                 label: column.label,
-                width: column.width,
-                alignment: column.alignment,
+                width: columnWidth,
               ),
             )
             .toList(),
@@ -159,19 +180,17 @@ class _HeaderCell extends StatelessWidget {
   const _HeaderCell({
     required this.label,
     required this.width,
-    required this.alignment,
   });
 
   final String label;
   final double width;
-  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: width,
       height: double.infinity,
-      alignment: alignment,
+      alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: const BoxDecoration(
         border: Border(
@@ -199,7 +218,7 @@ class _HeaderCell extends StatelessWidget {
 
 class _TableRow extends StatelessWidget {
   const _TableRow({
-    required this.columns,
+    required this.columnWidth,
     required this.indexLabel,
     required this.modelLabel,
     required this.row,
@@ -209,7 +228,7 @@ class _TableRow extends StatelessWidget {
     required this.onRateTap,
   });
 
-  final List<_ColumnDef> columns;
+  final double columnWidth;
   final String indexLabel;
   final String modelLabel;
   final TEReportRowEntity row;
@@ -243,58 +262,57 @@ class _TableRow extends StatelessWidget {
   List<Widget> _buildCells() {
     final cells = <Widget>[];
     cells.add(_ValueCell(
-      width: columns[0].width,
-      alignment: Alignment.center,
+      width: columnWidth,
       value: indexLabel,
       tooltip: indexLabel,
     ));
     cells.add(_ValueCell(
-      width: columns[1].width,
-      alignment: Alignment.centerLeft,
+      width: columnWidth,
       value: modelLabel,
       tooltip: modelLabel,
     ));
     cells.add(_ValueCell(
-      width: columns[2].width,
-      alignment: Alignment.centerLeft,
+      width: columnWidth,
       value: row.groupName,
       tooltip: row.groupName,
     ));
+
     cells.addAll([
-      _numericCell(columns[3], row.wipQty),
-      _numericCell(columns[4], row.input),
-      _numericCell(columns[5], row.firstFail),
-      _numericCell(columns[6], row.repairQty),
-      _numericCell(columns[7], row.firstPass),
-      _numericCell(columns[8], row.repairPass),
-      _numericCell(columns[9], row.pass),
-      _numericCell(columns[10], row.totalPass),
-      _rateCell(columns[11], row.fpr, TERateType.fpr),
-      _rateCell(columns[12], row.spr, TERateType.spr),
-      _rateCell(columns[13], row.rr, TERateType.rr),
+      _numericCell(row.wipQty),
+      _numericCell(row.input),
+      _numericCell(row.firstFail),
+      _numericCell(row.repairQty),
+      _numericCell(row.firstPass),
+      _numericCell(row.repairPass),
+      _numericCell(row.pass),
+      _numericCell(row.totalPass),
+      _rateCell(row.fpr, TERateType.fpr),
+      _rateCell(row.spr, TERateType.spr),
+      _rateCell(row.rr, TERateType.rr),
     ]);
+
     return cells;
   }
 
-  Widget _numericCell(_ColumnDef def, num value) {
+  Widget _numericCell(num value) {
+    final display = value.toString();
     return _ValueCell(
-      width: def.width,
-      alignment: Alignment.center,
-      value: value.toStringAsFixed(0),
-      tooltip: value.toStringAsFixed(0),
+      width: columnWidth,
+      value: display,
+      tooltip: display,
     );
   }
 
-  Widget _rateCell(_ColumnDef def, double value, TERateType type) {
+  Widget _rateCell(double value, TERateType type) {
     final style = _rateStyle(type, value);
     final text = '${value.toStringAsFixed(2)}%';
     return GestureDetector(
       onTap: () => onRateTap(rowKey, type),
       child: Container(
-        width: def.width,
+        width: columnWidth,
         height: double.infinity,
-        alignment: def.alignment,
-        padding: def.padding,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: const BoxDecoration(
           border: Border(
             right: BorderSide(color: _tableBorder, width: 1),
@@ -353,22 +371,22 @@ class _TableRow extends StatelessWidget {
 class _ValueCell extends StatelessWidget {
   const _ValueCell({
     required this.width,
-    required this.alignment,
     required this.value,
     this.tooltip,
   });
 
   final double width;
-  final Alignment alignment;
   final String value;
   final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
+    final text = value.isEmpty ? '-' : value;
+    final tip = (tooltip ?? value).isEmpty ? '-' : (tooltip ?? value);
     return Container(
       width: width,
       height: double.infinity,
-      alignment: alignment,
+      alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: const BoxDecoration(
         border: Border(
@@ -377,14 +395,14 @@ class _ValueCell extends StatelessWidget {
         ),
       ),
       child: Tooltip(
-        message: (tooltip ?? value).isEmpty ? 'N/A' : (tooltip ?? value),
+        message: tip,
         waitDuration: const Duration(milliseconds: 200),
         child: Text(
-          value.isEmpty ? '-' : value,
+          text,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: value.isEmpty ? _textMuted : _textPrimary,
+            color: text == '-' ? _textMuted : _textPrimary,
             fontSize: 13,
             fontWeight: FontWeight.w600,
           ),
@@ -402,17 +420,9 @@ class _RateStyle {
 }
 
 class _ColumnDef {
-  const _ColumnDef({
-    required this.label,
-    required this.width,
-    this.alignment = Alignment.center,
-    this.padding = const EdgeInsets.symmetric(horizontal: 12),
-  });
+  const _ColumnDef(this.label);
 
   final String label;
-  final double width;
-  final Alignment alignment;
-  final EdgeInsets padding;
 }
 
 class _TableEmptyState extends StatelessWidget {
@@ -449,7 +459,9 @@ class _TableLoadingPlaceholder extends StatelessWidget {
           bottom: BorderSide(color: _tableBorder, width: 1),
         ),
       ),
-      child: const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(_accentCyan)),
+      child: const CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation(_accentCyan),
+      ),
     );
   }
 }

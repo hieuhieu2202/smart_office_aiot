@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -285,6 +286,86 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     );
   }
 
+  List<Widget> _buildAppBarActions(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isCompact = width < 900;
+
+    if (isCompact) {
+      return [
+        IconButton(
+          tooltip: 'Filter',
+          onPressed: _openFilterSheet,
+          icon: const Icon(Icons.tune, color: Colors.white),
+        ),
+        Obx(
+          () {
+            final loading = _controller.isLoading.value;
+            return IconButton(
+              tooltip: 'Query',
+              onPressed: loading
+                  ? null
+                  : () => _controller.fetchData(showLoading: true, fromPolling: false),
+              icon: loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.refresh, color: Colors.white),
+            );
+          },
+        ),
+      ];
+    }
+
+    return [
+      Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _openFilterSheet,
+              icon: const Icon(Icons.tune, size: 18),
+              label: const Text('Filter'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1B3A5B),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Obx(
+              () {
+                final loading = _controller.isLoading.value;
+                return ElevatedButton.icon(
+                  onPressed: loading
+                      ? null
+                      : () => _controller.fetchData(showLoading: true, fromPolling: false),
+                  icon: loading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh, size: 18),
+                  label: const Text('Query'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF253C63),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -294,6 +375,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
         elevation: 0,
         leading: const BackButton(color: Colors.white),
         title: Text(widget.title ?? 'TE Management', style: const TextStyle(color: Colors.white)),
+        actions: _buildAppBarActions(context),
       ),
       body: ResponsiveBuilder(
         builder: (context, sizing) {
@@ -323,35 +405,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     final isNarrow = sizing.isMobile || sizing.screenSize.width < 900;
     final searchWidth = isNarrow
         ? double.infinity
-        : ((sizing.screenSize.width * 0.3).clamp(240.0, 360.0) as double);
-
-    final filterButtons = Row(
-      children: [
-        ElevatedButton.icon(
-          onPressed: _openFilterSheet,
-          icon: const Icon(Icons.tune, size: 18),
-          label: const Text('Filter'),
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B3A5B)),
-        ),
-        const SizedBox(width: 12),
-        Obx(
-          () => ElevatedButton.icon(
-            onPressed: _controller.isLoading.value
-                ? null
-                : () => _controller.fetchData(showLoading: true, fromPolling: false),
-            icon: _controller.isLoading.value
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh, size: 18),
-            label: const Text('Query'),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF253C63)),
-          ),
-        ),
-      ],
-    );
+        : ((sizing.screenSize.width * 0.3).clamp(240.0, 420.0) as double);
 
     final refreshLabel = Obx(
       () => TERefreshLabel(
@@ -372,8 +426,6 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          filterButtons,
-          const SizedBox(height: 12),
           TESearchBar(
             controller: _searchController,
             onChanged: _controller.updateSearch,
@@ -385,9 +437,8 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     }
 
     return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        filterButtons,
-        const Spacer(),
         refreshLabel,
         const SizedBox(width: 12),
         searchField,
@@ -592,17 +643,30 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
 
   void _openBreakdown(TEErrorDetailClusterEntity cluster) {
     if (!cluster.hasBreakdown) return;
+    final points = cluster.breakdowns
+        .map(
+          (item) => _BreakdownPoint(
+            label: item.label.isEmpty ? 'N/A' : item.label,
+            value: item.failQty,
+          ),
+        )
+        .toList();
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
+        final maxListHeight = math.min<double>(
+          200,
+          points.length * 48,
+        );
         return Container(
           decoration: BoxDecoration(
             color: const Color(0xFF0B1C32),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
             border: Border.all(color: const Color(0xFF1F3A5F)),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -615,34 +679,108 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
-                cluster.label.isEmpty ? 'N/A' : cluster.label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      cluster.label.isEmpty ? 'N/A' : cluster.label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               SizedBox(
-                height: MediaQuery.of(context).size.height * 0.35,
-                child: ListView.builder(
-                  itemCount: cluster.breakdowns.length,
-                  itemBuilder: (context, index) {
-                    final item = cluster.breakdowns[index];
-                    return ListTile(
-                      title: Text(
-                        item.label.isEmpty ? 'N/A' : item.label,
-                        style: const TextStyle(color: Colors.white),
+                height: 260,
+                child: SfCartesianChart(
+                  plotAreaBorderWidth: 0,
+                  primaryXAxis: CategoryAxis(
+                    axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
+                    majorGridLines: const MajorGridLines(width: 0),
+                    labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                    labelIntersectAction: AxisLabelIntersectAction.trim,
+                    axisLabelFormatter: (details) {
+                      final raw = details.text;
+                      const maxChars = 16;
+                      final truncated = raw.length > maxChars
+                          ? '${raw.substring(0, maxChars)}…'
+                          : raw;
+                      return ChartAxisLabel(
+                        truncated,
+                        const TextStyle(color: Colors.white, fontSize: 12),
+                      );
+                    },
+                    labelRotation: -35,
+                  ),
+                  primaryYAxis: NumericAxis(
+                    axisLine: const AxisLine(width: 0),
+                    majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
+                    labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                  legend: const Legend(isVisible: false),
+                  tooltipBehavior: TooltipBehavior(
+                    enable: true,
+                    format: '{point.x}: {point.y}',
+                  ),
+                  series: <CartesianSeries<_BreakdownPoint, String>>[
+                    ColumnSeries<_BreakdownPoint, String>(
+                      dataSource: points,
+                      xValueMapper: (point, _) => point.label,
+                      yValueMapper: (point, _) => point.value,
+                      dataLabelSettings: const DataLabelSettings(
+                        isVisible: true,
+                        textStyle:
+                            TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
-                      trailing: Text(
-                        item.failQty.toString(),
-                        style: const TextStyle(color: kTeAccentColor, fontWeight: FontWeight.bold),
+                      width: 0.6,
+                      borderRadius: const BorderRadius.all(Radius.circular(8)),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF22D3EE), Color(0xFF60A5FA)],
+                        stops: [0.0, 1.0],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 12),
+              if (points.isNotEmpty)
+                SizedBox(
+                  height: maxListHeight,
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemBuilder: (context, index) {
+                      final point = points[index];
+                      return ListTile(
+                        dense: true,
+                        title: Text(
+                          point.label,
+                          style: const TextStyle(color: Colors.white),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Text(
+                          point.value.toString(),
+                          style: const TextStyle(
+                            color: kTeAccentColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    },
+                    separatorBuilder: (_, __) => const Divider(color: Color(0x331F3A5F)),
+                    itemCount: points.length,
+                  ),
+                ),
             ],
           ),
         );
@@ -788,4 +926,14 @@ class _ChartPoint {
   final String label;
   final int value;
   final TEErrorDetailClusterEntity cluster;
+}
+
+class _BreakdownPoint {
+  const _BreakdownPoint({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final int value;
 }
