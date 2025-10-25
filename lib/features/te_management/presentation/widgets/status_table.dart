@@ -19,7 +19,7 @@ const Color _successGreen = Color(0xFF4CAF50);
 const Color _highlight = Color(0x332B7FFF);
 const double _rowHeight = 48;
 
-enum TERateType { fpr, yr, rr }
+enum TERateType { fpr, spr, yr, rr }
 
 class TEStatusTable extends StatelessWidget {
   const TEStatusTable({
@@ -44,6 +44,7 @@ class TEStatusTable extends StatelessWidget {
     _ColumnDef('PASS', minWidth: 100, flex: 1.0),
     _ColumnDef('TOTAL PASS', minWidth: 110, flex: 1.1),
     _ColumnDef('F.P.R', minWidth: 110, flex: 1.1),
+    _ColumnDef('S.P.R', minWidth: 110, flex: 1.1),
     _ColumnDef('Y.R', minWidth: 110, flex: 1.1),
     _ColumnDef('R.R', minWidth: 110, flex: 1.1),
   ];
@@ -313,6 +314,7 @@ class _TableRow extends StatelessWidget {
       _numericCell(widths[columnIndex++], row.pass),
       _numericCell(widths[columnIndex++], row.totalPass),
       _rateCell(widths[columnIndex++], row.fpr, TERateType.fpr),
+      _rateCell(widths[columnIndex++], row.spr, TERateType.spr),
       _rateCell(widths[columnIndex++], row.yr, TERateType.yr),
       _rateCell(widths[columnIndex++], row.rr, TERateType.rr),
     ]);
@@ -374,6 +376,7 @@ class _TableRow extends StatelessWidget {
   _RateStyle _rateStyle(TERateType type, double value) {
     switch (type) {
       case TERateType.fpr:
+      case TERateType.spr:
       case TERateType.yr:
         if (value <= 90) {
           return const _RateStyle(_dangerRed, Colors.white);
