@@ -1900,18 +1900,6 @@ class _RateChartCard extends StatelessWidget {
                     ),
                     legend: const Legend(isVisible: false),
                     plotAreaBorderWidth: 0,
-                    onPointTap: (details) {
-                      if (state.isDetail) {
-                        return;
-                      }
-                      final index = details.pointIndex;
-                      if (index == null ||
-                          index < 0 ||
-                          index >= state.points.length) {
-                        return;
-                      }
-                      onPointTap(state.points[index].cluster);
-                    },
                     series: <CartesianSeries<_ChartPoint, String>>[
                       ColumnSeries<_ChartPoint, String>(
                         dataSource: state.points,
@@ -1920,6 +1908,18 @@ class _RateChartCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         width: 0.6,
                         spacing: 0.1,
+                        onPointTap: (details) {
+                          if (state.isDetail) {
+                            return;
+                          }
+                          final index = details.pointIndex;
+                          if (index == null ||
+                              index < 0 ||
+                              index >= state.points.length) {
+                            return;
+                          }
+                          onPointTap(state.points[index].cluster);
+                        },
                         dataLabelSettings: const DataLabelSettings(
                           isVisible: true,
                           textStyle: TextStyle(
