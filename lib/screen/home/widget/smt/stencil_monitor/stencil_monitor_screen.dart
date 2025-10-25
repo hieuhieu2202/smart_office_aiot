@@ -384,50 +384,40 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               final lineTrackingSection =
                   _buildLineTrackingCard(context, lineTracking);
 
-              List<Widget> buildDesktopLayout() {
+              List<Widget> buildWideLayout() {
+                final leftColumnChildren = <Widget>[
+                  if (insightsSection != null) ...[
+                    insightsSection!,
+                    const SizedBox(height: sectionSpacing),
+                  ],
+                  usageSection,
+                ];
+
+                final rightColumnChildren = <Widget>[
+                  overviewSection,
+                  const SizedBox(height: sectionSpacing),
+                  lineTrackingSection,
+                ];
+
                 return [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        flex: insightsSection == null ? 10 : 7,
-                        child: overviewSection,
-                      ),
-                      if (insightsSection != null) ...[
-                        SizedBox(width: sectionSpacing),
-                        Expanded(
-                          flex: 5,
-                          child: insightsSection,
+                        flex: 7,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: leftColumnChildren,
                         ),
-                      ],
-                    ],
-                  ),
-                  SizedBox(height: sectionSpacing),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: usageSection),
-                      SizedBox(width: sectionSpacing),
-                      Expanded(child: lineTrackingSection),
-                    ],
-                  ),
-                ];
-              }
-
-              List<Widget> buildTabletLayout() {
-                return [
-                  overviewSection,
-                  if (insightsSection != null) ...[
-                    SizedBox(height: sectionSpacing),
-                    insightsSection,
-                  ],
-                  SizedBox(height: sectionSpacing),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: usageSection),
-                      SizedBox(width: sectionSpacing),
-                      Expanded(child: lineTrackingSection),
+                      ),
+                      const SizedBox(width: sectionSpacing),
+                      Expanded(
+                        flex: 5,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: rightColumnChildren,
+                        ),
+                      ),
                     ],
                   ),
                 ];
@@ -447,11 +437,9 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
                 ];
               }
 
-              final children = isDesktop
-                  ? buildDesktopLayout()
-                  : isTablet
-                      ? buildTabletLayout()
-                      : buildMobileLayout();
+              final children = (isDesktop || isTablet)
+                  ? buildWideLayout()
+                  : buildMobileLayout();
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
