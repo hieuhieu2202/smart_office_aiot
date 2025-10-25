@@ -6,19 +6,19 @@ import 'package:get/get.dart';
 import '../../domain/entities/te_report.dart';
 import '../controllers/te_management_controller.dart';
 
-const Color _tableBorder = Color(0xFF1F3A5F);
-const Color _headerBg = Color(0xFF0C2748);
-const Color _rowBg = Color(0xFF10213A);
-const Color _rowAltBg = Color(0xFF0D1B30);
+const Color _tableBorder = Color(0xFF15437A);
+const Color _headerBg = Color(0xFF062B55);
+const Color _rowBg = Color(0xFF082F62);
+const Color _rowAltBg = Color(0xFF073456);
 const Color _textPrimary = Color(0xFFE2E8F0);
 const Color _textMuted = Color(0xFF9AB3CF);
 const Color _accentCyan = Color(0xFF22D3EE);
 const Color _dangerRed = Color(0xFFE6717C);
 const Color _warningAmber = Color(0xFFFFDA6A);
 const Color _successGreen = Color(0xFF4CAF50);
-const Color _highlight = Color(0x3322D3EE);
+const Color _highlight = Color(0x332B7FFF);
 const double _rowHeight = 48;
-const double _minColumnWidth = 110;
+const double _minColumnWidth = 140;
 
 enum TERateType { fpr, spr, rr }
 

@@ -18,9 +18,23 @@ import '../widgets/refresh_label.dart';
 import '../widgets/search_bar.dart';
 import '../widgets/status_table.dart';
 
-const Color kTeBackgroundColor = Color(0xFF050F1F);
-const Color kTeSurfaceColor = Color(0xFF0B1C32);
+const Color kTeBackgroundColor = Color(0xFF04142A);
+const Color kTeSurfaceColor = Color(0xFF08213F);
 const Color kTeAccentColor = Color(0xFF22D3EE);
+
+const LinearGradient _errorGradient = LinearGradient(
+  colors: [Color(0xFFE57373), Color(0xFFEF4444)],
+  stops: [0.0, 1.0],
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+);
+
+const LinearGradient _tealGradient = LinearGradient(
+  colors: [Color(0xFF22D3EE), Color(0xFF60A5FA)],
+  stops: [0.0, 1.0],
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+);
 
 class TEManagementScreen extends StatefulWidget {
   const TEManagementScreen({
@@ -604,7 +618,11 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
             child: _ChartCard(
               title: 'Order by Error Code',
               clusters: detail.byErrorCode,
-              onClusterTap: _openBreakdown,
+              breakdownTitleBuilder: (cluster) =>
+                  'Error ${cluster.label.isEmpty ? 'N/A' : cluster.label}',
+              breakdownSubtitle: 'by Machine',
+              primaryGradient: _errorGradient,
+              breakdownGradient: _tealGradient,
             ),
           ),
           if (detail.byMachine.isNotEmpty)
@@ -612,7 +630,11 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
               child: _ChartCard(
                 title: 'Order by Tester Name',
                 clusters: detail.byMachine,
-                onClusterTap: _openBreakdown,
+                breakdownTitleBuilder: (cluster) =>
+                    'Machine ${cluster.label.isEmpty ? 'N/A' : cluster.label}',
+                breakdownSubtitle: 'by Error Code',
+                primaryGradient: _tealGradient,
+                breakdownGradient: _errorGradient,
               ),
             ),
         ];
@@ -641,153 +663,6 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
     );
   }
 
-  void _openBreakdown(TEErrorDetailClusterEntity cluster) {
-    if (!cluster.hasBreakdown) return;
-    final points = cluster.breakdowns
-        .map(
-          (item) => _BreakdownPoint(
-            label: item.label.isEmpty ? 'N/A' : item.label,
-            value: item.failQty,
-          ),
-        )
-        .toList();
-
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final maxListHeight = math.min<double>(
-          200,
-          points.length * 48,
-        );
-        return Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF0B1C32),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-            border: Border.all(color: const Color(0xFF1F3A5F)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      cluster.label.isEmpty ? 'N/A' : cluster.label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Colors.white70),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 260,
-                child: SfCartesianChart(
-                  plotAreaBorderWidth: 0,
-                  primaryXAxis: CategoryAxis(
-                    axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
-                    majorGridLines: const MajorGridLines(width: 0),
-                    labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-                    labelIntersectAction: AxisLabelIntersectAction.trim,
-                    axisLabelFormatter: (details) {
-                      final raw = details.text;
-                      const maxChars = 16;
-                      final truncated = raw.length > maxChars
-                          ? '${raw.substring(0, maxChars)}…'
-                          : raw;
-                      return ChartAxisLabel(
-                        truncated,
-                        const TextStyle(color: Colors.white, fontSize: 12),
-                      );
-                    },
-                    labelRotation: -35,
-                  ),
-                  primaryYAxis: NumericAxis(
-                    axisLine: const AxisLine(width: 0),
-                    majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
-                    labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
-                  ),
-                  legend: const Legend(isVisible: false),
-                  tooltipBehavior: TooltipBehavior(
-                    enable: true,
-                    format: '{point.x}: {point.y}',
-                  ),
-                  series: <CartesianSeries<_BreakdownPoint, String>>[
-                    ColumnSeries<_BreakdownPoint, String>(
-                      dataSource: points,
-                      xValueMapper: (point, _) => point.label,
-                      yValueMapper: (point, _) => point.value,
-                      dataLabelSettings: const DataLabelSettings(
-                        isVisible: true,
-                        textStyle:
-                            TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      width: 0.6,
-                      borderRadius: const BorderRadius.all(Radius.circular(8)),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF22D3EE), Color(0xFF60A5FA)],
-                        stops: [0.0, 1.0],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (points.isNotEmpty)
-                SizedBox(
-                  height: maxListHeight,
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemBuilder: (context, index) {
-                      final point = points[index];
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          point.label,
-                          style: const TextStyle(color: Colors.white),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: Text(
-                          point.value.toString(),
-                          style: const TextStyle(
-                            color: kTeAccentColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      );
-                    },
-                    separatorBuilder: (_, __) => const Divider(color: Color(0x331F3A5F)),
-                    itemCount: points.length,
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   String _rateTitle(TERateType type) {
     switch (type) {
       case TERateType.fpr:
@@ -800,44 +675,35 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
   }
 }
 
-class _ChartCard extends StatelessWidget {
+class _ChartCard extends StatefulWidget {
   const _ChartCard({
     required this.title,
     required this.clusters,
-    required this.onClusterTap,
+    required this.breakdownTitleBuilder,
+    this.breakdownSubtitle = '',
+    this.primaryGradient,
+    this.breakdownGradient,
   });
 
   final String title;
   final List<TEErrorDetailClusterEntity> clusters;
-  final ValueChanged<TEErrorDetailClusterEntity> onClusterTap;
+  final String Function(TEErrorDetailClusterEntity) breakdownTitleBuilder;
+  final String breakdownSubtitle;
+  final LinearGradient? primaryGradient;
+  final LinearGradient? breakdownGradient;
+
+  @override
+  State<_ChartCard> createState() => _ChartCardState();
+}
+
+class _ChartCardState extends State<_ChartCard> {
+  TEErrorDetailClusterEntity? _activeCluster;
 
   @override
   Widget build(BuildContext context) {
-    if (clusters.isEmpty) {
-      return Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF10213A),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF1F3A5F)),
-        ),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          'No data available',
-          style: TextStyle(color: Colors.white.withOpacity(.7)),
-        ),
-      );
-    }
-    final data = clusters
-        .map((cluster) => _ChartPoint(
-              label: cluster.label.isEmpty ? 'N/A' : cluster.label,
-              value: cluster.totalFail,
-              cluster: cluster,
-            ))
-        .toList();
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF10213A),
+        color: const Color(0xFF0A2242),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF1F3A5F)),
       ),
@@ -845,72 +711,331 @@ class _ChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: _activeCluster == null
+                ? _buildPrimaryHeader()
+                : _buildBreakdownHeader(_activeCluster!),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 320),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child: _activeCluster == null
+                  ? _buildPrimaryChart()
+                  : _buildBreakdownChart(_activeCluster!),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryHeader() {
+    final total = widget.clusters.fold<int>(0, (sum, item) => sum + item.totalFail);
+    return Row(
+      key: const ValueKey('primary_header'),
+      children: [
+        Expanded(
+          child: Text(
+            widget.title,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: SfCartesianChart(
-              plotAreaBorderWidth: 0,
-              primaryXAxis: CategoryAxis(
-                axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
-                majorGridLines: const MajorGridLines(width: 0),
-                labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-                labelIntersectAction: AxisLabelIntersectAction.trim,
-                axisLabelFormatter: (details) {
-                  final raw = details.text;
-                  const int maxChars = 14;
-                  final truncated =
-                      raw.length > maxChars ? '${raw.substring(0, maxChars)}…' : raw;
-                  return ChartAxisLabel(
-                    truncated,
-                    const TextStyle(color: Colors.white, fontSize: 12),
-                  );
-                },
-                labelRotation: -35,
+        ),
+        _TotalBadge(value: total),
+      ],
+    );
+  }
+
+  Widget _buildBreakdownHeader(TEErrorDetailClusterEntity cluster) {
+    final subtitle = widget.breakdownSubtitle;
+    return Column(
+      key: ValueKey('breakdown_header_${cluster.label}'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => setState(() => _activeCluster = null),
+              icon: const Icon(Icons.arrow_back, size: 16, color: Colors.white),
+              label: const Text('Back', style: TextStyle(color: Colors.white)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: kTeAccentColor),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              primaryYAxis: NumericAxis(
-                axisLine: const AxisLine(width: 0),
-                majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
-                labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
-              ),
-              legend: const Legend(isVisible: false),
-              tooltipBehavior: TooltipBehavior(
-                enable: true,
-                format: '{point.x}: {point.y}',
-              ),
-              series: <CartesianSeries<_ChartPoint, String>>[
-                ColumnSeries<_ChartPoint, String>(
-                  dataSource: data,
-                  xValueMapper: (point, _) => point.label,
-                  yValueMapper: (point, _) => point.value,
-                  dataLabelSettings: const DataLabelSettings(
-                    isVisible: true,
-                    textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                  width: 0.6,
-                  borderRadius: const BorderRadius.all(Radius.circular(8)),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF22D3EE), Color(0xFF60A5FA)],
-                    stops: [0.0, 1.0],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  onPointTap: (details) {
-                    if (details.pointIndex != null) {
-                      onClusterTap(data[details.pointIndex!].cluster);
-                    }
-                  },
-                ),
-              ],
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.breakdownTitleBuilder(cluster),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            _TotalBadge(value: cluster.totalFail),
+          ],
+        ),
+        if (subtitle.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: const TextStyle(color: Color(0xFF9AB3CF), fontSize: 13),
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildPrimaryChart() {
+    if (widget.clusters.isEmpty) {
+      return _ChartEmptyState(key: const ValueKey('chart_empty'));
+    }
+    final data = widget.clusters
+        .map(
+          (cluster) => _ChartPoint(
+            label: cluster.label.isEmpty ? 'N/A' : cluster.label,
+            value: cluster.totalFail,
+            cluster: cluster,
+          ),
+        )
+        .toList();
+    return _ChartCanvas(
+      key: const ValueKey('chart_primary'),
+      points: data,
+      onPointTap: (cluster) {
+        if (!cluster.hasBreakdown) return;
+        setState(() => _activeCluster = cluster);
+      },
+      gradient: widget.primaryGradient ?? _errorGradient,
+    );
+  }
+
+  Widget _buildBreakdownChart(TEErrorDetailClusterEntity cluster) {
+    final points = cluster.breakdowns
+        .map(
+          (item) => _BreakdownPoint(
+            label: item.label.isEmpty ? 'N/A' : item.label,
+            value: item.failQty,
+          ),
+        )
+        .toList();
+    if (points.isEmpty) {
+      return _ChartEmptyState(key: ValueKey('breakdown_empty_${cluster.label}'));
+    }
+
+    final listHeight = math.min<double>(200, points.length * 44);
+    return Column(
+      key: ValueKey('breakdown_body_${cluster.label}'),
+      children: [
+        Expanded(
+          child: _BreakdownChart(
+            points: points,
+            gradient: widget.breakdownGradient ?? _tealGradient,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (points.isNotEmpty)
+          SizedBox(
+            height: listHeight,
+            child: ListView.separated(
+              itemBuilder: (context, index) {
+                final point = points[index];
+                return ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  title: Text(
+                    point.label,
+                    style: const TextStyle(color: Colors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Text(
+                    point.value.toString(),
+                    style: const TextStyle(
+                      color: kTeAccentColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              },
+              separatorBuilder: (_, __) => const Divider(color: Color(0x331F3A5F), height: 1),
+              itemCount: points.length,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ChartCanvas extends StatelessWidget {
+  const _ChartCanvas({
+    super.key,
+    required this.points,
+    required this.onPointTap,
+    required this.gradient,
+  });
+
+  final List<_ChartPoint> points;
+  final ValueChanged<TEErrorDetailClusterEntity> onPointTap;
+  final LinearGradient gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    return SfCartesianChart(
+      plotAreaBorderWidth: 0,
+      primaryXAxis: CategoryAxis(
+        axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
+        majorGridLines: const MajorGridLines(width: 0),
+        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+        labelIntersectAction: AxisLabelIntersectAction.trim,
+        axisLabelFormatter: (details) {
+          final raw = details.text;
+          const int maxChars = 14;
+          final truncated = raw.length > maxChars ? '${raw.substring(0, maxChars)}…' : raw;
+          return ChartAxisLabel(
+            truncated,
+            const TextStyle(color: Colors.white, fontSize: 12),
+          );
+        },
+        labelRotation: -35,
+      ),
+      primaryYAxis: NumericAxis(
+        axisLine: const AxisLine(width: 0),
+        majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
+        labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
+      ),
+      legend: const Legend(isVisible: false),
+      tooltipBehavior: TooltipBehavior(
+        enable: true,
+        format: '{point.x}: {point.y}',
+      ),
+      series: <CartesianSeries<_ChartPoint, String>>[
+        ColumnSeries<_ChartPoint, String>(
+          dataSource: points,
+          xValueMapper: (point, _) => point.label,
+          yValueMapper: (point, _) => point.value,
+          dataLabelSettings: const DataLabelSettings(
+            isVisible: true,
+            textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          width: 0.58,
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
+          gradient: gradient,
+          onPointTap: (details) {
+            if (details.pointIndex != null) {
+              onPointTap(points[details.pointIndex!].cluster);
+            }
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _BreakdownChart extends StatelessWidget {
+  const _BreakdownChart({
+    required this.points,
+    required this.gradient,
+  });
+
+  final List<_BreakdownPoint> points;
+  final LinearGradient gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    return SfCartesianChart(
+      key: ValueKey('breakdown_chart_${points.length}'),
+      plotAreaBorderWidth: 0,
+      primaryXAxis: CategoryAxis(
+        axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
+        majorGridLines: const MajorGridLines(width: 0),
+        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+        labelIntersectAction: AxisLabelIntersectAction.trim,
+        axisLabelFormatter: (details) {
+          final raw = details.text;
+          const maxChars = 16;
+          final truncated = raw.length > maxChars ? '${raw.substring(0, maxChars)}…' : raw;
+          return ChartAxisLabel(
+            truncated,
+            const TextStyle(color: Colors.white, fontSize: 12),
+          );
+        },
+        labelRotation: -35,
+      ),
+      primaryYAxis: NumericAxis(
+        axisLine: const AxisLine(width: 0),
+        majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
+        labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
+      ),
+      legend: const Legend(isVisible: false),
+      tooltipBehavior: TooltipBehavior(enable: true, format: '{point.x}: {point.y}'),
+      series: <CartesianSeries<_BreakdownPoint, String>>[
+        ColumnSeries<_BreakdownPoint, String>(
+          dataSource: points,
+          xValueMapper: (point, _) => point.label,
+          yValueMapper: (point, _) => point.value,
+          dataLabelSettings: const DataLabelSettings(
+            isVisible: true,
+            textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          width: 0.58,
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
+          gradient: gradient,
+        ),
+      ],
+    );
+  }
+}
+
+class _ChartEmptyState extends StatelessWidget {
+  const _ChartEmptyState({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        'No data available',
+        style: TextStyle(color: Colors.white.withOpacity(.7)),
+      ),
+    );
+  }
+}
+
+class _TotalBadge extends StatelessWidget {
+  const _TotalBadge({
+    required this.value,
+  });
+
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0x3322D3EE),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: kTeAccentColor.withOpacity(.7)),
+      ),
+      child: Text(
+        'Total $value',
+        style: const TextStyle(
+          color: kTeAccentColor,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
