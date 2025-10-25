@@ -1,9 +1,11 @@
 import 'dart:collection';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../../../../model/te_management/te_report_models.dart';
 import '../../../../widget/animation/loading/eva_loading_view.dart';
@@ -571,15 +573,12 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       group: row.groupName,
     );
 
-    await showModalBottomSheet<void>(
+    await showDialog<void>(
       context: context,
-      backgroundColor: _surfaceColor,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(.6),
       builder: (context) {
-        return _RateDetailSheet(
+        return _RateDetailDialog(
           row: row,
           rateLabel: _labelForRateType(type),
           rateValue: _valueForRateType(row, type),
@@ -1315,8 +1314,8 @@ class _SelectionButton extends StatelessWidget {
   }
 }
 
-class _RateDetailSheet extends StatelessWidget {
-  const _RateDetailSheet({
+class _RateDetailDialog extends StatefulWidget {
+  const _RateDetailDialog({
     required this.row,
     required this.rateLabel,
     required this.rateValue,
@@ -1329,265 +1328,396 @@ class _RateDetailSheet extends StatelessWidget {
   final Future<TEErrorDetail?> detailFuture;
 
   @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final metrics = [
-      _MetricEntry('WIP QTY', row.wipQty.toString()),
-      _MetricEntry('INPUT', row.input.toString()),
-      _MetricEntry('FIRST FAIL', row.firstFail.toString()),
-      _MetricEntry('REPAIR QTY', row.repairQty.toString()),
-      _MetricEntry('FIRST PASS', row.firstPass.toString()),
-      _MetricEntry('REPAIR PASS', row.repairPass.toString()),
-      _MetricEntry('PASS', row.pass.toString()),
-      _MetricEntry('TOTAL PASS', row.totalPass.toString()),
-    ];
+  State<_RateDetailDialog> createState() => _RateDetailDialogState();
+}
 
-    return FractionallySizedBox(
-      heightFactor: 0.85,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomInset),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                height: 4,
-                width: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.18),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Model ${row.modelName}',
-              style: const TextStyle(
-                color: _textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Group ${row.groupName}',
-              style: TextStyle(
-                color: _textMuted.withOpacity(.85),
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10213A),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: _borderColor),
-              ),
-              child: Column(
+class _RateDetailDialogState extends State<_RateDetailDialog> {
+  TEErrorDetailCluster? _activeErrorCluster;
+  TEErrorDetailCluster? _activeMachineCluster;
+
+  late final TooltipBehavior _errorTooltip;
+  late final TooltipBehavior _machineTooltip;
+
+  @override
+  void initState() {
+    super.initState();
+    _errorTooltip = _buildTooltip();
+    _machineTooltip = _buildTooltip();
+  }
+
+  TooltipBehavior _buildTooltip() {
+    return TooltipBehavior(
+      enable: true,
+      color: const Color(0xFF0F172A),
+      borderColor: Colors.white.withOpacity(.12),
+      borderWidth: 1,
+      textStyle: const TextStyle(
+        color: _textPrimary,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  void _drillErrorCluster(TEErrorDetailCluster cluster) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _activeErrorCluster = cluster;
+    });
+  }
+
+  void _drillMachineCluster(TEErrorDetailCluster cluster) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _activeMachineCluster = cluster;
+    });
+  }
+
+  void _resetErrorCluster() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _activeErrorCluster = null;
+    });
+  }
+
+  void _resetMachineCluster() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _activeMachineCluster = null;
+    });
+  }
+
+  void _showNoBreakdownToast() {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.clearSnackBars();
+    messenger?.showSnackBar(
+      const SnackBar(
+        content: Text('No drill-down data available for this column.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: _surfaceColor,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1180, maxHeight: 660),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: FutureBuilder<TEErrorDetail?>(
+            future: widget.detailFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: EvaLoadingView(size: 160));
+              }
+              if (snapshot.hasError) {
+                return _RateDetailMessage(
+                  icon: Icons.error_outline,
+                  message: 'Failed to load error detail data.',
+                  onClose: () => Navigator.of(context).pop(),
+                );
+              }
+              final detail = snapshot.data;
+              if (detail == null || !detail.hasData) {
+                return _RateDetailMessage(
+                  icon: Icons.info_outline,
+                  message: 'No detail data available for this selection.',
+                  onClose: () => Navigator.of(context).pop(),
+                );
+              }
+
+              final errorState = _buildErrorChartState(detail);
+              final machineState = _buildMachineChartState(detail);
+
+              final machineChart = detail.byMachine.isEmpty
+                  ? _EmptyChartCard(
+                      title: 'Order By Tester Name',
+                      message: 'No tester data available for this selection.',
+                    )
+                  : _RateChartCard(
+                      title: 'Order By Tester Name',
+                      state: machineState,
+                      tooltip: _machineTooltip,
+                      onPointTap: (cluster) {
+                        if (cluster == null) {
+                          return;
+                        }
+                        if (!cluster.hasBreakdown) {
+                          _showNoBreakdownToast();
+                          return;
+                        }
+                        _drillMachineCluster(cluster);
+                      },
+                      onBack: _resetMachineCluster,
+                    );
+
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    rateLabel,
-                    style: const TextStyle(
-                      color: _textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                  _buildHeader(context),
+                  const SizedBox(height: 18),
+                  _RateSummaryGrid(
+                    row: widget.row,
+                    rateLabel: widget.rateLabel,
+                    rateValue: widget.rateValue,
+                  ),
+                  const SizedBox(height: 22),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isVertical = constraints.maxWidth < 960;
+                        final spacing = isVertical
+                            ? const SizedBox(height: 18)
+                            : const SizedBox(width: 18);
+                        final children = <Widget>[
+                          Expanded(
+                            child: _RateChartCard(
+                              title: 'Order By Error Code',
+                              state: errorState,
+                              tooltip: _errorTooltip,
+                              onPointTap: (cluster) {
+                                if (cluster == null) {
+                                  return;
+                                }
+                                if (!cluster.hasBreakdown) {
+                                  _showNoBreakdownToast();
+                                  return;
+                                }
+                                _drillErrorCluster(cluster);
+                              },
+                              onBack: _resetErrorCluster,
+                            ),
+                          ),
+                          spacing,
+                          Expanded(child: machineChart),
+                        ];
+                        if (isVertical) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: children,
+                          );
+                        }
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: children,
+                        );
+                      },
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${rateValue.toStringAsFixed(2)}%',
-                    style: const TextStyle(
-                      color: _accentCyan,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
+                  const SizedBox(height: 18),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: TextButton.icon(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: _accentCyan,
+                        backgroundColor: const Color(0xFF0F1F36),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: const BorderSide(color: _borderColor),
+                        ),
+                      ),
+                      icon: const Icon(Icons.close),
+                      label: const Text(
+                        'Close',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final metric in metrics)
-                  _MetricPill(label: metric.label, value: metric.value),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: FutureBuilder<TEErrorDetail?>(
-                future: detailFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: _accentCyan),
-                    );
-                  }
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        'Failed to load error detail\n${snapshot.error}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: _textMuted),
-                      ),
-                    );
-                  }
-                  final detail = snapshot.data;
-                  if (detail == null || !detail.hasData) {
-                    return Center(
-                      child: Text(
-                        'No additional error detail available for this record.',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: _textMuted),
-                      ),
-                    );
-                  }
-                  return ListView(
-                    children: [
-                      if (detail.byErrorCode.isNotEmpty)
-                        _RateBreakdownSection(
-                          title: 'Order By Error Code',
-                          clusters: detail.byErrorCode,
-                        ),
-                      if (detail.byMachine.isNotEmpty)
-                        _RateBreakdownSection(
-                          title: 'Order By Tester Name',
-                          clusters: detail.byMachine,
-                        ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildHeader(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Information about Group Name: ${widget.row.groupName} with Model Name: ${widget.row.modelName}',
+                style: const TextStyle(
+                  color: _textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${widget.rateLabel} ${widget.rateValue.toStringAsFixed(2)}%',
+                style: const TextStyle(
+                  color: _accentCyan,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close, color: _textPrimary),
+        ),
+      ],
+    );
+  }
+
+  _ChartState _buildErrorChartState(TEErrorDetail detail) {
+    if (_activeErrorCluster == null) {
+      final points = detail.byErrorCode
+          .map(
+            (cluster) => _ChartPoint(
+              label: cluster.label.isEmpty ? '(N/A)' : cluster.label,
+              value: cluster.totalFail,
+              cluster: cluster,
+            ),
+          )
+          .toList();
+      final total = points.fold<int>(0, (sum, item) => sum + item.value);
+      return _ChartState(
+        points: points,
+        subtitle: 'Tap a column to drill down by tester • Total $total',
+        total: total,
+        isDetail: false,
+      );
+    }
+
+    final cluster = _activeErrorCluster!;
+    final points = cluster.breakdowns
+        .map(
+          (breakdown) => _ChartPoint(
+            label: breakdown.label.isEmpty ? '(N/A)' : breakdown.label,
+            value: breakdown.failQty,
+          ),
+        )
+        .toList();
+    final total = points.fold<int>(0, (sum, item) => sum + item.value);
+    final label = cluster.label.isEmpty ? '(N/A)' : cluster.label;
+    return _ChartState(
+      points: points,
+      subtitle: 'Error $label • by Tester • Total $total',
+      total: total,
+      isDetail: true,
+      cluster: cluster,
+    );
+  }
+
+  _ChartState _buildMachineChartState(TEErrorDetail detail) {
+    if (detail.byMachine.isEmpty) {
+      return _ChartState(
+        points: const <_ChartPoint>[],
+        subtitle: 'No tester data available for this selection.',
+        total: 0,
+        isDetail: false,
+      );
+    }
+
+    if (_activeMachineCluster == null) {
+      final points = detail.byMachine
+          .map(
+            (cluster) => _ChartPoint(
+              label: cluster.label.isEmpty ? '(N/A)' : cluster.label,
+              value: cluster.totalFail,
+              cluster: cluster,
+            ),
+          )
+          .toList();
+      final total = points.fold<int>(0, (sum, item) => sum + item.value);
+      return _ChartState(
+        points: points,
+        subtitle: 'Tap a column to drill down by error code • Total $total',
+        total: total,
+        isDetail: false,
+      );
+    }
+
+    final cluster = _activeMachineCluster!;
+    final points = cluster.breakdowns
+        .map(
+          (breakdown) => _ChartPoint(
+            label: breakdown.label.isEmpty ? '(N/A)' : breakdown.label,
+            value: breakdown.failQty,
+          ),
+        )
+        .toList();
+    final total = points.fold<int>(0, (sum, item) => sum + item.value);
+    final label = cluster.label.isEmpty ? '(N/A)' : cluster.label;
+    return _ChartState(
+      points: points,
+      subtitle: 'Machine $label • by Error Code • Total $total',
+      total: total,
+      isDetail: true,
+      cluster: cluster,
+    );
+  }
 }
 
-class _RateBreakdownSection extends StatelessWidget {
-  const _RateBreakdownSection({
-    required this.title,
-    required this.clusters,
+class _RateSummaryGrid extends StatelessWidget {
+  const _RateSummaryGrid({
+    required this.row,
+    required this.rateLabel,
+    required this.rateValue,
   });
 
-  final String title;
-  final List<TEErrorDetailCluster> clusters;
+  final TEReportRow row;
+  final String rateLabel;
+  final double rateValue;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: _textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+    final metrics = <_MetricData>[
+      _MetricData('WIP QTY', row.wipQty.toString()),
+      _MetricData('INPUT', row.input.toString()),
+      _MetricData('FIRST FAIL', row.firstFail.toString()),
+      _MetricData('REPAIR QTY', row.repairQty.toString()),
+      _MetricData('FIRST PASS', row.firstPass.toString()),
+      _MetricData('REPAIR PASS', row.repairPass.toString()),
+      _MetricData('PASS', row.pass.toString()),
+      _MetricData('TOTAL PASS', row.totalPass.toString()),
+    ];
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        _HighlightMetric(
+          label: rateLabel,
+          value: '${rateValue.toStringAsFixed(2)}%',
+        ),
+        for (final metric in metrics)
+          _SummaryMetric(
+            label: metric.label,
+            value: metric.value,
           ),
-          const SizedBox(height: 12),
-          if (clusters.isEmpty)
-            Text(
-              'No data available.',
-              style: TextStyle(color: _textMuted.withOpacity(.85)),
-            ),
-          for (final cluster in clusters)
-            _RateBreakdownCard(cluster: cluster),
-        ],
-      ),
+      ],
     );
   }
 }
 
-class _RateBreakdownCard extends StatelessWidget {
-  const _RateBreakdownCard({required this.cluster});
+class _MetricData {
+  const _MetricData(this.label, this.value);
 
-  final TEErrorDetailCluster cluster;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0C1A2B),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            cluster.label.isEmpty ? '(N/A)' : cluster.label,
-            style: const TextStyle(
-              color: _textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Fail Qty: ${cluster.totalFail}',
-            style: const TextStyle(
-              color: _accentCyan,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          if (cluster.hasBreakdown) ...[
-            const SizedBox(height: 12),
-            Column(
-              children: [
-                for (final breakdown in cluster.breakdowns)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            breakdown.label,
-                            style: const TextStyle(
-                              color: _textPrimary,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '${breakdown.failQty}',
-                          style: const TextStyle(
-                            color: _textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ] else ...[
-            const SizedBox(height: 12),
-            Text(
-              'No drill-down data.',
-              style: TextStyle(color: _textMuted.withOpacity(.8)),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+  final String label;
+  final String value;
 }
 
-class _MetricPill extends StatelessWidget {
-  const _MetricPill({required this.label, required this.value});
+class _HighlightMetric extends StatelessWidget {
+  const _HighlightMetric({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -1595,10 +1725,53 @@ class _MetricPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF162741),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0EA5E9), Color(0xFF22D3EE)],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryMetric extends StatelessWidget {
+  const _SummaryMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF10213A),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _borderColor),
       ),
       child: Column(
@@ -1628,12 +1801,378 @@ class _MetricPill extends StatelessWidget {
   }
 }
 
-class _MetricEntry {
-  const _MetricEntry(this.label, this.value);
+class _RateChartCard extends StatelessWidget {
+  const _RateChartCard({
+    required this.title,
+    required this.state,
+    required this.tooltip,
+    required this.onPointTap,
+    required this.onBack,
+  });
+
+  final String title;
+  final _ChartState state;
+  final TooltipBehavior tooltip;
+  final void Function(TEErrorDetailCluster?) onPointTap;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1C32),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _borderColor),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: _textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      state.subtitle,
+                      style: TextStyle(
+                        color: _textMuted.withOpacity(.9),
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (state.isDetail) ...[
+                _BackPill(onPressed: onBack),
+                const SizedBox(width: 12),
+              ],
+              _TotalBadge(total: state.total),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: state.points.isEmpty
+                ? _ChartEmptyMessage(
+                    message: state.isDetail
+                        ? 'No drill-down data for this selection.'
+                        : 'No data available.',
+                  )
+                : SfCartesianChart(
+                    plotAreaBackgroundColor: Colors.transparent,
+                    backgroundColor: Colors.transparent,
+                    tooltipBehavior: tooltip,
+                    primaryXAxis: CategoryAxis(
+                      labelStyle: const TextStyle(
+                        color: _textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      labelRotation: state.points.length > 4 ? -35 : 0,
+                      majorGridLines: const MajorGridLines(width: 0),
+                      axisLine: const AxisLine(color: Colors.transparent),
+                      majorTickLines: const MajorTickLines(color: Colors.transparent),
+                    ),
+                    primaryYAxis: NumericAxis(
+                      labelStyle: const TextStyle(
+                        color: _textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      axisLine: const AxisLine(color: Colors.transparent),
+                      majorGridLines: MajorGridLines(
+                        color: Colors.white.withOpacity(.08),
+                      ),
+                      majorTickLines: const MajorTickLines(color: Colors.transparent),
+                      minimum: 0,
+                    ),
+                    legend: const Legend(isVisible: false),
+                    plotAreaBorderWidth: 0,
+                    onPointTap: (details) {
+                      if (state.isDetail) {
+                        return;
+                      }
+                      final index = details.pointIndex;
+                      if (index == null ||
+                          index < 0 ||
+                          index >= state.points.length) {
+                        return;
+                      }
+                      onPointTap(state.points[index].cluster);
+                    },
+                    series: <CartesianSeries<_ChartPoint, String>>[
+                      ColumnSeries<_ChartPoint, String>(
+                        dataSource: state.points,
+                        xValueMapper: (point, _) => point.label,
+                        yValueMapper: (point, _) => point.value,
+                        borderRadius: BorderRadius.circular(10),
+                        width: 0.6,
+                        spacing: 0.1,
+                        dataLabelSettings: const DataLabelSettings(
+                          isVisible: true,
+                          textStyle: TextStyle(
+                            color: _textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        selectionBehavior: SelectionBehavior(
+                          enable: true,
+                          unselectedOpacity: 0.25,
+                          selectedOpacity: 1,
+                        ),
+                        onCreateShader: (details) {
+                          return ui.Gradient.linear(
+                            details.rect.topLeft,
+                            details.rect.bottomLeft,
+                            const [
+                              Color(0xFF22D3EE),
+                              Color(0xFF38BDF8),
+                              Color(0xFF0EA5E9),
+                            ],
+                          );
+                        },
+                      ),
+                      if (state.points.length > 1)
+                        SplineSeries<_ChartPoint, String>(
+                          dataSource: state.points,
+                          xValueMapper: (point, _) => point.label,
+                          yValueMapper: (point, _) => point.value,
+                          color: const Color(0xFF60A5FA),
+                          width: 2,
+                          markerSettings: const MarkerSettings(
+                            isVisible: true,
+                            color: Color(0xFF0F172A),
+                            borderWidth: 2,
+                            borderColor: Color(0xFF60A5FA),
+                          ),
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyChartCard extends StatelessWidget {
+  const _EmptyChartCard({required this.title, required this.message});
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1C32),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _borderColor),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: _textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Center(
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: _textMuted.withOpacity(.85),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChartEmptyMessage extends StatelessWidget {
+  const _ChartEmptyMessage({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: TextStyle(color: _textMuted.withOpacity(.85)),
+      ),
+    );
+  }
+}
+
+class _RateDetailMessage extends StatelessWidget {
+  const _RateDetailMessage({
+    required this.icon,
+    required this.message,
+    required this.onClose,
+  });
+
+  final IconData icon;
+  final String message;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: _accentCyan, size: 56),
+          const SizedBox(height: 18),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: _textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          TextButton(
+            onPressed: onClose,
+            child: const Text(
+              'Close',
+              style: TextStyle(
+                color: _accentCyan,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackPill extends StatelessWidget {
+  const _BackPill({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        backgroundColor: const Color(0xFF0EA5E9),
+        foregroundColor: Colors.black,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(999),
+        ),
+      ),
+      icon: const Icon(Icons.arrow_back, size: 16),
+      label: const Text(
+        'Back',
+        style: TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+class _TotalBadge extends StatelessWidget {
+  const _TotalBadge({required this.total});
+
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF162741),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _borderColor),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Total',
+            style: TextStyle(
+              color: _textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$total',
+            style: const TextStyle(
+              color: _textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChartState {
+  const _ChartState({
+    required this.points,
+    required this.subtitle,
+    required this.total,
+    required this.isDetail,
+    this.cluster,
+  });
+
+  final List<_ChartPoint> points;
+  final String subtitle;
+  final int total;
+  final bool isDetail;
+  final TEErrorDetailCluster? cluster;
+}
+
+class _ChartPoint {
+  const _ChartPoint({
+    required this.label,
+    required this.value,
+    this.cluster,
+  });
 
   final String label;
-  final String value;
+  final int value;
+  final TEErrorDetailCluster? cluster;
 }
+
 
 class _ColumnDef {
   const _ColumnDef({
