@@ -586,7 +586,7 @@ class _GroupCell extends StatelessWidget {
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: background,
+        color: showContent ? background : Colors.transparent,
         border: Border(
           left: isLeading
               ? const BorderSide(color: _tableBorder, width: 1)
@@ -608,18 +608,19 @@ class _GroupCell extends StatelessWidget {
                 minHeight: _rowHeight * span,
                 maxHeight: _rowHeight * span,
                 alignment: Alignment.center,
-                child: Container(
-                  alignment: Alignment.center,
+                child: SizedBox(
                   height: _rowHeight * span,
-                  child: Text(
-                    display,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: display == '-' ? _textMuted : _textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                  child: Center(
+                    child: Text(
+                      display,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: display == '-' ? _textMuted : _textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
