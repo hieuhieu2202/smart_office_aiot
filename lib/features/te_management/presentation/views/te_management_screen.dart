@@ -558,14 +558,17 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final dialogWidth = math.min(media.size.width * 0.92, 1040.0);
+    final desiredWidth = media.size.width * 0.7;
+    final maxAllowedWidth = math.min(media.size.width * 0.92, 1400.0);
+    final lowerBoundWidth = math.min(360.0, maxAllowedWidth);
+    final dialogWidth = desiredWidth.clamp(lowerBoundWidth, maxAllowedWidth).toDouble();
     final dialogMaxHeight = media.size.height * 0.9;
     return Dialog(
       backgroundColor: const Color(0xFF0B1C32),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: dialogWidth,
+          maxWidth: maxAllowedWidth,
           maxHeight: dialogMaxHeight,
         ),
         child: SizedBox(
@@ -580,7 +583,7 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
                   children: [
                     Expanded(
                       child: Text(
-                        '${widget.row.modelName} · ${widget.row.groupName}',
+                        '${widget.row.modelName} ${widget.row.groupName}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -617,6 +620,7 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
                   _buildCharts(),
               ],
             ),
+          ),
         ),
       ),
     );
