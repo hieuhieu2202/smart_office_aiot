@@ -114,7 +114,26 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
       setState(() {
         _lineTrackingQuery = query;
       });
+      _resetLineTrackingScroll();
     }
+  }
+
+  void _resetLineTrackingScroll() {
+    if (!_lineTrackingScrollController.hasClients) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_lineTrackingScrollController.hasClients) {
+        return;
+      }
+
+      _lineTrackingScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   @override
@@ -873,14 +892,17 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
         minHeight: minHeight,
       ),
       child: Scrollbar(
-        controller: _lineTrackingScrollController,
+        controller: _lineTrackingScrollController.hasClients
+            ? _lineTrackingScrollController
+            : null,
         thumbVisibility: showScrollbar,
         radius: const Radius.circular(12),
         child: ListView.builder(
           controller: _lineTrackingScrollController,
+          shrinkWrap: true,
           primary: false,
           padding: EdgeInsets.zero,
-          physics: const BouncingScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           itemCount: items.length,
           itemBuilder: (context, index) {
             final item = items[index];
