@@ -297,27 +297,21 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       ),
       body: ResponsiveBuilder(
         builder: (context, sizing) {
-          final maxWidth = sizing.isDesktop ? 1200.0 : double.infinity;
           final horizontalPadding = sizing.isDesktop ? 24.0 : 16.0;
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxWidth),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildControls(sizing),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: TEStatusTable(
-                        controllerTag: _controllerTag,
-                        onRateTap: _openRateDetail,
-                      ),
-                    ),
-                  ],
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildControls(sizing),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: TEStatusTable(
+                    controllerTag: _controllerTag,
+                    onRateTap: _openRateDetail,
+                  ),
                 ),
-              ),
+              ],
             ),
           );
         },
