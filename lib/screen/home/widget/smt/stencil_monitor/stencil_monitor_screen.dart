@@ -380,35 +380,62 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
           16,
           0,
         ),
-        sliver: SliverToBoxAdapter(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 680;
-              final wrapSpacing = sectionSpacing;
-              final double cardWidth = isWide
-                  ? (constraints.maxWidth - wrapSpacing) / 2
-                  : constraints.maxWidth;
+        sliver: SliverLayoutBuilder(
+          builder: (context, sliverConstraints) {
+            final availableHeight = math.max(sliverConstraints.remainingPaintExtent, 0.0);
 
-              return Wrap(
-                spacing: wrapSpacing,
-                runSpacing: wrapSpacing,
-                children: [
-                  SizedBox(
-                    width: cardWidth,
-                    child: _buildUsageAnalyticsCard(
-                      context,
-                      usingTimeSlices,
-                      checkSlices,
+            return SliverToBoxAdapter(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth >= 680;
+                  final wrapSpacing = sectionSpacing;
+
+                  if (!isWide) {
+                    return Wrap(
+                      spacing: wrapSpacing,
+                      runSpacing: wrapSpacing,
+                      children: [
+                        SizedBox(
+                          width: constraints.maxWidth,
+                          child: _buildUsageAnalyticsCard(
+                            context,
+                            usingTimeSlices,
+                            checkSlices,
+                          ),
+                        ),
+                        SizedBox(
+                          width: constraints.maxWidth,
+                          child: _buildLineTrackingCard(context, lineTracking),
+                        ),
+                      ],
+                    );
+                  }
+
+                  final constrainedHeight = math.max(availableHeight - wrapSpacing, 0.0);
+
+                  return ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constrainedHeight),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _buildUsageAnalyticsCard(
+                            context,
+                            usingTimeSlices,
+                            checkSlices,
+                          ),
+                        ),
+                        SizedBox(width: wrapSpacing),
+                        Expanded(
+                          child: _buildLineTrackingCard(context, lineTracking),
+                        ),
+                      ],
                     ),
-                  ),
-                  SizedBox(
-                    width: cardWidth,
-                    child: _buildLineTrackingCard(context, lineTracking),
-                  ),
-                ],
-              );
-            },
-          ),
+                  );
+                },
+              ),
+            );
+          },
         ),
       ),
     ];
