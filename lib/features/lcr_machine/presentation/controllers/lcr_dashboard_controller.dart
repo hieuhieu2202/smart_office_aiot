@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../../data/datasources/lcr_remote_data_source.dart';
 import '../../data/repositories/lcr_repository_impl.dart';
@@ -36,6 +39,7 @@ class LcrDashboardController extends GetxController {
   late final GetLcrAnalysisData _getAnalysisData;
   late final SearchLcrSerialNumbers _searchSerialNumbers;
   late final GetLcrRecord _getRecord;
+  final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm');
 
   final RxBool isLoading = false.obs;
   final RxnString error = RxnString();
@@ -49,10 +53,8 @@ class LcrDashboardController extends GetxController {
   final RxString selectedMachine = 'ALL'.obs;
   final RxString selectedStatus = 'ALL'.obs;
   final Rx<DateTimeRange> selectedDateRange =
-      DateTimeRange(
-        start: DateTime.now().subtract(const Duration(days: 6)),
-        end: DateTime.now(),
-      ).obs;
+      Rx<DateTimeRange>(_defaultDateRange());
+  Timer? _midnightReset;
 
   final RxList<LcrRecord> trackingRecords = <LcrRecord>[].obs;
   final Rxn<LcrDashboardViewState> dashboardView = Rxn<LcrDashboardViewState>();
@@ -67,7 +69,15 @@ class LcrDashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _applyDefaultShift();
+    _scheduleMidnightReset();
     loadInitial();
+  }
+
+  @override
+  void onClose() {
+    _midnightReset?.cancel();
+    super.onClose();
   }
 
   Future<void> loadInitial() async {
@@ -162,8 +172,36 @@ class LcrDashboardController extends GetxController {
     selectedStatus.value = value;
   }
 
-  void updateDateRange(DateTimeRange range) {
+  Future<void> updateDateRange(DateTimeRange range) async {
     selectedDateRange.value = range;
+    await loadTrackingData();
+  }
+
+  Future<void> resetToCurrentShiftAndReload() async {
+    _applyDefaultShift();
+    await loadTrackingData();
+  }
+
+  void _applyDefaultShift() {
+    selectedDateRange.value = _defaultDateRange();
+  }
+
+  void _scheduleMidnightReset() {
+    _midnightReset?.cancel();
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final duration = tomorrow.difference(now);
+    _midnightReset = Timer(duration, () {
+      _applyDefaultShift();
+      _scheduleMidnightReset();
+    });
+  }
+
+  static DateTimeRange _defaultDateRange() {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day, 7, 30);
+    final end = DateTime(now.year, now.month, now.day, 19, 30);
+    return DateTimeRange(start: start, end: end);
   }
 
   LcrRequest _buildRequest() {
@@ -172,7 +210,7 @@ class LcrDashboardController extends GetxController {
     final machine = _normalize(selectedMachine.value);
     final status = _normalize(selectedStatus.value);
     final range = selectedDateRange.value;
-    final formattedRange = '${_fmt(range.start)}-${_fmt(range.end)}';
+    final formattedRange = '${_fmt(range.start)} - ${_fmt(range.end)}';
 
     return LcrRequest(
       factory: factory,
@@ -224,7 +262,7 @@ class LcrDashboardController extends GetxController {
   }
 
   String _fmt(DateTime date) {
-    return '${date.year.toString().padLeft(4, '0')}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+    return _dateFormatter.format(date);
   }
 
   String _normalize(String value) {

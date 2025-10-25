@@ -60,7 +60,7 @@ class OtStationTrendDialog extends StatelessWidget {
               const SizedBox(height: 12),
               SizedBox(
                 height: math.max(280, math.min(400, 60.0 * data.length)),
-                child: SfCartesianChart(
+                child: SfCartesianChart3D(
                   backgroundColor: Colors.transparent,
                   tooltipBehavior: TooltipBehavior(enable: true),
                   primaryXAxis: CategoryAxis(
@@ -92,17 +92,13 @@ class OtStationTrendDialog extends StatelessWidget {
                     overflowMode: LegendItemOverflowMode.wrap,
                     textStyle: TextStyle(color: Colors.white70),
                   ),
-                  series: <CartesianSeries<dynamic, dynamic>>[
-                    ColumnSeries<_StationTrendPoint, String>(
+                  series: <ChartSeries<dynamic, dynamic>>[
+                    ColumnSeries3D<_StationTrendPoint, String>(
                       name: 'Pass Qty',
                       dataSource: data,
                       xValueMapper: (p, _) => p.label,
                       yValueMapper: (p, _) => p.pass,
                       color: const Color(0xFF44CA71),
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(6)),
-                      onCreateShader: (details) =>
-                          build3dColumnShader(details.rect, const Color(0xFF44CA71)),
                       dataLabelSettings: const DataLabelSettings(
                         isVisible: true,
                         labelAlignment: ChartDataLabelAlignment.outer,
@@ -114,7 +110,7 @@ class OtStationTrendDialog extends StatelessWidget {
                       ),
                       dataLabelMapper: (p, _) => p.pass.toStringAsFixed(0),
                     ),
-                    SplineSeries<_StationTrendPoint, String>(
+                    SplineSeries3D<_StationTrendPoint, String>(
                       name: 'Retest Rate',
                       dataSource: data,
                       xValueMapper: (p, _) => p.label,
@@ -123,8 +119,6 @@ class OtStationTrendDialog extends StatelessWidget {
                       markerSettings:
                           const MarkerSettings(isVisible: true, color: Colors.white),
                       width: 3.2,
-                      onCreateShader: (details) =>
-                          build3dLineShader(details.rect, const Color(0xFFE36269)),
                       dataLabelSettings: const DataLabelSettings(
                         isVisible: true,
                         textStyle: TextStyle(
@@ -520,9 +514,8 @@ class _OtSectionDetailDialogState extends State<OtSectionDetailDialog> {
         color: panelColor,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: SfCartesianChart(
+      child: SfCartesianChart3D(
         backgroundColor: panelColor,
-        plotAreaBorderWidth: 0,
         primaryXAxis: CategoryAxis(
           majorGridLines: const MajorGridLines(width: 0),
           labelStyle: const TextStyle(color: Colors.white70, fontSize: 10),
@@ -535,14 +528,12 @@ class _OtSectionDetailDialogState extends State<OtSectionDetailDialog> {
           axisLine: const AxisLine(color: Colors.transparent),
         ),
         tooltipBehavior: TooltipBehavior(enable: true),
-        series: <CartesianSeries<dynamic, dynamic>>[
-          ColumnSeries<_DetailPoint, String>(
+        series: <ChartSeries<dynamic, dynamic>>[
+          ColumnSeries3D<_DetailPoint, String>(
             dataSource: points,
             xValueMapper: (p, _) => p.label,
             yValueMapper: (p, _) => p.value.toDouble(),
             color: baseColor,
-            onCreateShader: (details) => build3dColumnShader(details.rect, baseColor),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
             dataLabelSettings: const DataLabelSettings(
               isVisible: true,
               textStyle: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
