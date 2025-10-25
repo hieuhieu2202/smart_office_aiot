@@ -57,11 +57,12 @@ class TEStatusTable extends StatelessWidget {
             ? constraints.maxWidth
             : mediaWidth;
         final totalMinWidth = _columns.fold<double>(0, (sum, column) => sum + column.minWidth);
-        final bool needsHorizontalScroll = availableWidth < totalMinWidth;
-        final double tableWidth = needsHorizontalScroll ? availableWidth : totalMinWidth;
-        final double resolvedTableWidth =
-            tableWidth <= 0 ? totalMinWidth : tableWidth;
-        final double targetWidth = totalMinWidth;
+        final maxWidth = availableWidth <= 0 ? totalMinWidth : availableWidth;
+        final bool canExpand = maxWidth > totalMinWidth;
+        final double targetWidth = canExpand
+            ? math.min(maxWidth, totalMinWidth + (maxWidth - totalMinWidth) * 0.85)
+            : totalMinWidth;
+        final double resolvedTableWidth = math.min(maxWidth, targetWidth);
         final extraWidth = math.max(0, targetWidth - totalMinWidth);
         final totalFlex = _columns.fold<double>(0, (sum, column) => sum + column.flex);
         final widths = _columns
