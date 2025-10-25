@@ -15,6 +15,7 @@ const Color _dangerRed = Color(0xFFE6717C);
 const Color _warningAmber = Color(0xFFFFDA6A);
 const Color _successGreen = Color(0xFF4CAF50);
 const Color _highlight = Color(0x3322D3EE);
+const double _rowHeight = 48;
 
 enum TERateType { fpr, spr, rr }
 
@@ -28,7 +29,6 @@ class TEStatusTable extends StatelessWidget {
   final String controllerTag;
   final void Function(String rowKey, TERateType type) onRateTap;
 
-  static const double _rowHeight = 48;
   static const List<_ColumnDef> _columns = [
     _ColumnDef(label: '#', width: 64, alignment: Alignment.center),
     _ColumnDef(label: 'MODEL NAME', width: 220, alignment: Alignment.centerLeft),

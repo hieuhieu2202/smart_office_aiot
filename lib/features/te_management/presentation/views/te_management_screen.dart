@@ -17,6 +17,10 @@ import '../widgets/refresh_label.dart';
 import '../widgets/search_bar.dart';
 import '../widgets/status_table.dart';
 
+const Color kTeBackgroundColor = Color(0xFF050F1F);
+const Color kTeSurfaceColor = Color(0xFF0B1C32);
+const Color kTeAccentColor = Color(0xFF22D3EE);
+
 class TEManagementScreen extends StatefulWidget {
   const TEManagementScreen({
     super.key,
@@ -36,10 +40,6 @@ class TEManagementScreen extends StatefulWidget {
 }
 
 class _TEManagementScreenState extends State<TEManagementScreen> {
-  static const Color _background = Color(0xFF050F1F);
-  static const Color _surface = Color(0xFF0B1C32);
-  static const Color _accent = Color(0xFF22D3EE);
-
   late final String _controllerTag;
   late final TEManagementController _controller;
   late final TextEditingController _searchController;
@@ -85,9 +85,9 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.dark(
-              primary: _accent,
-              surface: _surface,
-              background: _surface,
+              primary: kTeAccentColor,
+              surface: kTeSurfaceColor,
+              background: kTeSurfaceColor,
               onSurface: Colors.white,
               onPrimary: Colors.black,
             ),
@@ -132,7 +132,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: _surface,
+                  color: kTeSurfaceColor,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                   border: Border.all(color: const Color(0xFF1F3A5F)),
                 ),
@@ -215,7 +215,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                   controlAffinity: ListTileControlAffinity.leading,
-                                  activeColor: _accent,
+                                  activeColor: kTeAccentColor,
                                   onChanged: (value) {
                                     setState(() {
                                       if (value == true) {
@@ -247,7 +247,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: _accent),
+                            style: ElevatedButton.styleFrom(backgroundColor: kTeAccentColor),
                             onPressed: () {
                               _controller.applyFilters(models: selected.toList());
                               Navigator.of(context).pop();
@@ -288,7 +288,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _background,
+      backgroundColor: kTeBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -493,10 +493,12 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
               ),
               const SizedBox(height: 16),
               if (_isLoading)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: Center(
-                    child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(_accent)),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(kTeAccentColor),
+                    ),
                   ),
                 )
               else if (_error != null)
@@ -518,7 +520,7 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, color: _accent, size: 40),
+          const Icon(Icons.error_outline, color: kTeAccentColor, size: 40),
           const SizedBox(height: 12),
           Text(
             _error ?? 'Unknown error',
@@ -641,7 +643,7 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
                       ),
                       trailing: Text(
                         item.failQty.toString(),
-                        style: const TextStyle(color: _accent, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: kTeAccentColor, fontWeight: FontWeight.bold),
                       ),
                     );
                   },
@@ -727,6 +729,17 @@ class _ChartCard extends StatelessWidget {
                 axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
                 majorGridLines: const MajorGridLines(width: 0),
                 labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                labelIntersectAction: AxisLabelIntersectAction.trim,
+                axisLabelFormatter: (details) {
+                  final raw = details.text;
+                  const int maxChars = 14;
+                  final truncated =
+                      raw.length > maxChars ? '${raw.substring(0, maxChars)}…' : raw;
+                  return ChartAxisLabel(
+                    truncated,
+                    const TextStyle(color: Colors.white, fontSize: 12),
+                  );
+                },
                 labelRotation: -35,
               ),
               primaryYAxis: NumericAxis(
@@ -735,8 +748,11 @@ class _ChartCard extends StatelessWidget {
                 labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
               ),
               legend: const Legend(isVisible: false),
-              tooltipBehavior: TooltipBehavior(enable: true),
-              series: <ChartSeries<_ChartPoint, String>>[
+              tooltipBehavior: TooltipBehavior(
+                enable: true,
+                format: '{point.x}: {point.y}',
+              ),
+              series: <CartesianSeries<_ChartPoint, String>>[
                 ColumnSeries<_ChartPoint, String>(
                   dataSource: data,
                   xValueMapper: (point, _) => point.label,
