@@ -13,9 +13,9 @@ const Color _rowAltBg = Color(0xFF073456);
 const Color _textPrimary = Color(0xFFE2E8F0);
 const Color _textMuted = Color(0xFF9AB3CF);
 const Color _accentCyan = Color(0xFF22D3EE);
-const Color _dangerRed = Color(0xFFE6717C);
-const Color _warningAmber = Color(0xFFFFDA6A);
-const Color _successGreen = Color(0xFF4CAF50);
+const Color _dangerRed = Color(0xFFEF4444);
+const Color _warningAmber = Color(0xFFF59E0B);
+const Color _successGreen = Color(0xFF22C55E);
 const Color _highlight = Color(0x332B7FFF);
 const double _rowHeight = 48;
 const double _headerHeight = 48;
@@ -744,7 +744,7 @@ _RateStyle _rateStyle(TERateType type, double value) {
         return const _RateStyle(_dangerRed, Colors.white);
       }
       if (value > 90 && value <= 97) {
-        return const _RateStyle(_warningAmber, Colors.black87);
+        return const _RateStyle(_warningAmber, Colors.white);
       }
       return const _RateStyle(_successGreen, Colors.white);
     case TERateType.rr:
@@ -752,7 +752,7 @@ _RateStyle _rateStyle(TERateType type, double value) {
         return const _RateStyle(_dangerRed, Colors.white);
       }
       if (value > 2 && value < 5) {
-        return const _RateStyle(_warningAmber, Colors.black87);
+        return const _RateStyle(_warningAmber, Colors.white);
       }
       return const _RateStyle(_successGreen, Colors.white);
   }
