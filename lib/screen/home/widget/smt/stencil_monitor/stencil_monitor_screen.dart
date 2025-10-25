@@ -44,6 +44,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
 
   TabController? _overviewTabController;
   int _overviewTabIndex = 0;
+  final GlobalKey _wideRightColumnKey = GlobalKey();
+  double? _wideRightColumnHeight;
 
   Color get _textPrimary => _palette.onSurface;
   Color get _textSecondary => _palette.onSurfaceMuted;
@@ -112,6 +114,34 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
         _lineTrackingQuery = query;
       });
     }
+  }
+
+  void _scheduleWidePanelHeightMeasurement() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final context = _wideRightColumnKey.currentContext;
+      final size = context?.size;
+      if (size == null) return;
+      final height = size.height;
+      if (_wideRightColumnHeight == null ||
+          (height - _wideRightColumnHeight!).abs() > 0.5) {
+        setState(() {
+          _wideRightColumnHeight = height;
+        });
+      }
+    });
+  }
+
+  void _resetWidePanelHeightIfNeeded() {
+    if (_wideRightColumnHeight == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_wideRightColumnHeight != null) {
+        setState(() {
+          _wideRightColumnHeight = null;
+        });
+      }
+    });
   }
 
   @override
@@ -395,39 +425,69 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               final lineTrackingSection = buildLineTrackingSection();
 
               if (isWide) {
+                _scheduleWidePanelHeightMeasurement();
+                final rightColumn = KeyedSubtree(
+                  key: _wideRightColumnKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      overviewSection,
+                      const SizedBox(height: sectionSpacing),
+                      lineTrackingSection,
+                    ],
+                  ),
+                );
+
+                final measuredHeight = _wideRightColumnHeight;
+                final leftChildren = <Widget>[
+                  if (insightsSection != null) ...[
+                    insightsSection,
+                    const SizedBox(height: sectionSpacing),
+                  ],
+                  usageSection,
+                ];
+
+                Widget leftColumn;
+                if (measuredHeight != null && measuredHeight.isFinite) {
+                  leftColumn = SizedBox(
+                    height: measuredHeight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (insightsSection != null) ...[
+                          insightsSection!,
+                          const SizedBox(height: sectionSpacing),
+                        ],
+                        Expanded(child: usageSection),
+                      ],
+                    ),
+                  );
+                } else {
+                  leftColumn = Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: leftChildren,
+                  );
+                }
+
                 return IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
                         flex: 7,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (insightsSection != null) ...[
-                              insightsSection,
-                              const SizedBox(height: sectionSpacing),
-                            ],
-                            Expanded(child: usageSection),
-                          ],
-                        ),
+                        child: leftColumn,
                       ),
                       const SizedBox(width: sectionSpacing),
                       Expanded(
                         flex: 5,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            overviewSection,
-                            const SizedBox(height: sectionSpacing),
-                            lineTrackingSection,
-                          ],
-                        ),
+                        child: rightColumn,
                       ),
                     ],
                   ),
                 );
               }
+
+              _resetWidePanelHeightIfNeeded();
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
