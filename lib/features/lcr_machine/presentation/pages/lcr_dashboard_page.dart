@@ -343,6 +343,7 @@ class _DashboardTab extends StatelessWidget {
                       const SizedBox(height: 20),
                       LcrChartCard(
                         title: 'EMPLOYEE STATISTICS',
+                        height: 320,
                         child: _StackedBarChart(data.employeeSeries, rotateLabels: true),
                       ),
                     ],
@@ -650,6 +651,7 @@ class _MachinesGrid extends StatelessWidget {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
+      shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final gauge = list[index];
