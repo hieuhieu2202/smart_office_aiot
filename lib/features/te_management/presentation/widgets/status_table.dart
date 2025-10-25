@@ -124,6 +124,7 @@ class _TEStatusTableState extends State<TEStatusTable> {
 
               return Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: rows,
               );
             },
@@ -134,8 +135,8 @@ class _TEStatusTableState extends State<TEStatusTable> {
           controller: _horizontalController,
           scrollDirection: Axis.horizontal,
           physics: const ClampingScrollPhysics(),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: targetWidth),
+          child: SizedBox(
+            width: targetWidth,
             child: _TableHeader(
               columns: TEStatusTable._columns,
               columnWidths: widths,
@@ -151,8 +152,8 @@ class _TEStatusTableState extends State<TEStatusTable> {
             child: SingleChildScrollView(
               controller: _horizontalController,
               scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: targetWidth),
+              child: SizedBox(
+                width: targetWidth,
                 child: buildBody(),
               ),
             ),
@@ -285,9 +286,6 @@ class _TableGroupBlock extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final totalHeight = _rowHeight * group.rowKeys.length;
-    final indexWidth = columnWidths[0];
-    final modelWidth = columnWidths[1];
     final isAltGroup = groupIndex.isOdd;
 
     final rows = <Widget>[];
@@ -308,8 +306,8 @@ class _TableGroupBlock extends StatelessWidget {
             final updatedAt = rowCtrl.rowLastUpdated(rowKey);
             return _TableRow(
               columnWidths: columnWidths,
-              indexLabel: '',
-              modelLabel: '',
+              indexLabel: isFirst ? groupIndex.toString() : '',
+              modelLabel: isFirst ? group.modelName : '',
               row: row,
               rowKey: rowKey,
               isAlt: isAltGroup,
@@ -325,89 +323,10 @@ class _TableGroupBlock extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      height: totalHeight,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: rows,
-            ),
-          ),
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: IgnorePointer(
-              child: _MergedCell(
-                width: indexWidth,
-                label: groupIndex.toString(),
-                tooltip: groupIndex.toString(),
-              ),
-            ),
-          ),
-          Positioned(
-            left: indexWidth,
-            top: 0,
-            bottom: 0,
-            child: IgnorePointer(
-              child: _MergedCell(
-                width: modelWidth,
-                label: group.modelName,
-                tooltip: group.modelName,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MergedCell extends StatelessWidget {
-  const _MergedCell({
-    required this.width,
-    required this.label,
-    required this.tooltip,
-  });
-
-  final double width;
-  final String label;
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    if (label.isEmpty) {
-      return SizedBox(width: width);
-    }
-    final display = label;
-    final message = tooltip.isEmpty ? display : tooltip;
-
-    return SizedBox(
-      width: width,
-      child: Container(
-        height: double.infinity,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        color: Colors.transparent,
-        child: Tooltip(
-          message: message,
-          waitDuration: const Duration(milliseconds: 200),
-          child: Text(
-            display,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
     );
   }
 }
