@@ -387,7 +387,7 @@ class _TableRow extends StatelessWidget {
     final widths = columnWidths;
     var columnIndex = 0;
     final cells = <Widget>[];
-    cells.add(_GroupCell(
+    cells.add(_MergedCell(
       width: widths[columnIndex++],
       value: indexLabel,
       tooltip: indexLabel,
@@ -398,7 +398,7 @@ class _TableRow extends StatelessWidget {
       span: groupSize,
       rowIndex: groupRowIndex,
     ));
-    cells.add(_GroupCell(
+    cells.add(_MergedCell(
       width: widths[columnIndex++],
       value: modelLabel,
       tooltip: modelLabel,
@@ -551,8 +551,8 @@ class _ValueCell extends StatelessWidget {
   }
 }
 
-class _GroupCell extends StatelessWidget {
-  const _GroupCell({
+class _MergedCell extends StatelessWidget {
+  const _MergedCell({
     required this.width,
     required this.value,
     required this.tooltip,
@@ -605,9 +605,9 @@ class _GroupCell extends StatelessWidget {
               message: message,
               waitDuration: const Duration(milliseconds: 200),
               child: OverflowBox(
+                alignment: Alignment.topCenter,
                 minHeight: _rowHeight * span,
                 maxHeight: _rowHeight * span,
-                alignment: Alignment.center,
                 child: SizedBox(
                   height: _rowHeight * span,
                   child: Center(
