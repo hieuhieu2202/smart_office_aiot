@@ -372,7 +372,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       }
       return Scaffold(
         backgroundColor: _backgroundColor,
-        appBar: _buildAppBar(serial),
+        appBar: _buildAppBar(context, serial),
         body: SafeArea(
           top: false,
           child: Padding(
@@ -393,77 +393,95 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     });
   }
 
-  PreferredSizeWidget _buildAppBar(String serial) {
+  void _handleBackNavigation() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    final rootNavigator = Get.key.currentState;
+    if (rootNavigator?.canPop() ?? false) {
+      rootNavigator!.pop();
+    }
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, String serial) {
     final title = widget.title ?? '$serial TE Report';
     final range = controller.range;
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(68),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: _backgroundColor,
-          border: Border(bottom: BorderSide(color: _borderColor)),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: _textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        range,
-                        style: TextStyle(
-                          color: _textMuted.withOpacity(.8),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _AppBarActionButton(
-                  label: 'FILTER',
-                  icon: Icons.tune,
-                  onTap: _openFilterPanel,
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: _accentCyan,
-                  borderColor: _accentCyan.withOpacity(.7),
-                ),
-                const SizedBox(width: 10),
-                _AppBarActionButton(
-                  label: 'EXPORT',
-                  icon: Icons.file_download_outlined,
-                  onTap: () => _exportCsv(controller.filteredData),
-                  backgroundColor: const Color(0xFF16A34A),
-                  foregroundColor: Colors.white,
-                ),
-                const SizedBox(width: 10),
-                _AppBarActionButton(
-                  label: 'QUERY',
-                  icon: Icons.search,
-                  onTap: () => controller.fetchData(force: true),
-                  backgroundColor: const Color(0xFF8B5CF6),
-                  foregroundColor: Colors.white,
-                ),
-              ],
-            ),
-          ),
+    return AppBar(
+      backgroundColor: _backgroundColor,
+      elevation: 0,
+      automaticallyImplyLeading: false,
+      toolbarHeight: 72,
+      leadingWidth: 48,
+      titleSpacing: 0,
+      centerTitle: false,
+      shape: const Border(bottom: BorderSide(color: _borderColor)),
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 8),
+        child: IconButton(
+          onPressed: _handleBackNavigation,
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _accentCyan),
         ),
       ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: _textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            range,
+            style: TextStyle(
+              color: _textMuted.withOpacity(.8),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _AppBarActionButton(
+                label: 'FILTER',
+                icon: Icons.tune,
+                onTap: _openFilterPanel,
+                backgroundColor: Colors.transparent,
+                foregroundColor: _accentCyan,
+                borderColor: _accentCyan.withOpacity(.7),
+              ),
+              const SizedBox(width: 10),
+              _AppBarActionButton(
+                label: 'EXPORT',
+                icon: Icons.file_download_outlined,
+                onTap: () => _exportCsv(controller.filteredData),
+                backgroundColor: const Color(0xFF16A34A),
+                foregroundColor: Colors.white,
+              ),
+              const SizedBox(width: 10),
+              _AppBarActionButton(
+                label: 'QUERY',
+                icon: Icons.search,
+                onTap: () => controller.fetchData(force: true),
+                backgroundColor: const Color(0xFF8B5CF6),
+                foregroundColor: Colors.white,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

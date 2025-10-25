@@ -148,19 +148,13 @@ class TEErrorDetail {
   });
 
   factory TEErrorDetail.fromJson(Map<String, dynamic> json) {
-    List<dynamic> _readList(String key) {
-      final raw = json[key];
-      if (raw is List) return raw;
-      return const [];
-    }
-
     return TEErrorDetail(
-      byErrorCode: _readList('ByErrorCode')
+      byErrorCode: _readListInsensitive(json, 'ByErrorCode')
           .map((item) => TEErrorDetailCluster.fromDynamicList(item))
           .where((cluster) => cluster != null)
           .map((cluster) => cluster!)
           .toList(),
-      byMachine: _readList('ByMachine')
+      byMachine: _readListInsensitive(json, 'ByMachine')
           .map((item) => TEErrorDetailCluster.fromDynamicList(item))
           .where((cluster) => cluster != null)
           .map((cluster) => cluster!)
@@ -186,19 +180,24 @@ class TEErrorDetailCluster {
       return const TEErrorDetailCluster(label: '', totalFail: 0, breakdowns: []);
     }
     final head = maps.first;
-    final label = _string(head['ERROR_CODE']) ?? _string(head['MACHINE_NAME']) ?? '';
-    final total = _int(head['FAIL_QTY']);
+    final label =
+        _string(_lookupInsensitive(head, 'ERROR_CODE')) ??
+        _string(_lookupInsensitive(head, 'MACHINE_NAME')) ??
+        '';
+    final total = _int(_lookupInsensitive(head, 'FAIL_QTY'));
     final breakdowns = <TEErrorDetailBreakdown>[];
     for (final map in maps.skip(1)) {
       final breakdownLabel =
-          _string(map['MACHINE_NAME']) ?? _string(map['ERROR_CODE']) ?? '';
+          _string(_lookupInsensitive(map, 'MACHINE_NAME')) ??
+          _string(_lookupInsensitive(map, 'ERROR_CODE')) ??
+          '';
       if (breakdownLabel.isEmpty) {
         continue;
       }
       breakdowns.add(
         TEErrorDetailBreakdown(
           label: breakdownLabel,
-          failQty: _int(map['FAIL_QTY']),
+          failQty: _int(_lookupInsensitive(map, 'FAIL_QTY')),
         ),
       );
     }
@@ -248,4 +247,32 @@ String? _string(dynamic value) {
   if (value == null) return null;
   if (value is String) return value;
   return value.toString();
+}
+
+List<dynamic> _readListInsensitive(Map<String, dynamic> json, String key) {
+  final direct = json[key];
+  if (direct is List) return direct;
+  final lowerKey = key.toLowerCase();
+  for (final entry in json.entries) {
+    if (entry.key.toLowerCase() == lowerKey) {
+      final value = entry.value;
+      if (value is List) {
+        return value;
+      }
+    }
+  }
+  return const [];
+}
+
+dynamic _lookupInsensitive(Map<String, dynamic> map, String key) {
+  if (map.containsKey(key)) {
+    return map[key];
+  }
+  final lowerKey = key.toLowerCase();
+  for (final entry in map.entries) {
+    if (entry.key.toLowerCase() == lowerKey) {
+      return entry.value;
+    }
+  }
+  return null;
 }
