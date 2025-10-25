@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -52,6 +54,7 @@ class LcrDashboardController extends GetxController {
   final RxString selectedStatus = 'ALL'.obs;
   final Rx<DateTimeRange> selectedDateRange =
       Rx<DateTimeRange>(_defaultDateRange());
+  Timer? _midnightReset;
 
   final RxList<LcrRecord> trackingRecords = <LcrRecord>[].obs;
   final Rxn<LcrDashboardViewState> dashboardView = Rxn<LcrDashboardViewState>();
@@ -66,7 +69,15 @@ class LcrDashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _applyDefaultShift();
+    _scheduleMidnightReset();
     loadInitial();
+  }
+
+  @override
+  void onClose() {
+    _midnightReset?.cancel();
+    super.onClose();
   }
 
   Future<void> loadInitial() async {
@@ -163,6 +174,21 @@ class LcrDashboardController extends GetxController {
 
   void updateDateRange(DateTimeRange range) {
     selectedDateRange.value = range;
+  }
+
+  void _applyDefaultShift() {
+    selectedDateRange.value = _defaultDateRange();
+  }
+
+  void _scheduleMidnightReset() {
+    _midnightReset?.cancel();
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final duration = tomorrow.difference(now);
+    _midnightReset = Timer(duration, () {
+      _applyDefaultShift();
+      _scheduleMidnightReset();
+    });
   }
 
   static DateTimeRange _defaultDateRange() {

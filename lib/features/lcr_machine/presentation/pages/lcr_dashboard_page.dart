@@ -259,10 +259,17 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
         final hours = List<int>.generate(24, (index) => index);
         const minutes = [0, 30];
 
-        int startHour = pickedDates.start.hour;
-        int startMinute = pickedDates.start.minute >= 30 ? 30 : 0;
-        int endHour = pickedDates.end.hour;
-        int endMinute = pickedDates.end.minute >= 30 ? 30 : 0;
+        int startHour = initialRange.start.hour;
+        int startMinute = initialRange.start.minute >= 30 ? 30 : 0;
+        int endHour = initialRange.end.hour;
+        int endMinute = initialRange.end.minute >= 30 ? 30 : 0;
+
+        if (startHour == 0 && startMinute == 0 && endHour == 0 && endMinute == 0) {
+          startHour = 7;
+          startMinute = 30;
+          endHour = 19;
+          endMinute = 30;
+        }
 
         return StatefulBuilder(
           builder: (context, setState) {
