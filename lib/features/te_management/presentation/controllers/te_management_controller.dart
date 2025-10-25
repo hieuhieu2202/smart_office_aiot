@@ -264,7 +264,6 @@ class TEManagementController extends GetxController {
       row.totalPass.toString(),
       row.fpr.toStringAsFixed(2),
       row.spr.toStringAsFixed(2),
-      row.yr.toStringAsFixed(2),
       row.rr.toStringAsFixed(2),
     ];
     return values.any((value) => value.toLowerCase().contains(query));

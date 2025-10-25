@@ -724,8 +724,6 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
         return 'First Pass Rate';
       case TERateType.spr:
         return 'Second Pass Rate';
-      case TERateType.yr:
-        return 'Yield Rate';
       case TERateType.rr:
         return 'Retest Rate';
     }

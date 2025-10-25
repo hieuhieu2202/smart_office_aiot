@@ -19,7 +19,7 @@ const Color _successGreen = Color(0xFF4CAF50);
 const Color _highlight = Color(0x332B7FFF);
 const double _rowHeight = 48;
 
-enum TERateType { fpr, spr, yr, rr }
+enum TERateType { fpr, spr, rr }
 
 class TEStatusTable extends StatelessWidget {
   const TEStatusTable({
@@ -45,7 +45,6 @@ class TEStatusTable extends StatelessWidget {
     _ColumnDef('TOTAL PASS', minWidth: 110, flex: 1.1),
     _ColumnDef('F.P.R', minWidth: 110, flex: 1.1),
     _ColumnDef('S.P.R', minWidth: 110, flex: 1.1),
-    _ColumnDef('Y.R', minWidth: 110, flex: 1.1),
     _ColumnDef('R.R', minWidth: 110, flex: 1.1),
   ];
 
@@ -117,7 +116,6 @@ class TEStatusTable extends StatelessWidget {
                                     final isFirst = i == 0;
                                     final displayIndex = isFirst ? groupIndex.toString() : '';
                                     final displayModel = isFirst ? group.modelName : '';
-                                    final isLast = i == group.rowKeys.length - 1;
                                     final isAlt = rowCounter % 2 == 1;
                                     rowCounter++;
 
@@ -139,7 +137,7 @@ class TEStatusTable extends StatelessWidget {
                                             rowKey: rowKey,
                                             isAlt: isAlt,
                                             isFirstInGroup: isFirst,
-                                            isLastInGroup: isLast,
+                                            groupSpan: group.rowKeys.length,
                                             lastUpdated: updatedAt,
                                             onRateTap: onRateTap,
                                           );
@@ -242,7 +240,7 @@ class _TableRow extends StatelessWidget {
     required this.rowKey,
     required this.isAlt,
     required this.isFirstInGroup,
-    required this.isLastInGroup,
+    required this.groupSpan,
     required this.lastUpdated,
     required this.onRateTap,
   });
@@ -254,7 +252,7 @@ class _TableRow extends StatelessWidget {
   final String rowKey;
   final bool isAlt;
   final bool isFirstInGroup;
-  final bool isLastInGroup;
+  final int groupSpan;
   final DateTime? lastUpdated;
   final void Function(String rowKey, TERateType type) onRateTap;
 
@@ -271,16 +269,17 @@ class _TableRow extends StatelessWidget {
       ),
       duration: const Duration(milliseconds: 600),
       builder: (context, color, child) {
+        final resolvedColor = color ?? background;
         return Container(
           height: _rowHeight,
-          color: color,
-          child: Row(children: _buildCells()),
+          color: resolvedColor,
+          child: Row(children: _buildCells(resolvedColor)),
         );
       },
     );
   }
 
-  List<Widget> _buildCells() {
+  List<Widget> _buildCells(Color backgroundColor) {
     final widths = columnWidths;
     var columnIndex = 0;
     final cells = <Widget>[];
@@ -289,14 +288,16 @@ class _TableRow extends StatelessWidget {
       value: indexLabel,
       tooltip: indexLabel,
       isFirst: isFirstInGroup,
-      isLast: isLastInGroup,
+      span: groupSpan,
+      background: backgroundColor,
     ));
     cells.add(_GroupCell(
       width: widths[columnIndex++],
       value: modelLabel,
       tooltip: modelLabel,
       isFirst: isFirstInGroup,
-      isLast: isLastInGroup,
+      span: groupSpan,
+      background: backgroundColor,
     ));
     cells.add(_ValueCell(
       width: widths[columnIndex++],
@@ -315,7 +316,6 @@ class _TableRow extends StatelessWidget {
       _numericCell(widths[columnIndex++], row.totalPass),
       _rateCell(widths[columnIndex++], row.fpr, TERateType.fpr),
       _rateCell(widths[columnIndex++], row.spr, TERateType.spr),
-      _rateCell(widths[columnIndex++], row.yr, TERateType.yr),
       _rateCell(widths[columnIndex++], row.rr, TERateType.rr),
     ]);
 
@@ -377,7 +377,6 @@ class _TableRow extends StatelessWidget {
     switch (type) {
       case TERateType.fpr:
       case TERateType.spr:
-      case TERateType.yr:
         if (value <= 90) {
           return const _RateStyle(_dangerRed, Colors.white);
         }
@@ -448,49 +447,70 @@ class _GroupCell extends StatelessWidget {
     required this.value,
     required this.tooltip,
     required this.isFirst,
-    required this.isLast,
+    required this.span,
+    required this.background,
   });
 
   final double width;
   final String value;
   final String tooltip;
   final bool isFirst;
-  final bool isLast;
+  final int span;
+  final Color background;
 
   @override
   Widget build(BuildContext context) {
+    if (!isFirst) {
+      return IgnorePointer(
+        ignoring: true,
+        child: Container(
+          width: width,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            border: Border(
+              right: BorderSide(color: _tableBorder, width: 1),
+            ),
+          ),
+        ),
+      );
+    }
+
     final display = value.isEmpty ? '-' : value;
-    final borderBottom = isLast
-        ? const BorderSide(color: _tableBorder, width: 1)
-        : BorderSide.none;
-    return Container(
-      width: width,
-      height: double.infinity,
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          right: const BorderSide(color: _tableBorder, width: 1),
-          bottom: borderBottom,
+    final message = tooltip.isEmpty ? '-' : tooltip;
+    final totalHeight = _rowHeight * math.max(span, 1);
+    return OverflowBox(
+      minHeight: _rowHeight,
+      maxHeight: totalHeight,
+      alignment: Alignment.topCenter,
+      child: Container(
+        width: width,
+        height: totalHeight,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: background,
+          border: const Border(
+            top: BorderSide(color: _tableBorder, width: 1),
+            right: BorderSide(color: _tableBorder, width: 1),
+            bottom: BorderSide(color: _tableBorder, width: 1),
+          ),
+        ),
+        child: Tooltip(
+          message: message,
+          waitDuration: const Duration(milliseconds: 200),
+          child: Text(
+            display,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: display == '-' ? _textMuted : _textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
-      child: isFirst
-          ? Tooltip(
-              message: tooltip.isEmpty ? '-' : tooltip,
-              waitDuration: const Duration(milliseconds: 200),
-              child: Text(
-                display,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: display == '-' ? _textMuted : _textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            )
-          : const SizedBox.shrink(),
     );
   }
 }
