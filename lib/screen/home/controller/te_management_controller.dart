@@ -184,6 +184,15 @@ class TEManagementController extends GetxController {
     model.value = '';
   }
 
+  Future<TEErrorDetail?> fetchErrorDetail({required TEReportRow row}) {
+    return TEManagementApi.fetchErrorDetail(
+      modelSerial: modelSerial.value,
+      rangeDateTime: range,
+      model: row.modelName,
+      group: row.groupName,
+    );
+  }
+
   List<String> get selectedModelList {
     final unique = LinkedHashSet<String>.from(selectedModels);
     return unique.toList();

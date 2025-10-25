@@ -10,7 +10,6 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 import '../../../../model/te_management/te_report_models.dart';
 import '../../../../widget/animation/loading/eva_loading_view.dart';
 import '../../controller/te_management_controller.dart';
-import '../../../../service/te_management_api.dart';
 
 const Color _backgroundColor = Color(0xFF050F1F);
 const Color _surfaceColor = Color(0xFF111F34);
@@ -507,7 +506,6 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
           alignment: Alignment.centerRight,
           child: _FilterDrawer(
             controller: controller,
-            initialModelSerial: widget.initialModelSerial,
             onClose: () => Navigator.of(context).pop(),
             onPickDateRange: _pickDateRange,
             onOpenModelSelector: _openModelSelector,
@@ -566,12 +564,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   }
 
   Future<void> _showRateDetail(TEReportRow row, RateType type) async {
-    final future = TEManagementApi.fetchErrorDetail(
-      modelSerial: controller.modelSerial.value,
-      rangeDateTime: controller.range,
-      model: row.modelName,
-      group: row.groupName,
-    );
+    final future = controller.fetchErrorDetail(row: row);
 
     await showDialog<void>(
       context: context,
@@ -1014,7 +1007,6 @@ class _AppBarActionButton extends StatelessWidget {
 class _FilterDrawer extends StatelessWidget {
   const _FilterDrawer({
     required this.controller,
-    required this.initialModelSerial,
     required this.onClose,
     required this.onPickDateRange,
     required this.onOpenModelSelector,
@@ -1023,7 +1015,6 @@ class _FilterDrawer extends StatelessWidget {
   });
 
   final TEManagementController controller;
-  final String initialModelSerial;
   final VoidCallback onClose;
   final Future<void> Function() onPickDateRange;
   final Future<void> Function() onOpenModelSelector;
@@ -1059,12 +1050,6 @@ class _FilterDrawer extends StatelessWidget {
           child: Obx(() {
             final selectedCount = controller.selectedModelList.length;
             final range = controller.range;
-            final serialOptions = <String>{
-              'ADAPTER',
-              'SWITCH',
-              controller.modelSerial.value,
-              if (initialModelSerial.isNotEmpty) initialModelSerial,
-            }.where((element) => element.isNotEmpty).toList();
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1148,37 +1133,6 @@ class _FilterDrawer extends StatelessWidget {
                                 onPressed: controller.clearSelectedModels,
                               ),
                             ],
-                          ),
-                        if (selectedCount > 0) const SizedBox(height: 24),
-                        _ToolbarField(
-                          label: 'Model serial',
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF162741),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: _borderColor),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: controller.modelSerial.value,
-                                dropdownColor: _surfaceColor,
-                                iconEnabledColor: _textPrimary,
-                                style: const TextStyle(color: _textPrimary),
-                                items: serialOptions
-                                    .map((item) => DropdownMenuItem(
-                                          value: item,
-                                          child: Text(item),
-                                        ))
-                                    .toList(),
-                                onChanged: (value) {
-                                  if (value != null) {
-                                    controller.modelSerial.value = value;
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
                         ),
                         const SizedBox(height: 24),
                         TextButton.icon(
