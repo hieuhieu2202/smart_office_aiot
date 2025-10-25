@@ -935,19 +935,21 @@ class _ChartCanvas extends StatelessWidget {
       },
     );
 
+    final lineColor = gradient.colors.last;
     final splineSeries = SplineSeries<_ChartPoint, String>(
       dataSource: points,
       xValueMapper: (point, _) => point.label,
       yValueMapper: (point, _) => point.value,
-      color: Colors.white.withOpacity(0.85),
+      color: lineColor.withOpacity(0.75),
       width: 2.5,
-      markerSettings: const MarkerSettings(
+      markerSettings: MarkerSettings(
         isVisible: true,
         shape: DataMarkerType.circle,
-        width: 8,
-        height: 8,
+        width: 9,
+        height: 9,
         borderWidth: 2,
-        borderColor: Colors.black,
+        borderColor: Colors.white.withOpacity(0.9),
+        color: lineColor,
       ),
     );
 
@@ -1016,19 +1018,21 @@ class _BreakdownChart extends StatelessWidget {
       gradient: gradient,
     );
 
+    final lineColor = gradient.colors.last;
     final splineSeries = SplineSeries<_BreakdownPoint, String>(
       dataSource: points,
       xValueMapper: (point, _) => point.label,
       yValueMapper: (point, _) => point.value,
-      color: Colors.white.withOpacity(0.85),
+      color: lineColor.withOpacity(0.75),
       width: 2.5,
-      markerSettings: const MarkerSettings(
+      markerSettings: MarkerSettings(
         isVisible: true,
         shape: DataMarkerType.circle,
-        width: 8,
-        height: 8,
+        width: 9,
+        height: 9,
         borderWidth: 2,
-        borderColor: Colors.black,
+        borderColor: Colors.white.withOpacity(0.9),
+        color: lineColor,
       ),
     );
 
