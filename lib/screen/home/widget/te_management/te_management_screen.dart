@@ -371,18 +371,18 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       }
       return Scaffold(
         backgroundColor: _backgroundColor,
+        appBar: _buildAppBar(serial),
         body: SafeArea(
+          top: false,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(serial),
-                const SizedBox(height: 16),
                 _buildSearchField(),
                 const SizedBox(height: 12),
                 _buildSelectedChips(),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
                 Expanded(child: _buildTableCard(groups)),
               ],
             ),
@@ -392,61 +392,77 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     });
   }
 
-  Widget _buildHeader(String serial) {
+  PreferredSizeWidget _buildAppBar(String serial) {
     final title = widget.title ?? '$serial TE Report';
     final range = controller.range;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: _textPrimary,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(68),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: _backgroundColor,
+          border: Border(bottom: BorderSide(color: _borderColor)),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: _textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        range,
+                        style: TextStyle(
+                          color: _textMuted.withOpacity(.8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                range,
-                style: TextStyle(
-                  color: _textMuted.withOpacity(.85),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                _AppBarActionButton(
+                  label: 'FILTER',
+                  icon: Icons.tune,
+                  onTap: _openFilterPanel,
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: _accentCyan,
+                  borderColor: _accentCyan.withOpacity(.7),
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+                _AppBarActionButton(
+                  label: 'EXPORT',
+                  icon: Icons.file_download_outlined,
+                  onTap: () => _exportCsv(controller.filteredData),
+                  backgroundColor: const Color(0xFF16A34A),
+                  foregroundColor: Colors.white,
+                ),
+                const SizedBox(width: 10),
+                _AppBarActionButton(
+                  label: 'QUERY',
+                  icon: Icons.search,
+                  onTap: () => controller.fetchData(force: true),
+                  backgroundColor: const Color(0xFF8B5CF6),
+                  foregroundColor: Colors.white,
+                ),
+              ],
+            ),
           ),
         ),
-        _HeaderActionButton(
-          label: 'FILTER',
-          icon: Icons.tune,
-          onTap: _openFilterPanel,
-          backgroundColor: Colors.transparent,
-          foregroundColor: _accentCyan,
-          borderColor: _accentCyan.withOpacity(.6),
-        ),
-        const SizedBox(width: 12),
-        _HeaderActionButton(
-          label: 'EXPORT',
-          icon: Icons.file_download_outlined,
-          onTap: () => _exportCsv(controller.filteredData),
-          backgroundColor: const Color(0xFF16A34A),
-          foregroundColor: Colors.white,
-        ),
-        const SizedBox(width: 12),
-        _HeaderActionButton(
-          label: 'QUERY',
-          icon: Icons.search,
-          onTap: () => controller.fetchData(force: true),
-          backgroundColor: const Color(0xFF8B5CF6),
-          foregroundColor: Colors.white,
-        ),
-      ],
+      ),
     );
   }
 
@@ -948,8 +964,8 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   }
 }
 
-class _HeaderActionButton extends StatelessWidget {
-  const _HeaderActionButton({
+class _AppBarActionButton extends StatelessWidget {
+  const _AppBarActionButton({
     required this.label,
     required this.icon,
     required this.onTap,
@@ -967,34 +983,29 @@ class _HeaderActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(14);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: radius,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: radius,
-            border: Border.all(color: borderColor ?? Colors.transparent),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: foregroundColor, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: foregroundColor,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
+    return TextButton.icon(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        backgroundColor: backgroundColor,
+        foregroundColor: foregroundColor,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        minimumSize: const Size(0, 38),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: borderColor != null
+              ? BorderSide(color: borderColor!)
+              : BorderSide.none,
+        ),
+      ),
+      icon: Icon(icon, size: 18, color: foregroundColor),
+      label: Text(
+        label,
+        style: TextStyle(
+          color: foregroundColor,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
         ),
       ),
     );

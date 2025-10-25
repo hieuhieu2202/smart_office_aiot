@@ -31,8 +31,20 @@ class TEReportRow {
       return double.tryParse(value?.toString() ?? '') ?? 0;
     }
 
-    final groupName = (map['GROUP_NAME'] ?? '').toString();
-    final modelName = (map['MODEL_NAME'] ?? '').toString();
+    String _readString(String key) {
+      final value = map[key];
+      if (value == null) return '';
+      return value.toString();
+    }
+
+    final groupName = (_readString('GROUP_NAME').isNotEmpty
+            ? _readString('GROUP_NAME')
+            : _readString('group_name'))
+        .trim();
+    final modelName = (_readString('MODEL_NAME').isNotEmpty
+            ? _readString('MODEL_NAME')
+            : _readString('model_name'))
+        .trim();
 
     return TEReportRow(
       modelName: modelName,

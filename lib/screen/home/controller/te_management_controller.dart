@@ -64,7 +64,10 @@ class TEManagementController extends GetxController {
       } catch (_) {}
     }
 
-    final serial = modelSerial.value;
+    final serial = modelSerial.value.trim().isEmpty
+        ? 'SWITCH'
+        : modelSerial.value.trim().toUpperCase();
+    modelSerial.value = serial;
     final selectedFilter = selectedModelsFilter;
     final modelName = selectedFilter.isNotEmpty ? selectedFilter : model.value;
     final requestRange = range;
@@ -77,23 +80,49 @@ class TEManagementController extends GetxController {
       try {
         isLoading.value = true;
         error.value = '';
-        final res = await TEManagementApi.fetchTableDetail(
+        final rawRows = await TEManagementApi.fetchTableDetail(
           rangeDateTime: requestRange,
           modelSerial: serial,
           model: modelName,
         );
-        final parsed = res
-            .where((group) => group.isNotEmpty)
-            .map((group) => TEReportGroup.fromMaps(group))
-            .where((group) => group.hasData)
-            .toList();
+        final rows =
+            rawRows.map((map) => TEReportRow.fromMap(map)).toList();
+
+        final Map<String, List<TEReportRow>> grouped = {};
+        for (final row in rows) {
+          final key = row.modelName.trim().isEmpty
+              ? '(N/A)'
+              : row.modelName.trim();
+          grouped.putIfAbsent(key, () => []).add(row);
+        }
+
+        final parsed = grouped.entries.map((entry) {
+          final sortedRows = List<TEReportRow>.from(entry.value)
+            ..sort((a, b) => a.groupName.compareTo(b.groupName));
+          return TEReportGroup(modelName: entry.key, rows: sortedRows);
+        }).toList()
+          ..sort((a, b) => a.modelName.compareTo(b.modelName));
+
         data.value = parsed;
-        final names = parsed
+
+        var names = parsed
             .map((group) => group.modelName.trim())
             .where((name) => name.isNotEmpty)
             .toSet()
             .toList()
           ..sort();
+
+        try {
+          final remote = await TEManagementApi.fetchModelNames(
+            modelSerial: serial,
+          );
+          if (remote.isNotEmpty) {
+            names = {...names, ...remote}.toList()..sort();
+          }
+        } catch (e) {
+          print('>> [TEManagement] Failed to fetch model names: $e');
+        }
+
         availableModels.assignAll(names);
         if (selectedModels.isNotEmpty) {
           final filteredSelection = LinkedHashSet<String>.from(selectedModels)
@@ -104,7 +133,7 @@ class TEManagementController extends GetxController {
         stopwatch.stop();
         print(
           '>> [TEManagement] Fetch success serial=$serial model="$modelName" range="$requestRange" '
-          'groups=${res.length} elapsed=${stopwatch.elapsedMilliseconds}ms',
+          'rows=${rawRows.length} groups=${parsed.length} elapsed=${stopwatch.elapsedMilliseconds}ms',
         );
       } catch (e, stack) {
         stopwatch.stop();
