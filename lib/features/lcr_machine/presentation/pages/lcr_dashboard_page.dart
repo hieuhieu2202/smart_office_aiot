@@ -244,30 +244,40 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (controller.isLoading.value && controller.dashboardView.value == null) {
-        return const Center(
-          child: CircularProgressIndicator(color: Colors.cyanAccent),
-        );
-      }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Obx(() {
+          if (controller.isLoading.value &&
+              controller.dashboardView.value == null) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.cyanAccent),
+            );
+          }
 
-      final data = controller.dashboardView.value;
-      if (data == null) {
-        return Center(
-          child: Text(
-            controller.error.value ?? 'No data available',
-            style: const TextStyle(color: Colors.white70),
-          ),
-        );
-      }
+          final data = controller.dashboardView.value;
+          if (data == null) {
+            return Center(
+              child: Text(
+                controller.error.value ?? 'No data available',
+                style: const TextStyle(color: Colors.white70),
+              ),
+            );
+          }
 
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            _SummaryRow(overview: data.overview),
-            const SizedBox(height: 24),
-            Row(
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+            child: SingleChildScrollView(
+              primary: false,
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SummaryRow(overview: data.overview),
+                    const SizedBox(height: 24),
+                    Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
@@ -350,11 +360,15 @@ class _DashboardTab extends StatelessWidget {
                   ),
                 ),
               ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
-      );
-    });
+          );
+        });
+      },
+    );
   }
 }
 
@@ -672,19 +686,24 @@ class _AnalysisTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: SizedBox(
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+            child: Row(
               children: [
-                TextField(
-                  controller: searchController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                          controller: searchController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
                     hintText: 'Serial Number Search',
                     hintStyle: const TextStyle(color: Colors.white54),
                     prefixIcon: const Icon(Icons.search, color: Colors.cyanAccent),
@@ -701,61 +720,67 @@ class _AnalysisTab extends StatelessWidget {
                   ),
                   onChanged: controller.searchSerial,
                 ),
-                const SizedBox(height: 16),
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: Obx(() {
+                          final RxList<LcrRecord> reactiveList =
+                              controller.serialSearchResults.isNotEmpty
+                                  ? controller.serialSearchResults
+                                  : controller.analysisRecords;
+                          final results = reactiveList.toList();
+                          if (controller.isSearching.value) {
+                            return const Center(
+                              child:
+                                  CircularProgressIndicator(color: Colors.cyanAccent),
+                            );
+                          }
+                          if (results.isEmpty) {
+                            return const Center(
+                              child: Text('No serial numbers',
+                                  style: TextStyle(color: Colors.white54)),
+                            );
+                          }
+                          return ListView.separated(
+                            itemCount: results.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final record = results[index];
+                              return _ResultTile(
+                                record: record,
+                                onTap: () => controller.selectRecord(record.id),
+                              );
+                            },
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
                 Expanded(
+                  flex: 5,
                   child: Obx(() {
-                    final RxList<LcrRecord> reactiveList =
-                        controller.serialSearchResults.isNotEmpty
-                            ? controller.serialSearchResults
-                            : controller.analysisRecords;
-                    final results = reactiveList.toList();
-                    if (controller.isSearching.value) {
+                    if (controller.isLoadingRecord.value) {
                       return const Center(
                         child: CircularProgressIndicator(color: Colors.cyanAccent),
                       );
                     }
-                    if (results.isEmpty) {
+                    final record = controller.selectedRecord.value;
+                    if (record == null) {
                       return const Center(
-                        child: Text('No serial numbers', style: TextStyle(color: Colors.white54)),
+                        child: Text('Select a record to view details',
+                            style: TextStyle(color: Colors.white54)),
                       );
                     }
-                    return ListView.separated(
-                      itemCount: results.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final record = results[index];
-                        return _ResultTile(
-                          record: record,
-                          onTap: () => controller.selectRecord(record.id),
-                        );
-                      },
-                    );
+                    return LcrRecordDetail(record: record);
                   }),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 24),
-          Expanded(
-            flex: 5,
-            child: Obx(() {
-              if (controller.isLoadingRecord.value) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.cyanAccent),
-                );
-              }
-              final record = controller.selectedRecord.value;
-              if (record == null) {
-                return const Center(
-                  child: Text('Select a record to view details',
-                      style: TextStyle(color: Colors.white54)),
-                );
-              }
-              return LcrRecordDetail(record: record);
-            }),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
