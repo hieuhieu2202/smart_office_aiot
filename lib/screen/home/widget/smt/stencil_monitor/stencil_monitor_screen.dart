@@ -536,7 +536,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               ],
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           if (total == 0)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -705,7 +705,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     );
 
     final filtered = _filterLineTrackingData(data, _lineTrackingQuery);
-    final top = filtered.take(8).toList();
+    final previewCount = _preferredLineTrackingPreviewCount(context);
+    final top = filtered.take(previewCount).toList();
     final maxHours = top.fold<double>(0, (max, item) => item.hours > max ? item.hours : max);
     final normalizedMax = maxHours <= 0 ? 1.0 : maxHours + 0.5;
     final query = _lineTrackingQuery.trim();
@@ -766,7 +767,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
@@ -779,15 +780,15 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
           ),
           if (filtered.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.only(top: 4),
               child: Text(
                 hasQuery
                     ? 'Showing ${top.length} of ${filtered.length} matches for "$query"'
-                    : 'Top ${math.min(top.length, data.length)} of ${data.length} active lines by runtime',
+                    : 'Top ${top.length} of ${data.length} active lines by runtime',
                 style: metaStyle,
               ),
             ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           if (top.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 18),
@@ -845,6 +846,15 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     );
   }
 
+  int _preferredLineTrackingPreviewCount(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (width >= 1600) return 7;
+    if (width >= 1280) return 6;
+    if (width >= 1024) return 5;
+    if (width >= 720) return 4;
+    return 3;
+  }
+
   Widget _buildLineProgressRow(
     _LineTrackingDatum item,
     double maxHours, {
@@ -876,8 +886,8 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
 
     final radius = BorderRadius.circular(16);
     final content = Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         borderRadius: radius,
         border: Border.all(color: _lineHoursColor(item.hours).withOpacity(0.4)),
@@ -907,7 +917,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               Text('$formattedHours h', style: valueStyle),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
@@ -917,7 +927,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
               backgroundColor: _lineHoursColor(item.hours).withOpacity(0.18),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Text(
             '${item.location} • ${_dateFormat.format(item.startTime)}',
             style: metaStyle,
