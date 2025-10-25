@@ -133,150 +133,191 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   void _openFilterSheet() {
     final initialSelection = _controller.selectedModels.toList();
     final available = _controller.availableModels.toList();
-    showModalBottomSheet<void>(
+    final media = MediaQuery.of(context);
+    final isWide = media.size.width > 640;
+    final panelWidth = isWide ? math.min(420.0, media.size.width * 0.38) : media.size.width;
+
+    showGeneralDialog<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
+      barrierDismissible: true,
+      barrierLabel: 'Filters',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 260),
+      pageBuilder: (context, animation, secondaryAnimation) {
         final selected = LinkedHashSet<String>.from(initialSelection);
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: kTeSurfaceColor,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  border: Border.all(color: const Color(0xFF1F3A5F)),
-                ),
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Filters',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ) ??
-                                const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 20,
+        return Align(
+          alignment: Alignment.centerRight,
+          child: Material(
+            color: Colors.transparent,
+            child: SafeArea(
+              child: SizedBox(
+                width: panelWidth,
+                height: media.size.height,
+                child: StatefulBuilder(
+                  builder: (context, setState) {
+                    final allChecked = available.isNotEmpty && selected.length == available.length;
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: kTeSurfaceColor,
+                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+                        border: Border.all(color: const Color(0xFF1F3A5F)),
+                      ),
+                      padding: EdgeInsets.fromLTRB(20, 20, 20, 16 + media.viewInsets.bottom),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Filters',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ) ??
+                                      const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 20,
+                                      ),
                                 ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close, color: Colors.white),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ListTile(
-                      onTap: _pickDateRange,
-                      tileColor: const Color(0xFF10213A),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Color(0xFF1F3A5F)),
-                      ),
-                      title: const Text(
-                        'Date range',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Obx(
-                        () => Text(
-                          _controller.rangeLabel,
-                          style: const TextStyle(color: Color(0xFF9AB3CF)),
-                        ),
-                      ),
-                      trailing: const Icon(Icons.calendar_today, color: Colors.white70),
-                    ),
-                    const SizedBox(height: 20),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Models',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.4,
-                      child: available.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'No models available',
-                                style: TextStyle(color: Color(0xFF9AB3CF)),
                               ),
-                            )
-                          : ListView.builder(
-                              itemCount: available.length,
-                              itemBuilder: (context, index) {
-                                final model = available[index];
-                                final checked = selected.contains(model);
-                                return CheckboxListTile(
-                                  value: checked,
-                                  title: Text(
-                                    model,
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                  controlAffinity: ListTileControlAffinity.leading,
-                                  activeColor: kTeAccentColor,
-                                  onChanged: (value) {
+                              IconButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.close, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          ListTile(
+                            onTap: _pickDateRange,
+                            tileColor: const Color(0xFF10213A),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: Color(0xFF1F3A5F)),
+                            ),
+                            title: const Text(
+                              'Date range',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Obx(
+                              () => Text(
+                                _controller.rangeLabel,
+                                style: const TextStyle(color: Color(0xFF9AB3CF)),
+                              ),
+                            ),
+                            trailing: const Icon(Icons.calendar_today, color: Colors.white70),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Models',
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ),
+                              if (available.isNotEmpty)
+                                TextButton(
+                                  onPressed: () {
                                     setState(() {
-                                      if (value == true) {
-                                        selected.add(model);
+                                      if (selected.length == available.length) {
+                                        selected.clear();
                                       } else {
-                                        selected.remove(model);
+                                        selected
+                                          ..clear()
+                                          ..addAll(available);
                                       }
                                     });
                                   },
-                                );
-                              },
-                            ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setState(() {
-                                selected.clear();
-                              });
-                              _controller.applyFilters(clearModels: true);
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text('Clear'),
+                                  child: Text(
+                                    allChecked ? 'Clear all' : 'Select all',
+                                    style: const TextStyle(color: kTeAccentColor, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: kTeAccentColor),
-                            onPressed: () {
-                              _controller.applyFilters(models: selected.toList());
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text('Apply'),
+                          const SizedBox(height: 12),
+                          Expanded(
+                            child: available.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'No models available',
+                                      style: TextStyle(color: Color(0xFF9AB3CF)),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    itemCount: available.length,
+                                    itemBuilder: (context, index) {
+                                      final model = available[index];
+                                      final checked = selected.contains(model);
+                                      return CheckboxListTile(
+                                        value: checked,
+                                        title: Text(
+                                          model,
+                                          style: const TextStyle(color: Colors.white),
+                                        ),
+                                        controlAffinity: ListTileControlAffinity.leading,
+                                        activeColor: kTeAccentColor,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            if (value == true) {
+                                              selected.add(model);
+                                            } else {
+                                              selected.remove(model);
+                                            }
+                                          });
+                                        },
+                                      );
+                                    },
+                                  ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    setState(selected.clear);
+                                    _controller.applyFilters(clearModels: true);
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text('Clear'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: kTeAccentColor),
+                                  onPressed: () {
+                                    _controller.applyFilters(models: selected.toList());
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text('Apply'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
-            );
-          },
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final tween = Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).chain(
+          CurveTween(curve: Curves.easeOutCubic),
+        );
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: child,
         );
       },
     );
@@ -516,17 +557,25 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final dialogWidth = math.min(media.size.width * 0.92, 1040.0);
+    final dialogMaxHeight = media.size.height * 0.9;
     return Dialog(
       backgroundColor: const Color(0xFF0B1C32),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: SizedBox(
-        width: 720,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: dialogWidth,
+          maxHeight: dialogMaxHeight,
+        ),
+        child: SizedBox(
+          width: dialogWidth,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               Row(
                 children: [
                   Expanded(
@@ -553,10 +602,10 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
               const SizedBox(height: 16),
               if (_isLoading)
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
+                  padding: const EdgeInsets.symmetric(vertical: 40),
                   child: Center(
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(kTeAccentColor),
+                      valueColor: const AlwaysStoppedAnimation<Color>(kTeAccentColor),
                     ),
                   ),
                 )
@@ -613,38 +662,37 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
     return ResponsiveBuilder(
       builder: (context, sizing) {
         final isWide = sizing.isTablet || sizing.isDesktop;
-        final children = <Widget>[
-          Expanded(
-            child: _ChartCard(
-              title: 'Order by Error Code',
-              clusters: detail.byErrorCode,
-              breakdownTitleBuilder: (cluster) =>
-                  'Error ${cluster.label.isEmpty ? 'N/A' : cluster.label}',
-              breakdownSubtitle: 'by Machine',
-              primaryGradient: _errorGradient,
-              breakdownGradient: _tealGradient,
-            ),
+        final media = MediaQuery.of(context);
+        final wideHeight = math.min(media.size.height * 0.65, 460.0);
+        final stackedHeight = math.min(media.size.height * 0.35, 320.0);
+        final chartCards = <Widget>[
+          _ChartCard(
+            title: 'Order by Error Code',
+            clusters: detail.byErrorCode,
+            breakdownTitleBuilder: (cluster) =>
+                'Error ${cluster.label.isEmpty ? 'N/A' : cluster.label}',
+            breakdownSubtitle: 'by Machine',
+            primaryGradient: _errorGradient,
+            breakdownGradient: _tealGradient,
           ),
           if (detail.byMachine.isNotEmpty)
-            Expanded(
-              child: _ChartCard(
-                title: 'Order by Tester Name',
-                clusters: detail.byMachine,
-                breakdownTitleBuilder: (cluster) =>
-                    'Machine ${cluster.label.isEmpty ? 'N/A' : cluster.label}',
-                breakdownSubtitle: 'by Error Code',
-                primaryGradient: _tealGradient,
-                breakdownGradient: _errorGradient,
-              ),
+            _ChartCard(
+              title: 'Order by Tester Name',
+              clusters: detail.byMachine,
+              breakdownTitleBuilder: (cluster) =>
+                  'Machine ${cluster.label.isEmpty ? 'N/A' : cluster.label}',
+              breakdownSubtitle: 'by Error Code',
+              primaryGradient: _tealGradient,
+              breakdownGradient: _errorGradient,
             ),
         ];
         if (isWide) {
           return SizedBox(
-            height: 420,
+            height: wideHeight,
             child: Row(
               children: [
-                for (final child in children) ...[
-                  child,
+                for (final card in chartCards) ...[
+                  Expanded(child: card),
                   const SizedBox(width: 16),
                 ],
               ]..removeLast(),
@@ -653,8 +701,8 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
         }
         return Column(
           children: [
-            for (final child in children) ...[
-              SizedBox(height: 320, child: child),
+            for (final card in chartCards) ...[
+              SizedBox(height: stackedHeight, child: card),
               const SizedBox(height: 16),
             ],
           ]..removeLast(),

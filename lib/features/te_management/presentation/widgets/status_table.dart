@@ -18,7 +18,6 @@ const Color _warningAmber = Color(0xFFFFDA6A);
 const Color _successGreen = Color(0xFF4CAF50);
 const Color _highlight = Color(0x332B7FFF);
 const double _rowHeight = 48;
-const double _minColumnWidth = 140;
 
 enum TERateType { fpr, spr, rr }
 
@@ -33,20 +32,20 @@ class TEStatusTable extends StatelessWidget {
   final void Function(String rowKey, TERateType type) onRateTap;
 
   static const List<_ColumnDef> _columns = [
-    _ColumnDef('#'),
-    _ColumnDef('MODEL NAME'),
-    _ColumnDef('GROUP NAME'),
-    _ColumnDef('WIP QTY'),
-    _ColumnDef('INPUT'),
-    _ColumnDef('FIRST FAIL'),
-    _ColumnDef('REPAIR QTY'),
-    _ColumnDef('FIRST PASS'),
-    _ColumnDef('REPAIR PASS'),
-    _ColumnDef('PASS'),
-    _ColumnDef('TOTAL PASS'),
-    _ColumnDef('F.P.R'),
-    _ColumnDef('S.P.R'),
-    _ColumnDef('R.R'),
+    _ColumnDef('#', minWidth: 72, flex: 0.6),
+    _ColumnDef('MODEL NAME', minWidth: 260, flex: 2.8),
+    _ColumnDef('GROUP NAME', minWidth: 220, flex: 2.0),
+    _ColumnDef('WIP QTY', minWidth: 120, flex: 1.1),
+    _ColumnDef('INPUT', minWidth: 120, flex: 1.1),
+    _ColumnDef('FIRST FAIL', minWidth: 130, flex: 1.2),
+    _ColumnDef('REPAIR QTY', minWidth: 130, flex: 1.2),
+    _ColumnDef('FIRST PASS', minWidth: 130, flex: 1.2),
+    _ColumnDef('REPAIR PASS', minWidth: 130, flex: 1.2),
+    _ColumnDef('PASS', minWidth: 120, flex: 1.1),
+    _ColumnDef('TOTAL PASS', minWidth: 130, flex: 1.2),
+    _ColumnDef('F.P.R', minWidth: 130, flex: 1.2),
+    _ColumnDef('S.P.R', minWidth: 130, flex: 1.2),
+    _ColumnDef('R.R', minWidth: 130, flex: 1.2),
   ];
 
   @override
@@ -57,8 +56,14 @@ class TEStatusTable extends StatelessWidget {
         final availableWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : mediaWidth;
-        final targetWidth = math.max(availableWidth, _columns.length * _minColumnWidth);
-        final columnWidth = targetWidth / _columns.length;
+        final totalMinWidth = _columns.fold<double>(0, (sum, column) => sum + column.minWidth);
+        final targetWidth = math.max(availableWidth, totalMinWidth);
+        final extraWidth = math.max(0, targetWidth - totalMinWidth);
+        final totalFlex = _columns.fold<double>(0, (sum, column) => sum + column.flex);
+        final widths = _columns
+            .map((column) => column.minWidth +
+                (totalFlex == 0 ? 0 : extraWidth * (column.flex / totalFlex)))
+            .toList(growable: false);
 
         return Container(
           decoration: BoxDecoration(
@@ -79,7 +84,7 @@ class TEStatusTable extends StatelessWidget {
                       children: [
                         _TableHeader(
                           columns: _columns,
-                          columnWidth: columnWidth,
+                          columnWidths: widths,
                         ),
                         GetBuilder<TEManagementController>(
                           tag: controllerTag,
@@ -116,7 +121,7 @@ class TEStatusTable extends StatelessWidget {
                                       }
                                       final updatedAt = rowCtrl.rowLastUpdated(rowKey);
                                       return _TableRow(
-                                        columnWidth: columnWidth,
+                                        columnWidths: widths,
                                         indexLabel: displayIndex,
                                         modelLabel: displayModel,
                                         row: row,
@@ -151,11 +156,11 @@ class TEStatusTable extends StatelessWidget {
 class _TableHeader extends StatelessWidget {
   const _TableHeader({
     required this.columns,
-    required this.columnWidth,
+    required this.columnWidths,
   });
 
   final List<_ColumnDef> columns;
-  final double columnWidth;
+  final List<double> columnWidths;
 
   @override
   Widget build(BuildContext context) {
@@ -163,14 +168,10 @@ class _TableHeader extends StatelessWidget {
       height: 48,
       decoration: const BoxDecoration(color: _headerBg),
       child: Row(
-        children: columns
-            .map(
-              (column) => _HeaderCell(
-                label: column.label,
-                width: columnWidth,
-              ),
-            )
-            .toList(),
+        children: [
+          for (var i = 0; i < columns.length; i++)
+            _HeaderCell(label: columns[i].label, width: columnWidths[i]),
+        ],
       ),
     );
   }
@@ -218,7 +219,7 @@ class _HeaderCell extends StatelessWidget {
 
 class _TableRow extends StatelessWidget {
   const _TableRow({
-    required this.columnWidth,
+    required this.columnWidths,
     required this.indexLabel,
     required this.modelLabel,
     required this.row,
@@ -228,7 +229,7 @@ class _TableRow extends StatelessWidget {
     required this.onRateTap,
   });
 
-  final double columnWidth;
+  final List<double> columnWidths;
   final String indexLabel;
   final String modelLabel;
   final TEReportRowEntity row;
@@ -260,56 +261,58 @@ class _TableRow extends StatelessWidget {
   }
 
   List<Widget> _buildCells() {
+    final widths = columnWidths;
+    var columnIndex = 0;
     final cells = <Widget>[];
     cells.add(_ValueCell(
-      width: columnWidth,
+      width: widths[columnIndex++],
       value: indexLabel,
       tooltip: indexLabel,
     ));
     cells.add(_ValueCell(
-      width: columnWidth,
+      width: widths[columnIndex++],
       value: modelLabel,
       tooltip: modelLabel,
     ));
     cells.add(_ValueCell(
-      width: columnWidth,
+      width: widths[columnIndex++],
       value: row.groupName,
       tooltip: row.groupName,
     ));
 
     cells.addAll([
-      _numericCell(row.wipQty),
-      _numericCell(row.input),
-      _numericCell(row.firstFail),
-      _numericCell(row.repairQty),
-      _numericCell(row.firstPass),
-      _numericCell(row.repairPass),
-      _numericCell(row.pass),
-      _numericCell(row.totalPass),
-      _rateCell(row.fpr, TERateType.fpr),
-      _rateCell(row.spr, TERateType.spr),
-      _rateCell(row.rr, TERateType.rr),
+      _numericCell(widths[columnIndex++], row.wipQty),
+      _numericCell(widths[columnIndex++], row.input),
+      _numericCell(widths[columnIndex++], row.firstFail),
+      _numericCell(widths[columnIndex++], row.repairQty),
+      _numericCell(widths[columnIndex++], row.firstPass),
+      _numericCell(widths[columnIndex++], row.repairPass),
+      _numericCell(widths[columnIndex++], row.pass),
+      _numericCell(widths[columnIndex++], row.totalPass),
+      _rateCell(widths[columnIndex++], row.fpr, TERateType.fpr),
+      _rateCell(widths[columnIndex++], row.spr, TERateType.spr),
+      _rateCell(widths[columnIndex++], row.rr, TERateType.rr),
     ]);
 
     return cells;
   }
 
-  Widget _numericCell(num value) {
+  Widget _numericCell(double width, num value) {
     final display = value.toString();
     return _ValueCell(
-      width: columnWidth,
+      width: width,
       value: display,
       tooltip: display,
     );
   }
 
-  Widget _rateCell(double value, TERateType type) {
+  Widget _rateCell(double width, double value, TERateType type) {
     final style = _rateStyle(type, value);
     final text = '${value.toStringAsFixed(2)}%';
     return GestureDetector(
       onTap: () => onRateTap(rowKey, type),
       child: Container(
-        width: columnWidth,
+        width: width,
         height: double.infinity,
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -420,9 +423,11 @@ class _RateStyle {
 }
 
 class _ColumnDef {
-  const _ColumnDef(this.label);
+  const _ColumnDef(this.label, {required this.minWidth, required this.flex});
 
   final String label;
+  final double minWidth;
+  final double flex;
 }
 
 class _TableEmptyState extends StatelessWidget {
