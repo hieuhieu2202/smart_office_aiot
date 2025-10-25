@@ -60,6 +60,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     _ColumnDef(label: 'PASS', width: 110),
     _ColumnDef(label: 'TOTAL PASS', width: 130),
     _ColumnDef(label: 'F.P.R', width: 110),
+    _ColumnDef(label: 'S.P.R', width: 110),
     _ColumnDef(label: 'Y.R', width: 110),
     _ColumnDef(label: 'R.R', width: 100),
   ];
@@ -489,6 +490,8 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     switch (type) {
       case RateType.fpr:
         return 'F.P.R';
+      case RateType.spr:
+        return 'S.P.R';
       case RateType.yr:
         return 'Y.R';
       case RateType.rr:
@@ -500,6 +503,8 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     switch (type) {
       case RateType.fpr:
         return row.fpr;
+      case RateType.spr:
+        return row.spr;
       case RateType.yr:
         return row.yr;
       case RateType.rr:
@@ -823,8 +828,10 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       case 9:
         return RateType.fpr;
       case 10:
-        return RateType.yr;
+        return RateType.spr;
       case 11:
+        return RateType.yr;
+      case 12:
         return RateType.rr;
       default:
         return null;
@@ -836,8 +843,10 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       case 9:
         return row.fpr;
       case 10:
-        return row.yr;
+        return row.spr;
       case 11:
+        return row.yr;
+      case 12:
         return row.rr;
       default:
         return null;
@@ -866,6 +875,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   Color? _rateBaseColor(RateType type, double value) {
     switch (type) {
       case RateType.fpr:
+      case RateType.spr:
       case RateType.yr:
         if (value <= 90) return const Color(0xFFE11D48);
         if (value <= 97) return const Color(0xFFF59E0B);
@@ -902,8 +912,10 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       case 9:
         return '${row.fpr.toStringAsFixed(2)}%';
       case 10:
-        return '${row.yr.toStringAsFixed(2)}%';
+        return '${row.spr.toStringAsFixed(2)}%';
       case 11:
+        return '${row.yr.toStringAsFixed(2)}%';
+      case 12:
         return '${row.rr.toStringAsFixed(2)}%';
       default:
         return '';
@@ -2078,4 +2090,4 @@ class _ColumnDef {
   final EdgeInsets padding;
 }
 
-enum RateType { fpr, yr, rr }
+enum RateType { fpr, spr, yr, rr }
