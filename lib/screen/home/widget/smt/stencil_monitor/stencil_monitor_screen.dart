@@ -385,26 +385,37 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
             builder: (context, constraints) {
               final isWide = constraints.maxWidth >= 680;
               final wrapSpacing = sectionSpacing;
-              final double cardWidth = isWide
-                  ? (constraints.maxWidth - wrapSpacing) / 2
-                  : constraints.maxWidth;
 
-              return Wrap(
-                spacing: wrapSpacing,
-                runSpacing: wrapSpacing,
+              if (isWide) {
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _buildUsageAnalyticsCard(
+                          context,
+                          usingTimeSlices,
+                          checkSlices,
+                        ),
+                      ),
+                      SizedBox(width: wrapSpacing),
+                      Expanded(
+                        child: _buildLineTrackingCard(context, lineTracking),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return Column(
                 children: [
-                  SizedBox(
-                    width: cardWidth,
-                    child: _buildUsageAnalyticsCard(
-                      context,
-                      usingTimeSlices,
-                      checkSlices,
-                    ),
+                  _buildUsageAnalyticsCard(
+                    context,
+                    usingTimeSlices,
+                    checkSlices,
                   ),
-                  SizedBox(
-                    width: cardWidth,
-                    child: _buildLineTrackingCard(context, lineTracking),
-                  ),
+                  SizedBox(height: wrapSpacing),
+                  _buildLineTrackingCard(context, lineTracking),
                 ],
               );
             },
