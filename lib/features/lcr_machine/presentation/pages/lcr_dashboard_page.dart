@@ -120,7 +120,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                   value: Obx(() {
                     final range = controller.selectedDateRange.value;
                     return Text(
-                      '${_fmt(range.start)} → ${_fmt(range.end)}',
+                      '${_fmt(range.start)} - ${_fmt(range.end)}',
                       style: const TextStyle(color: Colors.white),
                     );
                   }),
@@ -232,7 +232,12 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
   }
 
   String _fmt(DateTime date) {
-    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '$year-$month-$day $hour:$minute';
   }
 }
 

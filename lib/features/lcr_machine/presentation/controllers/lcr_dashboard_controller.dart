@@ -48,10 +48,17 @@ class LcrDashboardController extends GetxController {
   final RxString selectedDepartment = 'ALL'.obs;
   final RxString selectedMachine = 'ALL'.obs;
   final RxString selectedStatus = 'ALL'.obs;
+  static const _startHour = 7;
+  static const _startMinute = 30;
+  static const _endHour = 19;
+  static const _endMinute = 30;
+
   final Rx<DateTimeRange> selectedDateRange =
       DateTimeRange(
-        start: DateTime.now().subtract(const Duration(days: 6)),
-        end: DateTime.now(),
+        start: _withStartBoundary(
+          DateTime.now().subtract(const Duration(days: 6)),
+        ),
+        end: _withEndBoundary(DateTime.now()),
       ).obs;
 
   final RxList<LcrRecord> trackingRecords = <LcrRecord>[].obs;
@@ -163,7 +170,10 @@ class LcrDashboardController extends GetxController {
   }
 
   void updateDateRange(DateTimeRange range) {
-    selectedDateRange.value = range;
+    selectedDateRange.value = DateTimeRange(
+      start: _withStartBoundary(range.start),
+      end: _withEndBoundary(range.end),
+    );
   }
 
   LcrRequest _buildRequest() {
@@ -172,7 +182,7 @@ class LcrDashboardController extends GetxController {
     final machine = _normalize(selectedMachine.value);
     final status = _normalize(selectedStatus.value);
     final range = selectedDateRange.value;
-    final formattedRange = '${_fmt(range.start)}-${_fmt(range.end)}';
+    final formattedRange = '${_fmt(range.start)} - ${_fmt(range.end)}';
 
     return LcrRequest(
       factory: factory,
@@ -224,7 +234,32 @@ class LcrDashboardController extends GetxController {
   }
 
   String _fmt(DateTime date) {
-    return '${date.year.toString().padLeft(4, '0')}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '$year-$month-$day $hour:$minute';
+  }
+
+  static DateTime _withStartBoundary(DateTime date) {
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      _startHour,
+      _startMinute,
+    );
+  }
+
+  static DateTime _withEndBoundary(DateTime date) {
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      _endHour,
+      _endMinute,
+    );
   }
 
   String _normalize(String value) {
