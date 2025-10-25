@@ -59,9 +59,7 @@ class TEStatusTable extends StatelessWidget {
         final totalMinWidth = _columns.fold<double>(0, (sum, column) => sum + column.minWidth);
         final maxWidth = availableWidth <= 0 ? totalMinWidth : availableWidth;
         final bool canExpand = maxWidth > totalMinWidth;
-        final double targetWidth = canExpand
-            ? math.min(maxWidth, totalMinWidth + (maxWidth - totalMinWidth) * 0.85)
-            : totalMinWidth;
+        final double targetWidth = canExpand ? maxWidth : totalMinWidth;
         final double resolvedTableWidth = math.min(maxWidth, targetWidth);
         final extraWidth = math.max(0, targetWidth - totalMinWidth);
         final totalFlex = _columns.fold<double>(0, (sum, column) => sum + column.flex);
@@ -109,15 +107,14 @@ class TEStatusTable extends StatelessWidget {
 
                                 final rows = <Widget>[];
                                 var groupIndex = 1;
-                                var rowCounter = 0;
                                 for (final group in groups) {
+                                  final isAltGroup = groupIndex.isOdd;
                                   for (var i = 0; i < group.rowKeys.length; i++) {
                                     final rowKey = group.rowKeys[i];
                                     final isFirst = i == 0;
+                                    final isLast = i == group.rowKeys.length - 1;
                                     final displayIndex = isFirst ? groupIndex.toString() : '';
                                     final displayModel = isFirst ? group.modelName : '';
-                                    final isAlt = rowCounter % 2 == 1;
-                                    rowCounter++;
 
                                     rows.add(
                                       GetBuilder<TEManagementController>(
@@ -135,9 +132,9 @@ class TEStatusTable extends StatelessWidget {
                                             modelLabel: displayModel,
                                             row: row,
                                             rowKey: rowKey,
-                                            isAlt: isAlt,
+                                            isAlt: isAltGroup,
                                             isFirstInGroup: isFirst,
-                                            groupSpan: group.rowKeys.length,
+                                            isLastInGroup: isLast,
                                             lastUpdated: updatedAt,
                                             onRateTap: onRateTap,
                                           );
@@ -240,7 +237,7 @@ class _TableRow extends StatelessWidget {
     required this.rowKey,
     required this.isAlt,
     required this.isFirstInGroup,
-    required this.groupSpan,
+    required this.isLastInGroup,
     required this.lastUpdated,
     required this.onRateTap,
   });
@@ -252,7 +249,7 @@ class _TableRow extends StatelessWidget {
   final String rowKey;
   final bool isAlt;
   final bool isFirstInGroup;
-  final int groupSpan;
+  final bool isLastInGroup;
   final DateTime? lastUpdated;
   final void Function(String rowKey, TERateType type) onRateTap;
 
@@ -288,7 +285,8 @@ class _TableRow extends StatelessWidget {
       value: indexLabel,
       tooltip: indexLabel,
       isFirst: isFirstInGroup,
-      span: groupSpan,
+      isLast: isLastInGroup,
+      isLeading: true,
       background: backgroundColor,
     ));
     cells.add(_GroupCell(
@@ -296,7 +294,8 @@ class _TableRow extends StatelessWidget {
       value: modelLabel,
       tooltip: modelLabel,
       isFirst: isFirstInGroup,
-      span: groupSpan,
+      isLast: isLastInGroup,
+      isLeading: false,
       background: backgroundColor,
     ));
     cells.add(_ValueCell(
@@ -447,7 +446,8 @@ class _GroupCell extends StatelessWidget {
     required this.value,
     required this.tooltip,
     required this.isFirst,
-    required this.span,
+    required this.isLast,
+    required this.isLeading,
     required this.background,
   });
 
@@ -455,62 +455,53 @@ class _GroupCell extends StatelessWidget {
   final String value;
   final String tooltip;
   final bool isFirst;
-  final int span;
+  final bool isLast;
+  final bool isLeading;
   final Color background;
 
   @override
   Widget build(BuildContext context) {
-    if (!isFirst) {
-      return IgnorePointer(
-        ignoring: true,
-        child: Container(
-          width: width,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            border: Border(
-              right: BorderSide(color: _tableBorder, width: 1),
-            ),
-          ),
-        ),
-      );
-    }
-
+    final showContent = isFirst && value.isNotEmpty;
     final display = value.isEmpty ? '-' : value;
     final message = tooltip.isEmpty ? '-' : tooltip;
-    final totalHeight = _rowHeight * math.max(span, 1);
-    return OverflowBox(
-      minHeight: _rowHeight,
-      maxHeight: totalHeight,
-      alignment: Alignment.topCenter,
-      child: Container(
-        width: width,
-        height: totalHeight,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: background,
-          border: const Border(
-            top: BorderSide(color: _tableBorder, width: 1),
-            right: BorderSide(color: _tableBorder, width: 1),
-            bottom: BorderSide(color: _tableBorder, width: 1),
-          ),
-        ),
-        child: Tooltip(
-          message: message,
-          waitDuration: const Duration(milliseconds: 200),
-          child: Text(
-            display,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: display == '-' ? _textMuted : _textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+
+    return Container(
+      width: width,
+      height: double.infinity,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: background,
+        border: Border(
+          left: isLeading
+              ? const BorderSide(color: _tableBorder, width: 1)
+              : BorderSide.none,
+          right: const BorderSide(color: _tableBorder, width: 1),
+          top: isFirst
+              ? const BorderSide(color: _tableBorder, width: 1)
+              : BorderSide.none,
+          bottom: isLast
+              ? const BorderSide(color: _tableBorder, width: 1)
+              : BorderSide.none,
         ),
       ),
+      child: showContent
+          ? Tooltip(
+              message: message,
+              waitDuration: const Duration(milliseconds: 200),
+              child: Text(
+                display,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: display == '-' ? _textMuted : _textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
