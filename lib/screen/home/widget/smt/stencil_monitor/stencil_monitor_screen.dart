@@ -353,59 +353,109 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
         ),
       ),
       SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, sectionSpacing, 16, 0),
-        sliver: SliverToBoxAdapter(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            child: KeyedSubtree(
-              key: ValueKey<String>(activeCard.title),
-              child: _buildOverviewCard(context, activeCard),
-            ),
-          ),
-        ),
-      ),
-      if (insights.isNotEmpty)
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, sectionSpacing, 16, 0),
-          sliver: SliverToBoxAdapter(
-            child: _InsightsStrip(items: insights),
-          ),
-        ),
-      SliverPadding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          sectionSpacing,
-          16,
-          0,
-        ),
+        padding: EdgeInsets.fromLTRB(16, sectionSpacing, 16, sectionSpacing),
         sliver: SliverToBoxAdapter(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 680;
-              final wrapSpacing = sectionSpacing;
-              final double cardWidth = isWide
-                  ? (constraints.maxWidth - wrapSpacing) / 2
-                  : constraints.maxWidth;
+              final width = constraints.maxWidth;
+              final isDesktop = width >= 1200;
+              final isTablet = width >= 900 && width < 1200;
 
-              return Wrap(
-                spacing: wrapSpacing,
-                runSpacing: wrapSpacing,
-                children: [
-                  SizedBox(
-                    width: cardWidth,
-                    child: _buildUsageAnalyticsCard(
-                      context,
-                      usingTimeSlices,
-                      checkSlices,
-                    ),
+              final overviewSection = AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                child: KeyedSubtree(
+                  key: ValueKey<String>(activeCard.title),
+                  child: _buildOverviewCard(context, activeCard),
+                ),
+              );
+
+              final Widget? insightsSection = insights.isEmpty
+                  ? null
+                  : _InsightsStrip(items: insights);
+
+              final usageSection = _buildUsageAnalyticsCard(
+                context,
+                usingTimeSlices,
+                checkSlices,
+              );
+
+              final lineTrackingSection =
+                  _buildLineTrackingCard(context, lineTracking);
+
+              List<Widget> buildDesktopLayout() {
+                return [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: insightsSection == null ? 10 : 7,
+                        child: overviewSection,
+                      ),
+                      if (insightsSection != null) ...[
+                        SizedBox(width: sectionSpacing),
+                        Expanded(
+                          flex: 5,
+                          child: insightsSection,
+                        ),
+                      ],
+                    ],
                   ),
-                  SizedBox(
-                    width: cardWidth,
-                    child: _buildLineTrackingCard(context, lineTracking),
+                  SizedBox(height: sectionSpacing),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: usageSection),
+                      SizedBox(width: sectionSpacing),
+                      Expanded(child: lineTrackingSection),
+                    ],
                   ),
-                ],
+                ];
+              }
+
+              List<Widget> buildTabletLayout() {
+                return [
+                  overviewSection,
+                  if (insightsSection != null) ...[
+                    SizedBox(height: sectionSpacing),
+                    insightsSection,
+                  ],
+                  SizedBox(height: sectionSpacing),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: usageSection),
+                      SizedBox(width: sectionSpacing),
+                      Expanded(child: lineTrackingSection),
+                    ],
+                  ),
+                ];
+              }
+
+              List<Widget> buildMobileLayout() {
+                return [
+                  overviewSection,
+                  if (insightsSection != null) ...[
+                    SizedBox(height: sectionSpacing),
+                    insightsSection,
+                  ],
+                  SizedBox(height: sectionSpacing),
+                  usageSection,
+                  SizedBox(height: sectionSpacing),
+                  lineTrackingSection,
+                ];
+              }
+
+              final children = isDesktop
+                  ? buildDesktopLayout()
+                  : isTablet
+                      ? buildTabletLayout()
+                      : buildMobileLayout();
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: children,
               );
             },
           ),
