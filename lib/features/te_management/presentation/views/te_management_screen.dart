@@ -988,6 +988,7 @@ class _ChartCanvas extends StatelessWidget {
 
 class _BreakdownChart extends StatelessWidget {
   const _BreakdownChart({
+    super.key,
     required this.points,
     required this.gradient,
   });
