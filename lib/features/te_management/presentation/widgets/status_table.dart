@@ -110,42 +110,15 @@ class _TEStatusTableState extends State<TEStatusTable> {
               final rows = <Widget>[];
               var groupIndex = 1;
               for (final group in groups) {
-                final isAltGroup = groupIndex.isOdd;
-                for (var i = 0; i < group.rowKeys.length; i++) {
-                  final rowKey = group.rowKeys[i];
-                  final isFirst = i == 0;
-                  final isLast = i == group.rowKeys.length - 1;
-                  final displayIndex = isFirst ? groupIndex.toString() : '';
-                  final displayModel = isFirst ? group.modelName : '';
-
-                  rows.add(
-                    GetBuilder<TEManagementController>(
-                      tag: widget.controllerTag,
-                      id: 'row_${rowKey.toString()}',
-                      builder: (rowCtrl) {
-                        final row = rowCtrl.rowByKey(rowKey);
-                        if (row == null) {
-                          return const SizedBox.shrink();
-                        }
-                        final updatedAt = rowCtrl.rowLastUpdated(rowKey);
-                        return _TableRow(
-                          columnWidths: widths,
-                          indexLabel: displayIndex,
-                          modelLabel: displayModel,
-                          row: row,
-                          rowKey: rowKey,
-                          isAlt: isAltGroup,
-                          isFirstInGroup: isFirst,
-                          isLastInGroup: isLast,
-                          groupSize: group.rowKeys.length,
-                          groupRowIndex: i,
-                          lastUpdated: updatedAt,
-                          onRateTap: widget.onRateTap,
-                        );
-                      },
-                    ),
-                  );
-                }
+                rows.add(
+                  _TableGroupBlock(
+                    controllerTag: widget.controllerTag,
+                    columnWidths: widths,
+                    group: group,
+                    groupIndex: groupIndex,
+                    onRateTap: widget.onRateTap,
+                  ),
+                );
                 groupIndex++;
               }
 
@@ -177,12 +150,7 @@ class _TEStatusTableState extends State<TEStatusTable> {
               scrollDirection: Axis.horizontal,
               child: ConstrainedBox(
                 constraints: BoxConstraints(minWidth: targetWidth),
-                child: Column(
-                  children: [
-                    const SizedBox(height: _headerHeight),
-                    buildBody(),
-                  ],
-                ),
+                child: buildBody(),
               ),
             ),
           ),
@@ -202,7 +170,10 @@ class _TEStatusTableState extends State<TEStatusTable> {
                 borderRadius: BorderRadius.circular(16),
                 child: Stack(
                   children: [
-                    Positioned.fill(child: body),
+                    Positioned.fill(
+                      top: _headerHeight,
+                      child: body,
+                    ),
                     Positioned(
                       top: 0,
                       left: 0,
@@ -283,6 +254,154 @@ class _HeaderCell extends StatelessWidget {
             color: _textPrimary,
             fontWeight: FontWeight.w700,
             fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TableGroupBlock extends StatelessWidget {
+  const _TableGroupBlock({
+    required this.controllerTag,
+    required this.columnWidths,
+    required this.group,
+    required this.groupIndex,
+    required this.onRateTap,
+  });
+
+  final String controllerTag;
+  final List<double> columnWidths;
+  final TEGroupedRows group;
+  final int groupIndex;
+  final void Function(String rowKey, TERateType type) onRateTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (group.rowKeys.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final totalHeight = _rowHeight * group.rowKeys.length;
+    final indexWidth = columnWidths[0];
+    final modelWidth = columnWidths[1];
+    final isAltGroup = groupIndex.isOdd;
+
+    final rows = <Widget>[];
+    for (var i = 0; i < group.rowKeys.length; i++) {
+      final rowKey = group.rowKeys[i];
+      final isFirst = i == 0;
+      final isLast = i == group.rowKeys.length - 1;
+
+      rows.add(
+        GetBuilder<TEManagementController>(
+          tag: controllerTag,
+          id: 'row_$rowKey',
+          builder: (rowCtrl) {
+            final row = rowCtrl.rowByKey(rowKey);
+            if (row == null) {
+              return const SizedBox.shrink();
+            }
+            final updatedAt = rowCtrl.rowLastUpdated(rowKey);
+            return _TableRow(
+              columnWidths: columnWidths,
+              indexLabel: '',
+              modelLabel: '',
+              row: row,
+              rowKey: rowKey,
+              isAlt: isAltGroup,
+              isFirstInGroup: isFirst,
+              isLastInGroup: isLast,
+              groupSize: group.rowKeys.length,
+              groupRowIndex: i,
+              lastUpdated: updatedAt,
+              onRateTap: onRateTap,
+            );
+          },
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: totalHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: rows,
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: _MergedCell(
+                width: indexWidth,
+                label: groupIndex.toString(),
+                tooltip: groupIndex.toString(),
+              ),
+            ),
+          ),
+          Positioned(
+            left: indexWidth,
+            top: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: _MergedCell(
+                width: modelWidth,
+                label: group.modelName,
+                tooltip: group.modelName,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MergedCell extends StatelessWidget {
+  const _MergedCell({
+    required this.width,
+    required this.label,
+    required this.tooltip,
+  });
+
+  final double width;
+  final String label;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    if (label.isEmpty) {
+      return SizedBox(width: width);
+    }
+    final display = label;
+    final message = tooltip.isEmpty ? display : tooltip;
+
+    return SizedBox(
+      width: width,
+      child: Container(
+        height: double.infinity,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        color: Colors.transparent,
+        child: Tooltip(
+          message: message,
+          waitDuration: const Duration(milliseconds: 200),
+          child: Text(
+            display,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
