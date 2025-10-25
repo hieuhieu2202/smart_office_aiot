@@ -1828,7 +1828,12 @@ class _RateChartCard extends StatelessWidget {
                 ),
               ),
               if (state.isDetail) ...[
-                _BackPill(onPressed: onBack),
+                IconButton(
+                  onPressed: onBack,
+                  tooltip: 'Back',
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  color: _accentCyan,
+                ),
                 const SizedBox(width: 12),
               ],
               _TotalBadge(total: state.total),
@@ -1907,13 +1912,14 @@ class _RateChartCard extends StatelessWidget {
                         ),
                         onCreateShader: (details) {
                           return ui.Gradient.linear(
-                            details.rect.topLeft,
-                            details.rect.bottomLeft,
+                            details.rect.topCenter,
+                            details.rect.bottomCenter,
                             const [
                               Color(0xFF22D3EE),
                               Color(0xFF38BDF8),
                               Color(0xFF0EA5E9),
                             ],
+                            const [0.0, 0.55, 1.0],
                           );
                         },
                       ),
@@ -2045,32 +2051,6 @@ class _RateDetailMessage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _BackPill extends StatelessWidget {
-  const _BackPill({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        backgroundColor: const Color(0xFF0EA5E9),
-        foregroundColor: Colors.black,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
-      ),
-      icon: const Icon(Icons.arrow_back, size: 16),
-      label: const Text(
-        'Back',
-        style: TextStyle(fontWeight: FontWeight.w700),
       ),
     );
   }
