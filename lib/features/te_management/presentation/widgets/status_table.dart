@@ -583,10 +583,9 @@ class _MergedCell extends StatelessWidget {
     return Container(
       width: width,
       height: double.infinity,
-      alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: showContent ? background : Colors.transparent,
+        color: Colors.transparent,
         border: Border(
           left: isLeading
               ? const BorderSide(color: _tableBorder, width: 1)
@@ -608,19 +607,19 @@ class _MergedCell extends StatelessWidget {
                 alignment: Alignment.topCenter,
                 minHeight: _rowHeight * span,
                 maxHeight: _rowHeight * span,
-                child: SizedBox(
+                child: Container(
                   height: _rowHeight * span,
-                  child: Center(
-                    child: Text(
-                      display,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: display == '-' ? _textMuted : _textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  alignment: Alignment.center,
+                  color: background,
+                  child: Text(
+                    display,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: display == '-' ? _textMuted : _textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
