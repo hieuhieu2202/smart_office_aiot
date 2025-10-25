@@ -40,6 +40,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
 
   late _StencilColorScheme _palette;
   late final TextEditingController _lineTrackingSearchController;
+  late final ScrollController _lineTrackingScrollController;
   String _lineTrackingQuery = '';
 
   TabController? _overviewTabController;
@@ -57,6 +58,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     controller = Get.put(StencilMonitorController(), tag: _controllerTag);
     _lineTrackingSearchController = TextEditingController()
       ..addListener(_handleLineTrackingQueryChanged);
+    _lineTrackingScrollController = ScrollController();
   }
 
   @override
@@ -65,6 +67,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     _overviewTabController?.dispose();
     _lineTrackingSearchController.removeListener(_handleLineTrackingQueryChanged);
     _lineTrackingSearchController.dispose();
+    _lineTrackingScrollController.dispose();
     if (Get.isRegistered<StencilMonitorController>(tag: _controllerTag)) {
       Get.delete<StencilMonitorController>(tag: _controllerTag);
     }
@@ -870,9 +873,11 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
         minHeight: minHeight,
       ),
       child: Scrollbar(
+        controller: _lineTrackingScrollController,
         thumbVisibility: showScrollbar,
         radius: const Radius.circular(12),
         child: ListView.builder(
+          controller: _lineTrackingScrollController,
           primary: false,
           padding: EdgeInsets.zero,
           physics: const BouncingScrollPhysics(),
