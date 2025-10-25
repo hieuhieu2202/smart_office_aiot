@@ -28,7 +28,6 @@ class TEManagementController extends GetxController {
   final RxString modelSerial;
   final RxString model;
   final RxString quickFilter = ''.obs;
-  final RxBool filterPanelOpen = false.obs;
   final RxList<String> availableModels = <String>[].obs;
   final RxList<String> selectedModels = <String>[].obs;
 
@@ -132,36 +131,15 @@ class TEManagementController extends GetxController {
 
   void updateQuickFilter(String v) => quickFilter.value = v;
 
-  void openFilterPanel() => filterPanelOpen.value = true;
-  void closeFilterPanel() => filterPanelOpen.value = false;
-
-  void applyFilter(
-    DateTime start,
-    DateTime end,
-    String serial,
-    String modelName,
-  ) {
-    startDate.value = start;
-    endDate.value = end;
-    modelSerial.value = serial;
-    model.value = modelName;
-    if (modelName.trim().isNotEmpty) {
-      final next = modelName
-          .split(',')
-          .map((e) => e.trim())
-          .where((element) => element.isNotEmpty)
-          .toList();
-      selectedModels.assignAll(LinkedHashSet<String>.from(next).toList());
-    } else {
-      selectedModels.clear();
-    }
-    fetchData(force: true);
-    closeFilterPanel();
-  }
-
   void setDateRange(DateTime start, DateTime end) {
     startDate.value = start;
     endDate.value = end;
+  }
+
+  void resetToTodayRange() {
+    final now = DateTime.now();
+    startDate.value = DateTime(now.year, now.month, now.day, 7, 30);
+    endDate.value = DateTime(now.year, now.month, now.day, 19, 30);
   }
 
   void setSelectedModels(List<String> models) {

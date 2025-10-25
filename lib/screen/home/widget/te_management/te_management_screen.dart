@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:get/get.dart';
 import '../../../../model/te_management/te_report_models.dart';
 import '../../../../widget/animation/loading/eva_loading_view.dart';
 import '../../controller/te_management_controller.dart';
+import '../../../../service/te_management_api.dart';
 
 const Color _backgroundColor = Color(0xFF050F1F);
 const Color _surfaceColor = Color(0xFF111F34);
@@ -66,6 +68,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   late final TEManagementController controller;
   late final ScrollController _verticalController;
   late final ScrollController _horizontalController;
+  late final TextEditingController _searchController;
 
   @override
   void initState() {
@@ -81,6 +84,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     );
     _verticalController = ScrollController();
     _horizontalController = ScrollController();
+    _searchController = TextEditingController();
   }
 
   @override
@@ -90,6 +94,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     }
     _verticalController.dispose();
     _horizontalController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -357,22 +362,25 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     return Obx(() {
       final serial = controller.modelSerial.value;
       final groups = controller.filteredData;
+      final quickText = controller.quickFilter.value;
+      if (_searchController.text != quickText) {
+        _searchController.value = TextEditingValue(
+          text: quickText,
+          selection: TextSelection.collapsed(offset: quickText.length),
+        );
+      }
       return Scaffold(
         backgroundColor: _backgroundColor,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          title: Text(widget.title ?? '$serial TE Report'),
-          centerTitle: true,
-        ),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildToolbar(),
-                const SizedBox(height: 18),
+                _buildHeader(serial),
+                const SizedBox(height: 16),
+                _buildSearchField(),
+                const SizedBox(height: 12),
                 _buildSelectedChips(),
                 const SizedBox(height: 18),
                 Expanded(child: _buildTableCard(groups)),
@@ -384,139 +392,184 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     });
   }
 
-  Widget _buildToolbar() {
-    final selectedCount = controller.selectedModelList.length;
+  Widget _buildHeader(String serial) {
+    final title = widget.title ?? '$serial TE Report';
     final range = controller.range;
-    final serialOptions = <String>{
-      'ADAPTER',
-      'SWITCH',
-      controller.modelSerial.value,
-    }.where((element) => element.isNotEmpty).toList();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: _textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                range,
+                style: TextStyle(
+                  color: _textMuted.withOpacity(.85),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _HeaderActionButton(
+          label: 'FILTER',
+          icon: Icons.tune,
+          onTap: _openFilterPanel,
+          backgroundColor: Colors.transparent,
+          foregroundColor: _accentCyan,
+          borderColor: _accentCyan.withOpacity(.6),
+        ),
+        const SizedBox(width: 12),
+        _HeaderActionButton(
+          label: 'EXPORT',
+          icon: Icons.file_download_outlined,
+          onTap: () => _exportCsv(controller.filteredData),
+          backgroundColor: const Color(0xFF16A34A),
+          foregroundColor: Colors.white,
+        ),
+        const SizedBox(width: 12),
+        _HeaderActionButton(
+          label: 'QUERY',
+          icon: Icons.search,
+          onTap: () => controller.fetchData(force: true),
+          backgroundColor: const Color(0xFF8B5CF6),
+          foregroundColor: Colors.white,
+        ),
+      ],
+    );
+  }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _surfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor),
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchController,
+      onChanged: controller.updateQuickFilter,
+      style: const TextStyle(color: _textPrimary),
+      decoration: InputDecoration(
+        hintText: 'Search model, group, or value...',
+        hintStyle: TextStyle(color: _textMuted.withOpacity(.7)),
+        prefixIcon: const Icon(Icons.search, color: _textMuted),
+        filled: true,
+        fillColor: const Color(0xFF162741),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: _borderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: _borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: _accentCyan.withOpacity(.7)),
+        ),
       ),
-      child: Wrap(
-        spacing: 18,
-        runSpacing: 16,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          _ToolbarField(
-            label: 'Date',
-            child: _SelectionButton(
-              label: range,
-              icon: Icons.calendar_today_rounded,
-              onTap: _pickDateRange,
-            ),
+    );
+  }
+
+  Future<void> _openFilterPanel() async {
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Filters',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 320),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: _FilterDrawer(
+            controller: controller,
+            initialModelSerial: widget.initialModelSerial,
+            onClose: () => Navigator.of(context).pop(),
+            onPickDateRange: _pickDateRange,
+            onOpenModelSelector: _openModelSelector,
+            onApply: () {
+              controller.fetchData(force: true);
+              Navigator.of(context).pop();
+            },
+            onReset: () {
+              controller.resetToTodayRange();
+              controller.clearSelectedModels();
+              if (widget.initialModelSerial.isNotEmpty) {
+                controller.modelSerial.value = widget.initialModelSerial;
+              }
+              controller.updateQuickFilter('');
+              _searchController.clear();
+            },
           ),
-          _ToolbarField(
-            label: 'Models',
-            child: _SelectionButton(
-              label:
-                  selectedCount > 0 ? 'Selected: $selectedCount' : 'Select Models',
-              icon: Icons.list_alt,
-              onTap: _openModelSelector,
-            ),
-          ),
-          _ToolbarField(
-            label: 'Model Serial',
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF162741),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _borderColor),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: controller.modelSerial.value,
-                  dropdownColor: _surfaceColor,
-                  iconEnabledColor: _textPrimary,
-                  style: const TextStyle(color: _textPrimary),
-                  items: serialOptions
-                      .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      controller.modelSerial.value = value;
-                    }
-                  },
-                ),
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 240,
-            child: _ToolbarField(
-              label: 'Search',
-              child: TextField(
-                style: const TextStyle(color: _textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Search model, group, value...',
-                  hintStyle: TextStyle(color: _textMuted.withOpacity(.7)),
-                  prefixIcon: const Icon(Icons.search, color: _textMuted),
-                  filled: true,
-                  fillColor: const Color(0xFF162741),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onChanged: controller.updateQuickFilter,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF16A34A),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () => _exportCsv(controller.filteredData),
-                  icon: const Icon(Icons.file_download_outlined, color: Colors.white),
-                  label: const Text(
-                    'EXPORT EXCEL',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B5CF6),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () => controller.fetchData(force: true),
-                  icon: const Icon(Icons.search, color: Colors.white),
-                  label: const Text(
-                    'QUERY',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final offset = Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+            .animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+        final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+        return SlideTransition(
+          position: offset,
+          child: FadeTransition(opacity: fade, child: child),
+        );
+      },
+    );
+  }
+
+  String _labelForRateType(RateType type) {
+    switch (type) {
+      case RateType.fpr:
+        return 'F.P.R';
+      case RateType.spr:
+        return 'S.P.R';
+      case RateType.yr:
+        return 'Y.R';
+      case RateType.rr:
+        return 'R.R';
+    }
+  }
+
+  double _valueForRateType(TEReportRow row, RateType type) {
+    switch (type) {
+      case RateType.fpr:
+        return row.fpr;
+      case RateType.spr:
+        return row.spr;
+      case RateType.yr:
+        return row.yr;
+      case RateType.rr:
+        return row.rr;
+    }
+  }
+
+  Future<void> _showRateDetail(TEReportRow row, RateType type) async {
+    final future = TEManagementApi.fetchErrorDetail(
+      modelSerial: controller.modelSerial.value,
+      rangeDateTime: controller.range,
+      model: row.modelName,
+      group: row.groupName,
+    );
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: _surfaceColor,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (context) {
+        return _RateDetailSheet(
+          row: row,
+          rateLabel: _labelForRateType(type),
+          rateValue: _valueForRateType(row, type),
+          detailFuture: future,
+        );
+      },
     );
   }
 
@@ -755,7 +808,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     final textColor = _resolveTextColor(rateType, rateValue);
     final text = _formatValue(row, columnIndex);
 
-    return Container(
+    final child = Container(
       height: _rowHeight,
       alignment: column.alignment,
       padding: column.padding,
@@ -774,6 +827,18 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
         overflow: TextOverflow.ellipsis,
       ),
     );
+
+    if (rateType != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showRateDetail(row, rateType),
+          child: child,
+        ),
+      );
+    }
+
+    return child;
   }
 
   RateType? _rateTypeForColumn(int columnIndex) {
@@ -883,6 +948,289 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   }
 }
 
+class _HeaderActionButton extends StatelessWidget {
+  const _HeaderActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    this.borderColor,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final Color? borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(14);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: radius,
+            border: Border.all(color: borderColor ?? Colors.transparent),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: foregroundColor, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: foregroundColor,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterDrawer extends StatelessWidget {
+  const _FilterDrawer({
+    required this.controller,
+    required this.initialModelSerial,
+    required this.onClose,
+    required this.onPickDateRange,
+    required this.onOpenModelSelector,
+    required this.onApply,
+    required this.onReset,
+  });
+
+  final TEManagementController controller;
+  final String initialModelSerial;
+  final VoidCallback onClose;
+  final Future<void> Function() onPickDateRange;
+  final Future<void> Function() onOpenModelSelector;
+  final VoidCallback onApply;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = math.min(MediaQuery.of(context).size.width * 0.9, 420.0);
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: width,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          color: _surfaceColor,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            bottomLeft: Radius.circular(24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black45,
+              blurRadius: 24,
+              offset: Offset(-8, 0),
+            ),
+          ],
+          border: Border(
+            left: BorderSide(color: _borderColor),
+          ),
+        ),
+        child: SafeArea(
+          child: Obx(() {
+            final selectedCount = controller.selectedModelList.length;
+            final range = controller.range;
+            final serialOptions = <String>{
+              'ADAPTER',
+              'SWITCH',
+              controller.modelSerial.value,
+              if (initialModelSerial.isNotEmpty) initialModelSerial,
+            }.where((element) => element.isNotEmpty).toList();
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Filters',
+                        style: TextStyle(
+                          color: _textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: onClose,
+                        icon: const Icon(Icons.close, color: _textPrimary),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: _borderColor),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ToolbarField(
+                          label: 'Date range',
+                          child: _SelectionButton(
+                            label: range,
+                            icon: Icons.calendar_today_rounded,
+                            onTap: () async {
+                              await onPickDateRange();
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        _ToolbarField(
+                          label: 'Models',
+                          child: _SelectionButton(
+                            label: selectedCount > 0
+                                ? 'Selected: $selectedCount'
+                                : 'Select Models',
+                            icon: Icons.list_alt,
+                            onTap: () async {
+                              await onOpenModelSelector();
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (selectedCount > 0)
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final model in controller.selectedModelList)
+                                Chip(
+                                  backgroundColor: const Color(0xFF1E3A5F),
+                                  label: Text(
+                                    model,
+                                    style: const TextStyle(color: _textPrimary),
+                                  ),
+                                  deleteIconColor: _textPrimary,
+                                  onDeleted: () {
+                                    final updated = controller.selectedModelList
+                                      ..remove(model);
+                                    controller.setSelectedModels(updated);
+                                  },
+                                ),
+                              ActionChip(
+                                backgroundColor: const Color(0xFF162741),
+                                label: const Text(
+                                  'Clear all',
+                                  style: TextStyle(color: _textMuted),
+                                ),
+                                onPressed: controller.clearSelectedModels,
+                              ),
+                            ],
+                          ),
+                        if (selectedCount > 0) const SizedBox(height: 24),
+                        _ToolbarField(
+                          label: 'Model serial',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF162741),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: _borderColor),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: controller.modelSerial.value,
+                                dropdownColor: _surfaceColor,
+                                iconEnabledColor: _textPrimary,
+                                style: const TextStyle(color: _textPrimary),
+                                items: serialOptions
+                                    .map((item) => DropdownMenuItem(
+                                          value: item,
+                                          child: Text(item),
+                                        ))
+                                    .toList(),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    controller.modelSerial.value = value;
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        TextButton.icon(
+                          onPressed: onReset,
+                          icon: const Icon(Icons.refresh, color: _accentCyan),
+                          label: const Text(
+                            'Reset to today range',
+                            style: TextStyle(color: _accentCyan),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _textPrimary,
+                            side: const BorderSide(color: _borderColor),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: onClose,
+                          child: const Text('Close'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accentCyan,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: onApply,
+                          icon: const Icon(Icons.check_circle),
+                          label: const Text(
+                            'Apply filters',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
+
 class _ToolbarField extends StatelessWidget {
   const _ToolbarField({required this.label, required this.child});
 
@@ -954,6 +1302,326 @@ class _SelectionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RateDetailSheet extends StatelessWidget {
+  const _RateDetailSheet({
+    required this.row,
+    required this.rateLabel,
+    required this.rateValue,
+    required this.detailFuture,
+  });
+
+  final TEReportRow row;
+  final String rateLabel;
+  final double rateValue;
+  final Future<TEErrorDetail?> detailFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final metrics = [
+      _MetricEntry('WIP QTY', row.wipQty.toString()),
+      _MetricEntry('INPUT', row.input.toString()),
+      _MetricEntry('FIRST FAIL', row.firstFail.toString()),
+      _MetricEntry('REPAIR QTY', row.repairQty.toString()),
+      _MetricEntry('FIRST PASS', row.firstPass.toString()),
+      _MetricEntry('REPAIR PASS', row.repairPass.toString()),
+      _MetricEntry('PASS', row.pass.toString()),
+      _MetricEntry('TOTAL PASS', row.totalPass.toString()),
+    ];
+
+    return FractionallySizedBox(
+      heightFactor: 0.85,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomInset),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                height: 4,
+                width: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(.18),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Model ${row.modelName}',
+              style: const TextStyle(
+                color: _textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Group ${row.groupName}',
+              style: TextStyle(
+                color: _textMuted.withOpacity(.85),
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10213A),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: _borderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    rateLabel,
+                    style: const TextStyle(
+                      color: _textMuted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${rateValue.toStringAsFixed(2)}%',
+                    style: const TextStyle(
+                      color: _accentCyan,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final metric in metrics)
+                  _MetricPill(label: metric.label, value: metric.value),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: FutureBuilder<TEErrorDetail?>(
+                future: detailFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: _accentCyan),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        'Failed to load error detail\n${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: _textMuted),
+                      ),
+                    );
+                  }
+                  final detail = snapshot.data;
+                  if (detail == null || !detail.hasData) {
+                    return Center(
+                      child: Text(
+                        'No additional error detail available for this record.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: _textMuted),
+                      ),
+                    );
+                  }
+                  return ListView(
+                    children: [
+                      if (detail.byErrorCode.isNotEmpty)
+                        _RateBreakdownSection(
+                          title: 'Order By Error Code',
+                          clusters: detail.byErrorCode,
+                        ),
+                      if (detail.byMachine.isNotEmpty)
+                        _RateBreakdownSection(
+                          title: 'Order By Tester Name',
+                          clusters: detail.byMachine,
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RateBreakdownSection extends StatelessWidget {
+  const _RateBreakdownSection({
+    required this.title,
+    required this.clusters,
+  });
+
+  final String title;
+  final List<TEErrorDetailCluster> clusters;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: _textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (clusters.isEmpty)
+            Text(
+              'No data available.',
+              style: TextStyle(color: _textMuted.withOpacity(.85)),
+            ),
+          for (final cluster in clusters)
+            _RateBreakdownCard(cluster: cluster),
+        ],
+      ),
+    );
+  }
+}
+
+class _RateBreakdownCard extends StatelessWidget {
+  const _RateBreakdownCard({required this.cluster});
+
+  final TEErrorDetailCluster cluster;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C1A2B),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            cluster.label.isEmpty ? '(N/A)' : cluster.label,
+            style: const TextStyle(
+              color: _textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Fail Qty: ${cluster.totalFail}',
+            style: const TextStyle(
+              color: _accentCyan,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (cluster.hasBreakdown) ...[
+            const SizedBox(height: 12),
+            Column(
+              children: [
+                for (final breakdown in cluster.breakdowns)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            breakdown.label,
+                            style: const TextStyle(
+                              color: _textPrimary,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${breakdown.failQty}',
+                          style: const TextStyle(
+                            color: _textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Text(
+              'No drill-down data.',
+              style: TextStyle(color: _textMuted.withOpacity(.8)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricPill extends StatelessWidget {
+  const _MetricPill({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF162741),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: _textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: _textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricEntry {
+  const _MetricEntry(this.label, this.value);
+
+  final String label;
+  final String value;
 }
 
 class _ColumnDef {
