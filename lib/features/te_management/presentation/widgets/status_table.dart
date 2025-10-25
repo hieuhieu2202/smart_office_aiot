@@ -32,20 +32,20 @@ class TEStatusTable extends StatelessWidget {
   final void Function(String rowKey, TERateType type) onRateTap;
 
   static const List<_ColumnDef> _columns = [
-    _ColumnDef('#', minWidth: 72, flex: 0.6),
-    _ColumnDef('MODEL NAME', minWidth: 260, flex: 2.8),
-    _ColumnDef('GROUP NAME', minWidth: 220, flex: 2.0),
-    _ColumnDef('WIP QTY', minWidth: 120, flex: 1.1),
-    _ColumnDef('INPUT', minWidth: 120, flex: 1.1),
-    _ColumnDef('FIRST FAIL', minWidth: 130, flex: 1.2),
-    _ColumnDef('REPAIR QTY', minWidth: 130, flex: 1.2),
-    _ColumnDef('FIRST PASS', minWidth: 130, flex: 1.2),
-    _ColumnDef('REPAIR PASS', minWidth: 130, flex: 1.2),
-    _ColumnDef('PASS', minWidth: 120, flex: 1.1),
-    _ColumnDef('TOTAL PASS', minWidth: 130, flex: 1.2),
-    _ColumnDef('F.P.R', minWidth: 130, flex: 1.2),
-    _ColumnDef('Y.R', minWidth: 130, flex: 1.2),
-    _ColumnDef('R.R', minWidth: 130, flex: 1.2),
+    _ColumnDef('#', minWidth: 60, flex: 0.6),
+    _ColumnDef('MODEL NAME', minWidth: 220, flex: 2.6),
+    _ColumnDef('GROUP NAME', minWidth: 180, flex: 1.9),
+    _ColumnDef('WIP QTY', minWidth: 100, flex: 1.0),
+    _ColumnDef('INPUT', minWidth: 100, flex: 1.0),
+    _ColumnDef('FIRST FAIL', minWidth: 110, flex: 1.1),
+    _ColumnDef('REPAIR QTY', minWidth: 110, flex: 1.1),
+    _ColumnDef('FIRST PASS', minWidth: 110, flex: 1.1),
+    _ColumnDef('REPAIR PASS', minWidth: 110, flex: 1.1),
+    _ColumnDef('PASS', minWidth: 100, flex: 1.0),
+    _ColumnDef('TOTAL PASS', minWidth: 110, flex: 1.1),
+    _ColumnDef('F.P.R', minWidth: 110, flex: 1.1),
+    _ColumnDef('Y.R', minWidth: 110, flex: 1.1),
+    _ColumnDef('R.R', minWidth: 110, flex: 1.1),
   ];
 
   @override
@@ -57,7 +57,11 @@ class TEStatusTable extends StatelessWidget {
             ? constraints.maxWidth
             : mediaWidth;
         final totalMinWidth = _columns.fold<double>(0, (sum, column) => sum + column.minWidth);
-        final targetWidth = math.max(availableWidth, totalMinWidth);
+        final bool needsHorizontalScroll = availableWidth < totalMinWidth;
+        final double tableWidth = needsHorizontalScroll ? availableWidth : totalMinWidth;
+        final double resolvedTableWidth =
+            tableWidth <= 0 ? totalMinWidth : tableWidth;
+        final double targetWidth = totalMinWidth;
         final extraWidth = math.max(0, targetWidth - totalMinWidth);
         final totalFlex = _columns.fold<double>(0, (sum, column) => sum + column.flex);
         final widths = _columns
@@ -65,85 +69,91 @@ class TEStatusTable extends StatelessWidget {
                 (totalFlex == 0 ? 0 : extraWidth * (column.flex / totalFlex)))
             .toList(growable: false);
 
-        return Container(
-          decoration: BoxDecoration(
-            color: _rowBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: _tableBorder),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Scrollbar(
-              thumbVisibility: true,
-              child: SingleChildScrollView(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: targetWidth),
-                    child: Column(
-                      children: [
-                        _TableHeader(
-                          columns: _columns,
-                          columnWidths: widths,
+        return Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: resolvedTableWidth,
+            child: Container(
+              decoration: BoxDecoration(
+                color: _rowBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _tableBorder),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minWidth: targetWidth),
+                        child: Column(
+                          children: [
+                            _TableHeader(
+                              columns: _columns,
+                              columnWidths: widths,
+                            ),
+                            GetBuilder<TEManagementController>(
+                              tag: controllerTag,
+                              id: 'table',
+                              builder: (ctrl) {
+                                final groups = ctrl.visibleGroups;
+                                if (groups.isEmpty) {
+                                  if (ctrl.isLoading.value) {
+                                    return const _TableLoadingPlaceholder();
+                                  }
+                                  return const _TableEmptyState();
+                                }
+
+                                final rows = <Widget>[];
+                                var groupIndex = 1;
+                                var rowCounter = 0;
+                                for (final group in groups) {
+                                  for (var i = 0; i < group.rowKeys.length; i++) {
+                                    final rowKey = group.rowKeys[i];
+                                    final isFirst = i == 0;
+                                    final displayIndex = isFirst ? groupIndex.toString() : '';
+                                    final displayModel = isFirst ? group.modelName : '';
+                                    final isLast = i == group.rowKeys.length - 1;
+                                    final isAlt = rowCounter % 2 == 1;
+                                    rowCounter++;
+
+                                    rows.add(
+                                      GetBuilder<TEManagementController>(
+                                        tag: controllerTag,
+                                        id: 'row_$rowKey',
+                                        builder: (rowCtrl) {
+                                          final row = rowCtrl.rowByKey(rowKey);
+                                          if (row == null) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          final updatedAt = rowCtrl.rowLastUpdated(rowKey);
+                                          return _TableRow(
+                                            columnWidths: widths,
+                                            indexLabel: displayIndex,
+                                            modelLabel: displayModel,
+                                            row: row,
+                                            rowKey: rowKey,
+                                            isAlt: isAlt,
+                                            isFirstInGroup: isFirst,
+                                            isLastInGroup: isLast,
+                                            lastUpdated: updatedAt,
+                                            onRateTap: onRateTap,
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  }
+                                  groupIndex++;
+                                }
+
+                                return Column(children: rows);
+                              },
+                            ),
+                          ],
                         ),
-                        GetBuilder<TEManagementController>(
-                          tag: controllerTag,
-                          id: 'table',
-                          builder: (ctrl) {
-                            final groups = ctrl.visibleGroups;
-                            if (groups.isEmpty) {
-                              if (ctrl.isLoading.value) {
-                                return const _TableLoadingPlaceholder();
-                              }
-                              return const _TableEmptyState();
-                            }
-
-                            final rows = <Widget>[];
-                            var groupIndex = 1;
-                            var rowCounter = 0;
-                            for (final group in groups) {
-                              for (var i = 0; i < group.rowKeys.length; i++) {
-                                final rowKey = group.rowKeys[i];
-                                final isFirst = i == 0;
-                                final displayIndex = isFirst ? groupIndex.toString() : '';
-                                final displayModel = isFirst ? group.modelName : '';
-                                final isLast = i == group.rowKeys.length - 1;
-                                final isAlt = rowCounter % 2 == 1;
-                                rowCounter++;
-
-                                rows.add(
-                                  GetBuilder<TEManagementController>(
-                                    tag: controllerTag,
-                                    id: 'row_$rowKey',
-                                    builder: (rowCtrl) {
-                                      final row = rowCtrl.rowByKey(rowKey);
-                                      if (row == null) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      final updatedAt = rowCtrl.rowLastUpdated(rowKey);
-                                      return _TableRow(
-                                        columnWidths: widths,
-                                        indexLabel: displayIndex,
-                                        modelLabel: displayModel,
-                                        row: row,
-                                        rowKey: rowKey,
-                                        isAlt: isAlt,
-                                        isFirstInGroup: isFirst,
-                                        isLastInGroup: isLast,
-                                        lastUpdated: updatedAt,
-                                        onRateTap: onRateTap,
-                                      );
-                                    },
-                                  ),
-                                );
-                              }
-                              groupIndex++;
-                            }
-
-                            return Column(children: rows);
-                          },
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -209,6 +219,7 @@ class _HeaderCell extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             color: _textPrimary,
             fontWeight: FontWeight.w700,
@@ -415,6 +426,7 @@ class _ValueCell extends StatelessWidget {
           text,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
             color: text == '-' ? _textMuted : _textPrimary,
             fontSize: 13,
@@ -466,6 +478,7 @@ class _GroupCell extends StatelessWidget {
                 display,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: display == '-' ? _textMuted : _textPrimary,
                   fontSize: 13,
