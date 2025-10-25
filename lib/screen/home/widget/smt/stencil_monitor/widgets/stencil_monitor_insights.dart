@@ -43,7 +43,7 @@ class _InsightsStrip extends StatelessWidget {
           ];
 
     return Container(
-      height: 280,
+      height: 250,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: frameBorder),
@@ -75,7 +75,7 @@ class _InsightsStrip extends StatelessWidget {
                 letterSpacing: 1,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -211,7 +211,7 @@ class _InsightMetricCardState extends State<_InsightMetricCard>
 
         return Container(
           width: widget.width,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: borderColor, width: 1.4),
@@ -235,11 +235,13 @@ class _InsightMetricCardState extends State<_InsightMetricCard>
           child: child,
         );
       },
-      child: _InsightCardContent(
-        metric: metric,
-        palette: palette,
-        textColor: widget.textColor,
-        mutedColor: widget.mutedColor,
+      child: Center(
+        child: _InsightCardContent(
+          metric: metric,
+          palette: palette,
+          textColor: widget.textColor,
+          mutedColor: widget.mutedColor,
+        ),
       ),
     );
   }
@@ -261,6 +263,7 @@ class _InsightCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -269,26 +272,26 @@ class _InsightCardContent extends StatelessWidget {
           textAlign: TextAlign.center,
           style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
             fontFamily: _StencilTypography.heading,
-            fontSize: 13,
+            fontSize: 12.5,
             color: metric.accent,
             letterSpacing: 1.1,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Text(
           metric.value,
           textAlign: TextAlign.center,
           style: GlobalTextStyles.bodyLarge(isDark: palette.isDark).copyWith(
             fontFamily: _StencilTypography.heading,
-            fontSize: 34,
+            fontSize: 30,
             color: textColor,
             letterSpacing: 0.6,
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 10),
         _DashedRule(color: metric.accent.withOpacity(palette.isDark ? 0.5 : 0.35)),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
         Text(
           metric.description,
           textAlign: TextAlign.center,
@@ -296,9 +299,11 @@ class _InsightCardContent extends StatelessWidget {
             fontFamily: _StencilTypography.numeric,
             fontSize: 12,
             color: mutedColor.withOpacity(palette.isDark ? 0.95 : 0.9),
-            height: 1.4,
+            height: 1.35,
           ),
           softWrap: true,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
