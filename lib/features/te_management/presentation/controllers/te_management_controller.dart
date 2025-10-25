@@ -203,6 +203,9 @@ class TEManagementController extends GetxController {
       for (final key in changedKeys) {
         update(['row_$key']);
       }
+      if (changedKeys.isNotEmpty) {
+        update(['table']);
+      }
     }
 
     final currentNames = <String>{

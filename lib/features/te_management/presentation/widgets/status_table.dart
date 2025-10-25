@@ -85,7 +85,7 @@ class _TEStatusTableState extends State<TEStatusTable> {
         final maxWidth = availableWidth <= 0 ? totalMinWidth : availableWidth;
         final bool canExpand = maxWidth > totalMinWidth;
         final double targetWidth = canExpand ? maxWidth : totalMinWidth;
-        final double resolvedTableWidth = math.min(maxWidth, targetWidth);
+        final double resolvedTableWidth = math.max(totalMinWidth, targetWidth);
         final extraWidth = math.max(0, targetWidth - totalMinWidth);
         final totalFlex = TEStatusTable._columns
             .fold<double>(0, (sum, column) => sum + column.flex);
@@ -107,25 +107,59 @@ class _TEStatusTableState extends State<TEStatusTable> {
                 return const _TableEmptyState();
               }
 
-              final rows = <Widget>[];
+              final now = DateTime.now();
+              final blocks = <Widget>[];
               var groupIndex = 1;
               for (final group in groups) {
-                rows.add(
-                  _TableGroupBlock(
-                    controllerTag: widget.controllerTag,
+                final rowKeys = group.rowKeys;
+                if (rowKeys.isEmpty) {
+                  groupIndex++;
+                  continue;
+                }
+
+                final rows = <_RowRenderData>[];
+                final baseColor = groupIndex.isOdd ? _rowBg : _rowAltBg;
+                for (final key in rowKeys) {
+                  final row = ctrl.rowByKey(key);
+                  if (row == null) continue;
+                  final updatedAt = ctrl.rowLastUpdated(key);
+                  final highlight = updatedAt != null &&
+                      now.difference(updatedAt).inMilliseconds < 1200;
+                  rows.add(
+                    _RowRenderData(
+                      rowKey: key,
+                      entity: row,
+                      baseColor: baseColor,
+                      shouldHighlight: highlight,
+                    ),
+                  );
+                }
+
+                if (rows.isEmpty) {
+                  groupIndex++;
+                  continue;
+                }
+
+                blocks.add(
+                  _GroupTable(
                     columnWidths: widths,
-                    group: group,
                     groupIndex: groupIndex,
+                    modelName: group.modelName,
+                    rows: rows,
                     onRateTap: widget.onRateTap,
                   ),
                 );
                 groupIndex++;
               }
 
+              if (blocks.isEmpty) {
+                return const _TableEmptyState();
+              }
+
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: rows,
+                children: blocks,
               );
             },
           );
@@ -136,7 +170,7 @@ class _TEStatusTableState extends State<TEStatusTable> {
           scrollDirection: Axis.horizontal,
           physics: const ClampingScrollPhysics(),
           child: SizedBox(
-            width: targetWidth,
+            width: resolvedTableWidth,
             child: _TableHeader(
               columns: TEStatusTable._columns,
               columnWidths: widths,
@@ -153,7 +187,7 @@ class _TEStatusTableState extends State<TEStatusTable> {
               controller: _horizontalController,
               scrollDirection: Axis.horizontal,
               child: SizedBox(
-                width: targetWidth,
+                width: resolvedTableWidth,
                 child: buildBody(),
               ),
             ),
@@ -162,30 +196,27 @@ class _TEStatusTableState extends State<TEStatusTable> {
 
         return Align(
           alignment: Alignment.topCenter,
-          child: SizedBox(
-            width: resolvedTableWidth,
-            child: Container(
-              decoration: BoxDecoration(
-                color: _rowBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _tableBorder),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      top: _headerHeight,
-                      child: body,
-                    ),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: header,
-                    ),
-                  ],
-                ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _rowBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _tableBorder),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    top: _headerHeight,
+                    child: body,
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: header,
+                  ),
+                ],
               ),
             ),
           ),
@@ -243,7 +274,6 @@ class _HeaderCell extends StatelessWidget {
       decoration: const BoxDecoration(
         border: Border(
           right: BorderSide(color: _tableBorder, width: 1),
-          bottom: BorderSide(color: _tableBorder, width: 1),
         ),
       ),
       child: Tooltip(
@@ -265,369 +295,481 @@ class _HeaderCell extends StatelessWidget {
   }
 }
 
-class _TableGroupBlock extends StatelessWidget {
-  const _TableGroupBlock({
-    required this.controllerTag,
+class _GroupTable extends StatelessWidget {
+  const _GroupTable({
     required this.columnWidths,
-    required this.group,
     required this.groupIndex,
+    required this.modelName,
+    required this.rows,
     required this.onRateTap,
   });
 
-  final String controllerTag;
   final List<double> columnWidths;
-  final TEGroupedRows group;
   final int groupIndex;
+  final String modelName;
+  final List<_RowRenderData> rows;
   final void Function(String rowKey, TERateType type) onRateTap;
 
   @override
   Widget build(BuildContext context) {
-    if (group.rowKeys.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    final totalHeight = rows.length * _rowHeight;
+    final indexText = groupIndex.toString();
+    final modelText = modelName.isEmpty ? '-' : modelName;
+    final spanHighlight = rows.any((row) => row.shouldHighlight);
+    final baseColor = rows.first.baseColor;
 
-    final isAltGroup = groupIndex.isOdd;
+    final children = <Widget>[];
+    var columnIndex = 0;
 
-    final rows = <Widget>[];
-    for (var i = 0; i < group.rowKeys.length; i++) {
-      final rowKey = group.rowKeys[i];
-      final isFirst = i == 0;
-      final isLast = i == group.rowKeys.length - 1;
+    children.add(
+      _SpanCell(
+        width: columnWidths[columnIndex++],
+        label: indexText,
+        tooltip: indexText,
+        span: rows.length,
+        baseColor: baseColor,
+        shouldHighlight: spanHighlight,
+        addLeftBorder: true,
+      ),
+    );
 
-      rows.add(
-        GetBuilder<TEManagementController>(
-          tag: controllerTag,
-          id: 'row_$rowKey',
-          builder: (rowCtrl) {
-            final row = rowCtrl.rowByKey(rowKey);
-            if (row == null) {
-              return const SizedBox.shrink();
-            }
-            final updatedAt = rowCtrl.rowLastUpdated(rowKey);
-            return _TableRow(
-              columnWidths: columnWidths,
-              indexLabel: isFirst ? groupIndex.toString() : '',
-              modelLabel: isFirst ? group.modelName : '',
-              row: row,
-              rowKey: rowKey,
-              isAlt: isAltGroup,
-              isFirstInGroup: isFirst,
-              isLastInGroup: isLast,
-              groupSize: group.rowKeys.length,
-              groupRowIndex: i,
-              lastUpdated: updatedAt,
-              onRateTap: onRateTap,
-            );
-          },
-        ),
-      );
-    }
+    children.add(
+      _SpanCell(
+        width: columnWidths[columnIndex++],
+        label: modelText,
+        tooltip: modelText,
+        span: rows.length,
+        baseColor: baseColor,
+        shouldHighlight: spanHighlight,
+      ),
+    );
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: rows,
+    children.add(
+      _ValueColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        textBuilder: (row) => row.entity.groupName,
+        tooltipBuilder: (row) => row.entity.groupName,
+        textAlign: TextAlign.center,
+        addLeftBorder: true,
+      ),
+    );
+
+    children.addAll([
+      _ValueColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        textBuilder: (row) => row.entity.wipQty.toString(),
+        textAlign: TextAlign.center,
+      ),
+      _ValueColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        textBuilder: (row) => row.entity.input.toString(),
+        textAlign: TextAlign.center,
+      ),
+      _ValueColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        textBuilder: (row) => row.entity.firstFail.toString(),
+        textAlign: TextAlign.center,
+      ),
+      _ValueColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        textBuilder: (row) => row.entity.repairQty.toString(),
+        textAlign: TextAlign.center,
+      ),
+      _ValueColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        textBuilder: (row) => row.entity.firstPass.toString(),
+        textAlign: TextAlign.center,
+      ),
+      _ValueColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        textBuilder: (row) => row.entity.repairPass.toString(),
+        textAlign: TextAlign.center,
+      ),
+      _ValueColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        textBuilder: (row) => row.entity.pass.toString(),
+        textAlign: TextAlign.center,
+      ),
+      _ValueColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        textBuilder: (row) => row.entity.totalPass.toString(),
+        textAlign: TextAlign.center,
+      ),
+    ]);
+
+    children.addAll([
+      _RateColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        type: TERateType.fpr,
+        onRateTap: onRateTap,
+      ),
+      _RateColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        type: TERateType.spr,
+        onRateTap: onRateTap,
+      ),
+      _RateColumn(
+        width: columnWidths[columnIndex++],
+        rows: rows,
+        type: TERateType.rr,
+        onRateTap: onRateTap,
+      ),
+    ]);
+
+    return SizedBox(
+      height: totalHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
     );
   }
 }
 
-class _TableRow extends StatelessWidget {
-  const _TableRow({
-    required this.columnWidths,
-    required this.indexLabel,
-    required this.modelLabel,
-    required this.row,
-    required this.rowKey,
-    required this.isAlt,
-    required this.isFirstInGroup,
-    required this.isLastInGroup,
-    required this.groupSize,
-    required this.groupRowIndex,
-    required this.lastUpdated,
-    required this.onRateTap,
+class _SpanCell extends StatelessWidget {
+  const _SpanCell({
+    required this.width,
+    required this.label,
+    required this.tooltip,
+    required this.span,
+    required this.baseColor,
+    required this.shouldHighlight,
+    this.addLeftBorder = false,
   });
 
-  final List<double> columnWidths;
-  final String indexLabel;
-  final String modelLabel;
-  final TEReportRowEntity row;
-  final String rowKey;
-  final bool isAlt;
-  final bool isFirstInGroup;
-  final bool isLastInGroup;
-  final int groupSize;
-  final int groupRowIndex;
-  final DateTime? lastUpdated;
-  final void Function(String rowKey, TERateType type) onRateTap;
+  final double width;
+  final String label;
+  final String tooltip;
+  final int span;
+  final Color baseColor;
+  final bool shouldHighlight;
+  final bool addLeftBorder;
 
   @override
   Widget build(BuildContext context) {
-    final background = isAlt ? _rowAltBg : _rowBg;
-    final highlight = lastUpdated != null &&
-        DateTime.now().difference(lastUpdated!).inSeconds < 5;
+    final display = label.isEmpty ? '-' : label;
+    final message = tooltip.isEmpty ? display : tooltip;
+
     return TweenAnimationBuilder<Color?>(
-      key: ValueKey(row.hashCode),
       tween: ColorTween(
-        begin: highlight ? _highlight : background,
-        end: background,
+        begin: shouldHighlight ? _highlight : baseColor,
+        end: baseColor,
       ),
       duration: const Duration(milliseconds: 600),
       builder: (context, color, child) {
-        final resolvedColor = color ?? background;
         return Container(
-          height: _rowHeight,
-          color: resolvedColor,
-          child: Row(children: _buildCells(resolvedColor)),
+          width: width,
+          height: _rowHeight * span,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: color ?? baseColor,
+            border: Border(
+              left: addLeftBorder
+                  ? const BorderSide(color: _tableBorder, width: 1)
+                  : BorderSide.none,
+              right: const BorderSide(color: _tableBorder, width: 1),
+              top: const BorderSide(color: _tableBorder, width: 1),
+              bottom: const BorderSide(color: _tableBorder, width: 1),
+            ),
+          ),
+          child: Tooltip(
+            message: message,
+            waitDuration: const Duration(milliseconds: 200),
+            child: Text(
+              display,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: _textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         );
       },
     );
   }
+}
 
-  List<Widget> _buildCells(Color backgroundColor) {
-    final widths = columnWidths;
-    var columnIndex = 0;
-    final cells = <Widget>[];
-    cells.add(_MergedCell(
-      width: widths[columnIndex++],
-      value: indexLabel,
-      tooltip: indexLabel,
-      isFirst: isFirstInGroup,
-      isLast: isLastInGroup,
-      isLeading: true,
-      background: backgroundColor,
-      span: groupSize,
-      rowIndex: groupRowIndex,
-    ));
-    cells.add(_MergedCell(
-      width: widths[columnIndex++],
-      value: modelLabel,
-      tooltip: modelLabel,
-      isFirst: isFirstInGroup,
-      isLast: isLastInGroup,
-      isLeading: false,
-      background: backgroundColor,
-      span: groupSize,
-      rowIndex: groupRowIndex,
-    ));
-    cells.add(_ValueCell(
-      width: widths[columnIndex++],
-      value: row.groupName,
-      tooltip: row.groupName,
-    ));
+class _ValueColumn extends StatelessWidget {
+  const _ValueColumn({
+    required this.width,
+    required this.rows,
+    required this.textBuilder,
+    this.tooltipBuilder,
+    this.textAlign = TextAlign.center,
+    this.addLeftBorder = false,
+  });
 
-    cells.addAll([
-      _numericCell(widths[columnIndex++], row.wipQty),
-      _numericCell(widths[columnIndex++], row.input),
-      _numericCell(widths[columnIndex++], row.firstFail),
-      _numericCell(widths[columnIndex++], row.repairQty),
-      _numericCell(widths[columnIndex++], row.firstPass),
-      _numericCell(widths[columnIndex++], row.repairPass),
-      _numericCell(widths[columnIndex++], row.pass),
-      _numericCell(widths[columnIndex++], row.totalPass),
-      _rateCell(widths[columnIndex++], row.fpr, TERateType.fpr),
-      _rateCell(widths[columnIndex++], row.spr, TERateType.spr),
-      _rateCell(widths[columnIndex++], row.rr, TERateType.rr),
-    ]);
+  final double width;
+  final List<_RowRenderData> rows;
+  final String Function(_RowRenderData row) textBuilder;
+  final String Function(_RowRenderData row)? tooltipBuilder;
+  final TextAlign textAlign;
+  final bool addLeftBorder;
 
-    return cells;
-  }
-
-  Widget _numericCell(double width, num value) {
-    final display = value.toString();
-    return _ValueCell(
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
       width: width,
-      value: display,
-      tooltip: display,
-    );
-  }
-
-  Widget _rateCell(double width, double value, TERateType type) {
-    final style = _rateStyle(type, value);
-    final text = '${value.toStringAsFixed(2)}%';
-    return GestureDetector(
-      onTap: () => onRateTap(rowKey, type),
-      child: Container(
-        width: width,
-        height: double.infinity,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: const BoxDecoration(
-          border: Border(
-            right: BorderSide(color: _tableBorder, width: 1),
-            bottom: BorderSide(color: _tableBorder, width: 1),
-          ),
-        ),
-        child: Tooltip(
-          message: 'Tap to drill down',
-          waitDuration: const Duration(milliseconds: 200),
-          child: Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: style.background,
-              borderRadius: BorderRadius.circular(8),
+      height: rows.length * _rowHeight,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          for (var i = 0; i < rows.length; i++)
+            _ValueCell(
+              width: width,
+              row: rows[i],
+              display: textBuilder(rows[i]),
+              tooltip: tooltipBuilder?.call(rows[i]) ?? textBuilder(rows[i]),
+              textAlign: textAlign,
+              isFirst: i == 0,
+              isLast: i == rows.length - 1,
+              addLeftBorder: addLeftBorder,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: style.foreground,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        ),
+        ],
       ),
     );
-  }
-
-  _RateStyle _rateStyle(TERateType type, double value) {
-    switch (type) {
-      case TERateType.fpr:
-      case TERateType.spr:
-        if (value <= 90) {
-          return const _RateStyle(_dangerRed, Colors.white);
-        }
-        if (value > 90 && value <= 97) {
-          return const _RateStyle(_warningAmber, Colors.black87);
-        }
-        return const _RateStyle(_successGreen, Colors.white);
-      case TERateType.rr:
-        if (value >= 5) {
-          return const _RateStyle(_dangerRed, Colors.white);
-        }
-        if (value > 2 && value < 5) {
-          return const _RateStyle(_warningAmber, Colors.black87);
-        }
-        return const _RateStyle(_successGreen, Colors.white);
-    }
   }
 }
 
 class _ValueCell extends StatelessWidget {
   const _ValueCell({
     required this.width,
-    required this.value,
-    this.tooltip,
+    required this.row,
+    required this.display,
+    required this.tooltip,
+    required this.textAlign,
+    required this.isFirst,
+    required this.isLast,
+    required this.addLeftBorder,
   });
 
   final double width;
-  final String value;
-  final String? tooltip;
+  final _RowRenderData row;
+  final String display;
+  final String tooltip;
+  final TextAlign textAlign;
+  final bool isFirst;
+  final bool isLast;
+  final bool addLeftBorder;
 
   @override
   Widget build(BuildContext context) {
-    final text = value.isEmpty ? '-' : value;
-    final tip = (tooltip ?? value).isEmpty ? '-' : (tooltip ?? value);
-    return Container(
-      width: width,
-      height: double.infinity,
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: const BoxDecoration(
-        border: Border(
-          right: BorderSide(color: _tableBorder, width: 1),
-          bottom: BorderSide(color: _tableBorder, width: 1),
-        ),
+    final text = display.isEmpty ? '-' : display;
+    final message = tooltip.isEmpty ? text : tooltip;
+
+    return TweenAnimationBuilder<Color?>(
+      tween: ColorTween(
+        begin: row.shouldHighlight ? _highlight : row.baseColor,
+        end: row.baseColor,
       ),
-      child: Tooltip(
-        message: tip,
-        waitDuration: const Duration(milliseconds: 200),
-        child: Text(
-          text,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: text == '-' ? _textMuted : _textPrimary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+      duration: const Duration(milliseconds: 600),
+      builder: (context, color, child) {
+        return Container(
+          width: width,
+          height: _rowHeight,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: color ?? row.baseColor,
+            border: Border(
+              left: addLeftBorder
+                  ? const BorderSide(color: _tableBorder, width: 1)
+                  : BorderSide.none,
+              right: const BorderSide(color: _tableBorder, width: 1),
+              top: isFirst
+                  ? const BorderSide(color: _tableBorder, width: 1)
+                  : BorderSide.none,
+              bottom: const BorderSide(color: _tableBorder, width: 1),
+            ),
           ),
-        ),
+          child: Tooltip(
+            message: message,
+            waitDuration: const Duration(milliseconds: 200),
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: textAlign,
+              style: TextStyle(
+                color: text == '-' ? _textMuted : _textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RateColumn extends StatelessWidget {
+  const _RateColumn({
+    required this.width,
+    required this.rows,
+    required this.type,
+    required this.onRateTap,
+  });
+
+  final double width;
+  final List<_RowRenderData> rows;
+  final TERateType type;
+  final void Function(String rowKey, TERateType type) onRateTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: rows.length * _rowHeight,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          for (var i = 0; i < rows.length; i++)
+            _RateCell(
+              width: width,
+              row: rows[i],
+              type: type,
+              isFirst: i == 0,
+              isLast: i == rows.length - 1,
+              onTap: () => onRateTap(rows[i].rowKey, type),
+            ),
+        ],
       ),
     );
   }
 }
 
-class _MergedCell extends StatelessWidget {
-  const _MergedCell({
+class _RateCell extends StatelessWidget {
+  const _RateCell({
     required this.width,
-    required this.value,
-    required this.tooltip,
+    required this.row,
+    required this.type,
     required this.isFirst,
     required this.isLast,
-    required this.isLeading,
-    required this.background,
-    required this.span,
-    required this.rowIndex,
+    required this.onTap,
   });
 
   final double width;
-  final String value;
-  final String tooltip;
+  final _RowRenderData row;
+  final TERateType type;
   final bool isFirst;
   final bool isLast;
-  final bool isLeading;
-  final Color background;
-  final int span;
-  final int rowIndex;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final showContent = rowIndex == 0 && value.isNotEmpty;
-    final display = value.isEmpty ? '-' : value;
-    final message = tooltip.isEmpty ? '-' : tooltip;
+    final value = switch (type) {
+      TERateType.fpr => row.entity.fpr,
+      TERateType.spr => row.entity.spr,
+      TERateType.rr => row.entity.rr,
+    };
+    final style = _rateStyle(type, value);
+    final text = '${value.toStringAsFixed(2)}%';
 
-    return Container(
-      width: width,
-      height: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        border: Border(
-          left: isLeading
-              ? const BorderSide(color: _tableBorder, width: 1)
-              : BorderSide.none,
-          right: const BorderSide(color: _tableBorder, width: 1),
-          top: isFirst
-              ? const BorderSide(color: _tableBorder, width: 1)
-              : BorderSide.none,
-          bottom: isLast
-              ? const BorderSide(color: _tableBorder, width: 1)
-              : BorderSide.none,
-        ),
+    return TweenAnimationBuilder<Color?>(
+      tween: ColorTween(
+        begin: row.shouldHighlight ? _highlight : row.baseColor,
+        end: row.baseColor,
       ),
-      child: showContent
-          ? Tooltip(
-              message: message,
+      duration: const Duration(milliseconds: 600),
+      builder: (context, color, child) {
+        return GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: width,
+            height: _rowHeight,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: color ?? row.baseColor,
+              border: Border(
+                right: const BorderSide(color: _tableBorder, width: 1),
+                top: isFirst
+                    ? const BorderSide(color: _tableBorder, width: 1)
+                    : BorderSide.none,
+                bottom: const BorderSide(color: _tableBorder, width: 1),
+              ),
+            ),
+            child: Tooltip(
+              message: 'Tap to drill down',
               waitDuration: const Duration(milliseconds: 200),
-              child: OverflowBox(
-                alignment: Alignment.topCenter,
-                minHeight: _rowHeight * span,
-                maxHeight: _rowHeight * span,
-                child: Container(
-                  height: _rowHeight * span,
-                  alignment: Alignment.center,
-                  color: background,
-                  child: Text(
-                    display,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: display == '-' ? _textMuted : _textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: style.background,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: style.foreground,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
                   ),
                 ),
               ),
-            )
-          : null,
+            ),
+          ),
+        );
+      },
     );
   }
+}
+
+_RateStyle _rateStyle(TERateType type, double value) {
+  switch (type) {
+    case TERateType.fpr:
+    case TERateType.spr:
+      if (value <= 90) {
+        return const _RateStyle(_dangerRed, Colors.white);
+      }
+      if (value > 90 && value <= 97) {
+        return const _RateStyle(_warningAmber, Colors.black87);
+      }
+      return const _RateStyle(_successGreen, Colors.white);
+    case TERateType.rr:
+      if (value >= 5) {
+        return const _RateStyle(_dangerRed, Colors.white);
+      }
+      if (value > 2 && value < 5) {
+        return const _RateStyle(_warningAmber, Colors.black87);
+      }
+      return const _RateStyle(_successGreen, Colors.white);
+  }
+}
+
+class _RowRenderData {
+  const _RowRenderData({
+    required this.rowKey,
+    required this.entity,
+    required this.baseColor,
+    required this.shouldHighlight,
+  });
+
+  final String rowKey;
+  final TEReportRowEntity entity;
+  final Color baseColor;
+  final bool shouldHighlight;
 }
 
 class _RateStyle {
