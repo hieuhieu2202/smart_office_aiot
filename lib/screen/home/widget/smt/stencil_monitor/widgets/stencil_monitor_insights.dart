@@ -82,15 +82,19 @@ class _InsightsStrip extends StatelessWidget {
                   const itemWidth = 174.0;
                   const itemSpacing = 18.0;
                   final spacingCount = items.length > 1 ? items.length - 1 : 0;
-                  final contentWidth =
+                  final baseContentWidth =
                       (items.length * itemWidth) + (spacingCount * itemSpacing);
 
                   double horizontalPadding = 0;
+                  double rowSpacing = itemSpacing;
                   if (constraints.maxWidth.isFinite) {
-                    final centeredPadding =
-                        (constraints.maxWidth - contentWidth) / 2;
-                    if (centeredPadding > 0) {
-                      horizontalPadding = centeredPadding;
+                    final extraWidth = constraints.maxWidth - baseContentWidth;
+                    if (extraWidth > 0) {
+                      if (spacingCount > 0) {
+                        rowSpacing = itemSpacing + (extraWidth / spacingCount);
+                      } else {
+                        horizontalPadding = extraWidth / 2;
+                      }
                     }
                   }
 
@@ -105,16 +109,15 @@ class _InsightsStrip extends StatelessWidget {
                   }
 
                   if (constraints.maxWidth.isFinite &&
-                      contentWidth <= constraints.maxWidth) {
+                      baseContentWidth <= constraints.maxWidth) {
                     return Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: horizontalPadding,
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           for (var i = 0; i < items.length; i++) ...[
-                            if (i > 0) const SizedBox(width: itemSpacing),
+                            if (i > 0) SizedBox(width: rowSpacing),
                             buildMetricCard(items[i]),
                           ],
                         ],
