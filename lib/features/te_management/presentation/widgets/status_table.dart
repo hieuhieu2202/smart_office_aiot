@@ -352,6 +352,7 @@ class _GroupTable extends StatelessWidget {
         tooltipBuilder: (row) => row.entity.groupName,
         textAlign: TextAlign.center,
         addLeftBorder: true,
+        showLeadingDot: true,
       ),
     );
 
@@ -513,6 +514,7 @@ class _ValueColumn extends StatelessWidget {
     this.tooltipBuilder,
     this.textAlign = TextAlign.center,
     this.addLeftBorder = false,
+    this.showLeadingDot = false,
   });
 
   final double width;
@@ -521,6 +523,7 @@ class _ValueColumn extends StatelessWidget {
   final String Function(_RowRenderData row)? tooltipBuilder;
   final TextAlign textAlign;
   final bool addLeftBorder;
+  final bool showLeadingDot;
 
   @override
   Widget build(BuildContext context) {
@@ -531,16 +534,17 @@ class _ValueColumn extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           for (var i = 0; i < rows.length; i++)
-            _ValueCell(
-              width: width,
-              row: rows[i],
-              display: textBuilder(rows[i]),
-              tooltip: tooltipBuilder?.call(rows[i]) ?? textBuilder(rows[i]),
-              textAlign: textAlign,
-              isFirst: i == 0,
-              isLast: i == rows.length - 1,
-              addLeftBorder: addLeftBorder,
-            ),
+          _ValueCell(
+            width: width,
+            row: rows[i],
+            display: textBuilder(rows[i]),
+            tooltip: tooltipBuilder?.call(rows[i]) ?? textBuilder(rows[i]),
+            textAlign: textAlign,
+            isFirst: i == 0,
+            isLast: i == rows.length - 1,
+            addLeftBorder: addLeftBorder,
+            showLeadingDot: showLeadingDot,
+          ),
         ],
       ),
     );
@@ -557,6 +561,7 @@ class _ValueCell extends StatelessWidget {
     required this.isFirst,
     required this.isLast,
     required this.addLeftBorder,
+    required this.showLeadingDot,
   });
 
   final double width;
@@ -567,6 +572,7 @@ class _ValueCell extends StatelessWidget {
   final bool isFirst;
   final bool isLast;
   final bool addLeftBorder;
+  final bool showLeadingDot;
 
   @override
   Widget build(BuildContext context) {
@@ -580,6 +586,50 @@ class _ValueCell extends StatelessWidget {
       ),
       duration: const Duration(milliseconds: 600),
       builder: (context, color, child) {
+        final textStyle = TextStyle(
+          color: text == '-' ? _textMuted : _textPrimary,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        );
+
+        Widget buildContent() {
+          if (showLeadingDot && text != '-') {
+            return Text.rich(
+              TextSpan(
+                style: textStyle,
+                children: [
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: _successGreen,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ),
+                  TextSpan(text: text),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: textAlign,
+            );
+          }
+
+          return Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: textAlign,
+            style: textStyle,
+          );
+        }
+
         return Container(
           width: width,
           height: _rowHeight,
@@ -601,17 +651,7 @@ class _ValueCell extends StatelessWidget {
           child: Tooltip(
             message: message,
             waitDuration: const Duration(milliseconds: 200),
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: textAlign,
-              style: TextStyle(
-                color: text == '-' ? _textMuted : _textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: buildContent(),
           ),
         );
       },
