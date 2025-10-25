@@ -1900,7 +1900,7 @@ class _RateChartCard extends StatelessWidget {
                     ),
                     legend: const Legend(isVisible: false),
                     plotAreaBorderWidth: 0,
-                    onPointTap: (details) {
+                    onPointTapped: (details) {
                       if (state.isDetail) {
                         return;
                       }
