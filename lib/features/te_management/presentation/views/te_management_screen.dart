@@ -686,27 +686,30 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
               breakdownGradient: _errorGradient,
             ),
         ];
+        if (chartCards.isEmpty) {
+          return const _ChartEmptyState();
+        }
         if (isWide) {
+          final children = <Widget>[];
+          for (var i = 0; i < chartCards.length; i++) {
+            children.add(Expanded(child: chartCards[i]));
+            if (i != chartCards.length - 1) {
+              children.add(const SizedBox(width: 16));
+            }
+          }
           return SizedBox(
             height: wideHeight,
-            child: Row(
-              children: [
-                for (final card in chartCards) ...[
-                  Expanded(child: card),
-                  const SizedBox(width: 16),
-                ],
-              ]..removeLast(),
-            ),
+            child: Row(children: children),
           );
         }
-        return Column(
-          children: [
-            for (final card in chartCards) ...[
-              SizedBox(height: stackedHeight, child: card),
-              const SizedBox(height: 16),
-            ],
-          ]..removeLast(),
-        );
+        final columnChildren = <Widget>[];
+        for (var i = 0; i < chartCards.length; i++) {
+          columnChildren.add(SizedBox(height: stackedHeight, child: chartCards[i]));
+          if (i != chartCards.length - 1) {
+            columnChildren.add(const SizedBox(height: 16));
+          }
+        }
+        return Column(children: columnChildren);
       },
     );
   }
