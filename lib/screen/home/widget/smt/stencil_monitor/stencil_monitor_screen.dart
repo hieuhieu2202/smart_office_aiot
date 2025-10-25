@@ -40,6 +40,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
 
   late _StencilColorScheme _palette;
   late final TextEditingController _lineTrackingSearchController;
+  late final ScrollController _lineTrackingScrollController;
   String _lineTrackingQuery = '';
 
   TabController? _overviewTabController;
@@ -57,6 +58,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     controller = Get.put(StencilMonitorController(), tag: _controllerTag);
     _lineTrackingSearchController = TextEditingController()
       ..addListener(_handleLineTrackingQueryChanged);
+    _lineTrackingScrollController = ScrollController();
   }
 
   @override
@@ -65,6 +67,7 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     _overviewTabController?.dispose();
     _lineTrackingSearchController.removeListener(_handleLineTrackingQueryChanged);
     _lineTrackingSearchController.dispose();
+    _lineTrackingScrollController.dispose();
     if (Get.isRegistered<StencilMonitorController>(tag: _controllerTag)) {
       Get.delete<StencilMonitorController>(tag: _controllerTag);
     }
@@ -110,6 +113,15 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
     if (query != _lineTrackingQuery) {
       setState(() {
         _lineTrackingQuery = query;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_lineTrackingScrollController.hasClients) {
+          _lineTrackingScrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+          );
+        }
       });
     }
   }
@@ -714,134 +726,189 @@ class _StencilMonitorScreenState extends State<StencilMonitorScreen>
 
     return _buildOverviewContainer(
       accent: accent,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  'LINE TRACKING',
-                  style: titleStyle,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final hasFiniteHeight = constraints.maxHeight.isFinite;
+          final showViewAll = (hasQuery ? filtered.length : data.length) > top.length;
+          final metaMessage = hasQuery
+              ? 'Showing ${top.length} of ${filtered.length} matches for "$query"'
+              : 'Top ${top.length} of ${data.length} active lines by runtime';
+          final noDataMessage = hasQuery
+              ? 'No lines found for "$query"'
+              : 'No active line runtime data available';
+
+          Widget _buildScrollableList() {
+            final entries = <Widget>[
+              for (final item in top)
+                _buildLineProgressRow(
+                  item,
+                  normalizedMax,
+                  onTap: () {
+                    final detail = _findDetailBySn(item.stencilSn);
+                    if (detail != null) {
+                      _showSingleDetail(context, detail, item.hours);
+                    }
+                  },
                 ),
-              ),
-              const SizedBox(width: 12),
-              Flexible(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 260),
-                  child: TextField(
-                    controller: _lineTrackingSearchController,
-                    style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                      fontFamily: _StencilTypography.numeric,
-                      color: palette.onSurface,
-                      fontSize: 12,
+              if (showViewAll)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => _showLineTrackingDetail(
+                      context,
+                      data,
+                      initialQuery: _lineTrackingQuery,
                     ),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: 'Search line, location, or stencil SN',
-                      hintStyle: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                    style: TextButton.styleFrom(
+                      foregroundColor: accent,
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    icon: const Icon(Icons.auto_graph_rounded, size: 16),
+                    label: Text(
+                      hasQuery
+                          ? 'View all ${filtered.length} matches'
+                          : 'View & search all ${data.length} lines',
+                      style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
                         fontFamily: _StencilTypography.numeric,
-                        color: palette.onSurfaceMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ),
+            ];
+
+            final scrollable = Scrollbar(
+              controller: _lineTrackingScrollController,
+              thumbVisibility: true,
+              radius: const Radius.circular(10),
+              child: ListView(
+                controller: _lineTrackingScrollController,
+                padding: EdgeInsets.zero,
+                children: entries,
+              ),
+            );
+
+            if (hasFiniteHeight) {
+              return Expanded(child: scrollable);
+            }
+
+            final estimatedItemHeight = 86.0;
+            final itemCount = top.length + (showViewAll ? 1 : 0);
+            final fallbackHeight =
+                math.min(360.0, estimatedItemHeight * math.max(1, itemCount));
+            return SizedBox(
+              height: fallbackHeight,
+              child: scrollable,
+            );
+          }
+
+          final content = <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    'LINE TRACKING',
+                    style: titleStyle,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 260),
+                    child: TextField(
+                      controller: _lineTrackingSearchController,
+                      style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                        fontFamily: _StencilTypography.numeric,
+                        color: palette.onSurface,
                         fontSize: 12,
                       ),
-                      prefixIcon: Icon(Icons.search, color: _textSecondary, size: 18),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      filled: true,
-                      fillColor: palette.surfaceOverlay.withOpacity(0.6),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: palette.dividerColor.withOpacity(0.6)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: palette.dividerColor.withOpacity(0.6)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: accent),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: 'Search line, location, or stencil SN',
+                        hintStyle: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                          fontFamily: _StencilTypography.numeric,
+                          color: palette.onSurfaceMuted,
+                          fontSize: 12,
+                        ),
+                        prefixIcon: Icon(Icons.search, color: _textSecondary, size: 18),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        filled: true,
+                        fillColor: palette.surfaceOverlay.withOpacity(0.6),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: palette.dividerColor.withOpacity(0.6)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: palette.dividerColor.withOpacity(0.6)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: accent),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              _buildColorLegend(' < 3.5h', coolColor),
-              const SizedBox(width: 12),
-              _buildColorLegend('3.5 – 4h', cautionColor),
-              const SizedBox(width: 12),
-              _buildColorLegend('> 4h', dangerColor),
-            ],
-          ),
-          if (filtered.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                hasQuery
-                    ? 'Showing ${top.length} of ${filtered.length} matches for "$query"'
-                    : 'Top ${top.length} of ${data.length} active lines by runtime',
-                style: metaStyle,
-              ),
+              ],
             ),
-          const SizedBox(height: 10),
-          if (top.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              child: Text(
-                hasQuery
-                    ? 'No lines found for "$query"'
-                    : 'No active line runtime data available',
-                style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                  fontFamily: _StencilTypography.numeric,
-                  color: _textSecondary,
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                _buildColorLegend(' < 3.5h', coolColor),
+                const SizedBox(width: 12),
+                _buildColorLegend('3.5 – 4h', cautionColor),
+                const SizedBox(width: 12),
+                _buildColorLegend('> 4h', dangerColor),
+              ],
+            ),
+          ];
+
+          if (filtered.isNotEmpty) {
+            content.add(
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  metaMessage,
+                  style: metaStyle,
                 ),
               ),
-            )
-          else ...[
-            for (final item in top)
-              _buildLineProgressRow(
-                item,
-                normalizedMax,
-                onTap: () {
-                  final detail = _findDetailBySn(item.stencilSn);
-                  if (detail != null) {
-                    _showSingleDetail(context, detail, item.hours);
-                  }
-                },
-              ),
-            if ((hasQuery ? filtered.length : data.length) > top.length)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () => _showLineTrackingDetail(
-                    context,
-                    data,
-                    initialQuery: _lineTrackingQuery,
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: accent,
-                    padding: EdgeInsets.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  icon: const Icon(Icons.auto_graph_rounded, size: 16),
-                  label: Text(
-                    hasQuery
-                        ? 'View all ${filtered.length} matches'
-                        : 'View & search all ${data.length} lines',
-                    style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
-                      fontFamily: _StencilTypography.numeric,
-                      fontSize: 11,
-                    ),
+            );
+          }
+
+          content.add(const SizedBox(height: 10));
+
+          if (top.isEmpty) {
+            content.add(
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                child: Text(
+                  noDataMessage,
+                  style: GlobalTextStyles.bodySmall(isDark: palette.isDark).copyWith(
+                    fontFamily: _StencilTypography.numeric,
+                    color: _textSecondary,
                   ),
                 ),
               ),
-          ],
-        ],
+            );
+          } else {
+            content.add(_buildScrollableList());
+          }
+
+          return hasFiniteHeight
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: content,
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: content,
+                );
+        },
       ),
     );
   }
