@@ -119,7 +119,10 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                   label: 'DATE RANGE',
                   value: Obx(() {
                     final range = controller.selectedDateRange.value;
-                    return '${_fmt(range.start)} → ${_fmt(range.end)}';
+                    return Text(
+                      '${_fmt(range.start)} → ${_fmt(range.end)}',
+                      style: const TextStyle(color: Colors.white),
+                    );
                   }),
                   onPressed: () async {
                     final current = controller.selectedDateRange.value;
@@ -529,19 +532,19 @@ class _StackedBarChart extends StatelessWidget {
         position: LegendPosition.bottom,
         textStyle: const TextStyle(color: Colors.white70),
       ),
-      series: <ChartSeries<_StackedBarItem, String>>[
-        StackedColumnSeries<_StackedBarItem, String>(
+      series: <CartesianSeries<dynamic, dynamic>>[
+        StackedColumnSeries<dynamic, dynamic>(
           name: 'PASS',
           dataSource: data,
-          xValueMapper: (item, _) => item.category,
-          yValueMapper: (item, _) => item.pass,
+          xValueMapper: (item, _) => (item as _StackedBarItem).category,
+          yValueMapper: (item, _) => (item as _StackedBarItem).pass,
           color: Colors.cyanAccent,
         ),
-        StackedColumnSeries<_StackedBarItem, String>(
+        StackedColumnSeries<dynamic, dynamic>(
           name: 'FAIL',
           dataSource: data,
-          xValueMapper: (item, _) => item.category,
-          yValueMapper: (item, _) => item.fail,
+          xValueMapper: (item, _) => (item as _StackedBarItem).category,
+          yValueMapper: (item, _) => (item as _StackedBarItem).fail,
           color: Colors.pinkAccent,
         ),
       ],
@@ -596,26 +599,26 @@ class _OutputChart extends StatelessWidget {
           majorGridLines: const MajorGridLines(width: 0),
         ),
       ],
-      series: <ChartSeries<_OutputItem, String>>[
-        StackedColumnSeries<_OutputItem, String>(
+      series: <CartesianSeries<dynamic, dynamic>>[
+        StackedColumnSeries<dynamic, dynamic>(
           name: 'PASS',
           dataSource: data,
-          xValueMapper: (item, _) => item.category,
-          yValueMapper: (item, _) => item.pass,
+          xValueMapper: (item, _) => (item as _OutputItem).category,
+          yValueMapper: (item, _) => (item as _OutputItem).pass,
           color: Colors.cyanAccent,
         ),
-        StackedColumnSeries<_OutputItem, String>(
+        StackedColumnSeries<dynamic, dynamic>(
           name: 'FAIL',
           dataSource: data,
-          xValueMapper: (item, _) => item.category,
-          yValueMapper: (item, _) => item.fail,
+          xValueMapper: (item, _) => (item as _OutputItem).category,
+          yValueMapper: (item, _) => (item as _OutputItem).fail,
           color: Colors.pinkAccent,
         ),
-        SplineSeries<_OutputItem, String>(
+        SplineSeries<dynamic, dynamic>(
           name: 'YIELD RATE',
           dataSource: data,
-          xValueMapper: (item, _) => item.category,
-          yValueMapper: (item, _) => item.yr,
+          xValueMapper: (item, _) => (item as _OutputItem).category,
+          yValueMapper: (item, _) => (item as _OutputItem).yr,
           yAxisName: 'yrAxis',
           color: Colors.amberAccent,
           width: 2,
