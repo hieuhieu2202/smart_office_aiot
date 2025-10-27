@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -112,12 +113,17 @@ class LcrMachineCard extends StatelessWidget {
                           maximumValue: safeMax,
                           xValueMapper: (_RadialGaugePoint point, _) => point.label,
                           yValueMapper: (_RadialGaugePoint point, _) => passValue,
-                          pointShaderMapper: (ChartShaderDetails details) {
+                          pointShaderMapper: (
+                            ChartShaderDetails shaderDetails,
+                            _RadialGaugePoint point,
+                            Color color,
+                            Rect rect,
+                          ) {
                             return LinearGradient(
                               colors: [accent.withOpacity(0.35), accent],
                               begin: Alignment.bottomLeft,
                               end: Alignment.topRight,
-                            ).createShader(details.outerRect);
+                            ).createShader(rect);
                           },
                           trackColor: const Color(0xFF071B32),
                           trackBorderColor: Colors.transparent,
