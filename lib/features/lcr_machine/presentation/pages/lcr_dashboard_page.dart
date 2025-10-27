@@ -551,18 +551,15 @@ class _DashboardTab extends StatelessWidget {
 
   double _machinePerformanceHeight(int itemCount) {
     if (itemCount <= 0) {
-      return 220.0;
-    }
-    if (itemCount <= 2) {
-      return 240.0;
+      return 200.0;
     }
     if (itemCount <= 4) {
+      return 220.0;
+    }
+    if (itemCount <= 8) {
       return 360.0;
     }
-    if (itemCount <= 6) {
-      return 520.0;
-    }
-    return 640.0;
+    return 480.0;
   }
 
   @override
@@ -604,6 +601,7 @@ class _DashboardTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
+                          flex: 2,
                           child: LcrChartCard(
                             title: 'FACTORY DISTRIBUTION',
                             height: 260,
@@ -614,6 +612,7 @@ class _DashboardTab extends StatelessWidget {
                         ),
                         const SizedBox(width: 24),
                         Expanded(
+                          flex: 6,
                           child: LcrChartCard(
                             title: 'MACHINE PERFORMANCE',
                             height: _machinePerformanceHeight(
@@ -624,6 +623,7 @@ class _DashboardTab extends StatelessWidget {
                         ),
                         const SizedBox(width: 24),
                         Expanded(
+                          flex: 2,
                           child: LcrChartCard(
                             title: 'EMPLOYEE STATISTICS',
                             height: 300,
@@ -1487,27 +1487,21 @@ class _MachinesGrid extends StatelessWidget {
         child: Text('No data', style: TextStyle(color: Colors.white54)),
       );
     }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final prefersTwoColumns = list.length > 1;
-        final crossAxisCount = prefersTwoColumns ? 2 : 1;
-        final aspectRatio = prefersTwoColumns ? 1.08 : 0.95;
-        return GridView.builder(
-          itemCount: list.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: aspectRatio,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
+    final items = list.take(4).toList();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: List.generate(items.length, (index) {
+        final gauge = items[index];
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: index == 0 ? 0 : 8,
+              right: index == items.length - 1 ? 0 : 8,
+            ),
+            child: LcrMachineCard(data: gauge),
           ),
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          itemBuilder: (context, index) {
-            final gauge = list[index];
-            return LcrMachineCard(data: gauge);
-          },
         );
-      },
+      }),
     );
   }
 }

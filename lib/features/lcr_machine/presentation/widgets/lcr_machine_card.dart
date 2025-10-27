@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -27,10 +29,21 @@ class LcrMachineCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = _accentColor;
-    final gaugeValue = data.yieldRate.clamp(0, 100).toDouble();
+    final computedTotal = data.total > 0 ? data.total : data.pass;
+    final safeMax = math.max(computedTotal, 1).toDouble();
+    final passValue = data.pass.clamp(0, safeMax.toInt()).toDouble();
+    final remainder = (safeMax - passValue).clamp(0, safeMax);
+    final segments = <_GaugeSegment>[
+      _GaugeSegment(label: 'pass', value: passValue, color: accent),
+      _GaugeSegment(
+        label: 'remaining',
+        value: remainder,
+        color: const Color(0xFF0C1E38),
+      ),
+    ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF03132D).withOpacity(0.88),
         borderRadius: BorderRadius.circular(14),
@@ -40,7 +53,7 @@ class LcrMachineCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           SizedBox(
-            height: 100,
+            height: 118,
             child: SfCircularChart(
               margin: EdgeInsets.zero,
               annotations: <CircularChartAnnotation>[
@@ -57,7 +70,7 @@ class LcrMachineCard extends StatelessWidget {
                           letterSpacing: 0.4,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         'PCS PASS',
                         style: theme.textTheme.labelMedium?.copyWith(
@@ -70,29 +83,46 @@ class LcrMachineCard extends StatelessWidget {
                   ),
                 ),
               ],
-              series: <CircularSeries<_MachineGaugeSlice, String>>[
-                RadialBarSeries<_MachineGaugeSlice, String>(
-                  maximumValue: 100,
-                  gap: '4%',
-                  radius: '100%',
-                  innerRadius: '68%',
+              series: <CircularSeries<_GaugeSegment, String>>[
+                DoughnutSeries<_GaugeSegment, String>(
+                  dataSource: segments,
+                  xValueMapper: (_GaugeSegment segment, _) => segment.label,
+                  yValueMapper: (_GaugeSegment segment, _) => segment.value,
+                  pointColorMapper: (_GaugeSegment segment, _) => segment.color,
+                  startAngle: 180,
+                  endAngle: 0,
+                  radius: '112%',
+                  innerRadius: '70%',
                   cornerStyle: CornerStyle.bothCurve,
-                  trackColor: const Color(0xFF11233E),
-                  trackOpacity: 1,
-                  dataSource: <_MachineGaugeSlice>[
-                    _MachineGaugeSlice('yield', gaugeValue),
-                  ],
-                  xValueMapper: (_MachineGaugeSlice slice, _) => slice.label,
-                  yValueMapper: (_MachineGaugeSlice slice, _) => slice.value,
-                  pointColorMapper: (_, __) => accent,
                   dataLabelSettings: const DataLabelSettings(isVisible: false),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                '0',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: Colors.white54,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                data.total > 0 ? data.total.toString() : '0',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: Colors.white54,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
           Text(
             'MACHINE ${data.machineNo}',
+            textAlign: TextAlign.center,
             style: theme.textTheme.titleSmall?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -105,10 +135,15 @@ class LcrMachineCard extends StatelessWidget {
   }
 }
 
-class _MachineGaugeSlice {
-  const _MachineGaugeSlice(this.label, this.value);
+class _GaugeSegment {
+  const _GaugeSegment({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   final String label;
   final double value;
+  final Color color;
 }
 

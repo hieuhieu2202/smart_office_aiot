@@ -185,14 +185,21 @@ class LcrDashboardViewState {
     );
 
     final machineGauges = byMachine.entries.map((entry) {
-      final total = entry.value.length;
-      final passCount = entry.value.where((e) => e.status).length;
-      final failCount = total - passCount;
+      var passTotal = 0;
+      var failTotal = 0;
+      for (final record in entry.value) {
+        if (record.status) {
+          passTotal += _resolveQuantity(record.qty, record.extQty);
+        } else {
+          failTotal += _resolveQuantity(record.extQty, record.qty);
+        }
+      }
+      final combined = passTotal + failTotal;
       return LcrMachineGauge(
         machineNo: entry.key,
-        total: total,
-        pass: passCount,
-        fail: failCount,
+        total: combined,
+        pass: passTotal,
+        fail: failTotal,
       );
     }).toList();
 
