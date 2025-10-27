@@ -1307,6 +1307,7 @@ class _ChartCanvas extends StatelessWidget {
       width: 0.58,
       borderRadius: const BorderRadius.all(Radius.circular(8)),
       gradient: gradient,
+      enableTooltip: true,
       onPointTap: (details) {
         if (details.pointIndex != null) {
           onPointTap(points[details.pointIndex!].cluster);
@@ -1330,6 +1331,7 @@ class _ChartCanvas extends StatelessWidget {
         borderColor: Colors.white.withOpacity(0.9),
         color: lineColor,
       ),
+      enableTooltip: false,
     );
 
     return LayoutBuilder(
@@ -1368,19 +1370,17 @@ class _ChartCanvas extends StatelessWidget {
               color: Colors.transparent,
               builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
                   int seriesIndex) {
+                if (data is! _ChartPoint) {
+                  return const SizedBox.shrink();
+                }
+
                 if (seriesIndex < 0 ||
                     pointIndex < 0 ||
                     pointIndex >= points.length) {
                   return const SizedBox.shrink();
                 }
 
-                if (data is! _ChartPoint &&
-                    (pointIndex < 0 || pointIndex >= points.length)) {
-                  return const SizedBox.shrink();
-                }
-
-                final chartPoint =
-                    data is _ChartPoint ? data : points[pointIndex];
+                final chartPoint = data as _ChartPoint;
 
                 return _buildChartTooltip(
                   gradient,
@@ -1429,6 +1429,7 @@ class _BreakdownChart extends StatelessWidget {
       width: 0.58,
       borderRadius: const BorderRadius.all(Radius.circular(8)),
       gradient: gradient,
+      enableTooltip: true,
     );
 
     final lineColor = gradient.colors.last;
@@ -1447,6 +1448,7 @@ class _BreakdownChart extends StatelessWidget {
         borderColor: Colors.white.withOpacity(0.9),
         color: lineColor,
       ),
+      enableTooltip: false,
     );
 
     return LayoutBuilder(
@@ -1486,19 +1488,17 @@ class _BreakdownChart extends StatelessWidget {
               color: Colors.transparent,
               builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
                   int seriesIndex) {
+                if (data is! _BreakdownPoint) {
+                  return const SizedBox.shrink();
+                }
+
                 if (seriesIndex < 0 ||
                     pointIndex < 0 ||
                     pointIndex >= points.length) {
                   return const SizedBox.shrink();
                 }
 
-                if (data is! _BreakdownPoint &&
-                    (pointIndex < 0 || pointIndex >= points.length)) {
-                  return const SizedBox.shrink();
-                }
-
-                final breakdownPoint =
-                    data is _BreakdownPoint ? data : points[pointIndex];
+                final breakdownPoint = data as _BreakdownPoint;
 
                 return _buildChartTooltip(
                   gradient,
