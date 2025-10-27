@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -64,7 +63,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                   ),
                   tabs: [
                     Tab(text: 'DASHBOARD'),
-                    Tab(text: 'SN ANALYSIS'),
+                    Tab(text: 'ANALYSIS'),
                   ],
                 ),
                 Expanded(
@@ -97,7 +96,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
               const Icon(Icons.memory, color: Colors.cyanAccent, size: 28),
               const SizedBox(width: 12),
               Text(
-                'LCR MACHINE',
+                'LCR MACHINE DASHBOARD',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
@@ -106,7 +105,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
               ),
               const Spacer(),
               IconButton(
-                onPressed: () => controller.resetToCurrentShiftAndReload(),
+                onPressed: () => controller.loadTrackingData(),
                 icon: const Icon(Icons.refresh, color: Colors.white70),
               ),
             ],
@@ -121,16 +120,32 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                   value: Obx(() {
                     final range = controller.selectedDateRange.value;
                     return Text(
-                      '${_fmt(range.start)} - ${_fmt(range.end)}',
+                      '${_fmt(range.start)} → ${_fmt(range.end)}',
                       style: const TextStyle(color: Colors.white),
                     );
                   }),
                   onPressed: () async {
                     final current = controller.selectedDateRange.value;
-                    final picked =
-                        await _pickDashboardDateTimeRange(context, current);
+                    final picked = await showDateRangePicker(
+                      context: context,
+                      initialDateRange: current,
+                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now().add(const Duration(days: 1)),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: Colors.cyan,
+                              surface: Color(0xFF03132D),
+                              onSurface: Colors.white,
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
                     if (picked != null) {
-                      await controller.updateDateRange(picked);
+                      controller.updateDateRange(picked);
                     }
                   },
                 ),
@@ -216,311 +231,8 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
     );
   }
 
-  Future<DateTimeRange?> _pickDashboardDateTimeRange(
-    BuildContext context,
-    DateTimeRange initialRange,
-  ) async {
-    final pickedDates = await showDateRangePicker(
-      context: context,
-      initialDateRange: initialRange,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      helpText: 'Date',
-      builder: (context, child) {
-        final theme = Theme.of(context);
-        return Theme(
-          data: theme.copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Colors.cyan,
-              surface: Color(0xFF03132D),
-              onSurface: Colors.white,
-            ),
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 840,
-                maxHeight: 640,
-              ),
-              child: child!,
-            ),
-          ),
-        );
-      },
-    );
-
-    if (pickedDates == null) {
-      return null;
-    }
-
-    return showDialog<DateTimeRange>(
-      context: context,
-      builder: (context) {
-        final hours = List<int>.generate(24, (index) => index);
-        const minutes = [0, 30];
-
-        int startHour = initialRange.start.hour;
-        int startMinute = initialRange.start.minute >= 30 ? 30 : 0;
-        int endHour = initialRange.end.hour;
-        int endMinute = initialRange.end.minute >= 30 ? 30 : 0;
-
-        if (startHour == 0 && startMinute == 0 && endHour == 0 && endMinute == 0) {
-          startHour = 7;
-          startMinute = 30;
-          endHour = 19;
-          endMinute = 30;
-        }
-
-        return StatefulBuilder(
-          builder: (context, setState) {
-            DateTime _buildStartDate() => DateTime(
-                  pickedDates.start.year,
-                  pickedDates.start.month,
-                  pickedDates.start.day,
-                  startHour,
-                  startMinute,
-                );
-
-            DateTime _buildEndDate() => DateTime(
-                  pickedDates.end.year,
-                  pickedDates.end.month,
-                  pickedDates.end.day,
-                  endHour,
-                  endMinute,
-                );
-
-            String previewText() {
-              final format = DateFormat('yyyy/MM/dd HH:mm');
-              return '${format.format(_buildStartDate())} - ${format.format(_buildEndDate())}';
-            }
-
-            void applySelection() {
-              final start = _buildStartDate();
-              final end = _buildEndDate();
-              final normalizedEnd = end.isBefore(start) ? start : end;
-              Navigator.of(context).pop(
-                DateTimeRange(start: start, end: normalizedEnd),
-              );
-            }
-
-            Widget buildDropdown({
-              required String label,
-              required int value,
-              required List<int> items,
-              required ValueChanged<int?> onChanged,
-            }) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: const TextStyle(color: Colors.white60)),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF052043),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.cyanAccent.withOpacity(0.5)),
-                    ),
-                    child: DropdownButton<int>(
-                      value: value,
-                      dropdownColor: const Color(0xFF03132D),
-                      underline: const SizedBox(),
-                      iconEnabledColor: Colors.cyanAccent,
-                      style: const TextStyle(color: Colors.white),
-                      items: items
-                          .map(
-                            (item) => DropdownMenuItem<int>(
-                              value: item,
-                              child: Text(item.toString().padLeft(2, '0')),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: onChanged,
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            return AlertDialog(
-              backgroundColor: const Color(0xFF03132D),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: const Text(
-                'Select Time Range',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Start',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: buildDropdown(
-                                    label: 'Hour',
-                                    value: startHour,
-                                    items: hours,
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() {
-                                          startHour = value;
-                                          if (_buildEndDate()
-                                              .isBefore(_buildStartDate())) {
-                                            endHour = startHour;
-                                            endMinute = startMinute;
-                                          }
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: buildDropdown(
-                                    label: 'Minute',
-                                    value: startMinute,
-                                    items: minutes,
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() {
-                                          startMinute = value;
-                                          if (_buildEndDate()
-                                              .isBefore(_buildStartDate())) {
-                                            endHour = startHour;
-                                            endMinute = startMinute;
-                                          }
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'End',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: buildDropdown(
-                                    label: 'Hour',
-                                    value: endHour,
-                                    items: hours,
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() {
-                                          endHour = value;
-                                          if (_buildEndDate()
-                                              .isBefore(_buildStartDate())) {
-                                            startHour = endHour;
-                                            startMinute = endMinute;
-                                          }
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: buildDropdown(
-                                    label: 'Minute',
-                                    value: endMinute,
-                                    items: minutes,
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() {
-                                          endMinute = value;
-                                          if (_buildEndDate()
-                                              .isBefore(_buildStartDate())) {
-                                            startHour = endHour;
-                                            startMinute = endMinute;
-                                          }
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF052043),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.cyanAccent.withOpacity(0.4)),
-                ),
-                child: Text(
-                  previewText(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: applySelection,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyanAccent,
-                    foregroundColor: Colors.black,
-                  ),
-                  child: const Text('Apply'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   String _fmt(DateTime date) {
-    return DateFormat('yyyy-MM-dd HH:mm').format(date);
+    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }
 
@@ -531,40 +243,30 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Obx(() {
-          if (controller.isLoading.value &&
-              controller.dashboardView.value == null) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.cyanAccent),
-            );
-          }
+    return Obx(() {
+      if (controller.isLoading.value && controller.dashboardView.value == null) {
+        return const Center(
+          child: CircularProgressIndicator(color: Colors.cyanAccent),
+        );
+      }
 
-          final data = controller.dashboardView.value;
-          if (data == null) {
-            return Center(
-              child: Text(
-                controller.error.value ?? 'No data available',
-                style: const TextStyle(color: Colors.white70),
-              ),
-            );
-          }
+      final data = controller.dashboardView.value;
+      if (data == null) {
+        return Center(
+          child: Text(
+            controller.error.value ?? 'No data available',
+            style: const TextStyle(color: Colors.white70),
+          ),
+        );
+      }
 
-          return SizedBox(
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-            child: SingleChildScrollView(
-              primary: false,
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _SummaryRow(overview: data.overview),
-                    const SizedBox(height: 24),
-                    Row(
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            _SummaryRow(overview: data.overview),
+            const SizedBox(height: 24),
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
@@ -640,22 +342,17 @@ class _DashboardTab extends StatelessWidget {
                       const SizedBox(height: 20),
                       LcrChartCard(
                         title: 'EMPLOYEE STATISTICS',
-                        height: 320,
                         child: _StackedBarChart(data.employeeSeries, rotateLabels: true),
                       ),
                     ],
                   ),
                 ),
               ],
-                    ),
-                  ],
-                ),
-              ),
             ),
-          );
-        });
-      },
-    );
+          ],
+        ),
+      );
+    });
   }
 }
 
@@ -952,7 +649,6 @@ class _MachinesGrid extends StatelessWidget {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
-      shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final gauge = list[index];
@@ -973,103 +669,90 @@ class _AnalysisTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: SizedBox(
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-            child: Row(
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: searchController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Serial Number Search',
-                          hintStyle: const TextStyle(color: Colors.white54),
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            color: Colors.cyanAccent,
-                          ),
-                          filled: true,
-                          fillColor: const Color(0xFF03132D),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.white24),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.white24),
-                          ),
-                        ),
-                        onChanged: controller.searchSerial,
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: Obx(() {
-                          final RxList<LcrRecord> reactiveList =
-                              controller.serialSearchResults.isNotEmpty
-                                  ? controller.serialSearchResults
-                                  : controller.analysisRecords;
-                          final results = reactiveList.toList();
-                          if (controller.isSearching.value) {
-                            return const Center(
-                              child:
-                                  CircularProgressIndicator(color: Colors.cyanAccent),
-                            );
-                          }
-                          if (results.isEmpty) {
-                            return const Center(
-                              child: Text('No serial numbers',
-                                  style: TextStyle(color: Colors.white54)),
-                            );
-                          }
-                          return ListView.separated(
-                            itemCount: results.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final record = results[index];
-                              return _ResultTile(
-                                record: record,
-                                onTap: () => controller.selectRecord(record.id),
-                              );
-                            },
-                          );
-                        }),
-                      ),
-                    ],
+                TextField(
+                  controller: searchController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Serial Number Search',
+                    hintStyle: const TextStyle(color: Colors.white54),
+                    prefixIcon: const Icon(Icons.search, color: Colors.cyanAccent),
+                    filled: true,
+                    fillColor: const Color(0xFF03132D),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.white24),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.white24),
+                    ),
                   ),
+                  onChanged: controller.searchSerial,
                 ),
-                const SizedBox(width: 24),
+                const SizedBox(height: 16),
                 Expanded(
-                  flex: 5,
                   child: Obx(() {
-                    if (controller.isLoadingRecord.value) {
+                    final RxList<LcrRecord> reactiveList =
+                        controller.serialSearchResults.isNotEmpty
+                            ? controller.serialSearchResults
+                            : controller.analysisRecords;
+                    final results = reactiveList.toList();
+                    if (controller.isSearching.value) {
                       return const Center(
                         child: CircularProgressIndicator(color: Colors.cyanAccent),
                       );
                     }
-                    final record = controller.selectedRecord.value;
-                    if (record == null) {
+                    if (results.isEmpty) {
                       return const Center(
-                        child: Text('Select a record to view details',
-                            style: TextStyle(color: Colors.white54)),
+                        child: Text('No serial numbers', style: TextStyle(color: Colors.white54)),
                       );
                     }
-                    return LcrRecordDetail(record: record);
+                    return ListView.separated(
+                      itemCount: results.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final record = results[index];
+                        return _ResultTile(
+                          record: record,
+                          onTap: () => controller.selectRecord(record.id),
+                        );
+                      },
+                    );
                   }),
                 ),
               ],
             ),
           ),
-        );
-      },
+          const SizedBox(width: 24),
+          Expanded(
+            flex: 5,
+            child: Obx(() {
+              if (controller.isLoadingRecord.value) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.cyanAccent),
+                );
+              }
+              final record = controller.selectedRecord.value;
+              if (record == null) {
+                return const Center(
+                  child: Text('Select a record to view details',
+                      style: TextStyle(color: Colors.white54)),
+                );
+              }
+              return LcrRecordDetail(record: record);
+            }),
+          ),
+        ],
+      ),
     );
   }
 }
