@@ -551,10 +551,10 @@ class _DashboardTab extends StatelessWidget {
 
   double _machinePerformanceHeight(int itemCount) {
     if (itemCount <= 0) {
-      return 200.0;
+      return 300.0;
     }
     if (itemCount <= 4) {
-      return 220.0;
+      return 300.0;
     }
     if (itemCount <= 8) {
       return 360.0;
@@ -604,7 +604,7 @@ class _DashboardTab extends StatelessWidget {
                           flex: 2,
                           child: LcrChartCard(
                             title: 'FACTORY DISTRIBUTION',
-                            height: 260,
+                            height: 300,
                             child: _FactoryDistributionList(
                               data.factorySlices,
                             ),
