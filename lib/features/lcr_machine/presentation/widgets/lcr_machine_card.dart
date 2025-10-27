@@ -74,8 +74,6 @@ class LcrMachineCard extends StatelessWidget {
                   gap: '4%',
                   radius: '100%',
                   innerRadius: '68%',
-                  startAngle: 180,
-                  endAngle: 0,
                   cornerStyle: CornerStyle.bothCurve,
                   trackColor: const Color(0xFF11233E),
                   trackOpacity: 1,
