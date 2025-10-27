@@ -31,6 +31,7 @@ class LcrChartCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: height == null ? MainAxisSize.min : MainAxisSize.max,
         children: [
           Text(
             title,
@@ -42,7 +43,10 @@ class LcrChartCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (height != null)
-            Expanded(child: child)
+            Flexible(
+              fit: FlexFit.tight,
+              child: child,
+            )
           else
             child,
         ],
