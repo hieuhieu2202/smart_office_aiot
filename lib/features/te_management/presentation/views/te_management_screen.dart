@@ -59,6 +59,12 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   late final TEManagementController _controller;
   late final TextEditingController _searchController;
 
+  String _formatDate(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}/${value.month.toString().padLeft(2, '0')}/${value.day.toString().padLeft(2, '0')}';
+
+  String _formatTime(DateTime value) =>
+      '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+
   @override
   void initState() {
     super.initState();
@@ -123,69 +129,14 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     );
   }
 
-  Future<void> _pickDateRange() async {
-    final start = _controller.startDate.value;
-    final end = _controller.endDate.value;
-    final picked = await showDateRangePicker(
-      context: context,
-      initialDateRange: DateTimeRange(start: start, end: end),
-      firstDate: DateTime(start.year - 1),
-      lastDate: DateTime(end.year + 1),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: kTeAccentColor,
-              surface: kTeSurfaceColor,
-              background: kTeSurfaceColor,
-              onSurface: Colors.white,
-              onPrimary: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (!mounted || picked == null) {
-      return;
-    }
-
-    final initialStartTime = TimeOfDay.fromDateTime(start);
-    final initialEndTime = TimeOfDay.fromDateTime(end);
-
-    final pickedStartTime = await _pickTimeOfDay(initialStartTime) ?? initialStartTime;
-    if (!mounted) return;
-    final pickedEndTime = await _pickTimeOfDay(initialEndTime) ?? initialEndTime;
-    if (!mounted) return;
-
-    var startDate = DateTime(
-      picked.start.year,
-      picked.start.month,
-      picked.start.day,
-      pickedStartTime.hour,
-      pickedStartTime.minute,
-    );
-    var endDate = DateTime(
-      picked.end.year,
-      picked.end.month,
-      picked.end.day,
-      pickedEndTime.hour,
-      pickedEndTime.minute,
-    );
-
-    if (!endDate.isAfter(startDate)) {
-      endDate = startDate.add(const Duration(hours: 1));
-    }
-
-    _controller.applyFilters(start: startDate, end: endDate);
-  }
-
   void _openFilterSheet() {
     final initialSelection = _controller.selectedModels.toList();
     final available = _controller.availableModels.toList();
     final media = MediaQuery.of(context);
     final isWide = media.size.width > 640;
-    final panelWidth = isWide ? math.min(420.0, media.size.width * 0.38) : media.size.width;
+    final panelWidth = isWide ? math.min(480.0, media.size.width * 0.42) : media.size.width;
+    DateTime tempStart = _controller.startDate.value;
+    DateTime tempEnd = _controller.endDate.value;
 
     showGeneralDialog<void>(
       context: context,
@@ -205,6 +156,124 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                 height: media.size.height,
                 child: StatefulBuilder(
                   builder: (context, setState) {
+                    void ensureRangeOrder() {
+                      if (!tempEnd.isAfter(tempStart)) {
+                        tempEnd = tempStart.add(const Duration(hours: 1));
+                      }
+                    }
+
+                    Future<void> pickDate({required bool isStart}) async {
+                      final initial = isStart ? tempStart : tempEnd;
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: initial,
+                        firstDate: DateTime(initial.year - 1),
+                        lastDate: DateTime(initial.year + 1),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: kTeAccentColor,
+                                surface: kTeSurfaceColor,
+                                background: kTeSurfaceColor,
+                                onSurface: Colors.white,
+                                onPrimary: Colors.black,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked == null) return;
+                      setState(() {
+                        if (isStart) {
+                          tempStart = DateTime(
+                            picked.year,
+                            picked.month,
+                            picked.day,
+                            tempStart.hour,
+                            tempStart.minute,
+                          );
+                        } else {
+                          tempEnd = DateTime(
+                            picked.year,
+                            picked.month,
+                            picked.day,
+                            tempEnd.hour,
+                            tempEnd.minute,
+                          );
+                        }
+                        ensureRangeOrder();
+                      });
+                    }
+
+                    Future<void> pickTime({required bool isStart}) async {
+                      final initial = TimeOfDay.fromDateTime(isStart ? tempStart : tempEnd);
+                      final result = await _pickTimeOfDay(initial);
+                      if (result == null) return;
+                      setState(() {
+                        if (isStart) {
+                          tempStart = DateTime(
+                            tempStart.year,
+                            tempStart.month,
+                            tempStart.day,
+                            result.hour,
+                            result.minute,
+                          );
+                        } else {
+                          tempEnd = DateTime(
+                            tempEnd.year,
+                            tempEnd.month,
+                            tempEnd.day,
+                            result.hour,
+                            result.minute,
+                          );
+                        }
+                        ensureRangeOrder();
+                      });
+                    }
+
+                    Future<void> pickDateRange() async {
+                      final pickedRange = await showDateRangePicker(
+                        context: context,
+                        initialDateRange: DateTimeRange(start: tempStart, end: tempEnd),
+                        firstDate: DateTime(tempStart.year - 1),
+                        lastDate: DateTime(tempEnd.year + 1),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: kTeAccentColor,
+                                surface: kTeSurfaceColor,
+                                background: kTeSurfaceColor,
+                                onSurface: Colors.white,
+                                onPrimary: Colors.black,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (pickedRange == null) return;
+                      setState(() {
+                        tempStart = DateTime(
+                          pickedRange.start.year,
+                          pickedRange.start.month,
+                          pickedRange.start.day,
+                          tempStart.hour,
+                          tempStart.minute,
+                        );
+                        tempEnd = DateTime(
+                          pickedRange.end.year,
+                          pickedRange.end.month,
+                          pickedRange.end.day,
+                          tempEnd.hour,
+                          tempEnd.minute,
+                        );
+                        ensureRangeOrder();
+                      });
+                    }
+
                     final allChecked = available.isNotEmpty && selected.length == available.length;
                     return Container(
                       decoration: BoxDecoration(
@@ -239,24 +308,86 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          ListTile(
-                            onTap: _pickDateRange,
-                            tileColor: const Color(0xFF10213A),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: const BorderSide(color: Color(0xFF1F3A5F)),
-                            ),
-                            title: const Text(
-                              'Date range',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Obx(
-                              () => Text(
-                                _controller.rangeLabel,
-                                style: const TextStyle(color: Color(0xFF9AB3CF)),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10213A),
+                              borderRadius: BorderRadius.circular(16),
+                              border: const Border.fromBorderSide(
+                                BorderSide(color: Color(0xFF1F3A5F)),
                               ),
                             ),
-                            trailing: const Icon(Icons.calendar_today, color: Colors.white70),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Date & time range',
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                            ) ??
+                                            const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 16,
+                                            ),
+                                      ),
+                                    ),
+                                    TextButton.icon(
+                                      onPressed: pickDateRange,
+                                      icon: const Icon(Icons.calendar_month, size: 18, color: kTeAccentColor),
+                                      label: const Text(
+                                        'Pick range',
+                                        style: TextStyle(color: kTeAccentColor, fontWeight: FontWeight.w600),
+                                      ),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: kTeAccentColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final isNarrow = constraints.maxWidth < 520;
+                                    final startField = _buildDateTimeField(
+                                      label: 'Start',
+                                      value: tempStart,
+                                      onPickDate: () => pickDate(isStart: true),
+                                      onPickTime: () => pickTime(isStart: true),
+                                    );
+                                    final endField = _buildDateTimeField(
+                                      label: 'End',
+                                      value: tempEnd,
+                                      onPickDate: () => pickDate(isStart: false),
+                                      onPickTime: () => pickTime(isStart: false),
+                                    );
+                                    if (isNarrow) {
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          startField,
+                                          const SizedBox(height: 12),
+                                          endField,
+                                        ],
+                                      );
+                                    }
+                                    return Row(
+                                      children: [
+                                        Expanded(child: startField),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: endField),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 20),
                           Row(
@@ -343,7 +474,11 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: kTeAccentColor),
                                   onPressed: () {
-                                    _controller.applyFilters(models: selected.toList());
+                                    _controller.applyFilters(
+                                      start: tempStart,
+                                      end: tempEnd,
+                                      models: selected.toList(),
+                                    );
                                     Navigator.of(context).pop();
                                   },
                                   child: const Text('Apply'),
@@ -370,6 +505,87 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
           child: child,
         );
       },
+    );
+  }
+
+  Widget _buildDateTimeField({
+    required String label,
+    required DateTime value,
+    required VoidCallback onPickDate,
+    required VoidCallback onPickTime,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF152C4D),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF1F3A5F)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _buildDateTimeButton(
+            icon: Icons.event,
+            label: _formatDate(value),
+            onTap: onPickDate,
+          ),
+          const SizedBox(height: 8),
+          _buildDateTimeButton(
+            icon: Icons.schedule,
+            label: _formatTime(value),
+            onTap: onPickTime,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateTimeButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 46,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1B355A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF264771)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: kTeAccentColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.white54, size: 18),
+          ],
+        ),
+      ),
     );
   }
 
