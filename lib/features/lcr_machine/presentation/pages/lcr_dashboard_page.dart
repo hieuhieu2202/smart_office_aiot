@@ -583,8 +583,8 @@ class _CompactCategoryList extends StatelessWidget {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final slice = display[index];
-                  final percent =
-                      total == 0 ? 0 : slice.value / total * 100.0;
+                  final double percent =
+                      total == 0 ? 0.0 : (slice.value / total) * 100.0;
                   return _CategoryProgressTile(
                     label: slice.label,
                     value: slice.value,
