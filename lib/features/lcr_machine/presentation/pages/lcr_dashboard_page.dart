@@ -746,8 +746,7 @@ class _StackedBarChart extends StatelessWidget {
       );
     });
 
-    return SfCartesianChart(
-      plotAreaBorderWidth: 0,
+    return SfCartesianChart3D(
       primaryXAxis: CategoryAxis(
         labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
         majorGridLines: const MajorGridLines(width: 0),
@@ -763,15 +762,15 @@ class _StackedBarChart extends StatelessWidget {
         position: LegendPosition.bottom,
         textStyle: const TextStyle(color: Colors.white70),
       ),
-      series: <CartesianSeries<dynamic, dynamic>>[
-        StackedColumnSeries<dynamic, dynamic>(
+      series: <ChartSeries<dynamic, dynamic>>[
+        StackedColumnSeries3D<dynamic, dynamic>(
           name: 'PASS',
           dataSource: data,
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
           yValueMapper: (item, _) => (item as _StackedBarItem).pass,
           color: Colors.cyanAccent,
         ),
-        StackedColumnSeries<dynamic, dynamic>(
+        StackedColumnSeries3D<dynamic, dynamic>(
           name: 'FAIL',
           dataSource: data,
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
@@ -804,8 +803,7 @@ class _OutputChart extends StatelessWidget {
       );
     });
 
-    return SfCartesianChart(
-      plotAreaBorderWidth: 0,
+    return SfCartesianChart3D(
       legend: Legend(
         isVisible: true,
         position: LegendPosition.bottom,
@@ -830,22 +828,22 @@ class _OutputChart extends StatelessWidget {
           majorGridLines: const MajorGridLines(width: 0),
         ),
       ],
-      series: <CartesianSeries<dynamic, dynamic>>[
-        StackedColumnSeries<dynamic, dynamic>(
+      series: <ChartSeries<dynamic, dynamic>>[
+        StackedColumnSeries3D<dynamic, dynamic>(
           name: 'PASS',
           dataSource: data,
           xValueMapper: (item, _) => (item as _OutputItem).category,
           yValueMapper: (item, _) => (item as _OutputItem).pass,
           color: Colors.cyanAccent,
         ),
-        StackedColumnSeries<dynamic, dynamic>(
+        StackedColumnSeries3D<dynamic, dynamic>(
           name: 'FAIL',
           dataSource: data,
           xValueMapper: (item, _) => (item as _OutputItem).category,
           yValueMapper: (item, _) => (item as _OutputItem).fail,
           color: Colors.pinkAccent,
         ),
-        SplineSeries<dynamic, dynamic>(
+        SplineSeries3D<dynamic, dynamic>(
           name: 'YIELD RATE',
           dataSource: data,
           xValueMapper: (item, _) => (item as _OutputItem).category,
