@@ -78,24 +78,30 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
-        final minHeight = headerHeight + 1.0;
-        final hasBoundedHeight =
+        final minimumHeight = headerHeight + 1.0;
+        final totalGroupRows = widget.detail.rows.fold<int>(
+          0,
+          (sum, row) => sum + math.max(row.groupNames.length, 1),
+        );
+        final naturalHeight =
+            headerHeight + (totalGroupRows * _kRowHeight.toDouble());
+
+        final hasFiniteHeight =
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-        final contentHeight = headerHeight +
-            (widget.detail.rows.length * _kRowHeight.toDouble());
-        final targetHeight = hasBoundedHeight
+        final targetHeight = hasFiniteHeight
             ? constraints.maxHeight
-            : math.max(minHeight, contentHeight);
-        final bodyHeight = math.max(0.0, targetHeight - headerHeight);
-        final containerWidth = constraints.maxWidth.isFinite
+            : math.max(naturalHeight, minimumHeight);
+
+        final hasFiniteWidth =
+            constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
+        final hostWidth = hasFiniteWidth
             ? constraints.maxWidth
             : math.max(totalWidth, constraints.minWidth);
+        final tableWidth = math.max(totalWidth, hostWidth);
 
-        return ConstrainedBox(
-          constraints: BoxConstraints.tightFor(
-            width: containerWidth,
-            height: targetHeight,
-          ),
+        return SizedBox(
+          width: hasFiniteWidth ? hostWidth : tableWidth,
+          height: targetHeight,
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: _kTableBackground,
@@ -119,7 +125,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                   controller: _horizontalController,
                   scrollDirection: Axis.horizontal,
                   child: SizedBox(
-                    width: totalWidth,
+                    width: tableWidth,
                     height: targetHeight,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -127,8 +133,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                         _HeaderRow(
                           formattedDates: widget.formattedDates,
                         ),
-                        SizedBox(
-                          height: bodyHeight,
+                        Expanded(
                           child: Scrollbar(
                             controller: _verticalController,
                             thumbVisibility: true,
