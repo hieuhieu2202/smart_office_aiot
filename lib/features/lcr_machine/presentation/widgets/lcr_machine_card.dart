@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_gauges/gauges.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../viewmodels/lcr_dashboard_view_state.dart';
 
@@ -40,65 +40,52 @@ class LcrMachineCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-            height: 100,
-            child: SfRadialGauge(
-              axes: <RadialAxis>[
-                RadialAxis(
-                  minimum: 0,
-                  maximum: 100,
+            height: 120,
+            child: SfCircularChart(
+              margin: EdgeInsets.zero,
+              annotations: <CircularChartAnnotation>[
+                CircularChartAnnotation(
+                  radius: '0%',
+                  widget: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${gaugeValue.toStringAsFixed(0)}%',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      Text(
+                        '${data.total} PCS',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              series: <CircularSeries<_MachineGaugeSlice, String>>[
+                RadialBarSeries<_MachineGaugeSlice, String>(
+                  maximumValue: 100,
+                  gap: '4%',
+                  radius: '100%',
+                  innerRadius: '68%',
                   startAngle: 180,
                   endAngle: 0,
-                  showLabels: false,
-                  showTicks: false,
-                  radiusFactor: 0.9,
-                  canScaleToFit: true,
-                  axisLineStyle: const AxisLineStyle(
-                    thickness: 0.14,
-                    thicknessUnit: GaugeSizeUnit.factor,
-                    cornerStyle: CornerStyle.bothCurve,
-                    color: Color(0xFF11233E),
-                  ),
-                  pointers: <GaugePointer>[
-                    RangePointer(
-                      value: gaugeValue,
-                      width: 0.16,
-                      sizeUnit: GaugeSizeUnit.factor,
-                      cornerStyle: CornerStyle.bothCurve,
-                      gradient: SweepGradient(
-                        colors: <Color>[
-                          accent,
-                          accent.withOpacity(0.25),
-                        ],
-                        stops: const <double>[0.2, 1.0],
-                      ),
-                    ),
+                  cornerStyle: CornerStyle.bothCurve,
+                  trackColor: const Color(0xFF11233E),
+                  trackOpacity: 1,
+                  dataSource: <_MachineGaugeSlice>[
+                    _MachineGaugeSlice('yield', gaugeValue),
                   ],
-                  annotations: <GaugeAnnotation>[
-                    GaugeAnnotation(
-                      angle: 90,
-                      positionFactor: 0,
-                      widget: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${gaugeValue.toStringAsFixed(0)}%',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                          Text(
-                            '${data.total} PCS',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  xValueMapper: (_MachineGaugeSlice slice, _) => slice.label,
+                  yValueMapper: (_MachineGaugeSlice slice, _) => slice.value,
+                  pointColorMapper: (_, __) => accent,
+                  dataLabelSettings: const DataLabelSettings(isVisible: false),
                 ),
               ],
             ),
@@ -132,6 +119,13 @@ class LcrMachineCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MachineGaugeSlice {
+  const _MachineGaugeSlice(this.label, this.value);
+
+  final String label;
+  final double value;
 }
 
 class _MetricBadge extends StatelessWidget {

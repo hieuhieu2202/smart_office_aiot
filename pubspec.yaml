@@ -69,7 +69,6 @@ dependencies:
   #  device_preview: ^1.2.0
   syncfusion_flutter_charts: ^30.2.7
   syncfusion_flutter_pdfviewer: ^30.2.7
-  syncfusion_flutter_gauges: ^30.2.7
   mobile_scanner: ^7.0.1
   syncfusion_flutter_core: ^30.2.7
   camera: ^0.10.5+5
