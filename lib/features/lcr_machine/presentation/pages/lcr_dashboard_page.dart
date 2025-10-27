@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
@@ -606,9 +608,8 @@ class _DashboardTab extends StatelessWidget {
                           child: LcrChartCard(
                             title: 'EMPLOYEE STATISTICS',
                             height: 300,
-                            child: _StackedBarChart(
+                            child: _EmployeeStatisticsChart(
                               data.employeeSeries,
-                              rotateLabels: true,
                             ),
                           ),
                         ),
@@ -928,6 +929,166 @@ class _StackedBarChart extends StatelessWidget {
       ],
     );
   }
+}
+
+class _EmployeeStatisticsChart extends StatelessWidget {
+  const _EmployeeStatisticsChart(this.series);
+
+  final LcrStackedSeries series;
+
+  static const _barGradient = LinearGradient(
+    colors: [Color(0xFF1A6DFF), Color(0xFF40C4FF)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (series.categories.isEmpty) {
+      return const Center(
+        child: Text('No data', style: TextStyle(color: Colors.white54)),
+      );
+    }
+
+    final rows = List.generate(series.categories.length, (index) {
+      final pass = series.pass[index];
+      final fail = series.fail[index];
+      return _EmployeeBarData(
+        name: series.categories[index],
+        pass: pass,
+        fail: fail,
+      );
+    })
+      ..sort((a, b) => b.total.compareTo(a.total));
+
+    final displayed = rows.take(6).toList();
+    final maxTotal = displayed.fold<int>(0, (maxValue, item) {
+      return math.max(maxValue, item.total);
+    });
+
+    final overallPass = rows.fold<int>(0, (value, item) => value + item.pass);
+    final overallTotal = rows.fold<int>(0, (value, item) => value + item.total);
+    final double overallRate =
+        overallTotal == 0 ? 0 : (overallPass / overallTotal) * 100;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...displayed.map(
+          (item) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: _EmployeeStatBar(
+              data: item,
+              maxTotal: maxTotal == 0 ? 1 : maxTotal,
+            ),
+          ),
+        ),
+        const Spacer(),
+        Text(
+          'OVERALL YIELD RATE: ${overallRate.toStringAsFixed(1)}%',
+          style: const TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmployeeStatBar extends StatelessWidget {
+  const _EmployeeStatBar({required this.data, required this.maxTotal});
+
+  final _EmployeeBarData data;
+  final int maxTotal;
+
+  @override
+  Widget build(BuildContext context) {
+    final widthFactor = data.total == 0 ? 0.0 : data.total / maxTotal;
+    final rateLabel = data.yieldRate.toStringAsFixed(0);
+    final double clampedFactor = widthFactor.clamp(0.0, 1.0).toDouble();
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 96,
+          child: Text(
+            data.name,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Container(
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: clampedFactor,
+                child: Container(
+                  height: 24,
+                  decoration: BoxDecoration(
+                    gradient: _EmployeeStatisticsChart._barGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${rateLabel}%',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        '${data.pass}/${data.total}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmployeeBarData {
+  const _EmployeeBarData({
+    required this.name,
+    required this.pass,
+    required this.fail,
+  });
+
+  final String name;
+  final int pass;
+  final int fail;
+
+  int get total => pass + fail;
+  double get yieldRate => total == 0 ? 0 : pass / total * 100;
 }
 
 class _BarTooltip extends StatelessWidget {
