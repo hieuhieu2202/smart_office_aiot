@@ -125,7 +125,7 @@ class TEManagementController extends GetxController {
         );
         _applyData(groups, fromPolling: fromPolling);
         lastUpdated.value = DateTime.now();
-        if (!fromPolling) {
+        if (!fromPolling && availableModels.isEmpty) {
           await _ensureModelNames();
         }
       } catch (e) {

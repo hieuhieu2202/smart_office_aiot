@@ -552,13 +552,12 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () {
-                                    setState(() {
-                                      selected.clear();
-                                      modelSearchText = '';
-                                      modelSearchController.clear();
+                                    modelSearchController.clear();
+                                    final navigator = Navigator.of(context);
+                                    navigator.pop();
+                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                      _controller.applyFilters(clearModels: true);
                                     });
-                                    _controller.applyFilters(clearModels: true);
-                                    Navigator.of(context).pop();
                                   },
                                   child: const Text('Clear'),
                                 ),
@@ -568,13 +567,18 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: kTeAccentColor),
                                   onPressed: () {
-                                    _controller.applyFilters(
-                                      start: tempStart,
-                                      end: tempEnd,
-                                      models: selected.toList(),
-                                    );
+                                    ensureRangeOrder();
+                                    final appliedModels = selected.toList();
                                     modelSearchController.clear();
-                                    Navigator.of(context).pop();
+                                    final navigator = Navigator.of(context);
+                                    navigator.pop();
+                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                      _controller.applyFilters(
+                                        start: tempStart,
+                                        end: tempEnd,
+                                        models: appliedModels,
+                                      );
+                                    });
                                   },
                                   child: const Text('Apply'),
                                 ),
