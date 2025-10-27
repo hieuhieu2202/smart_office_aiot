@@ -36,6 +36,8 @@ const LinearGradient _tealGradient = LinearGradient(
   end: Alignment.bottomCenter,
 );
 
+const double _axisTooltipGuardHeight = 48.0;
+
 class TEManagementScreen extends StatefulWidget {
   const TEManagementScreen({
     super.key,
@@ -1344,15 +1346,22 @@ class _ChartCanvas extends StatelessWidget {
             ? constraints.maxHeight
             : math.min(media.size.height * 0.5, 420.0);
 
+        final guardHeight = math.min(
+          _axisTooltipGuardHeight,
+          resolvedHeight * 0.35,
+        );
+
         return SizedBox(
           width: resolvedWidth,
           height: resolvedHeight,
-          child: SfCartesianChart(
-            plotAreaBorderWidth: 0,
-            primaryXAxis: CategoryAxis(
-              axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
-              majorGridLines: const MajorGridLines(width: 0),
-              labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+          child: Stack(
+            children: [
+              SfCartesianChart(
+                plotAreaBorderWidth: 0,
+                primaryXAxis: CategoryAxis(
+                  axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
+                  majorGridLines: const MajorGridLines(width: 0),
+                  labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
               labelIntersectAction: AxisLabelIntersectAction.trim,
               labelRotation: -35,
               autoScrollingDelta: shouldScroll ? 18 : 0,
@@ -1389,9 +1398,25 @@ class _ChartCanvas extends StatelessWidget {
                 );
               },
             ),
-            series: <CartesianSeries<dynamic, dynamic>>[
-              columnSeries as CartesianSeries<dynamic, dynamic>,
-              splineSeries as CartesianSeries<dynamic, dynamic>,
+                series: <CartesianSeries<dynamic, dynamic>>[
+                  columnSeries as CartesianSeries<dynamic, dynamic>,
+                  splineSeries as CartesianSeries<dynamic, dynamic>,
+                ],
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: guardHeight,
+                child: AbsorbPointer(
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.basic,
+                    child: const DecoratedBox(
+                      decoration: BoxDecoration(color: Colors.transparent),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -1461,16 +1486,23 @@ class _BreakdownChart extends StatelessWidget {
             ? constraints.maxHeight
             : math.min(media.size.height * 0.45, 360.0);
 
+        final guardHeight = math.min(
+          _axisTooltipGuardHeight,
+          resolvedHeight * 0.35,
+        );
+
         return SizedBox(
           key: ValueKey('breakdown_chart_${points.length}'),
           width: resolvedWidth,
           height: resolvedHeight,
-          child: SfCartesianChart(
-            plotAreaBorderWidth: 0,
-            primaryXAxis: CategoryAxis(
-              axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
-              majorGridLines: const MajorGridLines(width: 0),
-              labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+          child: Stack(
+            children: [
+              SfCartesianChart(
+                plotAreaBorderWidth: 0,
+                primaryXAxis: CategoryAxis(
+                  axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
+                  majorGridLines: const MajorGridLines(width: 0),
+                  labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
               labelIntersectAction: AxisLabelIntersectAction.trim,
               labelRotation: -35,
               autoScrollingDelta: shouldScroll ? 18 : 0,
@@ -1507,9 +1539,25 @@ class _BreakdownChart extends StatelessWidget {
                 );
               },
             ),
-            series: <CartesianSeries<dynamic, dynamic>>[
-              columnSeries as CartesianSeries<dynamic, dynamic>,
-              splineSeries as CartesianSeries<dynamic, dynamic>,
+                series: <CartesianSeries<dynamic, dynamic>>[
+                  columnSeries as CartesianSeries<dynamic, dynamic>,
+                  splineSeries as CartesianSeries<dynamic, dynamic>,
+                ],
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: guardHeight,
+                child: AbsorbPointer(
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.basic,
+                    child: const DecoratedBox(
+                      decoration: BoxDecoration(color: Colors.transparent),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         );
