@@ -121,7 +121,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                   value: Obx(() {
                     final range = controller.selectedDateRange.value;
                     return Text(
-                      '${_fmt(range.start)} - ${_fmt(range.end)}',
+                      _formatRangeLabel(range),
                       style: const TextStyle(color: Colors.white),
                     );
                   }),
@@ -291,7 +291,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
 
             String previewText() {
               final format = DateFormat('yyyy/MM/dd HH:mm');
-              return '${format.format(_buildStartDate())} - ${format.format(_buildEndDate())}';
+              return '${format.format(_buildStartDate())} → ${format.format(_buildEndDate())}';
             }
 
             void applySelection() {
@@ -519,6 +519,11 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
     );
   }
 
+  String _formatRangeLabel(DateTimeRange range) {
+    final format = DateFormat('yyyy-MM-dd HH:mm');
+    return '${format.format(range.start)} → ${format.format(range.end)}';
+  }
+
   String _fmt(DateTime date) {
     return DateFormat('yyyy-MM-dd HH:mm').format(date);
   }
@@ -528,6 +533,19 @@ class _DashboardTab extends StatelessWidget {
   const _DashboardTab({required this.controller});
 
   final LcrDashboardController controller;
+
+  double _machinePerformanceHeight(int itemCount) {
+    if (itemCount <= 4) {
+      return 220.0;
+    }
+    if (itemCount <= 8) {
+      return 320.0;
+    }
+    if (itemCount <= 12) {
+      return 420.0;
+    }
+    return 520.0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -604,19 +622,14 @@ class _DashboardTab extends StatelessWidget {
                 Expanded(
                   flex: 4,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SizedBox(
-                        height: 160,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: LcrChartCard(
-                                title: 'MACHINE PERFORMANCE',
-                                child: _MachinesGrid(data.machineGauges),
-                              ),
-                            ),
-                          ],
+                      LcrChartCard(
+                        title: 'MACHINE PERFORMANCE',
+                        height: _machinePerformanceHeight(
+                          data.machineGauges.length,
                         ),
+                        child: _MachinesGrid(data.machineGauges),
                       ),
                       const SizedBox(height: 20),
                       LcrChartCard(
@@ -906,19 +919,27 @@ class _MachinesGrid extends StatelessWidget {
         child: Text('No data', style: TextStyle(color: Colors.white54)),
       );
     }
-    return GridView.builder(
-      itemCount: list.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 1,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final gauge = list[index];
-        return LcrMachineCard(data: gauge);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const minTileWidth = 160.0;
+        final rawCount = (constraints.maxWidth / minTileWidth).floor();
+        final crossAxisCount = rawCount.clamp(1, 4) as int;
+
+        return GridView.builder(
+          itemCount: list.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 0.95,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          padding: EdgeInsets.zero,
+          physics: const BouncingScrollPhysics(),
+          itemBuilder: (context, index) {
+            final gauge = list[index];
+            return LcrMachineCard(data: gauge);
+          },
+        );
       },
     );
   }
