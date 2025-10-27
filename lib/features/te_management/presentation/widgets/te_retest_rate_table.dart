@@ -90,82 +90,99 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
             constraints.maxHeight.isFinite;
 
         final baseMinWidth = _kIndexWidth + _kModelWidth + _kGroupWidth;
-        final width = hasBoundedWidth
-            ? constraints.maxWidth
-            : math.max(totalWidth, baseMinWidth);
-        final height = hasBoundedHeight
-            ? constraints.maxHeight
-            : math.max(naturalHeight, minimumHeight.toDouble());
+        final desiredWidth = math.max(totalWidth, baseMinWidth);
+        final desiredHeight =
+            math.max(naturalHeight, minimumHeight.toDouble());
 
-        final viewportWidth = math.max(width, baseMinWidth);
+        final resolvedWidth = hasBoundedWidth
+            ? constraints.maxWidth
+            : desiredWidth.toDouble();
+        final resolvedHeight = hasBoundedHeight
+            ? constraints.maxHeight
+            : desiredHeight;
+
+        final constrainedSize = constraints.constrain(
+          Size(resolvedWidth, resolvedHeight),
+        );
+
+        final width = constrainedSize.width;
+        final height = constrainedSize.height;
+
+        final viewportWidth = math.max(width, baseMinWidth.toDouble());
         final availableBodySpace = math.max(height - headerHeight, 0.0);
-        final bodyHeight = hasBoundedHeight
-            ? math.max(availableBodySpace, 1.0)
-            : math.max(availableBodySpace, _kRowHeight.toDouble());
+        final bodyHeight = math.max(
+          hasBoundedHeight ? availableBodySpace : math.max(availableBodySpace, _kRowHeight.toDouble()),
+          1.0,
+        );
         final viewportHeight = headerHeight + bodyHeight;
         final tableWidth = math.max(totalWidth, viewportWidth);
 
-        return SizedBox(
-          width: width,
-          height: height,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: _kTableBackground,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: _kBorderColor),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x33040E1C),
-                  blurRadius: 22,
-                  offset: Offset(0, 14),
-                )
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Scrollbar(
-                controller: _horizontalController,
-                thumbVisibility: true,
-                trackVisibility: false,
-                child: SingleChildScrollView(
+        final outerSize = Size(width, height);
+
+        return Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: outerSize.width,
+            height: outerSize.height,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: _kTableBackground,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: _kBorderColor),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33040E1C),
+                    blurRadius: 22,
+                    offset: Offset(0, 14),
+                  )
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Scrollbar(
                   controller: _horizontalController,
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: tableWidth,
-                    height: viewportHeight,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _HeaderRow(
-                          formattedDates: widget.formattedDates,
-                        ),
-                        SizedBox(
-                          height: bodyHeight,
-                          child: Scrollbar(
-                            controller: _verticalController,
-                            thumbVisibility: true,
-                            trackVisibility: false,
-                            child: ListView.builder(
+                  thumbVisibility: true,
+                  trackVisibility: false,
+                  child: SingleChildScrollView(
+                    controller: _horizontalController,
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      height: viewportHeight,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _HeaderRow(
+                            formattedDates: widget.formattedDates,
+                          ),
+                          SizedBox(
+                            height: bodyHeight,
+                            child: Scrollbar(
                               controller: _verticalController,
-                              padding: EdgeInsets.zero,
-                              itemCount: widget.detail.rows.length,
-                              itemBuilder: (context, index) {
-                                final row = widget.detail.rows[index];
-                                final isFirst = index == 0;
-                                return _ModelBlock(
-                                  index: index + 1,
-                                  row: row,
-                                  formattedDates: widget.formattedDates,
-                                  totalColumns: _totalColumns,
-                                  isFirstBlock: isFirst,
-                                  onCellTap: widget.onCellTap,
-                                  onGroupTap: widget.onGroupTap,
-                                );
-                              },
+                              thumbVisibility: true,
+                              trackVisibility: false,
+                              child: ListView.builder(
+                                controller: _verticalController,
+                                padding: EdgeInsets.zero,
+                                itemCount: widget.detail.rows.length,
+                                itemBuilder: (context, index) {
+                                  final row = widget.detail.rows[index];
+                                  final isFirst = index == 0;
+                                  return _ModelBlock(
+                                    index: index + 1,
+                                    row: row,
+                                    formattedDates: widget.formattedDates,
+                                    totalColumns: _totalColumns,
+                                    isFirstBlock: isFirst,
+                                    onCellTap: widget.onCellTap,
+                                    onGroupTap: widget.onGroupTap,
+                                  );
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
