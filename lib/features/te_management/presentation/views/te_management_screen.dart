@@ -1215,27 +1215,6 @@ class _ChartCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String _wrapLabel(String raw) {
-      final text = raw.trim();
-      if (text.length <= 12) return text;
-      final buffer = StringBuffer();
-      var index = 0;
-      var lineCount = 0;
-      while (index < text.length && lineCount < 3) {
-        final nextBreak = math.min(index + 12, text.length);
-        buffer.write(text.substring(index, nextBreak));
-        index = nextBreak;
-        lineCount++;
-        if (index < text.length && lineCount < 3) {
-          buffer.write('\n');
-        }
-      }
-      if (index < text.length) {
-        buffer.write('…');
-      }
-      return buffer.toString();
-    }
-
     final shouldScroll = points.length > 18;
 
     final columnSeries = ColumnSeries<_ChartPoint, String>(
@@ -1297,13 +1276,8 @@ class _ChartCanvas extends StatelessWidget {
               axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
               majorGridLines: const MajorGridLines(width: 0),
               labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-              labelIntersectAction: AxisLabelIntersectAction.multipleRows,
-              axisLabelFormatter: (details) {
-                return ChartAxisLabel(
-                  _wrapLabel(details.text),
-                  const TextStyle(color: Colors.white, fontSize: 12),
-                );
-              },
+              labelIntersectAction: AxisLabelIntersectAction.trim,
+              labelRotation: -35,
               autoScrollingDelta: shouldScroll ? 18 : 0,
               autoScrollingMode: AutoScrollingMode.end,
             ),
@@ -1315,8 +1289,29 @@ class _ChartCanvas extends StatelessWidget {
             legend: const Legend(isVisible: false),
             tooltipBehavior: TooltipBehavior(
               enable: true,
-              header: '',
-              format: '{point.x}: {point.y}',
+              color: Colors.transparent,
+              builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
+                  int seriesIndex) {
+                final chartPoint = data is _ChartPoint ? data : null;
+                final label = chartPoint?.label ?? point?.x?.toString() ?? '';
+                final value = chartPoint?.value ?? point?.y ?? 0;
+                final displayLabel = label.length > 28
+                    ? '${label.substring(0, 28)}…'
+                    : label;
+                return Container(
+                  constraints: const BoxConstraints(maxWidth: 220),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF071427),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: kTeAccentColor.withOpacity(.65)),
+                  ),
+                  child: Text(
+                    '$displayLabel\nFail Qty: $value',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, height: 1.4),
+                  ),
+                );
+              },
             ),
             series: <CartesianSeries<dynamic, dynamic>>[
               columnSeries as CartesianSeries<dynamic, dynamic>,
@@ -1341,27 +1336,6 @@ class _BreakdownChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String _wrapLabel(String raw) {
-      final text = raw.trim();
-      if (text.length <= 12) return text;
-      final buffer = StringBuffer();
-      var index = 0;
-      var lineCount = 0;
-      while (index < text.length && lineCount < 3) {
-        final nextBreak = math.min(index + 12, text.length);
-        buffer.write(text.substring(index, nextBreak));
-        index = nextBreak;
-        lineCount++;
-        if (index < text.length && lineCount < 3) {
-          buffer.write('\n');
-        }
-      }
-      if (index < text.length) {
-        buffer.write('…');
-      }
-      return buffer.toString();
-    }
-
     final shouldScroll = points.length > 18;
 
     final columnSeries = ColumnSeries<_BreakdownPoint, String>(
@@ -1419,13 +1393,8 @@ class _BreakdownChart extends StatelessWidget {
               axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
               majorGridLines: const MajorGridLines(width: 0),
               labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-              labelIntersectAction: AxisLabelIntersectAction.multipleRows,
-              axisLabelFormatter: (details) {
-                return ChartAxisLabel(
-                  _wrapLabel(details.text),
-                  const TextStyle(color: Colors.white, fontSize: 12),
-                );
-              },
+              labelIntersectAction: AxisLabelIntersectAction.trim,
+              labelRotation: -35,
               autoScrollingDelta: shouldScroll ? 18 : 0,
               autoScrollingMode: AutoScrollingMode.end,
             ),
@@ -1437,8 +1406,29 @@ class _BreakdownChart extends StatelessWidget {
             legend: const Legend(isVisible: false),
             tooltipBehavior: TooltipBehavior(
               enable: true,
-              header: '',
-              format: '{point.x}: {point.y}',
+              color: Colors.transparent,
+              builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
+                  int seriesIndex) {
+                final breakdownPoint = data is _BreakdownPoint ? data : null;
+                final label = breakdownPoint?.label ?? point?.x?.toString() ?? '';
+                final value = breakdownPoint?.value ?? point?.y ?? 0;
+                final displayLabel = label.length > 28
+                    ? '${label.substring(0, 28)}…'
+                    : label;
+                return Container(
+                  constraints: const BoxConstraints(maxWidth: 220),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF071427),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: kTeAccentColor.withOpacity(.65)),
+                  ),
+                  child: Text(
+                    '$displayLabel\nFail Qty: $value',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, height: 1.4),
+                  ),
+                );
+              },
             ),
             series: <CartesianSeries<dynamic, dynamic>>[
               columnSeries as CartesianSeries<dynamic, dynamic>,
