@@ -86,26 +86,25 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
 
         final hasFiniteHeight =
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-        final desiredHeight = math.max(naturalHeight, minimumHeight);
-        final targetHeight = hasFiniteHeight
-            ? constraints.constrainHeight(desiredHeight)
-            : desiredHeight;
+        final resolvedHeight = hasFiniteHeight
+            ? math.max(constraints.maxHeight, minimumHeight)
+            : math.max(naturalHeight, minimumHeight);
 
         final hasFiniteWidth =
             constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
-        final hostWidth = hasFiniteWidth
-            ? constraints.maxWidth
+        final resolvedWidth = hasFiniteWidth
+            ? math.max(constraints.maxWidth, _kIndexWidth + _kModelWidth)
             : math.max(totalWidth, constraints.minWidth);
-        final tableWidth = math.max(totalWidth, hostWidth);
 
+        final tableWidth = math.max(totalWidth, resolvedWidth);
         final bodyHeight = math.max(
-          targetHeight - headerHeight,
+          resolvedHeight - headerHeight,
           _kRowHeight.toDouble(),
         );
 
-        return SizedBox(
-          width: hasFiniteWidth ? hostWidth : tableWidth,
-          height: targetHeight,
+        Widget surface = SizedBox(
+          width: resolvedWidth,
+          height: resolvedHeight,
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: _kTableBackground,
@@ -130,7 +129,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                   scrollDirection: Axis.horizontal,
                   child: SizedBox(
                     width: tableWidth,
-                    height: targetHeight,
+                    height: resolvedHeight,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -171,6 +170,12 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
             ),
           ),
         );
+
+        if (hasFiniteWidth && hasFiniteHeight) {
+          surface = SizedBox.expand(child: surface);
+        }
+
+        return surface;
       },
     );
   }
