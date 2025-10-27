@@ -867,12 +867,19 @@ class _MachinesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (list.isEmpty) {
-      return const Center(
-        child: Text('No data', style: TextStyle(color: Colors.white54)),
-      );
-    }
-    final cards = list.take(4).toList();
+    final map = {for (final gauge in list) gauge.machineNo: gauge};
+    final machineNumbers = [1, 2, 3, 4];
+    final cards = [
+      for (final number in machineNumbers)
+        map[number] ??
+            LcrMachineGauge(
+              machineNo: number,
+              total: 0,
+              pass: 0,
+              fail: 0,
+            ),
+    ];
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

@@ -52,7 +52,7 @@ class _LcrMachineCardState extends State<LcrMachineCard>
     final double failRatio =
         (data.fail / total).clamp(0.0, 1.0).toDouble();
 
-    const gaugeDesignSize = 200.0;
+    const gaugeDesignSize = 260.0;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -83,7 +83,7 @@ class _LcrMachineCardState extends State<LcrMachineCard>
                     final glow = 0.45 + _pulse.value * 0.55;
                     final orbitGlow = 0.35 + _pulse.value * 0.45;
                     return Container(
-                      padding: EdgeInsets.all(6 + 6 * glow),
+                      padding: EdgeInsets.all(8 + 8 * glow),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         boxShadow: [
@@ -118,18 +118,20 @@ class _LcrMachineCardState extends State<LcrMachineCard>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  data.total.toString(),
-                                  style: theme.textTheme.titleLarge?.copyWith(
+                                  data.pass.toString(),
+                                  style: theme.textTheme.displaySmall?.copyWith(
                                     color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.2,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 Text(
-                                  '${data.yieldRate.toStringAsFixed(1)}%',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white70,
+                                  'PCS PASS',
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: Colors.cyanAccent.withOpacity(0.85),
                                     fontWeight: FontWeight.w600,
+                                    letterSpacing: 2,
                                   ),
                                 ),
                               ],
@@ -164,30 +166,42 @@ class _MachineGaugePainter extends CustomPainter {
     final center = size.center(Offset.zero);
     final radius = math.min(size.width, size.height) / 2;
 
-    final outerRadius = radius * 0.9;
+    final outerRadius = radius * 0.94;
+
+    final corePaint = Paint()
+      ..shader = RadialGradient(
+        colors: const [
+          Color(0xFF04152B),
+          Color(0xFF071F3E),
+          Color(0xFF031126),
+        ],
+        stops: const [0.1, 0.65, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: outerRadius * 0.6));
+    canvas.drawCircle(center, outerRadius * 0.6, corePaint);
+
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = radius * 0.18
+      ..strokeWidth = radius * 0.22
       ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFF0A2850);
+      ..color = const Color(0xFF082347);
 
-    final trackRect = Rect.fromCircle(center: center, radius: outerRadius * 0.78);
+    final trackRect = Rect.fromCircle(center: center, radius: outerRadius * 0.8);
     canvas.drawArc(trackRect, -math.pi / 2, math.pi * 2, false, trackPaint);
 
     final dashPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = radius * 0.06
+      ..strokeWidth = radius * 0.05
       ..strokeCap = StrokeCap.round
       ..color = Colors.white10;
 
-    final dashRect = Rect.fromCircle(center: center, radius: outerRadius);
-    const segmentCount = 28;
-    final gapAngle = math.pi / 36;
+    final dashRect = Rect.fromCircle(center: center, radius: outerRadius * 0.94);
+    const segmentCount = 32;
+    final gapAngle = math.pi / 40;
     final usable = math.pi * 2 - gapAngle * segmentCount;
     final segmentSweep = usable / segmentCount;
     var start = -math.pi / 2;
     for (var i = 0; i < segmentCount; i++) {
-      final intensity = 0.1 + (i % 3 == 0 ? 0.25 : 0.0);
+      final intensity = 0.08 + (i % 4 == 0 ? 0.28 : 0.0);
       dashPaint.color = Colors.white.withOpacity(intensity);
       canvas.drawArc(dashRect, start, segmentSweep, false, dashPaint);
       start += segmentSweep + gapAngle;
@@ -195,10 +209,10 @@ class _MachineGaugePainter extends CustomPainter {
 
     if (passRatio > 0) {
       final progressRect =
-          Rect.fromCircle(center: center, radius: outerRadius * 0.78);
+          Rect.fromCircle(center: center, radius: outerRadius * 0.8);
       final progressPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = radius * 0.18
+        ..strokeWidth = radius * 0.22
         ..strokeCap = StrokeCap.round
         ..shader = SweepGradient(
           startAngle: -math.pi / 2,
@@ -209,7 +223,7 @@ class _MachineGaugePainter extends CustomPainter {
             Color(0xFF8657FF),
             Color(0xFF33F2FF),
           ],
-          stops: const [0.0, 0.45, 0.8, 1.0],
+          stops: const [0.0, 0.35, 0.82, 1.0],
         ).createShader(progressRect);
       canvas.drawArc(
         progressRect,
@@ -221,12 +235,22 @@ class _MachineGaugePainter extends CustomPainter {
     }
 
     if (failRatio > 0) {
-      final failRect = Rect.fromCircle(center: center, radius: outerRadius * 0.58);
+      final failRect = Rect.fromCircle(center: center, radius: outerRadius * 0.63);
       final failPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = radius * 0.1
+        ..strokeWidth = radius * 0.12
         ..strokeCap = StrokeCap.round
-        ..color = Colors.pinkAccent.withOpacity(0.8);
+        ..shader = SweepGradient(
+          startAngle: -math.pi / 2,
+          endAngle: -math.pi / 2 + math.pi * 2,
+          colors: const [
+            Color(0xFFFF80E5),
+            Color(0xFFE84AFF),
+            Color(0xFFFF80E5),
+          ],
+          stops: const [0.0, 0.55, 1.0],
+        ).createShader(failRect)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 3.0);
       canvas.drawArc(
         failRect,
         -math.pi / 2,
@@ -236,11 +260,11 @@ class _MachineGaugePainter extends CustomPainter {
       );
     }
 
-    final innerPaint = Paint()
+    final innerRingPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = radius * 0.02
-      ..color = Colors.white10;
-    canvas.drawCircle(center, outerRadius * 0.4, innerPaint);
+      ..strokeWidth = radius * 0.03
+      ..color = Colors.white.withOpacity(0.08);
+    canvas.drawCircle(center, outerRadius * 0.55, innerRingPaint);
   }
 
   @override
