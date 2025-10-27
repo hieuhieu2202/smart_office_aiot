@@ -867,24 +867,30 @@ class _MachinesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (list.isEmpty) {
-      return const Center(
-        child: Text('No data', style: TextStyle(color: Colors.white54)),
-      );
-    }
-    return GridView.builder(
-      itemCount: list.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 1,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final gauge = list[index];
-        return LcrMachineCard(data: gauge);
-      },
+    final map = {for (final gauge in list) gauge.machineNo: gauge};
+    final machineNumbers = [1, 2, 3, 4];
+    final cards = [
+      for (final number in machineNumbers)
+        map[number] ??
+            LcrMachineGauge(
+              machineNo: number,
+              total: 0,
+              pass: 0,
+              fail: 0,
+            ),
+    ];
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < cards.length; i++)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: i == cards.length - 1 ? 0 : 16),
+              child: LcrMachineCard(data: cards[i]),
+            ),
+          ),
+      ],
     );
   }
 }
