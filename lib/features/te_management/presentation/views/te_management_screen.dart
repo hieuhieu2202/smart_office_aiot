@@ -1368,13 +1368,16 @@ class _ChartCanvas extends StatelessWidget {
               color: Colors.transparent,
               builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
                   int seriesIndex) {
-                final chartPoint = data is _ChartPoint ? data : null;
-                final label = chartPoint?.label ?? point?.x?.toString() ?? '';
-                final value = chartPoint?.value ?? point?.y ?? 0;
+                if (pointIndex < 0 || pointIndex >= points.length) {
+                  return const SizedBox.shrink();
+                }
+
+                final chartPoint = data is _ChartPoint ? data : points[pointIndex];
+
                 return _buildChartTooltip(
                   gradient,
-                  label,
-                  value,
+                  chartPoint.label,
+                  chartPoint.value,
                 );
               },
             ),
@@ -1475,13 +1478,17 @@ class _BreakdownChart extends StatelessWidget {
               color: Colors.transparent,
               builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
                   int seriesIndex) {
-                final breakdownPoint = data is _BreakdownPoint ? data : null;
-                final label = breakdownPoint?.label ?? point?.x?.toString() ?? '';
-                final value = breakdownPoint?.value ?? point?.y ?? 0;
+                if (pointIndex < 0 || pointIndex >= points.length) {
+                  return const SizedBox.shrink();
+                }
+
+                final breakdownPoint =
+                    data is _BreakdownPoint ? data : points[pointIndex];
+
                 return _buildChartTooltip(
                   gradient,
-                  label,
-                  value,
+                  breakdownPoint.label,
+                  breakdownPoint.value,
                 );
               },
             ),
