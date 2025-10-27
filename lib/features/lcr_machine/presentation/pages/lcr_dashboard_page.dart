@@ -96,6 +96,19 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
         children: [
           Row(
             children: [
+              IconButton(
+                onPressed: () {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    Get.back<void>();
+                  }
+                },
+                icon: const Icon(Icons.arrow_back_ios_new,
+                    color: Colors.white70, size: 20),
+                splashRadius: 22,
+              ),
+              const SizedBox(width: 4),
               const Icon(Icons.memory, color: Colors.cyanAccent, size: 28),
               const SizedBox(width: 12),
               Text(
@@ -541,15 +554,15 @@ class _DashboardTab extends StatelessWidget {
       return 220.0;
     }
     if (itemCount <= 2) {
-      return 260.0;
+      return 240.0;
     }
     if (itemCount <= 4) {
-      return 460.0;
+      return 360.0;
     }
     if (itemCount <= 6) {
-      return 620.0;
+      return 520.0;
     }
-    return 720.0;
+    return 640.0;
   }
 
   @override
@@ -1478,7 +1491,7 @@ class _MachinesGrid extends StatelessWidget {
       builder: (context, constraints) {
         final prefersTwoColumns = list.length > 1;
         final crossAxisCount = prefersTwoColumns ? 2 : 1;
-        final aspectRatio = prefersTwoColumns ? 0.82 : 0.92;
+        final aspectRatio = prefersTwoColumns ? 1.08 : 0.95;
         return GridView.builder(
           itemCount: list.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

@@ -30,7 +30,7 @@ class LcrMachineCard extends StatelessWidget {
     final gaugeValue = data.yieldRate.clamp(0, 100).toDouble();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF03132D).withOpacity(0.88),
         borderRadius: BorderRadius.circular(14),
@@ -40,7 +40,7 @@ class LcrMachineCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           SizedBox(
-            height: 112,
+            height: 100,
             child: SfCircularChart(
               margin: EdgeInsets.zero,
               annotations: <CircularChartAnnotation>[
@@ -50,18 +50,20 @@ class LcrMachineCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '${gaugeValue.toStringAsFixed(0)}%',
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        '${data.pass}',
+                        style: theme.textTheme.titleLarge?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           letterSpacing: 0.4,
                         ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
-                        '${data.total} PCS',
-                        style: theme.textTheme.bodySmall?.copyWith(
+                        'PCS PASS',
+                        style: theme.textTheme.labelMedium?.copyWith(
                           color: Colors.white70,
                           fontWeight: FontWeight.w600,
+                          letterSpacing: 0.6,
                         ),
                       ),
                     ],
@@ -97,22 +99,6 @@ class LcrMachineCard extends StatelessWidget {
               letterSpacing: 0.6,
             ),
           ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _MetricBadge(
-                label: 'PASS',
-                color: const Color(0xFF00E5FF),
-                value: data.pass,
-              ),
-              _MetricBadge(
-                label: 'FAIL',
-                color: const Color(0xFFFF80AB),
-                value: data.fail,
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -126,49 +112,3 @@ class _MachineGaugeSlice {
   final double value;
 }
 
-class _MetricBadge extends StatelessWidget {
-  const _MetricBadge({
-    required this.label,
-    required this.color,
-    required this.value,
-  });
-
-  final String label;
-  final Color color;
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.4)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-            ),
-          ),
-          const SizedBox(height: 1),
-          Text(
-            '$value',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
