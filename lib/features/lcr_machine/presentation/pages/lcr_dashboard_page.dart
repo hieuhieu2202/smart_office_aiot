@@ -1046,6 +1046,36 @@ class _OutputChart extends StatelessWidget {
       yMax = (step * 6).toDouble();
     }
 
+    final annotations = <CartesianChartAnnotation>[];
+    if (data.isNotEmpty) {
+      annotations.add(
+        CartesianChartAnnotation(
+          widget: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.greenAccent.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Text(
+                'Target (98%)',
+                style: TextStyle(
+                  color: Colors.greenAccent,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ),
+          coordinateUnit: CoordinateUnit.point,
+          x: data.last.category,
+          y: 98,
+          yAxisName: 'yrAxis',
+        ),
+      );
+    }
+
     return SfCartesianChart(
       plotAreaBorderWidth: 0,
       plotAreaBackgroundColor: const Color(0x1A2B3A5A),
@@ -1082,24 +1112,21 @@ class _OutputChart extends StatelessWidget {
           color: Colors.amberAccent,
         ),
       ),
-      legend: Legend(
-        isVisible: true,
-        position: LegendPosition.bottom,
-        textStyle: const TextStyle(color: Colors.white70),
-        iconHeight: 10,
-        iconWidth: 30,
-      ),
+      legend: const Legend(isVisible: false),
       primaryXAxis: CategoryAxis(
         labelStyle: const TextStyle(color: Colors.white70),
         majorGridLines: const MajorGridLines(width: 0),
-        axisLine: AxisLine(color: Colors.white12.withOpacity(0.2)),
+        majorTickLines: const MajorTickLines(size: 0),
+        axisLine: AxisLine(color: Colors.white24.withOpacity(0.35)),
+        labelAlignment: LabelAlignment.center,
       ),
       primaryYAxis: NumericAxis(
         minimum: 0,
         maximum: yMax,
         interval: interval,
         labelStyle: const TextStyle(color: Colors.white70),
-        majorGridLines: MajorGridLines(color: Colors.white10.withOpacity(0.25)),
+        majorGridLines: MajorGridLines(color: Colors.white10.withOpacity(0.2)),
+        majorTickLines: const MajorTickLines(size: 0),
         axisLine: const AxisLine(width: 0),
       ),
       axes: <ChartAxis>[
@@ -1110,6 +1137,8 @@ class _OutputChart extends StatelessWidget {
           labelStyle: const TextStyle(color: Colors.amberAccent),
           axisLine: const AxisLine(width: 0),
           majorGridLines: const MajorGridLines(width: 0),
+          majorTickLines: const MajorTickLines(size: 0),
+          labelFormat: '{value}%',
           plotBands: <PlotBand>[
             PlotBand(
               start: 98,
@@ -1117,20 +1146,12 @@ class _OutputChart extends StatelessWidget {
               borderWidth: 1,
               borderColor: Colors.greenAccent.withOpacity(0.7),
               dashArray: const <double>[4, 6],
-              text: '98%',
-              textAngle: 0,
-              verticalTextAlignment: TextAnchor.end,
-              horizontalTextAlignment: TextAnchor.end,
-              textStyle: TextStyle(
-                color: Colors.greenAccent.withOpacity(0.6),
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-              ),
               shouldRenderAboveSeries: true,
             ),
           ],
         ),
       ],
+      annotations: annotations,
       series: <CartesianSeries<dynamic, dynamic>>[
         ColumnSeries<dynamic, dynamic>(
           name: 'OUTPUT',
@@ -1138,7 +1159,8 @@ class _OutputChart extends StatelessWidget {
           xValueMapper: (item, _) => (item as _OutputItem).category,
           yValueMapper: (item, _) => (item as _OutputItem).total,
           width: 0.6,
-          borderRadius: const BorderRadius.all(Radius.circular(8)),
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(12)),
           gradient: const LinearGradient(
             colors: [Color(0xFF21D4FD), Color(0xFF2152FF)],
             begin: Alignment.bottomCenter,
@@ -1151,6 +1173,18 @@ class _OutputChart extends StatelessWidget {
               color: Colors.cyanAccent,
               fontWeight: FontWeight.w700,
             ),
+            builder: (dynamic item, dynamic point, dynamic series, int pointIndex,
+                int seriesIndex) {
+              final entry = item as _OutputItem;
+              return Text(
+                '${entry.total}',
+                style: const TextStyle(
+                  color: Colors.cyanAccent,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              );
+            },
           ),
         ),
         SplineSeries<dynamic, dynamic>(
@@ -1161,6 +1195,7 @@ class _OutputChart extends StatelessWidget {
           yAxisName: 'yrAxis',
           color: Colors.amberAccent,
           width: 2,
+          enableTooltip: false,
           markerSettings: const MarkerSettings(
             isVisible: false,
             shape: DataMarkerType.circle,
@@ -1180,6 +1215,10 @@ class _OutputChart extends StatelessWidget {
             builder: (dynamic item, dynamic point, dynamic series,
                 int pointIndex, int seriesIndex) {
               final entry = item as _OutputItem;
+              final value = entry.yr;
+              final formatted = value == value.roundToDouble()
+                  ? value.toInt().toString()
+                  : value.toStringAsFixed(1);
               return DecoratedBox(
                 decoration: BoxDecoration(
                   color: const Color(0xAA041026),
@@ -1191,7 +1230,7 @@ class _OutputChart extends StatelessWidget {
                     vertical: 3,
                   ),
                   child: Text(
-                    '${entry.yr.toStringAsFixed(1)}%',
+                    '$formatted%',
                     style: const TextStyle(
                       color: Colors.amberAccent,
                       fontWeight: FontWeight.w700,

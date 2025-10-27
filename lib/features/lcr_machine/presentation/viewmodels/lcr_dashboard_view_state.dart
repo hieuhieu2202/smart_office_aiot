@@ -83,7 +83,13 @@ class LcrDashboardViewState {
     const endHour = 18;
     const shiftStartMinutes = startHour * 60 + 30;
     const shiftEndMinutes = (endHour + 1) * 60 + 30;
-    final Map<int, List<LcrRecord>> bySlot = <int, List<LcrRecord>>{};
+    final Map<int, _SlotTotals> bySlot = <int, _SlotTotals>{};
+
+    int _resolveQuantity(int? primary, int? secondary) {
+      if (primary != null && primary > 0) return primary;
+      if (secondary != null && secondary > 0) return secondary;
+      return 1;
+    }
 
     for (final record in records) {
       final factoryKey = (record.factory.isEmpty ? 'UNKNOWN' : record.factory);
@@ -112,7 +118,12 @@ class LcrDashboardViewState {
       if (totalMinutes >= shiftStartMinutes && totalMinutes < shiftEndMinutes) {
         final slotIndex = (totalMinutes - shiftStartMinutes) ~/ 60;
         final slotHour = startHour + slotIndex;
-        bySlot.putIfAbsent(slotHour, () => <LcrRecord>[]).add(record);
+        final bucket = bySlot.putIfAbsent(slotHour, () => _SlotTotals());
+        if (record.status) {
+          bucket.pass += _resolveQuantity(record.qty, record.extQty);
+        } else {
+          bucket.fail += _resolveQuantity(record.extQty, record.qty);
+        }
       }
     }
 
@@ -153,9 +164,9 @@ class LcrDashboardViewState {
     final categoriesLabel = <String>[];
 
     for (var hour = startHour; hour <= endHour; hour++) {
-      final list = bySlot[hour] ?? const <LcrRecord>[];
-      final passCount = list.where((e) => e.status).length;
-      final failCount = list.length - passCount;
+      final bucket = bySlot[hour];
+      final passCount = bucket?.pass ?? 0;
+      final failCount = bucket?.fail ?? 0;
       outputPass.add(passCount);
       outputFail.add(failCount);
       final total = passCount + failCount;
@@ -197,4 +208,11 @@ class LcrDashboardViewState {
       errorSlices: errorSlices,
     );
   }
+}
+
+class _SlotTotals {
+  _SlotTotals({this.pass = 0, this.fail = 0});
+
+  int pass;
+  int fail;
 }
