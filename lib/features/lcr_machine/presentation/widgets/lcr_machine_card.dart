@@ -30,17 +30,17 @@ class LcrMachineCard extends StatelessWidget {
     final gaugeValue = data.yieldRate.clamp(0, 100).toDouble();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF03132D).withOpacity(0.88),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white10),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           SizedBox(
-            height: 120,
+            height: 112,
             child: SfCircularChart(
               margin: EdgeInsets.zero,
               annotations: <CircularChartAnnotation>[

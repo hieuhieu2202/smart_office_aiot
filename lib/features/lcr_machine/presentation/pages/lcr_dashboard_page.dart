@@ -1476,15 +1476,14 @@ class _MachinesGrid extends StatelessWidget {
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        const minTileWidth = 160.0;
-        final rawCount = (constraints.maxWidth / minTileWidth).floor();
-        final crossAxisCount = rawCount.clamp(1, 4) as int;
-
+        final prefersTwoColumns = list.length > 1;
+        final crossAxisCount = prefersTwoColumns ? 2 : 1;
+        final aspectRatio = prefersTwoColumns ? 0.82 : 0.92;
         return GridView.builder(
           itemCount: list.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            childAspectRatio: 0.92,
+            childAspectRatio: aspectRatio,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
