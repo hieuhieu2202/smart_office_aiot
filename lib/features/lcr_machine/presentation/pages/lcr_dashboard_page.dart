@@ -1482,33 +1482,34 @@ class _MachinesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (list.isEmpty) {
-      return const Center(
-        child: Text('No data', style: TextStyle(color: Colors.white54)),
-      );
-    }
-    final items = list.take(4).toList();
-    final overallPass = items.fold<int>(0, (sum, gauge) => sum + gauge.pass);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: List.generate(items.length, (index) {
-        final gauge = items[index];
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: index == 0 ? 0 : 8,
-              right: index == items.length - 1 ? 0 : 8,
+    final map = {for (final gauge in list) gauge.machineNo: gauge};
+    final machineNumbers = [1, 2, 3, 4];
+    final cards = [
+      for (final number in machineNumbers)
+        map[number] ??
+            LcrMachineGauge(
+              machineNo: number,
+              total: 0,
+              pass: 0,
+              fail: 0,
             ),
-            child: LcrMachineCard(
-              data: gauge,
-              maxPass: overallPass,
+    ];
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < cards.length; i++)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: i == cards.length - 1 ? 0 : 16),
+              child: LcrMachineCard(data: cards[i]),
             ),
           ),
-        );
-      }),
+      ],
     );
   }
 }
+
 
 class _AnalysisTab extends StatelessWidget {
   const _AnalysisTab({
