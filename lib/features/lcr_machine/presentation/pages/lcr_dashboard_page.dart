@@ -672,6 +672,14 @@ class _CategoryProgressTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final double normalizedPercent;
+    if (percent <= 0) {
+      normalizedPercent = 0.0;
+    } else if (percent >= 100) {
+      normalizedPercent = 1.0;
+    } else {
+      normalizedPercent = percent / 100.0;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -706,9 +714,7 @@ class _CategoryProgressTile extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
-            value: percent <= 0
-                ? 0.0
-                : percent.clamp(0, 100).toDouble() / 100.0,
+            value: normalizedPercent,
             minHeight: 8,
             backgroundColor: const Color(0xFF0A274F),
             valueColor: AlwaysStoppedAnimation<Color>(color),
