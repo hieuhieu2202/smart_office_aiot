@@ -64,7 +64,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                   ),
                   tabs: [
                     Tab(text: 'DASHBOARD'),
-                    Tab(text: 'ANALYSIS'),
+                    Tab(text: 'SN ANALYSIS'),
                   ],
                 ),
                 Expanded(
@@ -97,7 +97,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
               const Icon(Icons.memory, color: Colors.cyanAccent, size: 28),
               const SizedBox(width: 12),
               Text(
-                'LCR MACHINE DASHBOARD',
+                'LCR MACHINE',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
