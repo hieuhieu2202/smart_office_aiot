@@ -79,7 +79,11 @@ class LcrDashboardViewState {
     final Map<String, List<LcrRecord>> byEmployee = <String, List<LcrRecord>>{};
     final Map<int, List<LcrRecord>> byMachine = <int, List<LcrRecord>>{};
     final Map<String, List<LcrRecord>> byError = <String, List<LcrRecord>>{};
-    final Map<int, List<LcrRecord>> byHour = <int, List<LcrRecord>>{};
+    const startHour = 7;
+    const endHour = 18;
+    const shiftStartMinutes = startHour * 60 + 30;
+    const shiftEndMinutes = (endHour + 1) * 60 + 30;
+    final Map<int, List<LcrRecord>> bySlot = <int, List<LcrRecord>>{};
 
     for (final record in records) {
       final factoryKey = (record.factory.isEmpty ? 'UNKNOWN' : record.factory);
@@ -104,8 +108,12 @@ class LcrDashboardViewState {
           ((record.description ?? '').isEmpty ? 'NO ERROR' : record.description!);
       byError.putIfAbsent(errorKey, () => <LcrRecord>[]).add(record);
 
-      final hourKey = record.dateTime.hour;
-      byHour.putIfAbsent(hourKey, () => <LcrRecord>[]).add(record);
+      final totalMinutes = record.dateTime.hour * 60 + record.dateTime.minute;
+      if (totalMinutes >= shiftStartMinutes && totalMinutes < shiftEndMinutes) {
+        final slotIndex = (totalMinutes - shiftStartMinutes) ~/ 60;
+        final slotHour = startHour + slotIndex;
+        bySlot.putIfAbsent(slotHour, () => <LcrRecord>[]).add(record);
+      }
     }
 
     List<LcrPieSlice> _buildPie(Map<String, List<LcrRecord>> map,
@@ -139,15 +147,13 @@ class LcrDashboardViewState {
     final employeeSeries = _buildStacked(byEmployee);
     final errorSlices = _buildPie(byError, includeZero: true);
 
-    const startHour = 7;
-    const endHour = 19;
     final outputPass = <int>[];
     final outputFail = <int>[];
     final outputYr = <double>[];
     final categoriesLabel = <String>[];
 
     for (var hour = startHour; hour <= endHour; hour++) {
-      final list = byHour[hour] ?? const <LcrRecord>[];
+      final list = bySlot[hour] ?? const <LcrRecord>[];
       final passCount = list.where((e) => e.status).length;
       final failCount = list.length - passCount;
       outputPass.add(passCount);
@@ -155,8 +161,9 @@ class LcrDashboardViewState {
       final total = passCount + failCount;
       final yr = total == 0 ? 0 : passCount / total * 100;
       outputYr.add(double.parse(yr.toStringAsFixed(2)));
-      categoriesLabel
-          .add('${hour.toString().padLeft(2, '0')}:30');
+      final startLabel = '${hour.toString().padLeft(2, '0')}:30';
+      final endLabel = '${(hour + 1).toString().padLeft(2, '0')}:30';
+      categoriesLabel.add('$startLabel - $endLabel');
     }
 
     final outputTrend = LcrOutputTrend(

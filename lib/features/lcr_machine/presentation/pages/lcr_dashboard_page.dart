@@ -619,26 +619,29 @@ class _DashboardTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
+                          flex: 3,
                           child: LcrChartCard(
                             title: 'DEPARTMENT ANALYSIS',
-                            height: 300,
+                            height: 280,
                             child: _StackedBarChart(data.departmentSeries),
                           ),
                         ),
                         const SizedBox(width: 24),
                         Expanded(
+                          flex: 4,
                           child: LcrChartCard(
-                            title: 'TYPE ANALYSIS',
-                            height: 300,
-                            child: _StackedBarChart(data.typeSeries),
+                            title: 'YIELD RATE & OUTPUT',
+                            height: 360,
+                            child: _OutputChart(data.outputTrend),
                           ),
                         ),
                         const SizedBox(width: 24),
                         Expanded(
+                          flex: 3,
                           child: LcrChartCard(
-                            title: 'YIELD RATE & OUTPUT',
-                            height: 300,
-                            child: _OutputChart(data.outputTrend),
+                            title: 'TYPE ANALYSIS',
+                            height: 280,
+                            child: _StackedBarChart(data.typeSeries),
                           ),
                         ),
                       ],
@@ -1064,6 +1067,21 @@ class _OutputChart extends StatelessWidget {
           );
         },
       ),
+      trackballBehavior: TrackballBehavior(
+        enable: true,
+        activationMode: ActivationMode.singleTap,
+        lineType: TrackballLineType.none,
+        tooltipDisplayMode: TrackballDisplayMode.nearestPoint,
+        tooltipSettings: const InteractiveTooltip(enable: false),
+        markerSettings: const TrackballMarkerSettings(
+          markerVisibility: TrackballVisibilityMode.visible,
+          height: 10,
+          width: 10,
+          borderWidth: 1.5,
+          borderColor: Colors.black,
+          color: Colors.amberAccent,
+        ),
+      ),
       legend: Legend(
         isVisible: true,
         position: LegendPosition.bottom,
@@ -1099,7 +1117,7 @@ class _OutputChart extends StatelessWidget {
               borderWidth: 1,
               borderColor: Colors.greenAccent.withOpacity(0.7),
               dashArray: const <double>[4, 6],
-              text: '98% TARGET',
+              text: '98%',
               textAngle: 0,
               verticalTextAlignment: TextAnchor.end,
               horizontalTextAlignment: TextAnchor.end,
@@ -1144,7 +1162,7 @@ class _OutputChart extends StatelessWidget {
           color: Colors.amberAccent,
           width: 2,
           markerSettings: const MarkerSettings(
-            isVisible: true,
+            isVisible: false,
             shape: DataMarkerType.circle,
             borderColor: Colors.black,
             borderWidth: 1.5,
