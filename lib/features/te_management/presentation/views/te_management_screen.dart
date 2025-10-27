@@ -332,153 +332,167 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10213A),
-                              borderRadius: BorderRadius.circular(16),
-                              border: const Border.fromBorderSide(
-                                BorderSide(color: Color(0xFF1F3A5F)),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        'Date & time range',
-                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700,
-                                            ) ??
-                                            const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 16,
-                                            ),
-                                      ),
-                                    ),
-                                    TextButton.icon(
-                                      onPressed: pickDateRange,
-                                      icon: const Icon(Icons.calendar_month, size: 18, color: kTeAccentColor),
-                                      label: const Text(
-                                        'Pick range',
-                                        style: TextStyle(color: kTeAccentColor, fontWeight: FontWeight.w600),
-                                      ),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: kTeAccentColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final isNarrow = constraints.maxWidth < 520;
-                                    final startField = _buildDateTimeField(
-                                      label: 'Start',
-                                      value: tempStart,
-                                      onPickDate: () => pickDate(isStart: true),
-                                      onPickTime: () => pickTime(isStart: true),
-                                    );
-                                    final endField = _buildDateTimeField(
-                                      label: 'End',
-                                      value: tempEnd,
-                                      onPickDate: () => pickDate(isStart: false),
-                                      onPickTime: () => pickTime(isStart: false),
-                                    );
-                                    if (isNarrow) {
-                                      return Column(
-                                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          startField,
-                                          const SizedBox(height: 12),
-                                          endField,
-                                        ],
-                                      );
-                                    }
-                                    return Row(
-                                      children: [
-                                        Expanded(child: startField),
-                                        const SizedBox(width: 12),
-                                        Expanded(child: endField),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Models',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                              ),
-                              if (available.isNotEmpty)
-                                TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      if (selected.length == available.length) {
-                                        selected.clear();
-                                      } else {
-                                        selected
-                                          ..clear()
-                                          ..addAll(available);
-                                      }
-                                    });
-                                  },
-                                  child: Text(
-                                    allChecked ? 'Clear all' : 'Select all',
-                                    style: const TextStyle(color: kTeAccentColor, fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
                           Expanded(
-                            child: available.isEmpty
-                                ? const Center(
-                                    child: Text(
-                                      'No models available',
-                                      style: TextStyle(color: Color(0xFF9AB3CF)),
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF10213A),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: const Border.fromBorderSide(
+                                        BorderSide(color: Color(0xFF1F3A5F)),
+                                      ),
                                     ),
-                                  )
-                                : ListView.builder(
-                                    itemCount: available.length,
-                                    itemBuilder: (context, index) {
-                                      final model = available[index];
-                                      final checked = selected.contains(model);
-                                      return CheckboxListTile(
-                                        value: checked,
-                                        title: Text(
-                                          model,
-                                          style: const TextStyle(color: Colors.white),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                'Date & time range',
+                                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.w700,
+                                                    ) ??
+                                                    const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.w700,
+                                                      fontSize: 16,
+                                                    ),
+                                              ),
+                                            ),
+                                            TextButton.icon(
+                                              onPressed: pickDateRange,
+                                              icon: const Icon(Icons.calendar_month, size: 18, color: kTeAccentColor),
+                                              label: const Text(
+                                                'Pick range',
+                                                style: TextStyle(color: kTeAccentColor, fontWeight: FontWeight.w600),
+                                              ),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: kTeAccentColor,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        controlAffinity: ListTileControlAffinity.leading,
-                                        activeColor: kTeAccentColor,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            if (value == true) {
-                                              selected.add(model);
-                                            } else {
-                                              selected.remove(model);
+                                        const SizedBox(height: 14),
+                                        LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            final isNarrow = constraints.maxWidth < 520;
+                                            final startField = _buildDateTimeField(
+                                              label: 'Start',
+                                              value: tempStart,
+                                              onPickDate: () => pickDate(isStart: true),
+                                              onPickTime: () => pickTime(isStart: true),
+                                            );
+                                            final endField = _buildDateTimeField(
+                                              label: 'End',
+                                              value: tempEnd,
+                                              onPickDate: () => pickDate(isStart: false),
+                                              onPickTime: () => pickTime(isStart: false),
+                                            );
+                                            if (isNarrow) {
+                                              return Column(
+                                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  startField,
+                                                  const SizedBox(height: 12),
+                                                  endField,
+                                                ],
+                                              );
                                             }
-                                          });
-                                        },
-                                      );
-                                    },
+                                            return Row(
+                                              children: [
+                                                Expanded(child: startField),
+                                                const SizedBox(width: 12),
+                                                Expanded(child: endField),
+                                              ],
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
                                   ),
+                                  const SizedBox(height: 20),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Models',
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                      ),
+                                      if (available.isNotEmpty)
+                                        TextButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              if (selected.length == available.length) {
+                                                selected.clear();
+                                              } else {
+                                                selected
+                                                  ..clear()
+                                                  ..addAll(available);
+                                              }
+                                            });
+                                          },
+                                          child: Text(
+                                            allChecked ? 'Clear all' : 'Select all',
+                                            style: const TextStyle(color: kTeAccentColor, fontWeight: FontWeight.w600),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  if (available.isEmpty)
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 40),
+                                      child: Center(
+                                        child: Text(
+                                          'No models available',
+                                          style: TextStyle(color: Color(0xFF9AB3CF)),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: available.length,
+                                      itemBuilder: (context, index) {
+                                        final model = available[index];
+                                        final checked = selected.contains(model);
+                                        return CheckboxListTile(
+                                          value: checked,
+                                          title: Text(
+                                            model,
+                                            style: const TextStyle(color: Colors.white),
+                                          ),
+                                          controlAffinity: ListTileControlAffinity.leading,
+                                          activeColor: kTeAccentColor,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              if (value == true) {
+                                                selected.add(model);
+                                              } else {
+                                                selected.remove(model);
+                                              }
+                                            });
+                                          },
+                                        );
+                                      },
+                                    ),
+                                ],
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Row(
