@@ -1257,9 +1257,17 @@ class _ChartCanvas extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final media = MediaQuery.of(context);
+        final resolvedWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : math.min(media.size.width * 0.9, 1000.0);
+        final resolvedHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : math.min(media.size.height * 0.5, 420.0);
+
         return SizedBox(
-          width: constraints.maxWidth,
-          height: constraints.maxHeight,
+          width: resolvedWidth,
+          height: resolvedHeight,
           child: SfCartesianChart(
             plotAreaBorderWidth: 0,
             primaryXAxis: CategoryAxis(
@@ -1349,10 +1357,18 @@ class _BreakdownChart extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final media = MediaQuery.of(context);
+        final resolvedWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : math.min(media.size.width * 0.9, 1000.0);
+        final resolvedHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : math.min(media.size.height * 0.45, 360.0);
+
         return SizedBox(
           key: ValueKey('breakdown_chart_${points.length}'),
-          width: constraints.maxWidth,
-          height: constraints.maxHeight,
+          width: resolvedWidth,
+          height: resolvedHeight,
           child: SfCartesianChart(
             plotAreaBorderWidth: 0,
             primaryXAxis: CategoryAxis(
