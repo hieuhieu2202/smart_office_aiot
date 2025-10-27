@@ -40,23 +40,65 @@ class TERetestRateTable extends StatefulWidget {
 }
 
 class _TERetestRateTableState extends State<TERetestRateTable> {
-  late final ScrollController _horizontalController;
-  late final ScrollController _verticalController;
+  late final ScrollController _horizontalHeaderController;
+  late final ScrollController _horizontalBodyController;
+  late final ScrollController _verticalBodyController;
+  late final VoidCallback _headerScrollListener;
+  late final VoidCallback _bodyScrollListener;
+  bool _isSyncingHorizontal = false;
 
   int get _totalColumns => widget.formattedDates.length * 2;
 
   @override
   void initState() {
     super.initState();
-    _horizontalController = ScrollController();
-    _verticalController = ScrollController();
+    _horizontalHeaderController = ScrollController();
+    _horizontalBodyController = ScrollController();
+    _verticalBodyController = ScrollController();
+
+    _headerScrollListener = () => _syncHorizontal(fromHeader: true);
+    _bodyScrollListener = () => _syncHorizontal(fromHeader: false);
+
+    _horizontalHeaderController.addListener(_headerScrollListener);
+    _horizontalBodyController.addListener(_bodyScrollListener);
   }
 
   @override
   void dispose() {
-    _horizontalController.dispose();
-    _verticalController.dispose();
+    _horizontalHeaderController.removeListener(_headerScrollListener);
+    _horizontalBodyController.removeListener(_bodyScrollListener);
+    _horizontalHeaderController.dispose();
+    _horizontalBodyController.dispose();
+    _verticalBodyController.dispose();
     super.dispose();
+  }
+
+  void _syncHorizontal({required bool fromHeader}) {
+    if (_isSyncingHorizontal) return;
+    if (!_horizontalHeaderController.hasClients ||
+        !_horizontalBodyController.hasClients) {
+      return;
+    }
+
+    final source = fromHeader
+        ? _horizontalHeaderController
+        : _horizontalBodyController;
+    final target = fromHeader
+        ? _horizontalBodyController
+        : _horizontalHeaderController;
+
+    final offset = source.offset;
+    final minExtent = target.position.minScrollExtent;
+    final maxExtent = target.position.maxScrollExtent;
+    final clampedOffset = offset.clamp(minExtent, maxExtent).toDouble();
+
+    if ((target.offset - clampedOffset).abs() < 0.5) {
+      return;
+    }
+
+    _isSyncingHorizontal = true;
+    target.jumpTo(clampedOffset);
+    _isSyncingHorizontal = false;
   }
 
   @override
@@ -72,120 +114,105 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
 
     final totalWidth =
         _kIndexWidth + _kModelWidth + _kGroupWidth + (_totalColumns * _kCellWidth);
+    const headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
+    final totalGroupRows = widget.detail.rows.fold<int>(
+      0,
+      (sum, row) => sum + math.max(row.groupNames.length, 1),
+    );
+    final naturalHeight =
+        headerHeight + (totalGroupRows * _kRowHeight.toDouble());
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
-        final minimumHeight = headerHeight + _kRowHeight;
-        final totalGroupRows = widget.detail.rows.fold<int>(
-          0,
-          (sum, row) => sum + math.max(row.groupNames.length, 1),
-        );
-        final naturalHeight =
-            headerHeight + (totalGroupRows * _kRowHeight.toDouble());
+        final hasBoundedWidth =
+            constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
+        final hasBoundedHeight =
+            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
 
-        final hasBoundedWidth = constraints.hasBoundedWidth &&
-            constraints.maxWidth.isFinite;
-        final hasBoundedHeight = constraints.hasBoundedHeight &&
-            constraints.maxHeight.isFinite;
-
-        final baseMinWidth = _kIndexWidth + _kModelWidth + _kGroupWidth;
-        final desiredWidth = math.max(totalWidth, baseMinWidth);
-        final desiredHeight =
-            math.max(naturalHeight, minimumHeight.toDouble());
-
-        final resolvedWidth = hasBoundedWidth
+        final width = hasBoundedWidth
             ? constraints.maxWidth
-            : desiredWidth.toDouble();
-        final resolvedHeight = hasBoundedHeight
+            : math.max(totalWidth.toDouble(), constraints.minWidth);
+        final height = hasBoundedHeight
             ? constraints.maxHeight
-            : desiredHeight;
+            : math.max(naturalHeight, constraints.minHeight.toDouble());
+        final tableWidth = math.max(totalWidth.toDouble(), width);
 
-        final constrainedSize = constraints.constrain(
-          Size(resolvedWidth, resolvedHeight),
-        );
-
-        final width = constrainedSize.width;
-        final height = constrainedSize.height;
-
-        final viewportWidth = math.max(width, baseMinWidth.toDouble());
-        final availableBodySpace = math.max(height - headerHeight, 0.0);
-        final bodyHeight = math.max(
-          hasBoundedHeight ? availableBodySpace : math.max(availableBodySpace, _kRowHeight.toDouble()),
-          1.0,
-        );
-        final viewportHeight = headerHeight + bodyHeight;
-        final tableWidth = math.max(totalWidth, viewportWidth);
-
-        final outerSize = Size(width, height);
-
-        return Align(
-          alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: outerSize.width,
-            height: outerSize.height,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: _kTableBackground,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: _kBorderColor),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x33040E1C),
-                    blurRadius: 22,
-                    offset: Offset(0, 14),
-                  )
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: Scrollbar(
-                  controller: _horizontalController,
-                  thumbVisibility: true,
-                  trackVisibility: false,
-                  child: SingleChildScrollView(
-                    controller: _horizontalController,
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: tableWidth,
-                      height: viewportHeight,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _HeaderRow(
+        return SizedBox(
+          width: width,
+          height: height,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: _kTableBackground,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: _kBorderColor),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x33040E1C),
+                  blurRadius: 22,
+                  offset: Offset(0, 14),
+                )
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: headerHeight,
+                    child: Scrollbar(
+                      controller: _horizontalHeaderController,
+                      thumbVisibility: tableWidth > width,
+                      child: SingleChildScrollView(
+                        controller: _horizontalHeaderController,
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: tableWidth,
+                          height: headerHeight,
+                          child: _HeaderRow(
                             formattedDates: widget.formattedDates,
                           ),
-                          SizedBox(
-                            height: bodyHeight,
-                            child: Scrollbar(
-                              controller: _verticalController,
-                              thumbVisibility: true,
-                              trackVisibility: false,
-                              child: ListView.builder(
-                                controller: _verticalController,
-                                padding: EdgeInsets.zero,
-                                itemCount: widget.detail.rows.length,
-                                itemBuilder: (context, index) {
-                                  final row = widget.detail.rows[index];
-                                  final isFirst = index == 0;
-                                  return _ModelBlock(
-                                    index: index + 1,
-                                    row: row,
-                                    formattedDates: widget.formattedDates,
-                                    totalColumns: _totalColumns,
-                                    isFirstBlock: isFirst,
-                                    onCellTap: widget.onCellTap,
-                                    onGroupTap: widget.onGroupTap,
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  const Divider(height: 1, color: Colors.transparent),
+                  Expanded(
+                    child: Scrollbar(
+                      controller: _horizontalBodyController,
+                      thumbVisibility: tableWidth > width,
+                      child: SingleChildScrollView(
+                        controller: _horizontalBodyController,
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: tableWidth,
+                          child: Scrollbar(
+                            controller: _verticalBodyController,
+                            thumbVisibility: true,
+                            child: ListView.builder(
+                              controller: _verticalBodyController,
+                              padding: EdgeInsets.zero,
+                              physics: const ClampingScrollPhysics(),
+                              itemCount: widget.detail.rows.length,
+                              itemBuilder: (context, index) {
+                                final row = widget.detail.rows[index];
+                                return _ModelBlock(
+                                  index: index + 1,
+                                  row: row,
+                                  formattedDates: widget.formattedDates,
+                                  totalColumns: _totalColumns,
+                                  isFirstBlock: index == 0,
+                                  onCellTap: widget.onCellTap,
+                                  onGroupTap: widget.onGroupTap,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
