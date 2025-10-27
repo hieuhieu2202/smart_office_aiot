@@ -60,7 +60,7 @@ class _MachinePerformanceGauge extends StatelessWidget {
       width: 120,
       child: CustomPaint(
         painter: _MachinePerformancePainter(
-          progress: passRate.clamp(0.0, 1.0),
+          progress: passRate.clamp(0.0, 1.0).toDouble(),
           primaryColor: primary,
           secondaryColor: secondary,
           alertColor: alert,
