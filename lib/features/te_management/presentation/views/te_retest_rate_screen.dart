@@ -582,7 +582,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
                 majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.5),
               ),
               tooltipBehavior: TooltipBehavior(enable: true, header: ''),
-              series: <ChartSeries<_ChartPoint, String>>[
+              series: <CartesianSeries<_ChartPoint, String>>[
                 ColumnSeries<_ChartPoint, String>(
                   name: 'Day',
                   dataSource: daySeries,

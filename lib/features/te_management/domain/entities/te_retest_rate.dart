@@ -3,15 +3,18 @@ import 'dart:collection';
 import 'package:equatable/equatable.dart';
 
 class TERetestDetailEntity extends Equatable {
-  const TERetestDetailEntity({
+  TERetestDetailEntity({
     required List<String> dates,
     required List<TERetestDetailRowEntity> rows,
   })  : dates = UnmodifiableListView(dates),
         rows = UnmodifiableListView(rows);
 
-  TERetestDetailEntity.empty()
-      : dates = const UnmodifiableListView<String>([]),
-        rows = const UnmodifiableListView<TERetestDetailRowEntity>([]);
+  factory TERetestDetailEntity.empty() {
+    return TERetestDetailEntity(
+      dates: const <String>[],
+      rows: const <TERetestDetailRowEntity>[],
+    );
+  }
 
   final UnmodifiableListView<String> dates;
   final UnmodifiableListView<TERetestDetailRowEntity> rows;
@@ -23,7 +26,7 @@ class TERetestDetailEntity extends Equatable {
 }
 
 class TERetestDetailRowEntity extends Equatable {
-  const TERetestDetailRowEntity({
+  TERetestDetailRowEntity({
     required this.modelName,
     required List<String> groupNames,
     required Map<String, List<int?>> input,
