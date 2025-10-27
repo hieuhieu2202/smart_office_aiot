@@ -47,8 +47,10 @@ class _LcrMachineCardState extends State<LcrMachineCard>
     final theme = Theme.of(context);
     final data = widget.data;
     final total = data.total == 0 ? 1 : data.total;
-    final passRatio = (data.pass / total).clamp(0, 1);
-    final failRatio = (data.fail / total).clamp(0, 1);
+    final double passRatio =
+        (data.pass / total).clamp(0.0, 1.0).toDouble();
+    final double failRatio =
+        (data.fail / total).clamp(0.0, 1.0).toDouble();
 
     const gaugeDesignSize = 200.0;
 
