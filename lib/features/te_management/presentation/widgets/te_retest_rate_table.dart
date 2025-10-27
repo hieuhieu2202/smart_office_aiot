@@ -583,7 +583,6 @@ class _ModelBlock extends StatelessWidget {
                         ),
                 isFirstRow: isRowFirst,
               ),
-              ),
               for (var i = 0; i < cells.length; i++)
                 SizedBox(
                   width: metrics.cellWidth,
@@ -641,18 +640,17 @@ class _ModelBlock extends StatelessWidget {
                 background: background,
                 isFirstRow: isFirstBlock,
               ),
-            ),
-            for (final cellDetail in placeholderCells)
-              SizedBox(
-                width: metrics.cellWidth,
-                child: _RetestValueCell(
-                  detail: cellDetail,
-                  background: background,
-                  onTap: onCellTap,
-                  isFirstRow: isFirstBlock,
-                  showRightBorder: true,
+              for (final cellDetail in placeholderCells)
+                SizedBox(
+                  width: metrics.cellWidth,
+                  child: _RetestValueCell(
+                    detail: cellDetail,
+                    background: background,
+                    onTap: onCellTap,
+                    isFirstRow: isFirstBlock,
+                    showRightBorder: true,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
