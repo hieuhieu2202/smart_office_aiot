@@ -78,7 +78,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
-        final minHeight = headerHeight + 1;
+        final minHeight = headerHeight + 1.0;
         final hasBoundedHeight =
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
         final contentHeight = headerHeight +
@@ -86,7 +86,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
         final targetHeight = hasBoundedHeight
             ? constraints.maxHeight
             : math.max(minHeight, contentHeight);
-        final bodyHeight = math.max(0, targetHeight - headerHeight);
+        final bodyHeight = math.max(0.0, targetHeight - headerHeight);
         final containerWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : math.max(totalWidth, constraints.minWidth);
