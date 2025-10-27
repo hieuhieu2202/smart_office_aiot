@@ -194,8 +194,24 @@ class LcrDashboardViewState {
         pass: passCount,
         fail: failCount,
       );
-    }).toList()
-      ..sort((a, b) => a.machineNo.compareTo(b.machineNo));
+    }).toList();
+
+    const expectedMachineCount = 4;
+    for (var machine = 1; machine <= expectedMachineCount; machine++) {
+      final hasMachine = machineGauges.any((gauge) => gauge.machineNo == machine);
+      if (!hasMachine) {
+        machineGauges.add(
+          LcrMachineGauge(
+            machineNo: machine,
+            total: 0,
+            pass: 0,
+            fail: 0,
+          ),
+        );
+      }
+    }
+
+    machineGauges.sort((a, b) => a.machineNo.compareTo(b.machineNo));
 
     return LcrDashboardViewState(
       overview: overview,

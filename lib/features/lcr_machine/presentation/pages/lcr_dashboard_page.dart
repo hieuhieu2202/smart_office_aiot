@@ -537,13 +537,19 @@ class _DashboardTab extends StatelessWidget {
   final LcrDashboardController controller;
 
   double _machinePerformanceHeight(int itemCount) {
-    if (itemCount <= 4) {
+    if (itemCount <= 0) {
+      return 220.0;
+    }
+    if (itemCount <= 2) {
       return 260.0;
     }
-    if (itemCount <= 8) {
-      return 320.0;
+    if (itemCount <= 4) {
+      return 460.0;
     }
-    return 360.0;
+    if (itemCount <= 6) {
+      return 620.0;
+    }
+    return 720.0;
   }
 
   @override
@@ -1478,12 +1484,12 @@ class _MachinesGrid extends StatelessWidget {
           itemCount: list.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            childAspectRatio: 0.95,
+            childAspectRatio: 0.92,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
           padding: EdgeInsets.zero,
-          physics: const BouncingScrollPhysics(),
+          physics: const NeverScrollableScrollPhysics(),
           itemBuilder: (context, index) {
             final gauge = list[index];
             return LcrMachineCard(data: gauge);
