@@ -19,82 +19,124 @@ class LcrMachineCard extends StatelessWidget {
     final passRatio = data.pass / total;
     final failRatio = data.fail / total;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF03132D).withOpacity(0.85),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'MACHINE ${data.machineNo}',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: Colors.cyanAccent,
-              fontWeight: FontWeight.bold,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const horizontalPadding = 24.0;
+        const headerSpacing = 72.0;
+        var gaugeSize = 132.0;
+
+        final maxWidth = constraints.maxWidth.isFinite
+            ? math.max(0.0, constraints.maxWidth - horizontalPadding)
+            : double.infinity;
+        final maxHeight = constraints.maxHeight.isFinite
+            ? math.max(0.0, constraints.maxHeight - headerSpacing)
+            : double.infinity;
+
+        if (maxWidth.isFinite) {
+          gaugeSize = math.min(gaugeSize, maxWidth);
+        }
+
+        if (maxHeight.isFinite) {
+          gaugeSize = math.min(gaugeSize, maxHeight);
+        }
+
+        gaugeSize = gaugeSize.clamp(48.0, 180.0);
+
+        if (maxWidth.isFinite) {
+          gaugeSize = math.min(gaugeSize, maxWidth);
+        }
+
+        if (maxHeight.isFinite) {
+          gaugeSize = math.min(gaugeSize, maxHeight);
+        }
+
+        if (gaugeSize <= 0) {
+          gaugeSize = math.min(48.0, constraints.maxWidth.isFinite ? constraints.maxWidth : 48.0);
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF03132D).withOpacity(0.85),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white12),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 132,
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CustomPaint(
-                      painter: _MachineGaugePainter(
-                        passRatio: passRatio.clamp(0, 1),
-                        failRatio: failRatio.clamp(0, 1),
-                      ),
-                      child: const SizedBox.expand(),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'MACHINE ${data.machineNo}',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: Colors.cyanAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: gaugeSize,
+                width: gaugeSize,
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Text(
-                          data.total.toString(),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                        CustomPaint(
+                          painter: _MachineGaugePainter(
+                            passRatio: passRatio.clamp(0, 1),
+                            failRatio: failRatio.clamp(0, 1),
                           ),
+                          child: const SizedBox.expand(),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${data.yieldRate.toStringAsFixed(1)}%',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              data.total.toString(),
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${data.yieldRate.toStringAsFixed(1)}%',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _LegendTile(
-                label: 'PASS',
-                value: data.pass,
-                color: Colors.cyanAccent,
-              ),
-              _LegendTile(
-                label: 'FAIL',
-                value: data.fail,
-                color: Colors.pinkAccent,
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                runAlignment: WrapAlignment.center,
+                children: [
+                  _LegendTile(
+                    label: 'PASS',
+                    value: data.pass,
+                    color: Colors.cyanAccent,
+                  ),
+                  _LegendTile(
+                    label: 'FAIL',
+                    value: data.fail,
+                    color: Colors.pinkAccent,
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
