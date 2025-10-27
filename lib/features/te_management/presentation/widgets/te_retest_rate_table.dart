@@ -84,27 +84,22 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
         final naturalHeight =
             headerHeight + (totalGroupRows * _kRowHeight.toDouble());
 
-        final hasFiniteHeight =
-            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-        final resolvedHeight = hasFiniteHeight
-            ? math.max(constraints.maxHeight, minimumHeight)
-            : math.max(naturalHeight, minimumHeight);
+        final viewportWidth = constraints.constrainWidth(
+          math.max(totalWidth, _kIndexWidth + _kModelWidth + _kGroupWidth),
+        );
+        final viewportHeight = constraints.constrainHeight(
+          math.max(naturalHeight, minimumHeight.toDouble()),
+        );
 
-        final hasFiniteWidth =
-            constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
-        final resolvedWidth = hasFiniteWidth
-            ? math.max(constraints.maxWidth, _kIndexWidth + _kModelWidth)
-            : math.max(totalWidth, constraints.minWidth);
-
-        final tableWidth = math.max(totalWidth, resolvedWidth);
+        final tableWidth = math.max(totalWidth, viewportWidth);
         final bodyHeight = math.max(
-          resolvedHeight - headerHeight,
+          viewportHeight - headerHeight,
           _kRowHeight.toDouble(),
         );
 
-        Widget surface = SizedBox(
-          width: resolvedWidth,
-          height: resolvedHeight,
+        final surface = SizedBox(
+          width: viewportWidth,
+          height: viewportHeight,
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: _kTableBackground,
@@ -127,12 +122,12 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                 child: SingleChildScrollView(
                   controller: _horizontalController,
                   scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: tableWidth,
-                    height: resolvedHeight,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
+                    child: SizedBox(
+                      width: tableWidth,
+                      height: viewportHeight,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                         _HeaderRow(
                           formattedDates: widget.formattedDates,
                         ),
@@ -170,11 +165,6 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
             ),
           ),
         );
-
-        if (hasFiniteWidth && hasFiniteHeight) {
-          surface = SizedBox.expand(child: surface);
-        }
-
         return surface;
       },
     );
