@@ -10,12 +10,13 @@ const double _kHeaderTopHeight = 44;
 const double _kHeaderBottomHeight = 36;
 const double _kRowHeight = 60;
 
-const Color _kHeaderColor = Color(0xFF0F2748);
-const Color _kTableBackground = Color(0xFF07192F);
-const Color _kRowEvenColor = Color(0x120E3A67);
-const Color _kRowOddColor = Color(0x080E3A67);
-const Color _kSpanBackground = Color(0xFF0B2343);
-const Color _kBorderColor = Color(0x332BD4F5);
+const Color _kHeaderColor = Color(0xFF112F55);
+const Color _kHeaderAccent = Color(0xFF173C6B);
+const Color _kTableBackground = Color(0xFF06152A);
+const Color _kRowEvenColor = Color(0x33163D63);
+const Color _kRowOddColor = Color(0x22163D63);
+const Color _kSpanBackground = Color(0xFF0D2647);
+const Color _kBorderColor = Color(0x3342B8FF);
 const BorderSide _kGridBorder = BorderSide(color: _kBorderColor, width: 1);
 
 class TERetestRateTable extends StatefulWidget {
@@ -114,9 +115,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                     children: [
                       _HeaderRow(
                         formattedDates: widget.formattedDates,
-                        totalColumns: _totalColumns,
                       ),
-                      const Divider(height: 1, thickness: 1, color: _kBorderColor),
                       Expanded(
                         child: Scrollbar(
                           controller: _verticalController,
@@ -157,128 +156,141 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
 class _HeaderRow extends StatelessWidget {
   const _HeaderRow({
     required this.formattedDates,
-    required this.totalColumns,
   });
 
   final List<String> formattedDates;
-  final int totalColumns;
+
+  double get _fullHeight => _kHeaderTopHeight + _kHeaderBottomHeight;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: _kHeaderColor,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [_kHeaderColor, _kHeaderAccent],
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              _HeaderCell(
-                width: _kIndexWidth,
-                height: _kHeaderTopHeight + _kHeaderBottomHeight,
-                label: '#',
-              ),
-              _HeaderCell(
-                width: _kModelWidth,
-                height: _kHeaderTopHeight + _kHeaderBottomHeight,
-                label: 'MODEL NAME',
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              _HeaderCell(
-                width: _kGroupWidth,
-                height: _kHeaderTopHeight + _kHeaderBottomHeight,
-                label: 'GROUP NAME',
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              for (final date in formattedDates)
-                _HeaderCell(
-                  width: _kCellWidth * 2,
-                  height: _kHeaderTopHeight,
-                  label: date,
-                  textStyle: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-            ],
+          _HeaderBlock(
+            width: _kIndexWidth,
+            child: const _HeaderLabel('#'),
           ),
-          Row(
-            children: [
-              const _HeaderSpacer(width: _kIndexWidth),
-              const _HeaderSpacer(width: _kModelWidth),
-              const _HeaderSpacer(width: _kGroupWidth),
-              for (var i = 0; i < totalColumns; i++)
-                _HeaderCell(
-                  width: _kCellWidth,
-                  height: _kHeaderBottomHeight,
-                  label: i.isEven ? 'Day' : 'Night',
-                  textStyle: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                  ),
-                  border: const Border(
-                    right: _kGridBorder,
-                    top: _kGridBorder,
-                    bottom: _kGridBorder,
-                  ),
-                ),
-            ],
+          _HeaderBlock(
+            width: _kModelWidth,
+            child: const _HeaderLabel(
+              'MODEL NAME',
+              alignment: Alignment.centerLeft,
+            ),
           ),
+          _HeaderBlock(
+            width: _kGroupWidth,
+            child: const _HeaderLabel(
+              'GROUP NAME',
+              alignment: Alignment.centerLeft,
+            ),
+          ),
+          for (final date in formattedDates)
+            SizedBox(
+              width: _kCellWidth * 2,
+              height: _fullHeight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    height: _kHeaderTopHeight,
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        right: _kGridBorder,
+                        bottom: _kGridBorder,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      date,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: const [
+                        _HeaderShiftCell(label: 'Day'),
+                        _HeaderShiftCell(label: 'Night'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-class _HeaderCell extends StatelessWidget {
-  const _HeaderCell({
+class _HeaderBlock extends StatelessWidget {
+  const _HeaderBlock({
     required this.width,
-    required this.height,
-    required this.label,
-    this.alignment = Alignment.center,
-    this.padding = const EdgeInsets.symmetric(horizontal: 8),
-    this.textStyle,
-    this.border,
+    required this.child,
   });
 
   final double width;
-  final double height;
-  final String label;
-  final Alignment alignment;
-  final EdgeInsets padding;
-  final TextStyle? textStyle;
-  final Border? border;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: width,
-      height: height,
+      height: _kHeaderTopHeight + _kHeaderBottomHeight,
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          border: border ?? const Border(right: _kGridBorder, bottom: _kGridBorder),
+        decoration: const BoxDecoration(
+          border: Border(
+            right: _kGridBorder,
+            bottom: _kGridBorder,
+          ),
         ),
-        child: Padding(
-          padding: padding,
-          child: Align(
-            alignment: alignment,
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: textStyle ??
-                  const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                  ),
-            ),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _HeaderLabel extends StatelessWidget {
+  const _HeaderLabel(
+    this.text, {
+    this.alignment = Alignment.center,
+  });
+
+  final String text;
+  final Alignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: alignment == Alignment.center ? 8 : 16,
+      ),
+      child: Align(
+        alignment: alignment,
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
           ),
         ),
       ),
@@ -286,22 +298,29 @@ class _HeaderCell extends StatelessWidget {
   }
 }
 
-class _HeaderSpacer extends StatelessWidget {
-  const _HeaderSpacer({required this.width});
+class _HeaderShiftCell extends StatelessWidget {
+  const _HeaderShiftCell({required this.label});
 
-  final double width;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      height: _kHeaderBottomHeight,
-      child: const DecoratedBox(
-        decoration: BoxDecoration(
+    return Expanded(
+      child: Container(
+        decoration: const BoxDecoration(
           border: Border(
             right: _kGridBorder,
-            top: _kGridBorder,
             bottom: _kGridBorder,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
           ),
         ),
       ),
@@ -537,7 +556,14 @@ class _SpanCell extends StatelessWidget {
       height: height,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: _kSpanBackground,
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF14355E),
+              _kSpanBackground,
+            ],
+          ),
           border: Border(
             top: isFirst ? _kGridBorder : BorderSide.none,
             right: _kGridBorder,
@@ -597,8 +623,15 @@ class _GroupCell extends StatelessWidget {
       ],
     );
 
+    final startColor = Color.alphaBlend(const Color(0x33264986), background);
+    final endColor = Color.alphaBlend(const Color(0x11264986), background);
+
     final decoration = BoxDecoration(
-      color: background,
+      gradient: LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [startColor, endColor],
+      ),
       border: Border(
         left: _kGridBorder,
         right: _kGridBorder,
@@ -650,20 +683,25 @@ class _RetestValueCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final value = detail.retestRate;
-    final Color chipColor;
-    final Color textColor;
-    if (value == null) {
-      chipColor = Colors.transparent;
-      textColor = Colors.white60;
-    } else if (value >= 5) {
-      chipColor = _dangerColor.withOpacity(0.16);
-      textColor = _dangerColor;
-    } else if (value >= 3) {
-      chipColor = _warningColor.withOpacity(0.18);
-      textColor = _warningColor;
+    Color fillColor = Color.alphaBlend(const Color(0x1A1F3147), background);
+    Color textColor = Colors.white60;
+    Color outlineColor = Colors.white12;
+    if (value != null) {
+      if (value >= 5) {
+        fillColor = const Color(0x29FF6B6B);
+        textColor = _dangerColor;
+        outlineColor = _dangerColor.withOpacity(0.35);
+      } else if (value >= 3) {
+        fillColor = const Color(0x26FFC56F);
+        textColor = _warningColor;
+        outlineColor = _warningColor.withOpacity(0.35);
+      } else {
+        fillColor = const Color(0x2538D893);
+        textColor = _normalColor;
+        outlineColor = _normalColor.withOpacity(0.35);
+      }
     } else {
-      chipColor = _normalColor.withOpacity(0.18);
-      textColor = _normalColor;
+      textColor = Colors.white54;
     }
 
     final tooltip = _buildTooltip(detail);
@@ -671,26 +709,31 @@ class _RetestValueCell extends StatelessWidget {
     Widget cell = Container(
       height: _kRowHeight,
       decoration: BoxDecoration(
-        color: background,
+        color: fillColor,
         border: Border(
           right: showRightBorder ? _kGridBorder : BorderSide.none,
           top: isFirstRow ? _kGridBorder : BorderSide.none,
           bottom: _kGridBorder,
         ),
+        boxShadow: value == null
+            ? const []
+            : [
+                BoxShadow(
+                  color: outlineColor,
+                  blurRadius: 12,
+                  spreadRadius: 0,
+                ),
+              ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,
       child: Container(
         decoration: BoxDecoration(
-          color: chipColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: chipColor == Colors.transparent
-                ? Colors.white12
-                : chipColor.withOpacity(0.7),
-          ),
+          border: Border.all(color: outlineColor, width: 1),
+          borderRadius: BorderRadius.circular(10),
+          color: value == null ? Colors.transparent : fillColor.withOpacity(0.65),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         child: Text(
           value == null ? 'N/A' : '${value.toStringAsFixed(2)}%',
           style: TextStyle(
