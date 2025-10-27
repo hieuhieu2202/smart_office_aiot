@@ -983,73 +983,143 @@ class _EmployeeStatisticsChart extends StatelessWidget {
   }
 }
 
-class _EmployeeStatBar extends StatelessWidget {
+class _EmployeeStatBar extends StatefulWidget {
   const _EmployeeStatBar({required this.data, required this.maxTotal});
 
   final _EmployeeBarData data;
   final int maxTotal;
 
   @override
+  State<_EmployeeStatBar> createState() => _EmployeeStatBarState();
+}
+
+class _EmployeeStatBarState extends State<_EmployeeStatBar> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _tooltipEntry;
+
+  @override
+  void dispose() {
+    _removeTooltip();
+    super.dispose();
+  }
+
+  void _toggleTooltip() {
+    if (_tooltipEntry != null) {
+      _removeTooltip();
+    } else {
+      _showTooltip();
+    }
+  }
+
+  void _showTooltip() {
+    final overlayState = Overlay.of(context);
+    if (overlayState == null) return;
+
+    _tooltipEntry = OverlayEntry(
+      builder: (context) {
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _removeTooltip,
+              ),
+            ),
+            CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(0, -60),
+              child: Material(
+                color: Colors.transparent,
+                child: _BarTooltip(
+                  title: widget.data.name,
+                  pass: widget.data.pass,
+                  fail: widget.data.fail,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    overlayState.insert(_tooltipEntry!);
+  }
+
+  void _removeTooltip() {
+    _tooltipEntry?.remove();
+    _tooltipEntry = null;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final widthFactor = data.total == 0 ? 0.0 : data.total / maxTotal;
-    final totalLabel = data.total.toString();
+    final widthFactor =
+        widget.data.total == 0 ? 0.0 : widget.data.total / widget.maxTotal;
+    final totalLabel = widget.data.total.toString();
     final double clampedFactor = widthFactor.clamp(0.0, 1.0).toDouble();
 
-    return Row(
-      children: [
-        SizedBox(
-          width: 96,
-          child: Text(
-            data.name,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _toggleTooltip,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 96,
+              child: Text(
+                widget.data.name,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Stack(
-            alignment: Alignment.centerLeft,
-            children: [
-              Container(
-                height: 24,
-                decoration: BoxDecoration(
-                  color: Colors.white10,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: clampedFactor,
-                child: Container(
-                  height: 24,
-                  decoration: BoxDecoration(
-                    gradient: _EmployeeStatisticsChart._barGradient,
-                    borderRadius: BorderRadius.circular(12),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  Container(
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.white10,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                ),
-              ),
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      totalLabel,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                  FractionallySizedBox(
+                    widthFactor: clampedFactor,
+                    child: Container(
+                      height: 24,
+                      decoration: BoxDecoration(
+                        gradient: _EmployeeStatisticsChart._barGradient,
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
-                ),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          totalLabel,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
