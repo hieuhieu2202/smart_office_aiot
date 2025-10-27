@@ -137,6 +137,8 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     final panelWidth = isWide ? math.min(480.0, media.size.width * 0.42) : media.size.width;
     DateTime tempStart = _controller.startDate.value;
     DateTime tempEnd = _controller.endDate.value;
+    final modelSearchController = TextEditingController();
+    String modelSearchText = '';
 
     showGeneralDialog<void>(
       context: context,
@@ -299,6 +301,12 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                     }
 
                     final allChecked = available.isNotEmpty && selected.length == available.length;
+                    final filteredModels = modelSearchText.trim().isEmpty
+                        ? available
+                        : available
+                            .where((model) =>
+                                model.toLowerCase().contains(modelSearchText.trim().toLowerCase()))
+                            .toList();
                     return Container(
                       decoration: BoxDecoration(
                         color: kTeSurfaceColor,
@@ -463,32 +471,72 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                                       ),
                                     )
                                   else
-                                    ListView.builder(
-                                      shrinkWrap: true,
-                                      physics: const NeverScrollableScrollPhysics(),
-                                      itemCount: available.length,
-                                      itemBuilder: (context, index) {
-                                        final model = available[index];
-                                        final checked = selected.contains(model);
-                                        return CheckboxListTile(
-                                          value: checked,
-                                          title: Text(
-                                            model,
-                                            style: const TextStyle(color: Colors.white),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF10213A),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: const Color(0xFF1F3A5F)),
                                           ),
-                                          controlAffinity: ListTileControlAffinity.leading,
-                                          activeColor: kTeAccentColor,
-                                          onChanged: (value) {
-                                            setState(() {
-                                              if (value == true) {
-                                                selected.add(model);
-                                              } else {
-                                                selected.remove(model);
-                                              }
-                                            });
-                                          },
-                                        );
-                                      },
+                                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                                          child: TextField(
+                                            controller: modelSearchController,
+                                            style: const TextStyle(color: Colors.white),
+                                            decoration: const InputDecoration(
+                                              icon: Icon(Icons.search, color: kTeAccentColor),
+                                              hintText: 'Search model',
+                                              hintStyle: TextStyle(color: Color(0xFF7F96B5)),
+                                              border: InputBorder.none,
+                                            ),
+                                            onChanged: (value) {
+                                              setState(() {
+                                                modelSearchText = value;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        if (filteredModels.isEmpty)
+                                          const Padding(
+                                            padding: EdgeInsets.symmetric(vertical: 28),
+                                            child: Center(
+                                              child: Text(
+                                                'No models match your search',
+                                                style: TextStyle(color: Color(0xFF9AB3CF)),
+                                              ),
+                                            ),
+                                          )
+                                        else
+                                          ListView.builder(
+                                            shrinkWrap: true,
+                                            physics: const NeverScrollableScrollPhysics(),
+                                            itemCount: filteredModels.length,
+                                            itemBuilder: (context, index) {
+                                              final model = filteredModels[index];
+                                              final checked = selected.contains(model);
+                                              return CheckboxListTile(
+                                                value: checked,
+                                                title: Text(
+                                                  model,
+                                                  style: const TextStyle(color: Colors.white),
+                                                ),
+                                                controlAffinity: ListTileControlAffinity.leading,
+                                                activeColor: kTeAccentColor,
+                                                onChanged: (value) {
+                                                  setState(() {
+                                                    if (value == true) {
+                                                      selected.add(model);
+                                                    } else {
+                                                      selected.remove(model);
+                                                    }
+                                                  });
+                                                },
+                                              );
+                                            },
+                                          ),
+                                      ],
                                     ),
                                 ],
                               ),
@@ -543,7 +591,9 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
           child: child,
         );
       },
-    );
+    ).whenComplete(() {
+      modelSearchController.dispose();
+    });
   }
 
   Widget _buildDateTimeField({
