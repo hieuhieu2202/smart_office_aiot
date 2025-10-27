@@ -1366,9 +1366,22 @@ class _ChartCanvas extends StatelessWidget {
             tooltipBehavior: TooltipBehavior(
               enable: true,
               color: Colors.transparent,
+              onTooltipRender: (TooltipRenderArgs args) {
+                final pointIndex = args.pointIndex;
+                final seriesIndex = args.seriesIndex;
+                if (seriesIndex == null || seriesIndex < 0) {
+                  args.cancel = true;
+                  return;
+                }
+                if (pointIndex == null || pointIndex < 0 || pointIndex >= points.length) {
+                  args.cancel = true;
+                }
+              },
               builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
                   int seriesIndex) {
-                if (pointIndex < 0 || pointIndex >= points.length) {
+                if (seriesIndex < 0 ||
+                    pointIndex < 0 ||
+                    pointIndex >= points.length) {
                   return const SizedBox.shrink();
                 }
 
@@ -1476,9 +1489,22 @@ class _BreakdownChart extends StatelessWidget {
             tooltipBehavior: TooltipBehavior(
               enable: true,
               color: Colors.transparent,
+              onTooltipRender: (TooltipRenderArgs args) {
+                final pointIndex = args.pointIndex;
+                final seriesIndex = args.seriesIndex;
+                if (seriesIndex == null || seriesIndex < 0) {
+                  args.cancel = true;
+                  return;
+                }
+                if (pointIndex == null || pointIndex < 0 || pointIndex >= points.length) {
+                  args.cancel = true;
+                }
+              },
               builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
                   int seriesIndex) {
-                if (pointIndex < 0 || pointIndex >= points.length) {
+                if (seriesIndex < 0 ||
+                    pointIndex < 0 ||
+                    pointIndex >= points.length) {
                   return const SizedBox.shrink();
                 }
 
