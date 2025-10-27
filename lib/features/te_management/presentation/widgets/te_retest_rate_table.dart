@@ -86,13 +86,16 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
         final targetHeight = hasBoundedHeight
             ? constraints.maxHeight
             : math.max(minHeight, contentHeight);
+        final bodyHeight = math.max(0, targetHeight - headerHeight);
         final containerWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : math.max(totalWidth, constraints.minWidth);
 
-        return SizedBox(
-          width: containerWidth,
-          height: targetHeight,
+        return ConstrainedBox(
+          constraints: BoxConstraints.tightFor(
+            width: containerWidth,
+            height: targetHeight,
+          ),
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: _kTableBackground,
@@ -124,7 +127,8 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                         _HeaderRow(
                           formattedDates: widget.formattedDates,
                         ),
-                        Expanded(
+                        SizedBox(
+                          height: bodyHeight,
                           child: Scrollbar(
                             controller: _verticalController,
                             thumbVisibility: true,
