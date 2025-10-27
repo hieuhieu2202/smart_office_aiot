@@ -57,6 +57,32 @@ String _normalize(dynamic value) {
   return value.toString().trim();
 }
 
+String _sanitizeLabel(dynamic value) {
+  final normalized = _normalize(value);
+  if (normalized.isEmpty) return '';
+
+  final segments = normalized
+      .split(',')
+      .map((segment) => segment.trim())
+      .where((segment) => segment.isNotEmpty)
+      .toList();
+
+  if (segments.isEmpty) {
+    return '';
+  }
+
+  final seen = <String>{};
+  final deduped = <String>[];
+  for (final segment in segments) {
+    final key = segment.toLowerCase();
+    if (seen.add(key)) {
+      deduped.add(segment);
+    }
+  }
+
+  return deduped.isEmpty ? '' : deduped.join(', ');
+}
+
 class TEReportRowModel extends TEReportRowEntity {
   TEReportRowModel({
     required super.modelName,
@@ -155,8 +181,8 @@ class TEErrorDetailClusterModel extends TEErrorDetailClusterEntity {
     }
 
     final head = maps.first;
-    final headError = _normalize(_lookup(head, 'ERROR_CODE'));
-    final headMachine = _normalize(_lookup(head, 'MACHINE_NAME'));
+    final headError = _sanitizeLabel(_lookup(head, 'ERROR_CODE'));
+    final headMachine = _sanitizeLabel(_lookup(head, 'MACHINE_NAME'));
     final isMachineCluster = headMachine.isNotEmpty && headError.isEmpty;
     final initialLabel = isMachineCluster
         ? headMachine
@@ -166,14 +192,14 @@ class TEErrorDetailClusterModel extends TEErrorDetailClusterEntity {
     final breakdowns = <TEErrorDetailBreakdownEntity>[];
 
     for (final map in maps.skip(1)) {
-      final breakdownError = _normalize(_lookup(map, 'ERROR_CODE'));
-      final breakdownMachine = _normalize(_lookup(map, 'MACHINE_NAME'));
+      final breakdownError = _sanitizeLabel(_lookup(map, 'ERROR_CODE'));
+      final breakdownMachine = _sanitizeLabel(_lookup(map, 'MACHINE_NAME'));
       final breakdownLabel = isMachineCluster
           ? (breakdownError.isNotEmpty ? breakdownError : breakdownMachine)
           : (breakdownMachine.isNotEmpty ? breakdownMachine : breakdownError);
       breakdowns.add(
         TEErrorDetailBreakdownEntity(
-          label: breakdownLabel,
+          label: _sanitizeLabel(breakdownLabel),
           failQty: _parseInt(_lookup(map, 'FAIL_QTY')),
         ),
       );
@@ -183,11 +209,13 @@ class TEErrorDetailClusterModel extends TEErrorDetailClusterEntity {
     if (resolvedLabel.isEmpty) {
       for (final breakdown in breakdowns) {
         if (breakdown.label.trim().isNotEmpty) {
-          resolvedLabel = breakdown.label.trim();
+          resolvedLabel = _sanitizeLabel(breakdown.label.trim());
           break;
         }
       }
     }
+
+    resolvedLabel = _sanitizeLabel(resolvedLabel);
 
     return TEErrorDetailClusterModel(
       label: resolvedLabel,
