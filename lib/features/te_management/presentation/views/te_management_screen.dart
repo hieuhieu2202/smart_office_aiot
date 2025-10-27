@@ -88,6 +88,41 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     super.dispose();
   }
 
+  Future<TimeOfDay?> _pickTimeOfDay(TimeOfDay initial) {
+    return showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder: (context, child) {
+        final baseTheme = Theme.of(context);
+        return Theme(
+          data: baseTheme.copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: kTeAccentColor,
+              surface: kTeSurfaceColor,
+              background: kTeSurfaceColor,
+              onSurface: Colors.white,
+              onPrimary: Colors.black,
+            ),
+            timePickerTheme: baseTheme.timePickerTheme.copyWith(
+              backgroundColor: kTeSurfaceColor,
+              dialBackgroundColor: const Color(0xFF10213A),
+              dialHandColor: kTeAccentColor,
+              hourMinuteColor: MaterialStateProperty.all(const Color(0xFF10213A)),
+              hourMinuteTextColor: MaterialStateProperty.all(Colors.white),
+              helpTextStyle: const TextStyle(color: Colors.white),
+              dayPeriodColor: MaterialStateProperty.all(const Color(0xFF10213A)),
+              dayPeriodTextColor: MaterialStateProperty.all(Colors.white),
+            ),
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+            child: child!,
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _pickDateRange() async {
     final start = _controller.startDate.value;
     final end = _controller.endDate.value;
@@ -111,23 +146,38 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
         );
       },
     );
-    if (picked != null) {
-      final startDate = DateTime(
-        picked.start.year,
-        picked.start.month,
-        picked.start.day,
-        7,
-        30,
-      );
-      final endDate = DateTime(
-        picked.end.year,
-        picked.end.month,
-        picked.end.day,
-        19,
-        30,
-      );
-      _controller.applyFilters(start: startDate, end: endDate);
+    if (!mounted || picked == null) {
+      return;
     }
+
+    final initialStartTime = TimeOfDay.fromDateTime(start);
+    final initialEndTime = TimeOfDay.fromDateTime(end);
+
+    final pickedStartTime = await _pickTimeOfDay(initialStartTime) ?? initialStartTime;
+    if (!mounted) return;
+    final pickedEndTime = await _pickTimeOfDay(initialEndTime) ?? initialEndTime;
+    if (!mounted) return;
+
+    var startDate = DateTime(
+      picked.start.year,
+      picked.start.month,
+      picked.start.day,
+      pickedStartTime.hour,
+      pickedStartTime.minute,
+    );
+    var endDate = DateTime(
+      picked.end.year,
+      picked.end.month,
+      picked.end.day,
+      pickedEndTime.hour,
+      pickedEndTime.minute,
+    );
+
+    if (!endDate.isAfter(startDate)) {
+      endDate = startDate.add(const Duration(hours: 1));
+    }
+
+    _controller.applyFilters(start: startDate, end: endDate);
   }
 
   void _openFilterSheet() {
@@ -430,6 +480,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
         elevation: 0,
         leading: const BackButton(color: Colors.white),
         title: Text(widget.title ?? 'TE Management', style: const TextStyle(color: Colors.white)),
+        centerTitle: true,
         actions: _buildAppBarActions(context),
       ),
       body: ResponsiveBuilder(
