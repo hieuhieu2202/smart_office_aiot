@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../viewmodels/lcr_dashboard_view_state.dart';
 
-class LcrMachineCard extends StatelessWidget {
+class LcrMachineCard extends StatefulWidget {
   const LcrMachineCard({
     super.key,
     required this.data,
@@ -13,149 +13,137 @@ class LcrMachineCard extends StatelessWidget {
   final LcrMachineGauge data;
 
   @override
+  State<LcrMachineCard> createState() => _LcrMachineCardState();
+}
+
+class _LcrMachineCardState extends State<LcrMachineCard>
+    with TickerProviderStateMixin {
+  late final AnimationController _rotationController;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 8))
+          ..repeat();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _pulse = CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final data = widget.data;
     final total = data.total == 0 ? 1 : data.total;
-    final passRatio = data.pass / total;
-    final failRatio = data.fail / total;
+    final passRatio = (data.pass / total).clamp(0, 1);
+    final failRatio = (data.fail / total).clamp(0, 1);
 
-    const gaugeDesignSize = 160.0;
+    const gaugeDesignSize = 200.0;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF03132D).withOpacity(0.85),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white12),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Text(
             'MACHINE ${data.machineNo}',
             style: theme.textTheme.titleSmall?.copyWith(
               color: Colors.cyanAccent,
               fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Expanded(
             child: Center(
               child: FittedBox(
                 fit: BoxFit.contain,
-                child: SizedBox.square(
-                  dimension: gaugeDesignSize,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CustomPaint(
-                        painter: _MachineGaugePainter(
-                          passRatio: passRatio.clamp(0, 1),
-                          failRatio: failRatio.clamp(0, 1),
-                        ),
-                        child: const SizedBox.expand(),
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            data.total.toString(),
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${data.yieldRate.toStringAsFixed(1)}%',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w600,
-                            ),
+                child: AnimatedBuilder(
+                  animation: _pulseController,
+                  builder: (context, _) {
+                    final glow = 0.45 + _pulse.value * 0.55;
+                    final orbitGlow = 0.35 + _pulse.value * 0.45;
+                    return Container(
+                      padding: EdgeInsets.all(6 + 6 * glow),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.cyanAccent
+                                .withOpacity(0.12 + _pulse.value * 0.18),
+                            blurRadius: 24 * glow,
+                            spreadRadius: 3 * glow,
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                      child: SizedBox.square(
+                        dimension: gaugeDesignSize,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CustomPaint(
+                              painter: _MachineGaugePainter(
+                                passRatio: passRatio,
+                                failRatio: failRatio,
+                              ),
+                              child: const SizedBox.expand(),
+                            ),
+                            RotationTransition(
+                              turns: _rotationController,
+                              child: CustomPaint(
+                                painter: _OrbitPainter(glow: orbitGlow),
+                                child: const SizedBox.expand(),
+                              ),
+                            ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  data.total.toString(),
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${data.yieldRate.toStringAsFixed(1)}%',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            runAlignment: WrapAlignment.center,
-            children: [
-              _LegendTile(
-                label: 'PASS',
-                value: data.pass,
-                color: Colors.cyanAccent,
-              ),
-              _LegendTile(
-                label: 'FAIL',
-                value: data.fail,
-                color: Colors.pinkAccent,
-              ),
-            ],
-          ),
+          const SizedBox(height: 6),
         ],
       ),
-    );
-  }
-}
-
-class _LegendTile extends StatelessWidget {
-  const _LegendTile({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final int value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.4),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.white70,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          value.toString(),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -192,7 +180,7 @@ class _MachineGaugePainter extends CustomPainter {
 
     final dashRect = Rect.fromCircle(center: center, radius: outerRadius);
     const segmentCount = 28;
-    final gapAngle = math.pi / 36; // 5 degrees
+    final gapAngle = math.pi / 36;
     final usable = math.pi * 2 - gapAngle * segmentCount;
     final segmentSweep = usable / segmentCount;
     var start = -math.pi / 2;
@@ -204,7 +192,8 @@ class _MachineGaugePainter extends CustomPainter {
     }
 
     if (passRatio > 0) {
-      final progressRect = Rect.fromCircle(center: center, radius: outerRadius * 0.78);
+      final progressRect =
+          Rect.fromCircle(center: center, radius: outerRadius * 0.78);
       final progressPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = radius * 0.18
@@ -254,6 +243,58 @@ class _MachineGaugePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MachineGaugePainter oldDelegate) {
-    return oldDelegate.passRatio != passRatio || oldDelegate.failRatio != failRatio;
+    return oldDelegate.passRatio != passRatio ||
+        oldDelegate.failRatio != failRatio;
+  }
+}
+
+class _OrbitPainter extends CustomPainter {
+  const _OrbitPainter({required this.glow});
+
+  final double glow;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = math.min(size.width, size.height) / 2;
+    final orbitRadius = radius * 0.95;
+
+    final rect = Rect.fromCircle(center: center, radius: orbitRadius);
+    final sweep = math.pi * 0.9;
+    final startAngle = -math.pi / 2;
+
+    final arcPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = radius * 0.07
+      ..strokeCap = StrokeCap.round
+      ..shader = SweepGradient(
+        startAngle: startAngle,
+        endAngle: startAngle + sweep,
+        colors: [
+          Colors.transparent,
+          Colors.cyanAccent.withOpacity(glow.clamp(0, 1)),
+          Colors.cyanAccent.withOpacity((glow * 0.7).clamp(0, 1)),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.5, 0.85, 1.0],
+      ).createShader(rect);
+
+    canvas.drawArc(rect, startAngle, sweep, false, arcPaint);
+
+    final dotAngle = startAngle + sweep;
+    final dotOffset = Offset(
+      center.dx + orbitRadius * math.cos(dotAngle),
+      center.dy + orbitRadius * math.sin(dotAngle),
+    );
+
+    final dotPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Colors.cyanAccent.withOpacity(glow.clamp(0, 1));
+    canvas.drawCircle(dotOffset, radius * 0.08, dotPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _OrbitPainter oldDelegate) {
+    return oldDelegate.glow != glow;
   }
 }

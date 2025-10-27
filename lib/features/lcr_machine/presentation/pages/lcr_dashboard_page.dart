@@ -872,19 +872,18 @@ class _MachinesGrid extends StatelessWidget {
         child: Text('No data', style: TextStyle(color: Colors.white54)),
       );
     }
-    return GridView.builder(
-      itemCount: list.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 1,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final gauge = list[index];
-        return LcrMachineCard(data: gauge);
-      },
+    final cards = list.take(4).toList();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < cards.length; i++)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: i == cards.length - 1 ? 0 : 16),
+              child: LcrMachineCard(data: cards[i]),
+            ),
+          ),
+      ],
     );
   }
 }
