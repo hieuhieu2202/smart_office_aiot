@@ -536,15 +536,12 @@ class _DashboardTab extends StatelessWidget {
 
   double _machinePerformanceHeight(int itemCount) {
     if (itemCount <= 4) {
-      return 220.0;
+      return 260.0;
     }
     if (itemCount <= 8) {
       return 320.0;
     }
-    if (itemCount <= 12) {
-      return 420.0;
-    }
-    return 520.0;
+    return 360.0;
   }
 
   @override
@@ -583,80 +580,68 @@ class _DashboardTab extends StatelessWidget {
                     _SummaryRow(overview: data.overview),
                     const SizedBox(height: 24),
                     Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    children: [
-                      LcrChartCard(
-                        title: 'FACTORY DISTRIBUTION',
-                        height: 320,
-                        child: _FactoryPieChart(data.factorySlices),
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        height: 420,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: LcrChartCard(
-                                title: 'DEPARTMENT ANALYSIS',
-                                child: _StackedBarChart(data.departmentSeries),
-                              ),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: LcrChartCard(
+                            title: 'FACTORY DISTRIBUTION',
+                            height: 260,
+                            child: _FactoryDistributionList(
+                              data.factorySlices,
                             ),
-                            const SizedBox(height: 20),
-                            Expanded(
-                              child: LcrChartCard(
-                                title: 'TYPE ANALYSIS',
-                                child: _StackedBarChart(data.typeSeries),
-                              ),
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        Expanded(
+                          child: LcrChartCard(
+                            title: 'MACHINE PERFORMANCE',
+                            height: _machinePerformanceHeight(
+                              data.machineGauges.length,
                             ),
-                          ],
+                            child: _MachinesGrid(data.machineGauges),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      LcrChartCard(
-                        title: 'MACHINE PERFORMANCE',
-                        height: _machinePerformanceHeight(
-                          data.machineGauges.length,
+                        const SizedBox(width: 24),
+                        Expanded(
+                          child: LcrChartCard(
+                            title: 'EMPLOYEE STATISTICS',
+                            height: 300,
+                            child: _StackedBarChart(
+                              data.employeeSeries,
+                              rotateLabels: true,
+                            ),
+                          ),
                         ),
-                        child: _MachinesGrid(data.machineGauges),
-                      ),
-                      const SizedBox(height: 20),
-                      LcrChartCard(
-                        title: 'YIELD RATE & OUTPUT',
-                        height: 420,
-                        child: _OutputChart(data.outputTrend),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    children: [
-                      LcrChartCard(
-                        title: 'EMPLOYEE STATISTICS',
-                        height: 320,
-                        child: _StackedBarChart(
-                          data.employeeSeries,
-                          rotateLabels: true,
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: LcrChartCard(
+                            title: 'DEPARTMENT ANALYSIS',
+                            height: 300,
+                            child: _StackedBarChart(data.departmentSeries),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                        const SizedBox(width: 24),
+                        Expanded(
+                          child: LcrChartCard(
+                            title: 'TYPE ANALYSIS',
+                            height: 300,
+                            child: _StackedBarChart(data.typeSeries),
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        Expanded(
+                          child: LcrChartCard(
+                            title: 'YIELD RATE & OUTPUT',
+                            height: 300,
+                            child: _OutputChart(data.outputTrend),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -718,10 +703,19 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-class _FactoryPieChart extends StatelessWidget {
-  const _FactoryPieChart(this.slices);
+class _FactoryDistributionList extends StatelessWidget {
+  const _FactoryDistributionList(this.slices);
 
   final List<LcrPieSlice> slices;
+
+  static const _palette = <Color>[
+    Color(0xFF4DD0E1),
+    Color(0xFFFFF59D),
+    Color(0xFFF48FB1),
+    Color(0xFF82B1FF),
+    Color(0xFFB39DDB),
+    Color(0xFF80CBC4),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -730,42 +724,113 @@ class _FactoryPieChart extends StatelessWidget {
         child: Text('No data', style: TextStyle(color: Colors.white54)),
       );
     }
-    return SfCircularChart(
-      legend: Legend(
-        isVisible: true,
-        overflowMode: LegendItemOverflowMode.wrap,
-        textStyle: const TextStyle(color: Colors.white70),
-      ),
-      series: <DoughnutSeries<LcrPieSlice, String>>[
-        DoughnutSeries<LcrPieSlice, String>(
-          dataSource: slices,
-          xValueMapper: (slice, _) => slice.label,
-          yValueMapper: (slice, _) => slice.value,
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(color: Colors.white),
+
+    final sorted = slices.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final total = sorted.fold<int>(0, (prev, element) => prev + element.value);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'TOTAL',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white54,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.1,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          total.toString(),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: ListView.separated(
+            itemCount: sorted.length,
+            padding: EdgeInsets.zero,
+            physics: const ClampingScrollPhysics(),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final slice = sorted[index];
+              final percent = total == 0 ? 0.0 : slice.value / total;
+              final color = _palette[index % _palette.length];
+              return _FactoryDistributionTile(
+                label: slice.label,
+                value: slice.value,
+                percent: percent,
+                color: color,
+              );
+            },
           ),
-          explode: true,
-          explodeOffset: '2%',
-          innerRadius: '55%',
         ),
       ],
-      annotations: <CircularChartAnnotation>[
-        CircularChartAnnotation(
-          widget: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('TOTAL', style: TextStyle(color: Colors.white54)),
-              Text(
-                slices.fold<int>(0, (prev, e) => prev + e.value).toString(),
+    );
+  }
+}
+
+class _FactoryDistributionTile extends StatelessWidget {
+  const _FactoryDistributionTile({
+    required this.label,
+    required this.value,
+    required this.percent,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final double percent;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
+            ),
+            Text(
+              '${(percent * 100).toStringAsFixed(1)}%',
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: percent.clamp(0.0, 1.0),
+            minHeight: 8,
+            backgroundColor: Colors.white12,
+            color: color,
           ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '$value pcs',
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
       ],
     );
