@@ -3,13 +3,13 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../viewmodels/lcr_dashboard_view_state.dart';
 
-class LcrMachineCard extends StatelessWidget {
-  const LcrMachineCard({
+class LcrMachineGaugeCard extends StatelessWidget {
+  const LcrMachineGaugeCard({
     super.key,
     required this.data,
   });
 
-  final LcrMachineGauge data;
+  final LcrMachineGaugeData data;
 
   @override
   Widget build(BuildContext context) {

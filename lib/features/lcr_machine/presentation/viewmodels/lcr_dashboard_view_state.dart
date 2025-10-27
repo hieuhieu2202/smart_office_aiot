@@ -33,8 +33,8 @@ class LcrOutputTrend {
   final List<double> yieldRate;
 }
 
-class LcrMachineGauge {
-  const LcrMachineGauge({
+class LcrMachineGaugeData {
+  const LcrMachineGaugeData({
     required this.machineNo,
     required this.total,
     required this.pass,
@@ -67,7 +67,7 @@ class LcrDashboardViewState {
   final LcrStackedSeries typeSeries;
   final LcrStackedSeries employeeSeries;
   final LcrOutputTrend outputTrend;
-  final List<LcrMachineGauge> machineGauges;
+  final List<LcrMachineGaugeData> machineGauges;
   final List<LcrPieSlice> errorSlices;
 
   factory LcrDashboardViewState.fromRecords(List<LcrRecord> records) {
@@ -170,7 +170,7 @@ class LcrDashboardViewState {
       final total = entry.value.length;
       final passCount = entry.value.where((e) => e.status).length;
       final failCount = total - passCount;
-      return LcrMachineGauge(
+      return LcrMachineGaugeData(
         machineNo: entry.key,
         total: total,
         pass: passCount,

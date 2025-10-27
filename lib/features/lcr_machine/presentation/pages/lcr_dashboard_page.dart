@@ -6,7 +6,7 @@ import '../../domain/entities/lcr_entities.dart';
 import '../controllers/lcr_dashboard_controller.dart';
 import '../viewmodels/lcr_dashboard_view_state.dart';
 import '../widgets/lcr_chart_card.dart';
-import '../widgets/lcr_machine_card.dart';
+import '../widgets/lcr_machine_gauge_card.dart';
 import '../widgets/lcr_record_detail.dart';
 import '../widgets/lcr_summary_tile.dart';
 
@@ -863,7 +863,7 @@ class _OutputChart extends StatelessWidget {
 class _MachinesGrid extends StatelessWidget {
   const _MachinesGrid(this.list);
 
-  final List<LcrMachineGauge> list;
+  final List<LcrMachineGaugeData> list;
 
   @override
   Widget build(BuildContext context) {
@@ -883,7 +883,7 @@ class _MachinesGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final gauge = list[index];
-        return LcrMachineCard(data: gauge);
+        return LcrMachineGaugeCard(data: gauge);
       },
     );
   }
