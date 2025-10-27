@@ -1028,8 +1028,24 @@ class _OutputChart extends StatelessWidget {
       );
     });
 
+    final maxOutput = data.fold<int>(0, (prev, item) {
+      final value = item.total;
+      return value > prev ? value : prev;
+    });
+    final double yMax;
+    final double interval;
+    if (maxOutput == 0) {
+      yMax = 10;
+      interval = 2;
+    } else {
+      final step = (maxOutput / 5).ceil().clamp(1, 1000);
+      interval = step.toDouble();
+      yMax = (step * 6).toDouble();
+    }
+
     return SfCartesianChart(
       plotAreaBorderWidth: 0,
+      plotAreaBackgroundColor: const Color(0x332B3A5A),
       tooltipBehavior: TooltipBehavior(
         enable: true,
         activationMode: ActivationMode.singleTap,
@@ -1038,7 +1054,7 @@ class _OutputChart extends StatelessWidget {
         builder: (dynamic item, dynamic point, dynamic series, int pointIndex,
             int seriesIndex) {
           if (item is! _OutputItem ||
-              series is! StackedColumnSeries<dynamic, dynamic>) {
+              series is! ColumnSeries<dynamic, dynamic>) {
             return const SizedBox.shrink();
           }
           return _BarTooltip(
@@ -1056,10 +1072,14 @@ class _OutputChart extends StatelessWidget {
       primaryXAxis: CategoryAxis(
         labelStyle: const TextStyle(color: Colors.white70),
         majorGridLines: const MajorGridLines(width: 0),
+        axisLine: AxisLine(color: Colors.white12.withOpacity(0.2)),
       ),
       primaryYAxis: NumericAxis(
+        minimum: 0,
+        maximum: yMax,
+        interval: interval,
         labelStyle: const TextStyle(color: Colors.white70),
-        majorGridLines: MajorGridLines(color: Colors.white10.withOpacity(0.2)),
+        majorGridLines: MajorGridLines(color: Colors.white10.withOpacity(0.25)),
         axisLine: const AxisLine(width: 0),
       ),
       axes: <ChartAxis>[
@@ -1070,39 +1090,66 @@ class _OutputChart extends StatelessWidget {
           labelStyle: const TextStyle(color: Colors.amberAccent),
           axisLine: const AxisLine(width: 0),
           majorGridLines: const MajorGridLines(width: 0),
+          plotBands: <PlotBand>[
+            PlotBand(
+              start: 98,
+              end: 98,
+              borderWidth: 1.5,
+              borderColor: Colors.greenAccent,
+              dashArray: const <double>[6, 4],
+              text: 'Target 98%',
+              textStyle: const TextStyle(
+                color: Colors.greenAccent,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+              shouldRenderAboveSeries: true,
+            ),
+          ],
         ),
       ],
       series: <CartesianSeries<dynamic, dynamic>>[
-        StackedColumnSeries<dynamic, dynamic>(
-          name: 'PASS',
+        ColumnSeries<dynamic, dynamic>(
+          name: 'OUTPUT',
           dataSource: data,
           xValueMapper: (item, _) => (item as _OutputItem).category,
-          yValueMapper: (item, _) => (item as _OutputItem).pass,
-          color: Colors.cyanAccent,
+          yValueMapper: (item, _) => (item as _OutputItem).total,
+          width: 0.6,
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF21D4FD), Color(0xFF2152FF)],
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+          ),
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
+            labelAlignment: ChartDataLabelAlignment.outer,
             textStyle: const TextStyle(
               color: Colors.white,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
             builder: (dynamic item, dynamic point, dynamic series,
                 int pointIndex, int seriesIndex) {
               final bar = item as _OutputItem;
-              final total = bar.pass + bar.fail;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text('$total'),
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10203F),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Text(
+                    '${bar.total}',
+                    style: const TextStyle(
+                      color: Colors.cyanAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               );
             },
           ),
-        ),
-        StackedColumnSeries<dynamic, dynamic>(
-          name: 'FAIL',
-          dataSource: data,
-          xValueMapper: (item, _) => (item as _OutputItem).category,
-          yValueMapper: (item, _) => (item as _OutputItem).fail,
-          color: Colors.pinkAccent,
-          dataLabelSettings: const DataLabelSettings(isVisible: false),
         ),
         SplineSeries<dynamic, dynamic>(
           name: 'YIELD RATE',
@@ -1112,7 +1159,12 @@ class _OutputChart extends StatelessWidget {
           yAxisName: 'yrAxis',
           color: Colors.amberAccent,
           width: 2,
-          markerSettings: const MarkerSettings(isVisible: true),
+          markerSettings: const MarkerSettings(
+            isVisible: true,
+            shape: DataMarkerType.circle,
+            borderColor: Colors.black,
+            borderWidth: 1.5,
+          ),
         ),
       ],
     );
@@ -1328,6 +1380,8 @@ class _OutputItem {
   final int pass;
   final int fail;
   final double yr;
+
+  int get total => pass + fail;
 }
 
 class _FilterChip extends StatelessWidget {

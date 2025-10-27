@@ -79,7 +79,7 @@ class LcrDashboardViewState {
     final Map<String, List<LcrRecord>> byEmployee = <String, List<LcrRecord>>{};
     final Map<int, List<LcrRecord>> byMachine = <int, List<LcrRecord>>{};
     final Map<String, List<LcrRecord>> byError = <String, List<LcrRecord>>{};
-    final Map<DateTime, List<LcrRecord>> byHour = <DateTime, List<LcrRecord>>{};
+    final Map<int, List<LcrRecord>> byHour = <int, List<LcrRecord>>{};
 
     for (final record in records) {
       final factoryKey = (record.factory.isEmpty ? 'UNKNOWN' : record.factory);
@@ -104,8 +104,7 @@ class LcrDashboardViewState {
           ((record.description ?? '').isEmpty ? 'NO ERROR' : record.description!);
       byError.putIfAbsent(errorKey, () => <LcrRecord>[]).add(record);
 
-      final hourKey = DateTime(record.dateTime.year, record.dateTime.month,
-          record.dateTime.day, record.dateTime.hour);
+      final hourKey = record.dateTime.hour;
       byHour.putIfAbsent(hourKey, () => <LcrRecord>[]).add(record);
     }
 
@@ -140,24 +139,25 @@ class LcrDashboardViewState {
     final employeeSeries = _buildStacked(byEmployee);
     final errorSlices = _buildPie(byError, includeZero: true);
 
-    final outputCategories = byHour.keys.toList()
-      ..sort((a, b) => a.compareTo(b));
+    const startHour = 7;
+    const endHour = 19;
     final outputPass = <int>[];
     final outputFail = <int>[];
     final outputYr = <double>[];
-    for (final hour in outputCategories) {
+    final categoriesLabel = <String>[];
+
+    for (var hour = startHour; hour <= endHour; hour++) {
       final list = byHour[hour] ?? const <LcrRecord>[];
       final passCount = list.where((e) => e.status).length;
       final failCount = list.length - passCount;
       outputPass.add(passCount);
       outputFail.add(failCount);
-      final yr = list.isEmpty ? 0 : passCount / list.length * 100;
+      final total = passCount + failCount;
+      final yr = total == 0 ? 0 : passCount / total * 100;
       outputYr.add(double.parse(yr.toStringAsFixed(2)));
+      categoriesLabel
+          .add('${hour.toString().padLeft(2, '0')}:30');
     }
-
-    final categoriesLabel = outputCategories
-        .map((dt) => '${dt.hour.toString().padLeft(2, '0')}:00')
-        .toList();
 
     final outputTrend = LcrOutputTrend(
       categories: categoriesLabel,
