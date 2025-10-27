@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/te_retest_rate.dart';
@@ -77,71 +79,78 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
       builder: (context, constraints) {
         final headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
         final minHeight = headerHeight + 1;
-        final hasBoundedHeight = constraints.hasBoundedHeight &&
-            constraints.maxHeight < double.infinity;
-        final computedHeight = hasBoundedHeight
+        final hasBoundedHeight =
+            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+        final contentHeight = headerHeight +
+            (widget.detail.rows.length * _kRowHeight.toDouble());
+        final targetHeight = hasBoundedHeight
             ? constraints.maxHeight
-            : headerHeight +
-                (widget.detail.rows.length * _kRowHeight.toDouble());
-        final tableHeight = computedHeight < minHeight ? minHeight : computedHeight;
+            : math.max(minHeight, contentHeight);
+        final containerWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : math.max(totalWidth, constraints.minWidth);
 
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: _kTableBackground,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _kBorderColor),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x33040E1C),
-                blurRadius: 22,
-                offset: Offset(0, 14),
-              )
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Scrollbar(
-              controller: _horizontalController,
-              thumbVisibility: true,
-              trackVisibility: false,
-              child: SingleChildScrollView(
+        return SizedBox(
+          width: containerWidth,
+          height: targetHeight,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: _kTableBackground,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: _kBorderColor),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x33040E1C),
+                  blurRadius: 22,
+                  offset: Offset(0, 14),
+                )
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Scrollbar(
                 controller: _horizontalController,
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: totalWidth,
-                  height: tableHeight,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _HeaderRow(
-                        formattedDates: widget.formattedDates,
-                      ),
-                      Expanded(
-                        child: Scrollbar(
-                          controller: _verticalController,
-                          thumbVisibility: true,
-                          trackVisibility: false,
-                          child: ListView.builder(
+                thumbVisibility: true,
+                trackVisibility: false,
+                child: SingleChildScrollView(
+                  controller: _horizontalController,
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: totalWidth,
+                    height: targetHeight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _HeaderRow(
+                          formattedDates: widget.formattedDates,
+                        ),
+                        Expanded(
+                          child: Scrollbar(
                             controller: _verticalController,
-                            padding: EdgeInsets.zero,
-                            itemCount: widget.detail.rows.length,
-                            itemBuilder: (context, index) {
-                              final row = widget.detail.rows[index];
-                              final isFirst = index == 0;
-                              return _ModelBlock(
-                                index: index + 1,
-                                row: row,
-                                formattedDates: widget.formattedDates,
-                                totalColumns: _totalColumns,
-                                isFirstBlock: isFirst,
-                                onCellTap: widget.onCellTap,
-                                onGroupTap: widget.onGroupTap,
-                              );
-                            },
+                            thumbVisibility: true,
+                            trackVisibility: false,
+                            child: ListView.builder(
+                              controller: _verticalController,
+                              padding: EdgeInsets.zero,
+                              itemCount: widget.detail.rows.length,
+                              itemBuilder: (context, index) {
+                                final row = widget.detail.rows[index];
+                                final isFirst = index == 0;
+                                return _ModelBlock(
+                                  index: index + 1,
+                                  row: row,
+                                  formattedDates: widget.formattedDates,
+                                  totalColumns: _totalColumns,
+                                  isFirstBlock: isFirst,
+                                  onCellTap: widget.onCellTap,
+                                  onGroupTap: widget.onGroupTap,
+                                );
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -221,7 +230,8 @@ class _HeaderRow extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Expanded(
+                  SizedBox(
+                    height: _kHeaderBottomHeight,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: const [
