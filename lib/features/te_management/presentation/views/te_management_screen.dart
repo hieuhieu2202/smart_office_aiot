@@ -1355,6 +1355,7 @@ class _ChartCanvas extends StatelessWidget {
               labelRotation: -35,
               autoScrollingDelta: shouldScroll ? 18 : 0,
               autoScrollingMode: AutoScrollingMode.end,
+              interactiveTooltip: const InteractiveTooltip(enable: false),
             ),
             primaryYAxis: NumericAxis(
               axisLine: const AxisLine(width: 0),
@@ -1461,6 +1462,7 @@ class _BreakdownChart extends StatelessWidget {
               labelRotation: -35,
               autoScrollingDelta: shouldScroll ? 18 : 0,
               autoScrollingMode: AutoScrollingMode.end,
+              interactiveTooltip: const InteractiveTooltip(enable: false),
             ),
             primaryYAxis: NumericAxis(
               axisLine: const AxisLine(width: 0),
