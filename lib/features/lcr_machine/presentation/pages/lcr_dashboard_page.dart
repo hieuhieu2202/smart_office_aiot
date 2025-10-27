@@ -93,15 +93,27 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
         children: [
           Row(
             children: [
+              IconButton(
+                onPressed: () async {
+                  final navigator = Navigator.of(context);
+                  final didPop = await navigator.maybePop();
+                  final canGetPop = Get.key.currentState?.canPop() ?? false;
+                  if (!didPop && canGetPop) {
+                    Get.back<void>();
+                  }
+                },
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              ),
+              const SizedBox(width: 4),
               const Icon(Icons.memory, color: Colors.cyanAccent, size: 28),
               const SizedBox(width: 12),
               Text(
                 'LCR MACHINE DASHBOARD',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 2,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2,
+                ),
               ),
               const Spacer(),
               IconButton(
@@ -266,88 +278,148 @@ class _DashboardTab extends StatelessWidget {
           children: [
             _SummaryRow(overview: data.overview),
             const SizedBox(height: 24),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Column(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 1400;
+                if (isCompact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              children: [
+                                LcrChartCard(
+                                  title: 'FACTORY DISTRIBUTION',
+                                  height: 260,
+                                  child: _FactoryDistributionSummary(data.factorySlices),
+                                ),
+                                const SizedBox(height: 20),
+                                LcrChartCard(
+                                  title: 'ERROR CODE',
+                                  height: 260,
+                                  child: _ErrorCodeSummary(data.errorSlices),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          Expanded(
+                            flex: 4,
+                            child: Column(
+                              children: [
+                                LcrChartCard(
+                                  title: 'MACHINE PERFORMANCE',
+                                  height: 220,
+                                  child: _MachinesGrid(data.machineGauges),
+                                ),
+                                const SizedBox(height: 20),
+                                LcrChartCard(
+                                  title: 'YIELD RATE & OUTPUT',
+                                  height: 360,
+                                  child: _OutputChart(data.outputTrend),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                       LcrChartCard(
-                        title: 'FACTORY DISTRIBUTION',
-                        height: 320,
-                        child: _FactoryPieChart(data.factorySlices),
+                        title: 'DEPARTMENT ANALYSIS',
+                        height: 280,
+                        child: _StackedBarChart(data.departmentSeries),
                       ),
                       const SizedBox(height: 20),
-                      SizedBox(
-                        height: 420,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: LcrChartCard(
-                                title: 'DEPARTMENT ANALYSIS',
-                                child: _StackedBarChart(data.departmentSeries),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Expanded(
-                              child: LcrChartCard(
-                                title: 'TYPE ANALYSIS',
-                                child: _StackedBarChart(data.typeSeries),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 160,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: LcrChartCard(
-                                title: 'MACHINE PERFORMANCE',
-                                child: _MachinesGrid(data.machineGauges),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
                       LcrChartCard(
-                        title: 'YIELD RATE & OUTPUT',
-                        height: 420,
-                        child: _OutputChart(data.outputTrend),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    children: [
-                      LcrChartCard(
-                        title: 'ERROR CODE',
-                        height: 320,
-                        child: _ErrorPieChart(data.errorSlices),
+                        title: 'TYPE ANALYSIS',
+                        height: 280,
+                        child: _StackedBarChart(data.typeSeries),
                       ),
                       const SizedBox(height: 20),
                       LcrChartCard(
                         title: 'EMPLOYEE STATISTICS',
+                        height: 280,
                         child: _StackedBarChart(data.employeeSeries, rotateLabels: true),
                       ),
                     ],
-                  ),
-                ),
-              ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        children: [
+                          LcrChartCard(
+                            title: 'FACTORY DISTRIBUTION',
+                            height: 260,
+                            child: _FactoryDistributionSummary(data.factorySlices),
+                          ),
+                          const SizedBox(height: 20),
+                          LcrChartCard(
+                            title: 'ERROR CODE',
+                            height: 260,
+                            child: _ErrorCodeSummary(data.errorSlices),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        children: [
+                          LcrChartCard(
+                            title: 'MACHINE PERFORMANCE',
+                            height: 220,
+                            child: _MachinesGrid(data.machineGauges),
+                          ),
+                          const SizedBox(height: 20),
+                          LcrChartCard(
+                            title: 'YIELD RATE & OUTPUT',
+                            height: 420,
+                            child: _OutputChart(data.outputTrend),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        children: [
+                          LcrChartCard(
+                            title: 'DEPARTMENT ANALYSIS',
+                            height: 280,
+                            child: _StackedBarChart(data.departmentSeries),
+                          ),
+                          const SizedBox(height: 20),
+                          LcrChartCard(
+                            title: 'TYPE ANALYSIS',
+                            height: 280,
+                            child: _StackedBarChart(data.typeSeries),
+                          ),
+                          const SizedBox(height: 20),
+                          LcrChartCard(
+                            title: 'EMPLOYEE STATISTICS',
+                            height: 280,
+                            child: _StackedBarChart(
+                              data.employeeSeries,
+                              rotateLabels: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -405,8 +477,8 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-class _FactoryPieChart extends StatelessWidget {
-  const _FactoryPieChart(this.slices);
+class _FactoryDistributionSummary extends StatelessWidget {
+  const _FactoryDistributionSummary(this.slices);
 
   final List<LcrPieSlice> slices;
 
@@ -417,50 +489,16 @@ class _FactoryPieChart extends StatelessWidget {
         child: Text('No data', style: TextStyle(color: Colors.white54)),
       );
     }
-    return SfCircularChart(
-      legend: Legend(
-        isVisible: true,
-        overflowMode: LegendItemOverflowMode.wrap,
-        textStyle: const TextStyle(color: Colors.white70),
-      ),
-      series: <DoughnutSeries<LcrPieSlice, String>>[
-        DoughnutSeries<LcrPieSlice, String>(
-          dataSource: slices,
-          xValueMapper: (slice, _) => slice.label,
-          yValueMapper: (slice, _) => slice.value,
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(color: Colors.white),
-          ),
-          explode: true,
-          explodeOffset: '2%',
-          innerRadius: '55%',
-        ),
-      ],
-      annotations: <CircularChartAnnotation>[
-        CircularChartAnnotation(
-          widget: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('TOTAL', style: TextStyle(color: Colors.white54)),
-              Text(
-                slices.fold<int>(0, (prev, e) => prev + e.value).toString(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return _CompactCategoryList(
+      slices: slices,
+      totalLabel: 'TOTAL FACTORIES',
+      emptyLabel: 'No data',
     );
   }
 }
 
-class _ErrorPieChart extends StatelessWidget {
-  const _ErrorPieChart(this.slices);
+class _ErrorCodeSummary extends StatelessWidget {
+  const _ErrorCodeSummary(this.slices);
 
   final List<LcrPieSlice> slices;
 
@@ -471,23 +509,216 @@ class _ErrorPieChart extends StatelessWidget {
         child: Text('No data', style: TextStyle(color: Colors.white54)),
       );
     }
-    final topSlices = slices.take(8).toList();
-    return SfCircularChart(
-      legend: Legend(
-        isVisible: true,
-        overflowMode: LegendItemOverflowMode.wrap,
-        textStyle: const TextStyle(color: Colors.white70),
+
+    final List<LcrPieSlice> ordered = [];
+    final noErrorIndex =
+    slices.indexWhere((slice) => slice.label.toUpperCase() == 'NO ERROR');
+    if (noErrorIndex != -1) {
+      ordered.add(slices[noErrorIndex]);
+    }
+    ordered.addAll(slices
+        .where((slice) => slice.label.toUpperCase() != 'NO ERROR')
+        .toList());
+
+    return _CompactCategoryList(
+      slices: ordered,
+      totalLabel: 'TOTAL RECORDS',
+      emptyLabel: 'No data',
+      emphasize: (slice) => slice.label.toUpperCase() == 'NO ERROR',
+    );
+  }
+}
+
+class _CompactCategoryList extends StatelessWidget {
+  const _CompactCategoryList({
+    required this.slices,
+    required this.totalLabel,
+    required this.emptyLabel,
+    this.emphasize,
+  });
+
+  final List<LcrPieSlice> slices;
+  final String totalLabel;
+  final String emptyLabel;
+  final bool Function(LcrPieSlice slice)? emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    if (slices.isEmpty) {
+      return Center(
+        child: Text(emptyLabel, style: const TextStyle(color: Colors.white54)),
+      );
+    }
+
+    final total = slices.fold<int>(0, (prev, slice) => prev + slice.value);
+    final displayLimit = 4;
+    final display = slices.take(displayLimit).toList();
+    final displayedTotal =
+    display.fold<int>(0, (prev, slice) => prev + slice.value);
+    final othersValue = total - displayedTotal;
+    if (othersValue > 0) {
+      display.add(LcrPieSlice(label: 'OTHERS', value: othersValue));
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final estimatedHeight = display.length * 60;
+        final enableScroll = estimatedHeight > constraints.maxHeight;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _TotalBadge(
+              label: totalLabel,
+              value: total.toString(),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                itemCount: display.length,
+                physics: enableScroll
+                    ? const BouncingScrollPhysics()
+                    : const NeverScrollableScrollPhysics(),
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final slice = display[index];
+                  final double percent =
+                  total == 0 ? 0.0 : (slice.value / total) * 100.0;
+                  return _CategoryProgressTile(
+                    label: slice.label,
+                    value: slice.value,
+                    percent: percent,
+                    color: _tileColor(index),
+                    emphasize: emphasize?.call(slice) ?? false,
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Color _tileColor(int index) {
+    const colors = [
+      Color(0xFF1BE7FF),
+      Color(0xFF6C5DD3),
+      Color(0xFF23D5AB),
+      Color(0xFFFFC75F),
+      Color(0xFFFF6B6B),
+    ];
+    return colors[index % colors.length];
+  }
+}
+
+class _TotalBadge extends StatelessWidget {
+  const _TotalBadge({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF06274A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12),
       ),
-      series: <DoughnutSeries<LcrPieSlice, String>>[
-        DoughnutSeries<LcrPieSlice, String>(
-          dataSource: topSlices,
-          xValueMapper: (slice, _) => slice.label,
-          yValueMapper: (slice, _) => slice.value,
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(color: Colors.white),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white60,
+              fontSize: 12,
+              letterSpacing: 0.8,
+            ),
           ),
-          innerRadius: '60%',
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryProgressTile extends StatelessWidget {
+  const _CategoryProgressTile({
+    required this.label,
+    required this.value,
+    required this.percent,
+    required this.color,
+    this.emphasize = false,
+  });
+
+  final String label;
+  final int value;
+  final double percent;
+  final Color color;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final double normalizedPercent;
+    if (percent <= 0) {
+      normalizedPercent = 0.0;
+    } else if (percent >= 100) {
+      normalizedPercent = 1.0;
+    } else {
+      normalizedPercent = percent / 100.0;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: emphasize ? FontWeight.w700 : FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              '${percent.toStringAsFixed(1)}%',
+              style: textTheme.bodyMedium?.copyWith(
+                color: Colors.cyanAccent,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              value.toString(),
+              style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: normalizedPercent,
+            minHeight: 8,
+            backgroundColor: const Color(0xFF0A274F),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
         ),
       ],
     );
@@ -702,9 +933,9 @@ class _AnalysisTab extends StatelessWidget {
                 Expanded(
                   child: Obx(() {
                     final RxList<LcrRecord> reactiveList =
-                        controller.serialSearchResults.isNotEmpty
-                            ? controller.serialSearchResults
-                            : controller.analysisRecords;
+                    controller.serialSearchResults.isNotEmpty
+                        ? controller.serialSearchResults
+                        : controller.analysisRecords;
                     final results = reactiveList.toList();
                     if (controller.isSearching.value) {
                       return const Center(
@@ -847,7 +1078,7 @@ class _FilterChip extends StatelessWidget {
             foregroundColor: Colors.cyanAccent,
             side: const BorderSide(color: Colors.cyanAccent),
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           onPressed: onPressed,
           icon: const Icon(Icons.calendar_month),
@@ -898,12 +1129,12 @@ class _DropdownFilter extends StatelessWidget {
             iconEnabledColor: Colors.cyanAccent,
             items: items
                 .map((item) => DropdownMenuItem<String>(
-                      value: item,
-                      child: Text(
-                        item,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ))
+              value: item,
+              child: Text(
+                item,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ))
                 .toList(),
             onChanged: onChanged,
           ),
