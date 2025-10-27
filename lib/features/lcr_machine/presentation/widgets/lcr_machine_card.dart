@@ -31,8 +31,8 @@ class LcrMachineCard extends StatelessWidget {
     final accent = _accentColor;
     final computedTotal = data.total > 0 ? data.total : data.pass;
     final safeMax = math.max(computedTotal, 1).toDouble();
-    final passValue = data.pass.clamp(0, safeMax.toInt()).toDouble();
-    final remainder = (safeMax - passValue).clamp(0, safeMax);
+    final passValue = data.pass.toDouble().clamp(0.0, safeMax);
+    final remainder = (safeMax - passValue).clamp(0.0, safeMax);
     final segments = <_GaugeSegment>[
       _GaugeSegment(label: 'pass', value: passValue, color: accent),
       _GaugeSegment(
