@@ -50,53 +50,70 @@ class LcrMachineCard extends StatelessWidget {
         border: Border.all(color: Colors.white10),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          SizedBox(
-            height: 118,
-            child: SfCircularChart(
-              margin: EdgeInsets.zero,
-              annotations: <CircularChartAnnotation>[
-                CircularChartAnnotation(
-                  radius: '0%',
-                  widget: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${data.pass}',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.4,
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final maxHeight = constraints.maxHeight.isFinite
+                    ? constraints.maxHeight
+                    : 140.0;
+                final maxWidth = constraints.maxWidth.isFinite
+                    ? constraints.maxWidth
+                    : 140.0;
+                final chartExtent = math.min(maxHeight, maxWidth);
+                return Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    height: chartExtent,
+                    width: chartExtent,
+                    child: SfCircularChart(
+                      margin: EdgeInsets.zero,
+                      annotations: <CircularChartAnnotation>[
+                        CircularChartAnnotation(
+                          radius: '0%',
+                          widget: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${data.pass}',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'PCS PASS',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'PCS PASS',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.6,
+                      ],
+                      series: <CircularSeries<_GaugeSegment, String>>[
+                        DoughnutSeries<_GaugeSegment, String>(
+                          dataSource: segments,
+                          xValueMapper: (_GaugeSegment segment, _) => segment.label,
+                          yValueMapper: (_GaugeSegment segment, _) => segment.value,
+                          pointColorMapper: (_GaugeSegment segment, _) => segment.color,
+                          startAngle: 180,
+                          endAngle: 0,
+                          radius: '112%',
+                          innerRadius: '70%',
+                          cornerStyle: CornerStyle.bothCurve,
+                          dataLabelSettings:
+                              const DataLabelSettings(isVisible: false),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-              series: <CircularSeries<_GaugeSegment, String>>[
-                DoughnutSeries<_GaugeSegment, String>(
-                  dataSource: segments,
-                  xValueMapper: (_GaugeSegment segment, _) => segment.label,
-                  yValueMapper: (_GaugeSegment segment, _) => segment.value,
-                  pointColorMapper: (_GaugeSegment segment, _) => segment.color,
-                  startAngle: 180,
-                  endAngle: 0,
-                  radius: '112%',
-                  innerRadius: '70%',
-                  cornerStyle: CornerStyle.bothCurve,
-                  dataLabelSettings: const DataLabelSettings(isVisible: false),
-                ),
-              ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 12),
