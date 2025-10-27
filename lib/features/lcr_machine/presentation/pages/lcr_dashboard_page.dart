@@ -633,15 +633,12 @@ class _DashboardTab extends StatelessWidget {
                   child: Column(
                     children: [
                       LcrChartCard(
-                        title: 'ERROR CODE',
-                        height: 320,
-                        child: _ErrorPieChart(data.errorSlices),
-                      ),
-                      const SizedBox(height: 20),
-                      LcrChartCard(
                         title: 'EMPLOYEE STATISTICS',
                         height: 320,
-                        child: _StackedBarChart(data.employeeSeries, rotateLabels: true),
+                        child: _StackedBarChart(
+                          data.employeeSeries,
+                          rotateLabels: true,
+                        ),
                       ),
                     ],
                   ),
@@ -756,41 +753,6 @@ class _FactoryPieChart extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ErrorPieChart extends StatelessWidget {
-  const _ErrorPieChart(this.slices);
-
-  final List<LcrPieSlice> slices;
-
-  @override
-  Widget build(BuildContext context) {
-    if (slices.isEmpty) {
-      return const Center(
-        child: Text('No data', style: TextStyle(color: Colors.white54)),
-      );
-    }
-    final topSlices = slices.take(8).toList();
-    return SfCircularChart(
-      legend: Legend(
-        isVisible: true,
-        overflowMode: LegendItemOverflowMode.wrap,
-        textStyle: const TextStyle(color: Colors.white70),
-      ),
-      series: <DoughnutSeries<LcrPieSlice, String>>[
-        DoughnutSeries<LcrPieSlice, String>(
-          dataSource: topSlices,
-          xValueMapper: (slice, _) => slice.label,
-          yValueMapper: (slice, _) => slice.value,
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(color: Colors.white),
-          ),
-          innerRadius: '60%',
         ),
       ],
     );

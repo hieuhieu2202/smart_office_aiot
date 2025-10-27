@@ -27,7 +27,7 @@ class LcrMachineCard extends StatelessWidget {
         border: Border.all(color: Colors.white12),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'MACHINE ${data.machineNo}',
@@ -36,8 +36,8 @@ class LcrMachineCard extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(
-            height: 110,
+          const SizedBox(height: 8),
+          Expanded(
             child: SfCircularChart(
               margin: EdgeInsets.zero,
               legend: Legend(isVisible: false),
