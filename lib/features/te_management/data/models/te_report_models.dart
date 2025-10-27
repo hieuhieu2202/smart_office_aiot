@@ -189,21 +189,39 @@ class TEErrorDetailClusterModel extends TEErrorDetailClusterEntity {
         : (headError.isNotEmpty ? headError : headMachine);
 
     final total = _parseInt(_lookup(head, 'FAIL_QTY'));
-    final breakdowns = <TEErrorDetailBreakdownEntity>[];
+    final orderedKeys = <String>[];
+    final breakdownTotals = <String, int>{};
 
     for (final map in maps.skip(1)) {
       final breakdownError = _sanitizeLabel(_lookup(map, 'ERROR_CODE'));
       final breakdownMachine = _sanitizeLabel(_lookup(map, 'MACHINE_NAME'));
-      final breakdownLabel = isMachineCluster
-          ? (breakdownError.isNotEmpty ? breakdownError : breakdownMachine)
-          : (breakdownMachine.isNotEmpty ? breakdownMachine : breakdownError);
-      breakdowns.add(
-        TEErrorDetailBreakdownEntity(
-          label: _sanitizeLabel(breakdownLabel),
-          failQty: _parseInt(_lookup(map, 'FAIL_QTY')),
-        ),
+      final breakdownLabel = _sanitizeLabel(
+        isMachineCluster
+            ? (breakdownError.isNotEmpty ? breakdownError : breakdownMachine)
+            : (breakdownMachine.isNotEmpty ? breakdownMachine : breakdownError),
       );
+
+      if (breakdownLabel.isEmpty) {
+        continue;
+      }
+
+      final key = breakdownLabel.toLowerCase();
+      if (!breakdownTotals.containsKey(key)) {
+        orderedKeys.add(breakdownLabel);
+        breakdownTotals[key] = 0;
+      }
+
+      breakdownTotals[key] =
+          (breakdownTotals[key] ?? 0) + _parseInt(_lookup(map, 'FAIL_QTY'));
     }
+
+    final breakdowns = <TEErrorDetailBreakdownEntity>[
+      for (final label in orderedKeys)
+        TEErrorDetailBreakdownEntity(
+          label: label,
+          failQty: breakdownTotals[label.toLowerCase()] ?? 0,
+        ),
+    ];
 
     var resolvedLabel = initialLabel;
     if (resolvedLabel.isEmpty) {
