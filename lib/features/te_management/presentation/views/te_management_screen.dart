@@ -895,25 +895,25 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
+      _detail = null;
     });
     try {
       final detail = await _controller.fetchErrorDetail(rowKey: widget.rowKey);
+      if (!mounted) return;
       setState(() {
         _detail = detail;
+        _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
+        _isLoading = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
