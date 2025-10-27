@@ -57,6 +57,32 @@ String _normalize(dynamic value) {
   return value.toString().trim();
 }
 
+String _sanitizeLabel(dynamic value) {
+  final normalized = _normalize(value);
+  if (normalized.isEmpty) return '';
+
+  final segments = normalized
+      .split(',')
+      .map((segment) => segment.trim())
+      .where((segment) => segment.isNotEmpty)
+      .toList();
+
+  if (segments.isEmpty) {
+    return '';
+  }
+
+  final seen = <String>{};
+  final deduped = <String>[];
+  for (final segment in segments) {
+    final key = segment.toLowerCase();
+    if (seen.add(key)) {
+      deduped.add(segment);
+    }
+  }
+
+  return deduped.isEmpty ? '' : deduped.join(', ');
+}
+
 class TEReportRowModel extends TEReportRowEntity {
   TEReportRowModel({
     required super.modelName,
@@ -155,39 +181,59 @@ class TEErrorDetailClusterModel extends TEErrorDetailClusterEntity {
     }
 
     final head = maps.first;
-    final headError = _normalize(_lookup(head, 'ERROR_CODE'));
-    final headMachine = _normalize(_lookup(head, 'MACHINE_NAME'));
+    final headError = _sanitizeLabel(_lookup(head, 'ERROR_CODE'));
+    final headMachine = _sanitizeLabel(_lookup(head, 'MACHINE_NAME'));
     final isMachineCluster = headMachine.isNotEmpty && headError.isEmpty;
     final initialLabel = isMachineCluster
         ? headMachine
         : (headError.isNotEmpty ? headError : headMachine);
 
     final total = _parseInt(_lookup(head, 'FAIL_QTY'));
-    final breakdowns = <TEErrorDetailBreakdownEntity>[];
+    final orderedKeys = <String>[];
+    final breakdownTotals = <String, int>{};
 
     for (final map in maps.skip(1)) {
-      final breakdownError = _normalize(_lookup(map, 'ERROR_CODE'));
-      final breakdownMachine = _normalize(_lookup(map, 'MACHINE_NAME'));
-      final breakdownLabel = isMachineCluster
-          ? (breakdownError.isNotEmpty ? breakdownError : breakdownMachine)
-          : (breakdownMachine.isNotEmpty ? breakdownMachine : breakdownError);
-      breakdowns.add(
-        TEErrorDetailBreakdownEntity(
-          label: breakdownLabel,
-          failQty: _parseInt(_lookup(map, 'FAIL_QTY')),
-        ),
+      final breakdownError = _sanitizeLabel(_lookup(map, 'ERROR_CODE'));
+      final breakdownMachine = _sanitizeLabel(_lookup(map, 'MACHINE_NAME'));
+      final breakdownLabel = _sanitizeLabel(
+        isMachineCluster
+            ? (breakdownError.isNotEmpty ? breakdownError : breakdownMachine)
+            : (breakdownMachine.isNotEmpty ? breakdownMachine : breakdownError),
       );
+
+      if (breakdownLabel.isEmpty) {
+        continue;
+      }
+
+      final key = breakdownLabel.toLowerCase();
+      if (!breakdownTotals.containsKey(key)) {
+        orderedKeys.add(breakdownLabel);
+        breakdownTotals[key] = 0;
+      }
+
+      breakdownTotals[key] =
+          (breakdownTotals[key] ?? 0) + _parseInt(_lookup(map, 'FAIL_QTY'));
     }
+
+    final breakdowns = <TEErrorDetailBreakdownEntity>[
+      for (final label in orderedKeys)
+        TEErrorDetailBreakdownEntity(
+          label: label,
+          failQty: breakdownTotals[label.toLowerCase()] ?? 0,
+        ),
+    ];
 
     var resolvedLabel = initialLabel;
     if (resolvedLabel.isEmpty) {
       for (final breakdown in breakdowns) {
         if (breakdown.label.trim().isNotEmpty) {
-          resolvedLabel = breakdown.label.trim();
+          resolvedLabel = _sanitizeLabel(breakdown.label.trim());
           break;
         }
       }
     }
+
+    resolvedLabel = _sanitizeLabel(resolvedLabel);
 
     return TEErrorDetailClusterModel(
       label: resolvedLabel,

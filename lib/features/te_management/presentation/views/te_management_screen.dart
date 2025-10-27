@@ -1293,6 +1293,7 @@ class _ChartCanvas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shouldScroll = points.length > 18;
+    final columnWidth = shouldScroll ? 0.42 : 0.58;
 
     final columnSeries = ColumnSeries<_ChartPoint, String>(
       dataSource: points,
@@ -1306,7 +1307,8 @@ class _ChartCanvas extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-      width: 0.58,
+      width: columnWidth,
+      spacing: shouldScroll ? 0.18 : 0.1,
       borderRadius: const BorderRadius.all(Radius.circular(8)),
       gradient: gradient,
       enableTooltip: true,
@@ -1362,42 +1364,48 @@ class _ChartCanvas extends StatelessWidget {
                   axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
                   majorGridLines: const MajorGridLines(width: 0),
                   labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-              labelIntersectAction: AxisLabelIntersectAction.trim,
-              labelRotation: -35,
-              autoScrollingDelta: shouldScroll ? 18 : 0,
-              autoScrollingMode: AutoScrollingMode.end,
-              interactiveTooltip: const InteractiveTooltip(enable: false),
-            ),
-            primaryYAxis: NumericAxis(
-              axisLine: const AxisLine(width: 0),
-              majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
-              labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
-            ),
-            legend: const Legend(isVisible: false),
-            tooltipBehavior: TooltipBehavior(
-              enable: true,
-              color: Colors.transparent,
-              builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
-                  int seriesIndex) {
-                if (data is! _ChartPoint) {
-                  return const SizedBox.shrink();
-                }
+                  labelIntersectAction: AxisLabelIntersectAction.trim,
+                  labelRotation: -35,
+                  interactiveTooltip: const InteractiveTooltip(enable: false),
+                ),
+                primaryYAxis: NumericAxis(
+                  axisLine: const AxisLine(width: 0),
+                  majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
+                  labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+                legend: const Legend(isVisible: false),
+                tooltipBehavior: TooltipBehavior(
+                  enable: true,
+                  color: Colors.transparent,
+                  builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
+                      int seriesIndex) {
+                    if (data is! _ChartPoint) {
+                      return const SizedBox.shrink();
+                    }
 
-                if (seriesIndex < 0 ||
-                    pointIndex < 0 ||
-                    pointIndex >= points.length) {
-                  return const SizedBox.shrink();
-                }
+                    if (seriesIndex < 0 ||
+                        pointIndex < 0 ||
+                        pointIndex >= points.length) {
+                      return const SizedBox.shrink();
+                    }
 
-                final chartPoint = data as _ChartPoint;
+                    final chartPoint = data as _ChartPoint;
 
-                return _buildChartTooltip(
-                  gradient,
-                  chartPoint.label,
-                  chartPoint.value,
-                );
-              },
-            ),
+                    return _buildChartTooltip(
+                      gradient,
+                      chartPoint.label,
+                      chartPoint.value,
+                    );
+                  },
+                ),
+                zoomPanBehavior: shouldScroll
+                    ? ZoomPanBehavior(
+                        enablePanning: true,
+                        enablePinching: true,
+                        zoomMode: ZoomMode.x,
+                        enableMouseWheelZooming: true,
+                      )
+                    : null,
                 series: <CartesianSeries<dynamic, dynamic>>[
                   columnSeries as CartesianSeries<dynamic, dynamic>,
                   splineSeries as CartesianSeries<dynamic, dynamic>,
@@ -1438,6 +1446,7 @@ class _BreakdownChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shouldScroll = points.length > 18;
+    final columnWidth = shouldScroll ? 0.42 : 0.58;
 
     final columnSeries = ColumnSeries<_BreakdownPoint, String>(
       dataSource: points,
@@ -1451,7 +1460,8 @@ class _BreakdownChart extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-      width: 0.58,
+      width: columnWidth,
+      spacing: shouldScroll ? 0.18 : 0.1,
       borderRadius: const BorderRadius.all(Radius.circular(8)),
       gradient: gradient,
       enableTooltip: true,
@@ -1503,42 +1513,48 @@ class _BreakdownChart extends StatelessWidget {
                   axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
                   majorGridLines: const MajorGridLines(width: 0),
                   labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-              labelIntersectAction: AxisLabelIntersectAction.trim,
-              labelRotation: -35,
-              autoScrollingDelta: shouldScroll ? 18 : 0,
-              autoScrollingMode: AutoScrollingMode.end,
-              interactiveTooltip: const InteractiveTooltip(enable: false),
-            ),
-            primaryYAxis: NumericAxis(
-              axisLine: const AxisLine(width: 0),
-              majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
-              labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
-            ),
-            legend: const Legend(isVisible: false),
-            tooltipBehavior: TooltipBehavior(
-              enable: true,
-              color: Colors.transparent,
-              builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
-                  int seriesIndex) {
-                if (data is! _BreakdownPoint) {
-                  return const SizedBox.shrink();
-                }
+                  labelIntersectAction: AxisLabelIntersectAction.trim,
+                  labelRotation: -35,
+                  interactiveTooltip: const InteractiveTooltip(enable: false),
+                ),
+                primaryYAxis: NumericAxis(
+                  axisLine: const AxisLine(width: 0),
+                  majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
+                  labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+                legend: const Legend(isVisible: false),
+                tooltipBehavior: TooltipBehavior(
+                  enable: true,
+                  color: Colors.transparent,
+                  builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
+                      int seriesIndex) {
+                    if (data is! _BreakdownPoint) {
+                      return const SizedBox.shrink();
+                    }
 
-                if (seriesIndex < 0 ||
-                    pointIndex < 0 ||
-                    pointIndex >= points.length) {
-                  return const SizedBox.shrink();
-                }
+                    if (seriesIndex < 0 ||
+                        pointIndex < 0 ||
+                        pointIndex >= points.length) {
+                      return const SizedBox.shrink();
+                    }
 
-                final breakdownPoint = data as _BreakdownPoint;
+                    final breakdownPoint = data as _BreakdownPoint;
 
-                return _buildChartTooltip(
-                  gradient,
-                  breakdownPoint.label,
-                  breakdownPoint.value,
-                );
-              },
-            ),
+                    return _buildChartTooltip(
+                      gradient,
+                      breakdownPoint.label,
+                      breakdownPoint.value,
+                    );
+                  },
+                ),
+                zoomPanBehavior: shouldScroll
+                    ? ZoomPanBehavior(
+                        enablePanning: true,
+                        enablePinching: true,
+                        zoomMode: ZoomMode.x,
+                        enableMouseWheelZooming: true,
+                      )
+                    : null,
                 series: <CartesianSeries<dynamic, dynamic>>[
                   columnSeries as CartesianSeries<dynamic, dynamic>,
                   splineSeries as CartesianSeries<dynamic, dynamic>,
