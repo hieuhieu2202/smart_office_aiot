@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -50,17 +51,6 @@ class LcrMachineCard extends StatelessWidget {
     final passValue = gaugeMaxLabel > 0
         ? data.pass.toDouble().clamp(0.0, safeMax)
         : 0.0;
-    final remainder = gaugeMaxLabel > 0
-        ? (safeMax - passValue).clamp(0.0, safeMax)
-        : 1.0;
-    final segments = <_GaugeSegment>[
-      _GaugeSegment(label: 'pass', value: passValue, color: accent),
-      _GaugeSegment(
-        label: 'remaining',
-        value: remainder,
-        color: const Color(0xFF0C1E38),
-      ),
-    ];
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -115,17 +105,34 @@ class LcrMachineCard extends StatelessWidget {
                           ),
                         ),
                       ],
-                      series: <CircularSeries<_GaugeSegment, String>>[
-                        DoughnutSeries<_GaugeSegment, String>(
-                          dataSource: segments,
-                          xValueMapper: (_GaugeSegment segment, _) => segment.label,
-                          yValueMapper: (_GaugeSegment segment, _) => segment.value,
-                          pointColorMapper: (_GaugeSegment segment, _) => segment.color,
-                          startAngle: 180,
-                          endAngle: 0,
-                          radius: '118%',
-                          innerRadius: '62%',
+                      series: <CircularSeries<_RadialGaugePoint, String>>[
+                        RadialBarSeries<_RadialGaugePoint, String>(
+                          dataSource: const <_RadialGaugePoint>[
+                            _RadialGaugePoint(label: 'pass'),
+                          ],
+                          maximumValue: safeMax,
+                          xValueMapper: (_RadialGaugePoint point, _) => point.label,
+                          yValueMapper: (_RadialGaugePoint point, _) => passValue,
+                          pointShaderMapper: (
+                            _RadialGaugePoint point,
+                            _,
+                            Color _color,
+                            ui.Rect rect,
+                          ) {
+                            return LinearGradient(
+                              colors: [accent.withOpacity(0.35), accent],
+                              begin: Alignment.bottomLeft,
+                              end: Alignment.topRight,
+                            ).createShader(rect);
+                          },
+                          trackColor: const Color(0xFF071B32),
+                          trackBorderColor: Colors.transparent,
+                          trackOpacity: 1,
                           cornerStyle: CornerStyle.bothCurve,
+                          gap: '0%',
+                          radius: '120%',
+                          innerRadius: '58%',
+                          animationDuration: 1400,
                           dataLabelSettings:
                               const DataLabelSettings(isVisible: false),
                         ),
@@ -172,15 +179,9 @@ class LcrMachineCard extends StatelessWidget {
   }
 }
 
-class _GaugeSegment {
-  const _GaugeSegment({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+class _RadialGaugePoint {
+  const _RadialGaugePoint({required this.label});
 
   final String label;
-  final double value;
-  final Color color;
 }
 
