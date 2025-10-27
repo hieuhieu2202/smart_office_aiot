@@ -18,7 +18,7 @@ const Color _kSpanBackground = Color(0xFF0B2343);
 const Color _kBorderColor = Color(0x332BD4F5);
 const BorderSide _kGridBorder = BorderSide(color: _kBorderColor, width: 1);
 
-class TERetestRateTable extends StatelessWidget {
+class TERetestRateTable extends StatefulWidget {
   const TERetestRateTable({
     super.key,
     required this.detail,
@@ -32,11 +32,33 @@ class TERetestRateTable extends StatelessWidget {
   final ValueChanged<TERetestCellDetail>? onCellTap;
   final ValueChanged<TERetestGroupDetail>? onGroupTap;
 
-  int get _totalColumns => formattedDates.length * 2;
+  @override
+  State<TERetestRateTable> createState() => _TERetestRateTableState();
+}
+
+class _TERetestRateTableState extends State<TERetestRateTable> {
+  late final ScrollController _horizontalController;
+  late final ScrollController _verticalController;
+
+  int get _totalColumns => widget.formattedDates.length * 2;
+
+  @override
+  void initState() {
+    super.initState();
+    _horizontalController = ScrollController();
+    _verticalController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _horizontalController.dispose();
+    _verticalController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (!detail.hasData || formattedDates.isEmpty) {
+    if (!widget.detail.hasData || widget.formattedDates.isEmpty) {
       return const Center(
         child: Text(
           'No data available',
@@ -45,21 +67,22 @@ class TERetestRateTable extends StatelessWidget {
       );
     }
 
-    final totalWidth =
-        _kIndexWidth + _kModelWidth + _kGroupWidth + (_totalColumns * _kCellWidth);
-
-    final horizontalController = ScrollController();
-    final verticalController = ScrollController();
+    final totalWidth = _kIndexWidth +
+        _kModelWidth +
+        _kGroupWidth +
+        (_totalColumns * _kCellWidth);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
-        final availableHeight = constraints.hasBoundedHeight
-            ? (constraints.maxHeight - headerHeight - 1)
-            : null;
-        final bodyHeight = availableHeight != null && availableHeight > 0
-            ? availableHeight
-            : detail.rows.length * _kRowHeight.toDouble();
+        final minHeight = headerHeight + 1;
+        final hasBoundedHeight = constraints.hasBoundedHeight &&
+            constraints.maxHeight < double.infinity;
+        final computedHeight = hasBoundedHeight
+            ? constraints.maxHeight
+            : headerHeight +
+                (widget.detail.rows.length * _kRowHeight.toDouble());
+        final tableHeight = computedHeight < minHeight ? minHeight : computedHeight;
 
         return DecoratedBox(
           decoration: BoxDecoration(
@@ -77,40 +100,43 @@ class TERetestRateTable extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(18),
             child: Scrollbar(
-              controller: horizontalController,
+              controller: _horizontalController,
               thumbVisibility: true,
               trackVisibility: false,
               child: SingleChildScrollView(
-                controller: horizontalController,
+                controller: _horizontalController,
                 scrollDirection: Axis.horizontal,
                 child: SizedBox(
                   width: totalWidth,
+                  height: tableHeight,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _HeaderRow(formattedDates: formattedDates, totalColumns: _totalColumns),
+                      _HeaderRow(
+                        formattedDates: widget.formattedDates,
+                        totalColumns: _totalColumns,
+                      ),
                       const Divider(height: 1, thickness: 1, color: _kBorderColor),
-                      SizedBox(
-                        height: bodyHeight,
+                      Expanded(
                         child: Scrollbar(
-                          controller: verticalController,
+                          controller: _verticalController,
                           thumbVisibility: true,
                           trackVisibility: false,
                           child: ListView.builder(
-                            controller: verticalController,
+                            controller: _verticalController,
                             padding: EdgeInsets.zero,
-                            itemCount: detail.rows.length,
+                            itemCount: widget.detail.rows.length,
                             itemBuilder: (context, index) {
-                              final row = detail.rows[index];
+                              final row = widget.detail.rows[index];
                               final isFirst = index == 0;
                               return _ModelBlock(
                                 index: index + 1,
                                 row: row,
-                                formattedDates: formattedDates,
+                                formattedDates: widget.formattedDates,
                                 totalColumns: _totalColumns,
                                 isFirstBlock: isFirst,
-                                onCellTap: onCellTap,
-                                onGroupTap: onGroupTap,
+                                onCellTap: widget.onCellTap,
+                                onGroupTap: widget.onGroupTap,
                               );
                             },
                           ),
