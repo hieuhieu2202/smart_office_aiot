@@ -294,7 +294,6 @@ class _DashboardTab extends StatelessWidget {
                               children: [
                                 LcrChartCard(
                                   title: 'FACTORY DISTRIBUTION',
-                                  height: 260,
                                   child: _FactoryDistributionSummary(data.factorySlices),
                                 ),
                                 const SizedBox(height: 20),
@@ -358,7 +357,6 @@ class _DashboardTab extends StatelessWidget {
                         children: [
                           LcrChartCard(
                             title: 'FACTORY DISTRIBUTION',
-                            height: 260,
                             child: _FactoryDistributionSummary(data.factorySlices),
                           ),
                           const SizedBox(height: 20),
@@ -553,51 +551,36 @@ class _CompactCategoryList extends StatelessWidget {
     final total = slices.fold<int>(0, (prev, slice) => prev + slice.value);
     final displayLimit = 4;
     final display = slices.take(displayLimit).toList();
-    final displayedTotal =
-    display.fold<int>(0, (prev, slice) => prev + slice.value);
+    final displayedTotal = display.fold<int>(
+      0,
+      (prev, slice) => prev + slice.value,
+    );
     final othersValue = total - displayedTotal;
     if (othersValue > 0) {
       display.add(LcrPieSlice(label: 'OTHERS', value: othersValue));
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final estimatedHeight = display.length * 60;
-        final enableScroll = estimatedHeight > constraints.maxHeight;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _TotalBadge(
-              label: totalLabel,
-              value: total.toString(),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: ListView.separated(
-                padding: EdgeInsets.zero,
-                itemCount: display.length,
-                physics: enableScroll
-                    ? const BouncingScrollPhysics()
-                    : const NeverScrollableScrollPhysics(),
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final slice = display[index];
-                  final double percent =
-                  total == 0 ? 0.0 : (slice.value / total) * 100.0;
-                  return _CategoryProgressTile(
-                    label: slice.label,
-                    value: slice.value,
-                    percent: percent,
-                    color: _tileColor(index),
-                    emphasize: emphasize?.call(slice) ?? false,
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: _TotalBadge(
+            label: totalLabel,
+            value: total.toString(),
+          ),
+        ),
+        const SizedBox(height: 16),
+        for (var i = 0; i < display.length; i++) ...[
+          _CategoryProgressTile(
+            label: display[i].label,
+            value: display[i].value,
+            percent: total == 0 ? 0.0 : (display[i].value / total) * 100.0,
+            color: _tileColor(i),
+            emphasize: emphasize?.call(display[i]) ?? false,
+          ),
+          if (i < display.length - 1) const SizedBox(height: 12),
+        ],
+      ],
     );
   }
 
@@ -629,7 +612,8 @@ class _TotalBadge extends StatelessWidget {
         border: Border.all(color: Colors.white12),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             label,
@@ -638,6 +622,7 @@ class _TotalBadge extends StatelessWidget {
               fontSize: 12,
               letterSpacing: 0.8,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
@@ -647,6 +632,7 @@ class _TotalBadge extends StatelessWidget {
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -769,14 +755,22 @@ class _StackedBarChart extends StatelessWidget {
           dataSource: data,
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
           yValueMapper: (item, _) => (item as _StackedBarItem).pass,
-          color: Colors.cyanAccent,
+          gradient: const LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [Color(0xFF1BE7FF), Color(0xFF6C5DD3)],
+          ),
         ),
         StackedColumnSeries<dynamic, dynamic>(
           name: 'FAIL',
           dataSource: data,
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
           yValueMapper: (item, _) => (item as _StackedBarItem).fail,
-          color: Colors.pinkAccent,
+          gradient: const LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [Color(0xFFFFC75F), Color(0xFFFF6B6B)],
+          ),
         ),
       ],
     );
@@ -836,14 +830,22 @@ class _OutputChart extends StatelessWidget {
           dataSource: data,
           xValueMapper: (item, _) => (item as _OutputItem).category,
           yValueMapper: (item, _) => (item as _OutputItem).pass,
-          color: Colors.cyanAccent,
+          gradient: const LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [Color(0xFF1BE7FF), Color(0xFF6C5DD3)],
+          ),
         ),
         StackedColumnSeries<dynamic, dynamic>(
           name: 'FAIL',
           dataSource: data,
           xValueMapper: (item, _) => (item as _OutputItem).category,
           yValueMapper: (item, _) => (item as _OutputItem).fail,
-          color: Colors.pinkAccent,
+          gradient: const LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [Color(0xFFFFC75F), Color(0xFFFF6B6B)],
+          ),
         ),
         SplineSeries<dynamic, dynamic>(
           name: 'YIELD RATE',

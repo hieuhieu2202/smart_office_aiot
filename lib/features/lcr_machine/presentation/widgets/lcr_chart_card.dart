@@ -41,7 +41,10 @@ class LcrChartCard extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 12),
-          Expanded(child: child),
+          if (height != null)
+            Expanded(child: child)
+          else
+            child,
         ],
       ),
     );
