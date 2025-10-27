@@ -1305,8 +1305,7 @@ class _ChartCanvas extends StatelessWidget {
                 );
               },
               autoScrollingDelta: shouldScroll ? 18 : 0,
-              autoScrollingMode:
-                  shouldScroll ? AutoScrollingMode.end : AutoScrollingMode.none,
+              autoScrollingMode: AutoScrollingMode.end,
             ),
             primaryYAxis: NumericAxis(
               axisLine: const AxisLine(width: 0),
@@ -1428,8 +1427,7 @@ class _BreakdownChart extends StatelessWidget {
                 );
               },
               autoScrollingDelta: shouldScroll ? 18 : 0,
-              autoScrollingMode:
-                  shouldScroll ? AutoScrollingMode.end : AutoScrollingMode.none,
+              autoScrollingMode: AutoScrollingMode.end,
             ),
             primaryYAxis: NumericAxis(
               axisLine: const AxisLine(width: 0),
