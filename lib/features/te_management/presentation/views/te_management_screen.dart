@@ -58,6 +58,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
   late final String _controllerTag;
   late final TEManagementController _controller;
   late final TextEditingController _searchController;
+  TextEditingController? _filterModelSearchController;
 
   String _formatDate(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}/${value.month.toString().padLeft(2, '0')}/${value.day.toString().padLeft(2, '0')}';
@@ -91,6 +92,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
       Get.delete<TEManagementController>(tag: _controllerTag);
     }
     _searchController.dispose();
+    _filterModelSearchController?.dispose();
     super.dispose();
   }
 
@@ -137,7 +139,9 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
     final panelWidth = isWide ? math.min(480.0, media.size.width * 0.42) : media.size.width;
     DateTime tempStart = _controller.startDate.value;
     DateTime tempEnd = _controller.endDate.value;
-    final modelSearchController = TextEditingController();
+    final modelSearchController =
+        (_filterModelSearchController ??= TextEditingController())
+          ..text = '';
     String modelSearchText = '';
 
     showGeneralDialog<void>(
@@ -548,7 +552,11 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () {
-                                    setState(selected.clear);
+                                    setState(() {
+                                      selected.clear();
+                                      modelSearchText = '';
+                                      modelSearchController.clear();
+                                    });
                                     _controller.applyFilters(clearModels: true);
                                     Navigator.of(context).pop();
                                   },
@@ -565,6 +573,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                                       end: tempEnd,
                                       models: selected.toList(),
                                     );
+                                    modelSearchController.clear();
                                     Navigator.of(context).pop();
                                   },
                                   child: const Text('Apply'),
@@ -591,9 +600,7 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
           child: child,
         );
       },
-    ).whenComplete(() {
-      modelSearchController.dispose();
-    });
+    );
   }
 
   Widget _buildDateTimeField({
