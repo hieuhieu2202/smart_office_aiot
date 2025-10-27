@@ -4,21 +4,25 @@ import 'package:flutter/material.dart';
 
 import '../../domain/entities/te_retest_rate.dart';
 
-const double _kIndexWidth = 64;
-const double _kModelWidth = 220;
-const double _kGroupWidth = 200;
-const double _kCellWidth = 120;
-const double _kHeaderTopHeight = 44;
-const double _kHeaderBottomHeight = 36;
-const double _kRowHeight = 60;
+const double _kIndexBaseWidth = 58;
+const double _kIndexMinWidth = 46;
+const double _kModelBaseWidth = 208;
+const double _kModelMinWidth = 152;
+const double _kGroupBaseWidth = 188;
+const double _kGroupMinWidth = 140;
+const double _kCellBaseWidth = 112;
+const double _kCellMinWidth = 72;
+const double _kHeaderTopHeight = 40;
+const double _kHeaderBottomHeight = 32;
+const double _kRowHeight = 54;
 
-const Color _kHeaderColor = Color(0xFF112F55);
-const Color _kHeaderAccent = Color(0xFF173C6B);
-const Color _kTableBackground = Color(0xFF06152A);
-const Color _kRowEvenColor = Color(0x33163D63);
-const Color _kRowOddColor = Color(0x22163D63);
-const Color _kSpanBackground = Color(0xFF0D2647);
-const Color _kBorderColor = Color(0x3342B8FF);
+const Color _kHeaderColor = Color(0xFF1F2937);
+const Color _kHeaderAccent = Color(0xFF111827);
+const Color _kTableBackground = Color(0xFF0F172A);
+const Color _kRowEvenColor = Color(0xFF15233A);
+const Color _kRowOddColor = Color(0xFF111E34);
+const Color _kSpanBackground = Color(0xFF1E293B);
+const Color _kBorderColor = Color(0x26FFFFFF);
 const BorderSide _kGridBorder = BorderSide(color: _kBorderColor, width: 1);
 
 class TERetestRateTable extends StatefulWidget {
@@ -48,6 +52,90 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
   bool _isSyncingHorizontal = false;
 
   int get _totalColumns => widget.formattedDates.length * 2;
+
+  _TableMetrics _resolveMetrics(double availableWidth) {
+    if (availableWidth <= 0) {
+      return const _TableMetrics(
+        indexWidth: _kIndexMinWidth,
+        modelWidth: _kModelMinWidth,
+        groupWidth: _kGroupMinWidth,
+        cellWidth: _kCellMinWidth,
+        totalWidth: _kIndexMinWidth + _kModelMinWidth + _kGroupMinWidth,
+      );
+    }
+
+    final double minTotal = _kIndexMinWidth +
+        _kModelMinWidth +
+        _kGroupMinWidth +
+        (_totalColumns * _kCellMinWidth);
+    if (availableWidth <= minTotal) {
+      return _TableMetrics(
+        indexWidth: _kIndexMinWidth,
+        modelWidth: _kModelMinWidth,
+        groupWidth: _kGroupMinWidth,
+        cellWidth: _kCellMinWidth,
+        totalWidth: minTotal,
+      );
+    }
+
+    final baseFixed =
+        _kIndexBaseWidth + _kModelBaseWidth + _kGroupBaseWidth;
+    final baseTotal = baseFixed + (_totalColumns * _kCellBaseWidth);
+    final scale = baseTotal == 0
+        ? 1.0
+        : (availableWidth / baseTotal).clamp(0.0, 1.0);
+
+    double indexWidth =
+        (_kIndexBaseWidth * scale).clamp(_kIndexMinWidth, _kIndexBaseWidth);
+    double modelWidth =
+        (_kModelBaseWidth * scale).clamp(_kModelMinWidth, _kModelBaseWidth);
+    double groupWidth =
+        (_kGroupBaseWidth * scale).clamp(_kGroupMinWidth, _kGroupBaseWidth);
+
+    double remaining =
+        availableWidth - (indexWidth + modelWidth + groupWidth);
+    double cellWidth = remaining > 0
+        ? (remaining / _totalColumns)
+        : _kCellMinWidth;
+    cellWidth = cellWidth.clamp(_kCellMinWidth, _kCellBaseWidth);
+
+    double totalWidth =
+        indexWidth + modelWidth + groupWidth + cellWidth * _totalColumns;
+
+    if (totalWidth > availableWidth) {
+      final flexTotal = totalWidth - minTotal;
+      final targetFlex = availableWidth - minTotal;
+      final ratio = flexTotal == 0 ? 0.0 : (targetFlex / flexTotal).clamp(0.0, 1.0);
+
+      double adjust(double value, double min) =>
+          min + (value - min) * ratio;
+
+      indexWidth = adjust(indexWidth, _kIndexMinWidth);
+      modelWidth = adjust(modelWidth, _kModelMinWidth);
+      groupWidth = adjust(groupWidth, _kGroupMinWidth);
+      cellWidth = adjust(cellWidth, _kCellMinWidth);
+      totalWidth =
+          indexWidth + modelWidth + groupWidth + cellWidth * _totalColumns;
+    }
+
+    if (totalWidth < availableWidth) {
+      final extra = availableWidth - totalWidth;
+      cellWidth = math.min(
+        _kCellBaseWidth,
+        cellWidth + (extra / _totalColumns),
+      );
+      totalWidth =
+          indexWidth + modelWidth + groupWidth + cellWidth * _totalColumns;
+    }
+
+    return _TableMetrics(
+      indexWidth: indexWidth,
+      modelWidth: modelWidth,
+      groupWidth: groupWidth,
+      cellWidth: cellWidth,
+      totalWidth: totalWidth,
+    );
+  }
 
   @override
   void initState() {
@@ -112,8 +200,6 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
       );
     }
 
-    final totalWidth =
-        _kIndexWidth + _kModelWidth + _kGroupWidth + (_totalColumns * _kCellWidth);
     const headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
     final totalGroupRows = widget.detail.rows.fold<int>(
       0,
@@ -121,6 +207,10 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
     );
     final naturalHeight =
         headerHeight + (totalGroupRows * _kRowHeight.toDouble());
+    final fallbackTotalWidth = _kIndexBaseWidth +
+        _kModelBaseWidth +
+        _kGroupBaseWidth +
+        (_totalColumns * _kCellBaseWidth);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -131,11 +221,12 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
 
         final width = hasBoundedWidth
             ? constraints.maxWidth
-            : math.max(totalWidth.toDouble(), constraints.minWidth);
+            : math.max(fallbackTotalWidth.toDouble(), constraints.minWidth);
         final height = hasBoundedHeight
             ? constraints.maxHeight
             : math.max(naturalHeight, constraints.minHeight.toDouble());
-        final tableWidth = math.max(totalWidth.toDouble(), width);
+        final metrics = _resolveMetrics(width);
+        final tableWidth = metrics.totalWidth > 0 ? metrics.totalWidth : width;
 
         return SizedBox(
           width: width,
@@ -145,13 +236,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
               color: _kTableBackground,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: _kBorderColor),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x33040E1C),
-                  blurRadius: 22,
-                  offset: Offset(0, 14),
-                )
-              ],
+              boxShadow: const [],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(18),
@@ -162,7 +247,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                     height: headerHeight,
                     child: Scrollbar(
                       controller: _horizontalHeaderController,
-                      thumbVisibility: tableWidth > width,
+                      thumbVisibility: false,
                       child: SingleChildScrollView(
                         controller: _horizontalHeaderController,
                         scrollDirection: Axis.horizontal,
@@ -171,6 +256,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                           height: headerHeight,
                           child: _HeaderRow(
                             formattedDates: widget.formattedDates,
+                            metrics: metrics,
                           ),
                         ),
                       ),
@@ -180,7 +266,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                   Expanded(
                     child: Scrollbar(
                       controller: _horizontalBodyController,
-                      thumbVisibility: tableWidth > width,
+                      thumbVisibility: false,
                       child: SingleChildScrollView(
                         controller: _horizontalBodyController,
                         scrollDirection: Axis.horizontal,
@@ -204,6 +290,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                                   isFirstBlock: index == 0,
                                   onCellTap: widget.onCellTap,
                                   onGroupTap: widget.onGroupTap,
+                                  metrics: metrics,
                                 );
                               },
                             ),
@@ -222,12 +309,30 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
   }
 }
 
+class _TableMetrics {
+  const _TableMetrics({
+    required this.indexWidth,
+    required this.modelWidth,
+    required this.groupWidth,
+    required this.cellWidth,
+    required this.totalWidth,
+  });
+
+  final double indexWidth;
+  final double modelWidth;
+  final double groupWidth;
+  final double cellWidth;
+  final double totalWidth;
+}
+
 class _HeaderRow extends StatelessWidget {
   const _HeaderRow({
     required this.formattedDates,
+    required this.metrics,
   });
 
   final List<String> formattedDates;
+  final _TableMetrics metrics;
 
   double get _fullHeight => _kHeaderTopHeight + _kHeaderBottomHeight;
 
@@ -245,18 +350,18 @@ class _HeaderRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _HeaderBlock(
-            width: _kIndexWidth,
+            width: metrics.indexWidth,
             child: const _HeaderLabel('#'),
           ),
           _HeaderBlock(
-            width: _kModelWidth,
+            width: metrics.modelWidth,
             child: const _HeaderLabel(
               'MODEL NAME',
               alignment: Alignment.centerLeft,
             ),
           ),
           _HeaderBlock(
-            width: _kGroupWidth,
+            width: metrics.groupWidth,
             child: const _HeaderLabel(
               'GROUP NAME',
               alignment: Alignment.centerLeft,
@@ -264,7 +369,7 @@ class _HeaderRow extends StatelessWidget {
           ),
           for (final date in formattedDates)
             SizedBox(
-              width: _kCellWidth * 2,
+              width: metrics.cellWidth * 2,
               height: _fullHeight,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -407,6 +512,7 @@ class _ModelBlock extends StatelessWidget {
     required this.isFirstBlock,
     required this.onCellTap,
     required this.onGroupTap,
+    required this.metrics,
   });
 
   final int index;
@@ -416,12 +522,13 @@ class _ModelBlock extends StatelessWidget {
   final bool isFirstBlock;
   final ValueChanged<TERetestCellDetail>? onCellTap;
   final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final _TableMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
     final groupCount = row.groupNames.length;
     final blockHeight = (groupCount == 0 ? 1 : groupCount) * _kRowHeight;
-    final dataWidth = _kGroupWidth + (totalColumns * _kCellWidth);
+    final dataWidth = metrics.groupWidth + (totalColumns * metrics.cellWidth);
 
     final groupRows = <Widget>[];
 
@@ -461,26 +568,25 @@ class _ModelBlock extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                width: _kGroupWidth,
-                child: _GroupCell(
-                  label: groupName,
-                  background: background,
-                  onTap: onGroupTap == null
-                      ? null
-                      : () => onGroupTap!(
-                            TERetestGroupDetail(
-                              modelName: row.modelName,
-                              groupName: groupName,
-                              cells: List.unmodifiable(cells),
-                            ),
+              _GroupCell(
+                width: metrics.groupWidth,
+                label: groupName,
+                background: background,
+                onTap: onGroupTap == null
+                    ? null
+                    : () => onGroupTap!(
+                          TERetestGroupDetail(
+                            modelName: row.modelName,
+                            groupName: groupName,
+                            cells: List.unmodifiable(cells),
                           ),
-                  isFirstRow: isRowFirst,
-                ),
+                        ),
+                isFirstRow: isRowFirst,
+              ),
               ),
               for (var i = 0; i < cells.length; i++)
                 SizedBox(
-                  width: _kCellWidth,
+                  width: metrics.cellWidth,
                   child: _RetestValueCell(
                     detail: cells[i],
                     background: background,
@@ -529,25 +635,24 @@ class _ModelBlock extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              _GroupCell(
+                width: metrics.groupWidth,
+                label: '-',
+                background: background,
+                isFirstRow: isFirstBlock,
+              ),
+            ),
+            for (final cellDetail in placeholderCells)
               SizedBox(
-                width: _kGroupWidth,
-                child: _GroupCell(
-                  label: '-',
+                width: metrics.cellWidth,
+                child: _RetestValueCell(
+                  detail: cellDetail,
                   background: background,
+                  onTap: onCellTap,
                   isFirstRow: isFirstBlock,
+                  showRightBorder: true,
                 ),
               ),
-              for (final cellDetail in placeholderCells)
-                SizedBox(
-                  width: _kCellWidth,
-                  child: _RetestValueCell(
-                    detail: cellDetail,
-                    background: background,
-                    onTap: onCellTap,
-                    isFirstRow: isFirstBlock,
-                    showRightBorder: true,
-                  ),
-                ),
             ],
           ),
         ),
@@ -555,19 +660,19 @@ class _ModelBlock extends StatelessWidget {
     }
 
     return SizedBox(
-      width: _kIndexWidth + _kModelWidth + dataWidth,
+      width: metrics.totalWidth,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SpanCell(
-            width: _kIndexWidth,
+            width: metrics.indexWidth,
             height: blockHeight,
             label: index.toString(),
             alignment: Alignment.center,
             isFirst: isFirstBlock,
           ),
           _SpanCell(
-            width: _kModelWidth,
+            width: metrics.modelWidth,
             height: blockHeight,
             label: row.modelName,
             alignment: Alignment.centerLeft,
@@ -626,14 +731,7 @@ class _SpanCell extends StatelessWidget {
       height: height,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF14355E),
-              _kSpanBackground,
-            ],
-          ),
+          color: _kSpanBackground,
           border: Border(
             top: isFirst ? _kGridBorder : BorderSide.none,
             right: _kGridBorder,
@@ -659,12 +757,14 @@ class _SpanCell extends StatelessWidget {
 
 class _GroupCell extends StatelessWidget {
   const _GroupCell({
+    required this.width,
     required this.label,
     required this.background,
     this.onTap,
     required this.isFirstRow,
   });
 
+  final double width;
   final String label;
   final Color background;
   final VoidCallback? onTap;
@@ -681,7 +781,7 @@ class _GroupCell extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Colors.white,
+              color: Colors.white70,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -693,15 +793,8 @@ class _GroupCell extends StatelessWidget {
       ],
     );
 
-    final startColor = Color.alphaBlend(const Color(0x33264986), background);
-    final endColor = Color.alphaBlend(const Color(0x11264986), background);
-
     final decoration = BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: [startColor, endColor],
-      ),
+      color: background,
       border: Border(
         left: _kGridBorder,
         right: _kGridBorder,
@@ -710,12 +803,15 @@ class _GroupCell extends StatelessWidget {
       ),
     );
 
-    final child = Container(
-      height: _kRowHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: decoration,
-      alignment: Alignment.centerLeft,
-      child: content,
+    final child = SizedBox(
+      width: width,
+      child: Container(
+        height: _kRowHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: decoration,
+        alignment: Alignment.centerLeft,
+        child: content,
+      ),
     );
 
     if (onTap == null) {
@@ -746,29 +842,25 @@ class _RetestValueCell extends StatelessWidget {
   final bool isFirstRow;
   final bool showRightBorder;
 
-  static const Color _dangerColor = Color(0xFFFF6B6B);
-  static const Color _warningColor = Color(0xFFFFC56F);
-  static const Color _normalColor = Color(0xFF38D893);
+  static const Color _dangerColor = Color(0xFFE11D48);
+  static const Color _warningColor = Color(0xFFF59E0B);
+  static const Color _normalColor = Color(0xFF22C55E);
 
   @override
   Widget build(BuildContext context) {
     final value = detail.retestRate;
-    Color fillColor = Color.alphaBlend(const Color(0x1A1F3147), background);
-    Color textColor = Colors.white60;
-    Color outlineColor = Colors.white12;
+    Color fillColor = Color.alphaBlend(const Color(0x14000000), background);
+    Color textColor = Colors.white70;
     if (value != null) {
       if (value >= 5) {
-        fillColor = const Color(0x29FF6B6B);
+        fillColor = const Color(0x33F87171);
         textColor = _dangerColor;
-        outlineColor = _dangerColor.withOpacity(0.35);
       } else if (value >= 3) {
-        fillColor = const Color(0x26FFC56F);
+        fillColor = const Color(0x33FACC15);
         textColor = _warningColor;
-        outlineColor = _warningColor.withOpacity(0.35);
       } else {
-        fillColor = const Color(0x2538D893);
+        fillColor = const Color(0x3322C55E);
         textColor = _normalColor;
-        outlineColor = _normalColor.withOpacity(0.35);
       }
     } else {
       textColor = Colors.white54;
@@ -785,32 +877,15 @@ class _RetestValueCell extends StatelessWidget {
           top: isFirstRow ? _kGridBorder : BorderSide.none,
           bottom: _kGridBorder,
         ),
-        boxShadow: value == null
-            ? const []
-            : [
-                BoxShadow(
-                  color: outlineColor,
-                  blurRadius: 12,
-                  spreadRadius: 0,
-                ),
-              ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       alignment: Alignment.center,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: outlineColor, width: 1),
-          borderRadius: BorderRadius.circular(10),
-          color: value == null ? Colors.transparent : fillColor.withOpacity(0.65),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        child: Text(
-          value == null ? 'N/A' : '${value.toStringAsFixed(2)}%',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2,
-          ),
+      child: Text(
+        value == null ? 'N/A' : '${value.toStringAsFixed(2)}%',
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
         ),
       ),
     );
@@ -819,9 +894,9 @@ class _RetestValueCell extends StatelessWidget {
       message: tooltip,
       textStyle: const TextStyle(color: Colors.white, fontSize: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F1E2E),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white24),
+        color: _kSpanBackground,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white10),
       ),
       child: cell,
     );
