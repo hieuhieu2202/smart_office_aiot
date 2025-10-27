@@ -170,17 +170,29 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                         firstDate: DateTime(initial.year - 1),
                         lastDate: DateTime(initial.year + 1),
                         builder: (context, child) {
+                          final theme = Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: kTeAccentColor,
+                              surface: kTeSurfaceColor,
+                              background: kTeSurfaceColor,
+                              onSurface: Colors.white,
+                              onPrimary: Colors.black,
+                            ),
+                          );
+                          final size = MediaQuery.of(context).size;
+                          final maxWidth = math.min(size.width - 32, 520.0);
+                          final maxHeight = math.min(size.height - 40, size.height * 0.9);
                           return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: kTeAccentColor,
-                                surface: kTeSurfaceColor,
-                                background: kTeSurfaceColor,
-                                onSurface: Colors.white,
-                                onPrimary: Colors.black,
+                            data: theme,
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: maxWidth,
+                                  maxHeight: maxHeight,
+                                ),
+                                child: child!,
                               ),
                             ),
-                            child: child!,
                           );
                         },
                       );
@@ -240,17 +252,29 @@ class _TEManagementScreenState extends State<TEManagementScreen> {
                         firstDate: DateTime(tempStart.year - 1),
                         lastDate: DateTime(tempEnd.year + 1),
                         builder: (context, child) {
+                          final theme = Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: kTeAccentColor,
+                              surface: kTeSurfaceColor,
+                              background: kTeSurfaceColor,
+                              onSurface: Colors.white,
+                              onPrimary: Colors.black,
+                            ),
+                          );
+                          final size = MediaQuery.of(context).size;
+                          final maxWidth = math.min(size.width - 32, 620.0);
+                          final maxHeight = math.min(size.height - 40, size.height * 0.92);
                           return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: kTeAccentColor,
-                                surface: kTeSurfaceColor,
-                                background: kTeSurfaceColor,
-                                onSurface: Colors.white,
-                                onPrimary: Colors.black,
+                            data: theme,
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: maxWidth,
+                                  maxHeight: maxHeight,
+                                ),
+                                child: child!,
                               ),
                             ),
-                            child: child!,
                           );
                         },
                       );
