@@ -1215,6 +1215,29 @@ class _ChartCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String _wrapLabel(String raw) {
+      final text = raw.trim();
+      if (text.length <= 12) return text;
+      final buffer = StringBuffer();
+      var index = 0;
+      var lineCount = 0;
+      while (index < text.length && lineCount < 3) {
+        final nextBreak = math.min(index + 12, text.length);
+        buffer.write(text.substring(index, nextBreak));
+        index = nextBreak;
+        lineCount++;
+        if (index < text.length && lineCount < 3) {
+          buffer.write('\n');
+        }
+      }
+      if (index < text.length) {
+        buffer.write('…');
+      }
+      return buffer.toString();
+    }
+
+    final shouldScroll = points.length > 18;
+
     final columnSeries = ColumnSeries<_ChartPoint, String>(
       dataSource: points,
       xValueMapper: (point, _) => point.label,
@@ -1274,17 +1297,16 @@ class _ChartCanvas extends StatelessWidget {
               axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
               majorGridLines: const MajorGridLines(width: 0),
               labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-              labelIntersectAction: AxisLabelIntersectAction.trim,
+              labelIntersectAction: AxisLabelIntersectAction.multipleRows,
               axisLabelFormatter: (details) {
-                final raw = details.text;
-                const int maxChars = 14;
-                final truncated = raw.length > maxChars ? '${raw.substring(0, maxChars)}…' : raw;
                 return ChartAxisLabel(
-                  truncated,
+                  _wrapLabel(details.text),
                   const TextStyle(color: Colors.white, fontSize: 12),
                 );
               },
-              labelRotation: -35,
+              autoScrollingDelta: shouldScroll ? 18 : 0,
+              autoScrollingMode:
+                  shouldScroll ? AutoScrollingMode.end : AutoScrollingMode.none,
             ),
             primaryYAxis: NumericAxis(
               axisLine: const AxisLine(width: 0),
@@ -1320,6 +1342,29 @@ class _BreakdownChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String _wrapLabel(String raw) {
+      final text = raw.trim();
+      if (text.length <= 12) return text;
+      final buffer = StringBuffer();
+      var index = 0;
+      var lineCount = 0;
+      while (index < text.length && lineCount < 3) {
+        final nextBreak = math.min(index + 12, text.length);
+        buffer.write(text.substring(index, nextBreak));
+        index = nextBreak;
+        lineCount++;
+        if (index < text.length && lineCount < 3) {
+          buffer.write('\n');
+        }
+      }
+      if (index < text.length) {
+        buffer.write('…');
+      }
+      return buffer.toString();
+    }
+
+    final shouldScroll = points.length > 18;
+
     final columnSeries = ColumnSeries<_BreakdownPoint, String>(
       dataSource: points,
       xValueMapper: (point, _) => point.label,
@@ -1375,17 +1420,16 @@ class _BreakdownChart extends StatelessWidget {
               axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
               majorGridLines: const MajorGridLines(width: 0),
               labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-              labelIntersectAction: AxisLabelIntersectAction.trim,
+              labelIntersectAction: AxisLabelIntersectAction.multipleRows,
               axisLabelFormatter: (details) {
-                final raw = details.text;
-                const int maxChars = 16;
-                final truncated = raw.length > maxChars ? '${raw.substring(0, maxChars)}…' : raw;
                 return ChartAxisLabel(
-                  truncated,
+                  _wrapLabel(details.text),
                   const TextStyle(color: Colors.white, fontSize: 12),
                 );
               },
-              labelRotation: -35,
+              autoScrollingDelta: shouldScroll ? 18 : 0,
+              autoScrollingMode:
+                  shouldScroll ? AutoScrollingMode.end : AutoScrollingMode.none,
             ),
             primaryYAxis: NumericAxis(
               axisLine: const AxisLine(width: 0),
