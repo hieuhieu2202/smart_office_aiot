@@ -706,7 +706,9 @@ class _CategoryProgressTile extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
-            value: percent <= 0 ? 0 : percent.clamp(0, 100) / 100,
+            value: percent <= 0
+                ? 0.0
+                : percent.clamp(0, 100).toDouble() / 100.0,
             minHeight: 8,
             backgroundColor: const Color(0xFF0A274F),
             valueColor: AlwaysStoppedAnimation<Color>(color),
