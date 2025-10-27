@@ -1244,38 +1244,47 @@ class _ChartCanvas extends StatelessWidget {
       ),
     );
 
-    return SfCartesianChart(
-      plotAreaBorderWidth: 0,
-      primaryXAxis: CategoryAxis(
-        axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
-        majorGridLines: const MajorGridLines(width: 0),
-        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-        labelIntersectAction: AxisLabelIntersectAction.trim,
-        axisLabelFormatter: (details) {
-          final raw = details.text;
-          const int maxChars = 14;
-          final truncated = raw.length > maxChars ? '${raw.substring(0, maxChars)}…' : raw;
-          return ChartAxisLabel(
-            truncated,
-            const TextStyle(color: Colors.white, fontSize: 12),
-          );
-        },
-        labelRotation: -35,
-      ),
-      primaryYAxis: NumericAxis(
-        axisLine: const AxisLine(width: 0),
-        majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
-        labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
-      ),
-      legend: const Legend(isVisible: false),
-      tooltipBehavior: TooltipBehavior(
-        enable: true,
-        format: '{point.x}: {point.y}',
-      ),
-      series: <CartesianSeries<dynamic, dynamic>>[
-        columnSeries as CartesianSeries<dynamic, dynamic>,
-        splineSeries as CartesianSeries<dynamic, dynamic>,
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          child: SfCartesianChart(
+            plotAreaBorderWidth: 0,
+            primaryXAxis: CategoryAxis(
+              axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
+              majorGridLines: const MajorGridLines(width: 0),
+              labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+              labelIntersectAction: AxisLabelIntersectAction.trim,
+              axisLabelFormatter: (details) {
+                final raw = details.text;
+                const int maxChars = 14;
+                final truncated = raw.length > maxChars ? '${raw.substring(0, maxChars)}…' : raw;
+                return ChartAxisLabel(
+                  truncated,
+                  const TextStyle(color: Colors.white, fontSize: 12),
+                );
+              },
+              labelRotation: -35,
+            ),
+            primaryYAxis: NumericAxis(
+              axisLine: const AxisLine(width: 0),
+              majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
+              labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+            legend: const Legend(isVisible: false),
+            tooltipBehavior: TooltipBehavior(
+              enable: true,
+              header: '',
+              format: '{point.x}: {point.y}',
+            ),
+            series: <CartesianSeries<dynamic, dynamic>>[
+              columnSeries as CartesianSeries<dynamic, dynamic>,
+              splineSeries as CartesianSeries<dynamic, dynamic>,
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1327,36 +1336,48 @@ class _BreakdownChart extends StatelessWidget {
       ),
     );
 
-    return SfCartesianChart(
-      key: ValueKey('breakdown_chart_${points.length}'),
-      plotAreaBorderWidth: 0,
-      primaryXAxis: CategoryAxis(
-        axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
-        majorGridLines: const MajorGridLines(width: 0),
-        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-        labelIntersectAction: AxisLabelIntersectAction.trim,
-        axisLabelFormatter: (details) {
-          final raw = details.text;
-          const maxChars = 16;
-          final truncated = raw.length > maxChars ? '${raw.substring(0, maxChars)}…' : raw;
-          return ChartAxisLabel(
-            truncated,
-            const TextStyle(color: Colors.white, fontSize: 12),
-          );
-        },
-        labelRotation: -35,
-      ),
-      primaryYAxis: NumericAxis(
-        axisLine: const AxisLine(width: 0),
-        majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
-        labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
-      ),
-      legend: const Legend(isVisible: false),
-      tooltipBehavior: TooltipBehavior(enable: true, format: '{point.x}: {point.y}'),
-      series: <CartesianSeries<dynamic, dynamic>>[
-        columnSeries as CartesianSeries<dynamic, dynamic>,
-        splineSeries as CartesianSeries<dynamic, dynamic>,
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          key: ValueKey('breakdown_chart_${points.length}'),
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          child: SfCartesianChart(
+            plotAreaBorderWidth: 0,
+            primaryXAxis: CategoryAxis(
+              axisLine: const AxisLine(color: Color(0xFF1F3A5F)),
+              majorGridLines: const MajorGridLines(width: 0),
+              labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+              labelIntersectAction: AxisLabelIntersectAction.trim,
+              axisLabelFormatter: (details) {
+                final raw = details.text;
+                const int maxChars = 16;
+                final truncated = raw.length > maxChars ? '${raw.substring(0, maxChars)}…' : raw;
+                return ChartAxisLabel(
+                  truncated,
+                  const TextStyle(color: Colors.white, fontSize: 12),
+                );
+              },
+              labelRotation: -35,
+            ),
+            primaryYAxis: NumericAxis(
+              axisLine: const AxisLine(width: 0),
+              majorGridLines: const MajorGridLines(color: Color(0x221F3A5F)),
+              labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+            legend: const Legend(isVisible: false),
+            tooltipBehavior: TooltipBehavior(
+              enable: true,
+              header: '',
+              format: '{point.x}: {point.y}',
+            ),
+            series: <CartesianSeries<dynamic, dynamic>>[
+              columnSeries as CartesianSeries<dynamic, dynamic>,
+              splineSeries as CartesianSeries<dynamic, dynamic>,
+            ],
+          ),
+        );
+      },
     );
   }
 }
