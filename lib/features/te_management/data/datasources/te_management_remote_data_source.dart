@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../../service/auth/auth_config.dart';
 import '../models/te_report_models.dart';
+import '../models/te_retest_rate_models.dart';
 
 class TEManagementRemoteDataSource {
   static const String _baseUrl =
@@ -119,5 +120,29 @@ class TEManagementRemoteDataSource {
     final Map<String, dynamic> jsonMap =
         json.decode(response.body) as Map<String, dynamic>;
     return TEErrorDetailModel.fromJson(jsonMap);
+  }
+
+  Future<TERetestDetailModel> fetchRetestRateReport({
+    required String modelSerial,
+    required String range,
+    String model = '',
+  }) async {
+    final uri = _buildUri('RetestRateReport', {
+      'customer': modelSerial,
+      'range': range,
+      'model': model,
+    });
+    final response = await http.get(uri, headers: _headers());
+    if (response.statusCode == 204 || response.body.isEmpty) {
+      return TERetestDetailModel(dates: const [], rows: const []);
+    }
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load TE retest rate report (${response.statusCode})',
+      );
+    }
+
+    final dynamic decoded = json.decode(response.body);
+    return TERetestDetailModel.fromJson(decoded);
   }
 }

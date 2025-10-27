@@ -1,4 +1,5 @@
 import '../../domain/entities/te_report.dart';
+import '../../domain/entities/te_retest_rate.dart';
 import '../../domain/repositories/te_management_repository.dart';
 import '../datasources/te_management_remote_data_source.dart';
 import '../models/te_report_models.dart';
@@ -48,6 +49,19 @@ class TEManagementRepositoryImpl implements TEManagementRepository {
       range: range,
       model: model,
       group: group,
+    );
+  }
+
+  @override
+  Future<TERetestDetailEntity> fetchRetestRateReport({
+    required String modelSerial,
+    required String range,
+    String model = '',
+  }) {
+    return _remoteDataSource.fetchRetestRateReport(
+      modelSerial: modelSerial,
+      range: range,
+      model: model,
     );
   }
 }
