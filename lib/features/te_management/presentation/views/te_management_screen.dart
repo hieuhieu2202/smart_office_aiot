@@ -1370,21 +1370,10 @@ class _ChartCanvas extends StatelessWidget {
                 final chartPoint = data is _ChartPoint ? data : null;
                 final label = chartPoint?.label ?? point?.x?.toString() ?? '';
                 final value = chartPoint?.value ?? point?.y ?? 0;
-                final displayLabel = label.length > 28
-                    ? '${label.substring(0, 28)}…'
-                    : label;
-                return Container(
-                  constraints: const BoxConstraints(maxWidth: 220),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF071427),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: kTeAccentColor.withOpacity(.65)),
-                  ),
-                  child: Text(
-                    '$displayLabel\nFail Qty: $value',
-                    style: const TextStyle(color: Colors.white, fontSize: 12, height: 1.4),
-                  ),
+                return _buildChartTooltip(
+                  gradient,
+                  label,
+                  value,
                 );
               },
             ),
@@ -1487,21 +1476,10 @@ class _BreakdownChart extends StatelessWidget {
                 final breakdownPoint = data is _BreakdownPoint ? data : null;
                 final label = breakdownPoint?.label ?? point?.x?.toString() ?? '';
                 final value = breakdownPoint?.value ?? point?.y ?? 0;
-                final displayLabel = label.length > 28
-                    ? '${label.substring(0, 28)}…'
-                    : label;
-                return Container(
-                  constraints: const BoxConstraints(maxWidth: 220),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF071427),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: kTeAccentColor.withOpacity(.65)),
-                  ),
-                  child: Text(
-                    '$displayLabel\nFail Qty: $value',
-                    style: const TextStyle(color: Colors.white, fontSize: 12, height: 1.4),
-                  ),
+                return _buildChartTooltip(
+                  gradient,
+                  label,
+                  value,
                 );
               },
             ),
@@ -1514,6 +1492,66 @@ class _BreakdownChart extends StatelessWidget {
       },
     );
   }
+}
+
+Widget _buildChartTooltip(
+  LinearGradient gradient,
+  String rawLabel,
+  num value,
+) {
+  final label = rawLabel.trim().isEmpty ? 'N/A' : rawLabel;
+  final colors = gradient.colors;
+  final primary = colors.isNotEmpty ? colors.first : kTeAccentColor;
+  final secondary = colors.length > 1 ? colors.last : primary;
+  final backgroundColors = [
+    primary.withOpacity(.92),
+    secondary.withOpacity(.92),
+  ];
+
+  return Container(
+    constraints: const BoxConstraints(maxWidth: 260),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: backgroundColors,
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.white.withOpacity(.18)),
+      boxShadow: [
+        BoxShadow(
+          color: secondary.withOpacity(.32),
+          blurRadius: 12,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Fail Qty: $value',
+          style: TextStyle(
+            color: Colors.white.withOpacity(.88),
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ChartEmptyState extends StatelessWidget {
