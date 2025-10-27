@@ -956,10 +956,10 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
     final detail = _detail!;
     return ResponsiveBuilder(
       builder: (context, sizing) {
-        final isWide = sizing.isTablet || sizing.isDesktop;
         final media = MediaQuery.of(context);
         final wideHeight = math.min(media.size.height * 0.65, 460.0);
         final stackedHeight = math.min(media.size.height * 0.35, 320.0);
+
         final chartCards = <Widget>[
           _ChartCard(
             title: 'Order by Error Code',
@@ -981,30 +981,41 @@ class _RateDetailDialogState extends State<_RateDetailDialog> {
               breakdownGradient: _errorGradient,
             ),
         ];
+
         if (chartCards.isEmpty) {
           return const _ChartEmptyState();
         }
-        if (isWide) {
-          final children = <Widget>[];
-          for (var i = 0; i < chartCards.length; i++) {
-            children.add(Expanded(child: chartCards[i]));
-            if (i != chartCards.length - 1) {
-              children.add(const SizedBox(width: 16));
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final bool canDisplayRow =
+                (sizing.isTablet || sizing.isDesktop) && constraints.maxWidth >= 900;
+
+            if (canDisplayRow) {
+              final children = <Widget>[];
+              for (var i = 0; i < chartCards.length; i++) {
+                children.add(Expanded(child: chartCards[i]));
+                if (i != chartCards.length - 1) {
+                  children.add(const SizedBox(width: 16));
+                }
+              }
+              return SizedBox(
+                height: wideHeight,
+                width: constraints.maxWidth,
+                child: Row(children: children),
+              );
             }
-          }
-          return SizedBox(
-            height: wideHeight,
-            child: Row(children: children),
-          );
-        }
-        final columnChildren = <Widget>[];
-        for (var i = 0; i < chartCards.length; i++) {
-          columnChildren.add(SizedBox(height: stackedHeight, child: chartCards[i]));
-          if (i != chartCards.length - 1) {
-            columnChildren.add(const SizedBox(height: 16));
-          }
-        }
-        return Column(children: columnChildren);
+
+            final columnChildren = <Widget>[];
+            for (var i = 0; i < chartCards.length; i++) {
+              columnChildren.add(SizedBox(height: stackedHeight, child: chartCards[i]));
+              if (i != chartCards.length - 1) {
+                columnChildren.add(const SizedBox(height: 16));
+              }
+            }
+            return Column(children: columnChildren);
+          },
+        );
       },
     );
   }
