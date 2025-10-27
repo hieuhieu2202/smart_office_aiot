@@ -966,11 +966,6 @@ class _EmployeeStatisticsChart extends StatelessWidget {
       return math.max(maxValue, item.total);
     });
 
-    final overallPass = rows.fold<int>(0, (value, item) => value + item.pass);
-    final overallTotal = rows.fold<int>(0, (value, item) => value + item.total);
-    final double overallRate =
-        overallTotal == 0 ? 0 : (overallPass / overallTotal) * 100;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -981,14 +976,6 @@ class _EmployeeStatisticsChart extends StatelessWidget {
               data: item,
               maxTotal: maxTotal == 0 ? 1 : maxTotal,
             ),
-          ),
-        ),
-        const Spacer(),
-        Text(
-          'OVERALL YIELD RATE: ${overallRate.toStringAsFixed(1)}%',
-          style: const TextStyle(
-            color: Colors.white70,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -1005,7 +992,7 @@ class _EmployeeStatBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final widthFactor = data.total == 0 ? 0.0 : data.total / maxTotal;
-    final rateLabel = data.yieldRate.toStringAsFixed(0);
+    final totalLabel = data.total.toString();
     final double clampedFactor = widthFactor.clamp(0.0, 1.0).toDouble();
 
     return Row(
@@ -1051,7 +1038,7 @@ class _EmployeeStatBar extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${rateLabel}%',
+                        totalLabel,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
