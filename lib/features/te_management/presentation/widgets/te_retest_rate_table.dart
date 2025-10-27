@@ -84,11 +84,25 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
         final naturalHeight =
             headerHeight + (totalGroupRows * _kRowHeight.toDouble());
 
-        final viewportWidth = constraints.constrainWidth(
-          math.max(totalWidth, _kIndexWidth + _kModelWidth + _kGroupWidth),
+        final hasBoundedWidth = constraints.hasBoundedWidth &&
+            constraints.maxWidth.isFinite;
+        final hasBoundedHeight = constraints.hasBoundedHeight &&
+            constraints.maxHeight.isFinite;
+
+        final targetWidth = hasBoundedWidth
+            ? constraints.maxWidth
+            : math.max(totalWidth, _kIndexWidth + _kModelWidth + _kGroupWidth);
+        final targetHeight = hasBoundedHeight
+            ? constraints.maxHeight
+            : math.max(naturalHeight, minimumHeight.toDouble());
+
+        final viewportWidth = math.max(
+          targetWidth,
+          _kIndexWidth + _kModelWidth + _kGroupWidth,
         );
-        final viewportHeight = constraints.constrainHeight(
-          math.max(naturalHeight, minimumHeight.toDouble()),
+        final viewportHeight = math.max(
+          targetHeight,
+          minimumHeight.toDouble(),
         );
 
         final tableWidth = math.max(totalWidth, viewportWidth);
@@ -165,7 +179,15 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
             ),
           ),
         );
-        return surface;
+
+        return SizedBox(
+          width: targetWidth,
+          height: targetHeight,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: surface,
+          ),
+        );
       },
     );
   }
