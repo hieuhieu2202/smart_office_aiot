@@ -70,15 +70,13 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
       );
     }
 
-    final totalWidth = _kIndexWidth +
-        _kModelWidth +
-        _kGroupWidth +
-        (_totalColumns * _kCellWidth);
+    final totalWidth =
+        _kIndexWidth + _kModelWidth + _kGroupWidth + (_totalColumns * _kCellWidth);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
-        final minimumHeight = headerHeight + 1.0;
+        final minimumHeight = headerHeight + _kRowHeight;
         final totalGroupRows = widget.detail.rows.fold<int>(
           0,
           (sum, row) => sum + math.max(row.groupNames.length, 1),
@@ -88,9 +86,10 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
 
         final hasFiniteHeight =
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+        final desiredHeight = math.max(naturalHeight, minimumHeight);
         final targetHeight = hasFiniteHeight
-            ? constraints.maxHeight
-            : math.max(naturalHeight, minimumHeight);
+            ? constraints.constrainHeight(desiredHeight)
+            : desiredHeight;
 
         final hasFiniteWidth =
             constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
@@ -98,6 +97,11 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
             ? constraints.maxWidth
             : math.max(totalWidth, constraints.minWidth);
         final tableWidth = math.max(totalWidth, hostWidth);
+
+        final bodyHeight = math.max(
+          targetHeight - headerHeight,
+          _kRowHeight.toDouble(),
+        );
 
         return SizedBox(
           width: hasFiniteWidth ? hostWidth : tableWidth,
@@ -133,7 +137,8 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                         _HeaderRow(
                           formattedDates: widget.formattedDates,
                         ),
-                        Expanded(
+                        SizedBox(
+                          height: bodyHeight,
                           child: Scrollbar(
                             controller: _verticalController,
                             thumbVisibility: true,

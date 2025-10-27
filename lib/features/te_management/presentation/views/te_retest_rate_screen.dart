@@ -134,11 +134,13 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
 
                       return Stack(
                         children: [
-                          TERetestRateTable(
-                            detail: detail,
-                            formattedDates: _controller.formattedDates,
-                            onCellTap: _showCellDetailDialog,
-                            onGroupTap: _showGroupTrendDialog,
+                          Positioned.fill(
+                            child: TERetestRateTable(
+                              detail: detail,
+                              formattedDates: _controller.formattedDates,
+                              onCellTap: _showCellDetailDialog,
+                              onGroupTap: _showGroupTrendDialog,
+                            ),
                           ),
                           if (loading)
                             Positioned.fill(
