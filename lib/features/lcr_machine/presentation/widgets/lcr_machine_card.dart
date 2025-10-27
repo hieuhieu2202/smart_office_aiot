@@ -9,9 +9,11 @@ class LcrMachineCard extends StatelessWidget {
   const LcrMachineCard({
     super.key,
     required this.data,
+    required this.maxPass,
   });
 
   final LcrMachineGauge data;
+  final int maxPass;
 
   static const List<Color> _palette = <Color>[
     Color(0xFF26C6DA),
@@ -29,10 +31,15 @@ class LcrMachineCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = _accentColor;
-    final computedTotal = data.total > 0 ? data.total : data.pass;
-    final safeMax = math.max(computedTotal, 1).toDouble();
-    final passValue = data.pass.toDouble().clamp(0.0, safeMax);
-    final remainder = (safeMax - passValue).clamp(0.0, safeMax);
+    final overallMax = math.max(maxPass, data.pass);
+    final gaugeMaxLabel = overallMax > 0 ? overallMax : 0;
+    final safeMax = gaugeMaxLabel > 0 ? gaugeMaxLabel.toDouble() : 1.0;
+    final passValue = gaugeMaxLabel > 0
+        ? data.pass.toDouble().clamp(0.0, safeMax)
+        : 0.0;
+    final remainder = gaugeMaxLabel > 0
+        ? (safeMax - passValue).clamp(0.0, safeMax)
+        : 1.0;
     final segments = <_GaugeSegment>[
       _GaugeSegment(label: 'pass', value: passValue, color: accent),
       _GaugeSegment(
@@ -43,7 +50,7 @@ class LcrMachineCard extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF03132D).withOpacity(0.88),
         borderRadius: BorderRadius.circular(14),
@@ -76,20 +83,33 @@ class LcrMachineCard extends StatelessWidget {
                             children: [
                               Text(
                                 '${data.pass}',
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.4,
-                                ),
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.4,
+                                      fontSize: 26,
+                                    ) ??
+                                    const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 26,
+                                      letterSpacing: 0.4,
+                                    ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               Text(
                                 'PCS PASS',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: Colors.white70,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.6,
-                                ),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.6,
+                                    ) ??
+                                    const TextStyle(
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.6,
+                                      fontSize: 10,
+                                    ),
                               ),
                             ],
                           ),
@@ -128,7 +148,7 @@ class LcrMachineCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                data.total > 0 ? data.total.toString() : '0',
+                gaugeMaxLabel.toString(),
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: Colors.white54,
                   fontWeight: FontWeight.w600,

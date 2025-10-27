@@ -1488,6 +1488,7 @@ class _MachinesGrid extends StatelessWidget {
       );
     }
     final items = list.take(4).toList();
+    final overallPass = items.fold<int>(0, (sum, gauge) => sum + gauge.pass);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: List.generate(items.length, (index) {
@@ -1498,7 +1499,10 @@ class _MachinesGrid extends StatelessWidget {
               left: index == 0 ? 0 : 8,
               right: index == items.length - 1 ? 0 : 8,
             ),
-            child: LcrMachineCard(data: gauge),
+            child: LcrMachineCard(
+              data: gauge,
+              maxPass: overallPass,
+            ),
           ),
         );
       }),
