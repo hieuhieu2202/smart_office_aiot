@@ -1045,7 +1045,7 @@ class _OutputChart extends StatelessWidget {
 
     return SfCartesianChart(
       plotAreaBorderWidth: 0,
-      plotAreaBackgroundColor: const Color(0x332B3A5A),
+      plotAreaBackgroundColor: const Color(0x1A2B3A5A),
       tooltipBehavior: TooltipBehavior(
         enable: true,
         activationMode: ActivationMode.singleTap,
@@ -1068,6 +1068,8 @@ class _OutputChart extends StatelessWidget {
         isVisible: true,
         position: LegendPosition.bottom,
         textStyle: const TextStyle(color: Colors.white70),
+        iconHeight: 10,
+        iconWidth: 30,
       ),
       primaryXAxis: CategoryAxis(
         labelStyle: const TextStyle(color: Colors.white70),
@@ -1094,13 +1096,16 @@ class _OutputChart extends StatelessWidget {
             PlotBand(
               start: 98,
               end: 98,
-              borderWidth: 1.5,
-              borderColor: Colors.greenAccent,
-              dashArray: const <double>[6, 4],
-              text: 'Target 98%',
-              textStyle: const TextStyle(
-                color: Colors.greenAccent,
-                fontSize: 10,
+              borderWidth: 1,
+              borderColor: Colors.greenAccent.withOpacity(0.7),
+              dashArray: const <double>[4, 6],
+              text: '98% TARGET',
+              textAngle: 0,
+              verticalTextAlignment: TextAnchor.end,
+              horizontalTextAlignment: TextAnchor.end,
+              textStyle: TextStyle(
+                color: Colors.greenAccent.withOpacity(0.6),
+                fontSize: 9,
                 fontWeight: FontWeight.w600,
               ),
               shouldRenderAboveSeries: true,
@@ -1125,30 +1130,9 @@ class _OutputChart extends StatelessWidget {
             isVisible: true,
             labelAlignment: ChartDataLabelAlignment.outer,
             textStyle: const TextStyle(
-              color: Colors.white,
+              color: Colors.cyanAccent,
               fontWeight: FontWeight.w700,
             ),
-            builder: (dynamic item, dynamic point, dynamic series,
-                int pointIndex, int seriesIndex) {
-              final bar = item as _OutputItem;
-              return DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10203F),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Text(
-                    '${bar.total}',
-                    style: const TextStyle(
-                      color: Colors.cyanAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
         ),
         SplineSeries<dynamic, dynamic>(
@@ -1164,6 +1148,41 @@ class _OutputChart extends StatelessWidget {
             shape: DataMarkerType.circle,
             borderColor: Colors.black,
             borderWidth: 1.5,
+            height: 10,
+            width: 10,
+          ),
+          dataLabelSettings: DataLabelSettings(
+            isVisible: true,
+            labelAlignment: ChartDataLabelAlignment.top,
+            textStyle: const TextStyle(
+              color: Colors.amberAccent,
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
+            ),
+            builder: (dynamic item, dynamic point, dynamic series,
+                int pointIndex, int seriesIndex) {
+              final entry = item as _OutputItem;
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0xAA041026),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  child: Text(
+                    '${entry.yr.toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      color: Colors.amberAccent,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ],
