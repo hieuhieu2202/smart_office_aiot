@@ -860,6 +860,21 @@ class _StackedBarChart extends StatelessWidget {
 
     return SfCartesianChart(
       plotAreaBorderWidth: 0,
+      tooltipBehavior: TooltipBehavior(
+        enable: true,
+        activationMode: ActivationMode.singleTap,
+        tooltipPosition: TooltipPosition.pointer,
+        header: '',
+        builder: (dynamic item, dynamic point, dynamic series, int pointIndex,
+            int seriesIndex) {
+          final bar = item as _StackedBarItem;
+          return _BarTooltip(
+            title: bar.category,
+            pass: bar.pass,
+            fail: bar.fail,
+          );
+        },
+      ),
       primaryXAxis: CategoryAxis(
         labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
         majorGridLines: const MajorGridLines(width: 0),
@@ -882,6 +897,22 @@ class _StackedBarChart extends StatelessWidget {
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
           yValueMapper: (item, _) => (item as _StackedBarItem).pass,
           color: Colors.cyanAccent,
+          dataLabelSettings: DataLabelSettings(
+            isVisible: true,
+            textStyle: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+            builder: (dynamic item, dynamic point, dynamic series,
+                int pointIndex, int seriesIndex) {
+              final bar = item as _StackedBarItem;
+              final total = bar.pass + bar.fail;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text('$total'),
+              );
+            },
+          ),
         ),
         StackedColumnSeries<dynamic, dynamic>(
           name: 'FAIL',
@@ -889,7 +920,88 @@ class _StackedBarChart extends StatelessWidget {
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
           yValueMapper: (item, _) => (item as _StackedBarItem).fail,
           color: Colors.pinkAccent,
+          dataLabelSettings: const DataLabelSettings(isVisible: false),
         ),
+      ],
+    );
+  }
+}
+
+class _BarTooltip extends StatelessWidget {
+  const _BarTooltip({
+    required this.title,
+    required this.pass,
+    required this.fail,
+  });
+
+  final String title;
+  final num pass;
+  final num fail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF021024).withOpacity(0.95),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: DefaultTextStyle(
+        style: const TextStyle(color: Colors.white, fontSize: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 6),
+            _TooltipEntry(label: 'PASS', value: pass, color: Colors.cyanAccent),
+            const SizedBox(height: 4),
+            _TooltipEntry(label: 'FAIL', value: fail, color: Colors.pinkAccent),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TooltipEntry extends StatelessWidget {
+  const _TooltipEntry({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final num value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(width: 6),
+        Text(value.toString()),
       ],
     );
   }
@@ -918,6 +1030,24 @@ class _OutputChart extends StatelessWidget {
 
     return SfCartesianChart(
       plotAreaBorderWidth: 0,
+      tooltipBehavior: TooltipBehavior(
+        enable: true,
+        activationMode: ActivationMode.singleTap,
+        tooltipPosition: TooltipPosition.pointer,
+        header: '',
+        builder: (dynamic item, dynamic point, dynamic series, int pointIndex,
+            int seriesIndex) {
+          if (item is! _OutputItem ||
+              series is! StackedColumnSeries<dynamic, dynamic>) {
+            return const SizedBox.shrink();
+          }
+          return _BarTooltip(
+            title: item.category,
+            pass: item.pass,
+            fail: item.fail,
+          );
+        },
+      ),
       legend: Legend(
         isVisible: true,
         position: LegendPosition.bottom,
@@ -949,6 +1079,22 @@ class _OutputChart extends StatelessWidget {
           xValueMapper: (item, _) => (item as _OutputItem).category,
           yValueMapper: (item, _) => (item as _OutputItem).pass,
           color: Colors.cyanAccent,
+          dataLabelSettings: DataLabelSettings(
+            isVisible: true,
+            textStyle: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+            builder: (dynamic item, dynamic point, dynamic series,
+                int pointIndex, int seriesIndex) {
+              final bar = item as _OutputItem;
+              final total = bar.pass + bar.fail;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text('$total'),
+              );
+            },
+          ),
         ),
         StackedColumnSeries<dynamic, dynamic>(
           name: 'FAIL',
@@ -956,6 +1102,7 @@ class _OutputChart extends StatelessWidget {
           xValueMapper: (item, _) => (item as _OutputItem).category,
           yValueMapper: (item, _) => (item as _OutputItem).fail,
           color: Colors.pinkAccent,
+          dataLabelSettings: const DataLabelSettings(isVisible: false),
         ),
         SplineSeries<dynamic, dynamic>(
           name: 'YIELD RATE',
