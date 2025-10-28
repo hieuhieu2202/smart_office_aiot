@@ -788,6 +788,45 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
     });
   }
 
+  List<Widget> _buildMetricChips(TERetestCellDetail detail) {
+    String _formatRate(double? value) {
+      if (value == null) {
+        return 'N/A';
+      }
+      return '${value.toStringAsFixed(value >= 100 ? 0 : 2)}%';
+    }
+
+    String _formatInt(int? value) {
+      if (value == null) {
+        return '—';
+      }
+      return NumberFormat.decimalPattern().format(value);
+    }
+
+    return [
+      _DetailMetricChip(
+        label: 'Retest Rate',
+        value: _formatRate(detail.retestRate),
+      ),
+      _DetailMetricChip(
+        label: 'WIP Qty',
+        value: _formatInt(detail.input),
+      ),
+      _DetailMetricChip(
+        label: 'First Fail',
+        value: _formatInt(detail.firstFail),
+      ),
+      _DetailMetricChip(
+        label: 'Retest Fail',
+        value: _formatInt(detail.retestFail),
+      ),
+      _DetailMetricChip(
+        label: 'Pass Qty',
+        value: _formatInt(detail.pass),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -861,6 +900,7 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                               icon: Icons.schedule_rounded,
                               label: _rangeLabel,
                             ),
+                            ..._buildMetricChips(widget.cellDetail),
                           ],
                         ),
                       ],
@@ -1691,6 +1731,66 @@ class _DetailInfoChip extends StatelessWidget {
                 fontSize: 12.5,
                 letterSpacing: 0.3,
                 fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailMetricChip extends StatelessWidget {
+  const _DetailMetricChip({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0x2629D5FF), Color(0x6624A8FF)],
+        ),
+        border: Border.all(color: const Color(0x5539D2FF)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x3322B8FF),
+            blurRadius: 18,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                color: Color(0xFFA8E7FF),
+                fontSize: 10.5,
+                letterSpacing: 1.1,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
               ),
             ),
           ],
