@@ -1025,14 +1025,6 @@ class _ErrorCodeChart extends StatelessWidget {
                     style: tooltipValueLabelStyle,
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'fail occurrences',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 11,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
                 ],
               ),
             );
@@ -1164,9 +1156,18 @@ class _ErrorCodeChart extends StatelessWidget {
                             final index = details.pointIndex;
                             if (index != null) {
                               onSelect(index);
+                              final seriesIndex = details.seriesIndex ?? 0;
+                              tooltipBehavior.showByIndex(seriesIndex, index);
                             }
                           },
                           onPointLongPress: (details) {
+                            final index = details.pointIndex;
+                            if (index != null) {
+                              final seriesIndex = details.seriesIndex ?? 0;
+                              tooltipBehavior.showByIndex(seriesIndex, index);
+                            }
+                          },
+                          onPointHover: (details) {
                             final index = details.pointIndex;
                             if (index != null) {
                               final seriesIndex = details.seriesIndex ?? 0;
@@ -1311,14 +1312,6 @@ class _MachineBreakdownView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'fail occurrences',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 11,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
                 ],
               ),
             );
@@ -1497,7 +1490,21 @@ class _MachineBreakdownView extends StatelessWidget {
                                   borderRadius: const BorderRadius.vertical(
                                     top: Radius.circular(18),
                                   ),
+                                  onPointTap: (details) {
+                                    final index = details.pointIndex;
+                                    if (index != null) {
+                                      final seriesIndex = details.seriesIndex ?? 0;
+                                      tooltipBehavior.showByIndex(seriesIndex, index);
+                                    }
+                                  },
                                   onPointLongPress: (details) {
+                                    final index = details.pointIndex;
+                                    if (index != null) {
+                                      final seriesIndex = details.seriesIndex ?? 0;
+                                      tooltipBehavior.showByIndex(seriesIndex, index);
+                                    }
+                                  },
+                                  onPointHover: (details) {
                                     final index = details.pointIndex;
                                     if (index != null) {
                                       final seriesIndex = details.seriesIndex ?? 0;
