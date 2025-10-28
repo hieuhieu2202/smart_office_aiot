@@ -1201,11 +1201,149 @@ class _ErrorCodeChart extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 18),
+                _ErrorSignatureLegend(
+                  clusters: clusters,
+                  selectedIndex: selectedIndex,
+                  onSelect: onSelect,
+                ),
               ],
             ),
           ),
         ));
       },
+    );
+  }
+}
+
+class _ErrorSignatureLegend extends StatelessWidget {
+  const _ErrorSignatureLegend({
+    required this.clusters,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final List<TEErrorDetailClusterEntity> clusters;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    if (clusters.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final chips = clusters.asMap().entries.map((entry) {
+      final index = entry.key;
+      final cluster = entry.value;
+      final isSelected = index == selectedIndex;
+
+      return Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: _ErrorSignatureChip(
+          label: cluster.label.isEmpty ? 'N/A' : cluster.label,
+          totalFail: cluster.totalFail,
+          isSelected: isSelected,
+          onTap: () => onSelect(index),
+        ),
+      );
+    }).toList();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(children: chips),
+    );
+  }
+}
+
+class _ErrorSignatureChip extends StatelessWidget {
+  const _ErrorSignatureChip({
+    required this.label,
+    required this.totalFail,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int totalFail;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final display = label.trim().isEmpty ? 'N/A' : label.trim();
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isSelected
+                ? const [Color(0xFF1C5FFF), Color(0xFF1BC0FF)]
+                : const [Color(0x3320465F), Color(0x3320465F)],
+          ),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF4BE4FF)
+                : const Color(0x334BE4FF),
+          ),
+          boxShadow: isSelected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x404BE4FF),
+                    blurRadius: 18,
+                    spreadRadius: 1,
+                    offset: Offset(0, 8),
+                  ),
+                ]
+              : const [],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                display,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  letterSpacing: 0.3,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D2E56).withOpacity(isSelected ? 0.85 : 0.6),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFF74F4FF)
+                      : const Color(0x3374F4FF),
+                ),
+              ),
+              child: Text(
+                '$totalFail',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
