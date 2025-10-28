@@ -6,23 +6,23 @@ import '../../domain/entities/te_retest_rate.dart';
 
 const double _kIndexBaseWidth = 58;
 const double _kIndexMinWidth = 46;
-const double _kModelBaseWidth = 208;
-const double _kModelMinWidth = 152;
-const double _kGroupBaseWidth = 320;
-const double _kGroupMinWidth = 220;
-const double _kCellBaseWidth = 100;
-const double _kCellMinWidth = 68;
+const double _kModelBaseWidth = 220;
+const double _kModelMinWidth = 160;
+const double _kGroupBaseWidth = 360;
+const double _kGroupMinWidth = 240;
+const double _kCellBaseWidth = 108;
+const double _kCellMinWidth = 72;
 const double _kHeaderTopHeight = 40;
 const double _kHeaderBottomHeight = 32;
 const double _kRowHeight = 54;
 
-const Color _kHeaderColor = Color(0xFF1F2937);
-const Color _kHeaderAccent = Color(0xFF111827);
-const Color _kTableBackground = Color(0xFF0F172A);
-const Color _kRowEvenColor = Color(0xFF15233A);
-const Color _kRowOddColor = Color(0xFF111E34);
-const Color _kSpanBackground = Color(0xFF1E293B);
-const Color _kBorderColor = Color(0x26FFFFFF);
+const Color _kHeaderColor = Color(0xFF07162C);
+const Color _kHeaderAccent = Color(0xFF051022);
+const Color _kTableBackground = Color(0xFF020A18);
+const Color _kRowEvenColor = Color(0xFF07162C);
+const Color _kRowOddColor = Color(0xFF051020);
+const Color _kSpanBackground = Color(0xFF0C223D);
+const Color _kBorderColor = Color(0x3349A9FF);
 const BorderSide _kGridBorder = BorderSide(color: _kBorderColor, width: 1);
 
 class TERetestRateTable extends StatefulWidget {
@@ -96,7 +96,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
     final remainingWidth = (width - fixedWidth).clamp(0.0, double.infinity);
     cellWidth = columns > 0 ? remainingWidth / columns : 0;
 
-    final totalWidth = indexWidth + modelWidth + groupWidth + (columns * cellWidth);
+    final totalWidth = width;
 
     return _TableMetrics(
       indexWidth: indexWidth,

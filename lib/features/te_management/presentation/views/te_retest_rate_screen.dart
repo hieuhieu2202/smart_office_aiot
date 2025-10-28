@@ -872,214 +872,242 @@ class _ErrorCodeChart extends StatelessWidget {
     final hasSelection =
         selectedIndex >= 0 && selectedIndex < clusters.length && points.isNotEmpty;
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(-0.5, -0.9),
-          radius: 1.35,
-          colors: [Color(0xFF040C18), Color(0xFF010308)],
-        ),
-        borderRadius: BorderRadius.all(Radius.circular(22)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 26),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const _GradientTitle(
-            text: 'Retest Error Landscape',
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Tap a neon bar to reveal impacted machines for that error signature.',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              letterSpacing: 0.25,
-              fontWeight: FontWeight.w500,
+    return LayoutBuilder(
+      builder: (context, _) {
+        return Container(
+          decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment(-0.45, -0.95),
+              radius: 1.45,
+              colors: [Color(0xFF021433), Color(0xFF010511)],
             ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0x3300F6FF)),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0x6611223D), Color(0x33102038)],
+            borderRadius: BorderRadius.all(Radius.circular(26)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x3300E1FF),
+                blurRadius: 38,
+                spreadRadius: 4,
+                offset: Offset(0, 26),
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x2200F6FF),
-                  blurRadius: 24,
-                  spreadRadius: 1,
-                  offset: Offset(0, 18),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _GradientTitle(
+                text: 'Retest Error Landscape',
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Select a signature to pivot the machine insight panel.',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13.5,
+                  letterSpacing: 0.35,
                 ),
-              ],
-            ),
-            child: SizedBox(
-              height: 280,
-              child: SfCartesianChart(
-                backgroundColor: Colors.transparent,
-                plotAreaBorderWidth: 0,
-                plotAreaBackgroundColor: const Color(0x1109A7C6),
-                margin: const EdgeInsets.fromLTRB(0, 10, 0, 16),
-                enableAxisAnimation: true,
-                tooltipBehavior: TooltipBehavior(
-                  enable: true,
-                  header: '',
-                  animationDuration: 300,
-                  color: Colors.transparent,
-                  builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
-                      int seriesIndex) {
-                    final value = point?.y?.toString() ?? '0';
-                    final label = point?.x?.toString() ?? '';
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xEE061224), Color(0xEE0F1D38)],
+              ),
+              const SizedBox(height: 24),
+              Expanded(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: const Color(0x3D39D2FF)),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0x66223C66), Color(0x33254B7E)],
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x2600D9FF),
+                        blurRadius: 26,
+                        spreadRadius: 2,
+                        offset: Offset(0, 18),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: SfCartesianChart(
+                      backgroundColor: Colors.transparent,
+                      plotAreaBorderWidth: 0,
+                      plotAreaBackgroundColor: const Color(0x110B8CFF),
+                      margin: const EdgeInsets.fromLTRB(0, 6, 0, 12),
+                      enableAxisAnimation: true,
+                      tooltipBehavior: TooltipBehavior(
+                        enable: true,
+                        header: '',
+                        animationDuration: 250,
+                        color: Colors.transparent,
+                        builder: (dynamic data, dynamic point, dynamic series,
+                            int pointIndex, int seriesIndex) {
+                          final value = point?.y?.toString() ?? '0';
+                          final label = point?.x?.toString() ?? '';
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xF0152645), Color(0xF0020B1D)],
+                              ),
+                              border: Border.all(
+                                color: const Color(0xFF3DD6FF),
+                                width: 1.1,
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x553DD6FF),
+                                  blurRadius: 18,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFFA3F4FF),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.25,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  value,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'fail occurrences',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 11,
+                                    letterSpacing: 0.6,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      primaryXAxis: CategoryAxis(
+                        arrangeByIndex: true,
+                        labelAlignment: LabelAlignment.center,
+                        axisLine: AxisLine(
+                          color: Colors.white.withOpacity(0.12),
+                          width: 1.2,
                         ),
-                        border: Border.all(color: const Color(0xFF00F6FF), width: 1.2),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x6600F6FF),
-                            blurRadius: 18,
-                            spreadRadius: 1,
-                          ),
-                        ],
+                        labelStyle: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontFamily: 'Inter',
+                          letterSpacing: 0.3,
+                        ),
+                        majorGridLines: MajorGridLines(
+                          color: Colors.white.withOpacity(0.05),
+                          width: 0.4,
+                        ),
+                        majorTickLines: const MajorTickLines(size: 0),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF88F9FF),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.25,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            value,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                      primaryYAxis: NumericAxis(
+                        minimum: 0,
+                        labelStyle: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontFamily: 'Inter',
+                        ),
+                        axisLine: AxisLine(
+                          color: Colors.white.withOpacity(0.12),
+                          width: 1.2,
+                        ),
+                        majorGridLines: MajorGridLines(
+                          color: Colors.white.withOpacity(0.05),
+                          width: 0.35,
+                        ),
+                        majorTickLines: const MajorTickLines(size: 0),
+                      ),
+                      series: <CartesianSeries<_BarPoint, String>>[
+                        ColumnSeries<_BarPoint, String>(
+                          onCreateRenderer: (ChartSeries<_BarPoint, String> series) =>
+                              _GlowingColumnSeriesRenderer(),
+                          dataSource: points,
+                          width: 0.6,
+                          spacing: 0.18,
+                          animationDuration: 1100,
+                          xValueMapper: (point, _) => point.label,
+                          yValueMapper: (point, _) => point.value,
+                          pointColorMapper: (point, index) {
+                            const base = Color(0xFF1DAEFF);
+                            if (index == null) return base;
+                            final isSelected =
+                                hasSelection && index == selectedIndex;
+                            return isSelected
+                                ? const Color(0xFF33E8FF)
+                                : base.withOpacity(hasSelection ? 0.45 : 0.9);
+                          },
+                          dataLabelSettings: const DataLabelSettings(
+                            isVisible: true,
+                            labelAlignment: ChartDataLabelAlignment.auto,
+                            textStyle: TextStyle(
                               color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'fail occurrences',
-                            style: TextStyle(
-                              color: Colors.white54,
                               fontSize: 11,
-                              letterSpacing: 0.6,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.4,
                             ),
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                primaryXAxis: CategoryAxis(
-                  arrangeByIndex: true,
-                  labelAlignment: LabelAlignment.center,
-                  axisLine: AxisLine(color: Colors.white.withOpacity(0.1), width: 1.2),
-                  labelStyle: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontFamily: 'Inter',
-                    letterSpacing: 0.3,
-                  ),
-                  majorGridLines: MajorGridLines(color: Colors.white.withOpacity(0.05), width: 0.4),
-                  majorTickLines: const MajorTickLines(size: 0),
-                ),
-                primaryYAxis: NumericAxis(
-                  minimum: 0,
-                  labelStyle: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontFamily: 'Inter',
-                  ),
-                  axisLine: AxisLine(color: Colors.white.withOpacity(0.1), width: 1.2),
-                  majorGridLines: MajorGridLines(color: Colors.white.withOpacity(0.05), width: 0.4),
-                  majorTickLines: const MajorTickLines(size: 0),
-                ),
-                series: <CartesianSeries<_BarPoint, String>>[
-                  ColumnSeries<_BarPoint, String>(
-                    onCreateRenderer: (ChartSeries<_BarPoint, String> series) =>
-                        _GlowingColumnSeriesRenderer(),
-                    dataSource: points,
-                    width: 0.52,
-                    spacing: 0.22,
-                    animationDuration: 1200,
-                    xValueMapper: (point, _) => point.label,
-                    yValueMapper: (point, _) => point.value,
-                    pointColorMapper: (point, index) {
-                      const base = Color(0xFF12B4D9);
-                      if (index == null) return base;
-                      final isSelected = hasSelection && index == selectedIndex;
-                      return isSelected
-                          ? const Color(0xFF00F6FF)
-                          : base.withOpacity(hasSelection ? 0.45 : 0.85);
-                    },
-                    dataLabelSettings: const DataLabelSettings(
-                      isVisible: true,
-                      labelAlignment: ChartDataLabelAlignment.auto,
-                      textStyle: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.4,
-                      ),
+                          borderRadius:
+                              const BorderRadius.vertical(top: Radius.circular(18)),
+                          onPointTap: (details) {
+                            final index = details.pointIndex;
+                            if (index != null) {
+                              onSelect(index);
+                            }
+                          },
+                        ),
+                        SplineSeries<_BarPoint, String>(
+                          dataSource: points,
+                          xValueMapper: (point, _) => point.label,
+                          yValueMapper: (point, _) => point.value,
+                          color: const Color(0xFF7DFAFF),
+                          width: 2.6,
+                          markerSettings: const MarkerSettings(
+                            isVisible: true,
+                            color: Color(0xFF33E8FF),
+                            height: 9,
+                            width: 9,
+                            borderWidth: 2,
+                            borderColor: Colors.white,
+                          ),
+                          opacity: 0.95,
+                          enableTooltip: false,
+                        ),
+                      ],
                     ),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    onPointTap: (details) {
-                      final index = details.pointIndex;
-                      if (index != null) {
-                        onSelect(index);
-                      }
-                    },
                   ),
-                  SplineSeries<_BarPoint, String>(
-                    dataSource: points,
-                    xValueMapper: (point, _) => point.label,
-                    yValueMapper: (point, _) => point.value,
-                    color: const Color(0xFF5FFBFF),
-                    width: 2.4,
-                    markerSettings: const MarkerSettings(
-                      isVisible: true,
-                      color: Color(0xFF00F6FF),
-                      height: 9,
-                      width: 9,
-                      borderWidth: 2,
-                      borderColor: Colors.white,
-                    ),
-                    opacity: 0.9,
-                    enableTooltip: false,
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -1103,234 +1131,274 @@ class _MachineBreakdownView extends StatelessWidget {
             ))
         .toList();
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(-0.4, -1.0),
-          radius: 1.4,
-          colors: [Color(0xFF030A16), Color(0xFF02040B)],
-        ),
-        borderRadius: BorderRadius.all(Radius.circular(22)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              TextButton.icon(
-                onPressed: onBack,
-                style: TextButton.styleFrom(foregroundColor: _kAccentColor),
-                icon: const Icon(Icons.arrow_back, size: 18),
-                label: const Text(
-                  'Back',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  cluster.label.isEmpty ? 'Selected Error' : cluster.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.end,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
-                  ),
-                ),
+    return LayoutBuilder(
+      builder: (context, _) {
+        return Container(
+          decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment(-0.42, -0.95),
+              radius: 1.5,
+              colors: [Color(0xFF02122C), Color(0xFF01040C)],
+            ),
+            borderRadius: BorderRadius.all(Radius.circular(26)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x3300E1FF),
+                blurRadius: 36,
+                spreadRadius: 4,
+                offset: Offset(0, 24),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          const _GradientTitle(
-            text: 'Impacted Machines',
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Focus on the neon peaks to spot where this failure signature appears.',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 12.5,
-              letterSpacing: 0.2,
-            ),
-          ),
-          const SizedBox(height: 20),
-          if (machines.isEmpty)
-            const Text(
-              'No machine failures recorded for this error code.',
-              style: TextStyle(color: Colors.white54),
-            )
-          else
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0x3300F6FF)),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0x6611223D), Color(0x33102038)],
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1F00F6FF),
-                    blurRadius: 20,
-                    spreadRadius: 1,
-                    offset: Offset(0, 16),
+          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 26),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  TextButton.icon(
+                    onPressed: onBack,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF33E8FF),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                    icon: const Icon(Icons.arrow_back, size: 18),
+                    label: const Text(
+                      'Back',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        cluster.label.isEmpty
+                            ? 'Selected Error Signature'
+                            : cluster.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              child: SizedBox(
-                height: 260,
-                child: SfCartesianChart(
-                  backgroundColor: Colors.transparent,
-                  plotAreaBorderWidth: 0,
-                  plotAreaBackgroundColor: const Color(0x1109A7C6),
-                  margin: const EdgeInsets.fromLTRB(0, 8, 0, 12),
-                  tooltipBehavior: TooltipBehavior(
-                    enable: true,
-                    header: '',
-                    animationDuration: 300,
-                    color: Colors.transparent,
-                    builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
-                        int seriesIndex) {
-                      final value = point?.y?.toString() ?? '0';
-                      final label = point?.x?.toString() ?? '';
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              const SizedBox(height: 12),
+              const _GradientTitle(
+                text: 'Impacted Machines',
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Highlight the neon peaks to reveal the stations producing this failure pattern.',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12.5,
+                  letterSpacing: 0.25,
+                ),
+              ),
+              const SizedBox(height: 22),
+              Expanded(
+                child: machines.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No machine failures recorded for this error code.',
+                          style: TextStyle(color: Colors.white54),
+                        ),
+                      )
+                    : DecoratedBox(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: const Color(0x3D39D2FF)),
                           gradient: const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [Color(0xEE061224), Color(0xEE0F1D38)],
+                            colors: [Color(0x66223C66), Color(0x33254B7E)],
                           ),
-                          border: Border.all(color: const Color(0xFF00F6FF), width: 1.2),
                           boxShadow: const [
                             BoxShadow(
-                              color: Color(0x6600F6FF),
-                              blurRadius: 18,
-                              spreadRadius: 1,
+                              color: Color(0x2600D9FF),
+                              blurRadius: 24,
+                              spreadRadius: 2,
+                              offset: Offset(0, 18),
                             ),
                           ],
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF88F9FF),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.25,
-                              ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 16),
+                          child: SfCartesianChart(
+                            backgroundColor: Colors.transparent,
+                            plotAreaBorderWidth: 0,
+                            plotAreaBackgroundColor: const Color(0x110B8CFF),
+                            margin: const EdgeInsets.fromLTRB(0, 6, 0, 12),
+                            enableAxisAnimation: true,
+                            tooltipBehavior: TooltipBehavior(
+                              enable: true,
+                              header: '',
+                              animationDuration: 250,
+                              color: Colors.transparent,
+                              builder: (dynamic data, dynamic point, dynamic series,
+                                  int pointIndex, int seriesIndex) {
+                                final value = point?.y?.toString() ?? '0';
+                                final label = point?.x?.toString() ?? '';
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [Color(0xF0152645), Color(0xF0020B1D)],
+                                    ),
+                                    border: Border.all(
+                                      color: const Color(0xFF3DD6FF),
+                                      width: 1.1,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x553DD6FF),
+                                        blurRadius: 18,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        label,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Color(0xFFA3F4FF),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.25,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        value,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      const Text(
+                                        'fail occurrences',
+                                        style: TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 11,
+                                          letterSpacing: 0.6,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              value,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
+                            primaryXAxis: CategoryAxis(
+                              arrangeByIndex: true,
+                              labelAlignment: LabelAlignment.center,
+                              axisLine: AxisLine(
+                                color: Colors.white.withOpacity(0.12),
+                                width: 1.2,
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            const Text(
-                              'fail occurrences',
-                              style: TextStyle(
-                                color: Colors.white54,
+                              labelStyle: const TextStyle(
+                                color: Colors.white70,
                                 fontSize: 11,
-                                letterSpacing: 0.6,
+                                fontFamily: 'Inter',
+                                letterSpacing: 0.3,
                               ),
+                              majorGridLines: MajorGridLines(
+                                color: Colors.white.withOpacity(0.05),
+                                width: 0.35,
+                              ),
+                              majorTickLines: const MajorTickLines(size: 0),
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  primaryXAxis: CategoryAxis(
-                    arrangeByIndex: true,
-                    labelAlignment: LabelAlignment.center,
-                    axisLine: AxisLine(color: Colors.white.withOpacity(0.08), width: 1.1),
-                    labelStyle: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                      fontFamily: 'Inter',
-                      letterSpacing: 0.3,
-                    ),
-                    majorGridLines: MajorGridLines(color: Colors.white.withOpacity(0.05), width: 0.35),
-                    majorTickLines: const MajorTickLines(size: 0),
-                  ),
-                  primaryYAxis: NumericAxis(
-                    minimum: 0,
-                    labelStyle: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                      fontFamily: 'Inter',
-                    ),
-                    axisLine: AxisLine(color: Colors.white.withOpacity(0.08), width: 1.1),
-                    majorGridLines: MajorGridLines(color: Colors.white.withOpacity(0.05), width: 0.35),
-                    majorTickLines: const MajorTickLines(size: 0),
-                  ),
-                  series: <CartesianSeries<_BarPoint, String>>[
-                    ColumnSeries<_BarPoint, String>(
-                      onCreateRenderer: (ChartSeries<_BarPoint, String> series) =>
-                          _GlowingColumnSeriesRenderer(),
-                      dataSource: machines,
-                      width: 0.52,
-                      spacing: 0.22,
-                      animationDuration: 1000,
-                      xValueMapper: (point, _) => point.label,
-                      yValueMapper: (point, _) => point.value,
-                      pointColorMapper: (point, index) => const Color(0xFF0CD0FF),
-                      dataLabelSettings: const DataLabelSettings(
-                        isVisible: true,
-                        labelAlignment: ChartDataLabelAlignment.auto,
-                        textStyle: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.4,
+                            primaryYAxis: NumericAxis(
+                              minimum: 0,
+                              labelStyle: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                                fontFamily: 'Inter',
+                              ),
+                              axisLine: AxisLine(
+                                color: Colors.white.withOpacity(0.12),
+                                width: 1.2,
+                              ),
+                              majorGridLines: MajorGridLines(
+                                color: Colors.white.withOpacity(0.05),
+                                width: 0.35,
+                              ),
+                              majorTickLines: const MajorTickLines(size: 0),
+                            ),
+                            series: <CartesianSeries<_BarPoint, String>>[
+                              ColumnSeries<_BarPoint, String>(
+                                onCreateRenderer:
+                                    (ChartSeries<_BarPoint, String> series) =>
+                                        _GlowingColumnSeriesRenderer(),
+                                dataSource: machines,
+                                width: 0.6,
+                                spacing: 0.18,
+                                animationDuration: 1000,
+                                xValueMapper: (point, _) => point.label,
+                                yValueMapper: (point, _) => point.value,
+                                pointColorMapper: (point, index) =>
+                                    const Color(0xFF33E8FF),
+                                dataLabelSettings: const DataLabelSettings(
+                                  isVisible: true,
+                                  labelAlignment: ChartDataLabelAlignment.auto,
+                                  textStyle: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                                borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(18)),
+                              ),
+                              SplineSeries<_BarPoint, String>(
+                                dataSource: machines,
+                                xValueMapper: (point, _) => point.label,
+                                yValueMapper: (point, _) => point.value,
+                                color: const Color(0xFF7DFAFF),
+                                width: 2.4,
+                                markerSettings: const MarkerSettings(
+                                  isVisible: true,
+                                  color: Color(0xFF33E8FF),
+                                  height: 9,
+                                  width: 9,
+                                  borderWidth: 2,
+                                  borderColor: Colors.white,
+                                ),
+                                opacity: 0.9,
+                                enableTooltip: false,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    SplineSeries<_BarPoint, String>(
-                      dataSource: machines,
-                      xValueMapper: (point, _) => point.label,
-                      yValueMapper: (point, _) => point.value,
-                      color: const Color(0xFF5FFBFF),
-                      width: 2.2,
-                      markerSettings: const MarkerSettings(
-                        isVisible: true,
-                        color: Color(0xFF00F6FF),
-                        height: 9,
-                        width: 9,
-                        borderWidth: 2,
-                        borderColor: Colors.white,
-                      ),
-                      opacity: 0.9,
-                      enableTooltip: false,
-                    ),
-                  ],
-                ),
               ),
-            ),
-        ],
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1353,7 +1421,7 @@ class _GradientTitle extends StatelessWidget {
         return const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF00F6FF), Color(0xFF4B82FF)],
+          colors: [Color(0xFF4FE3FF), Color(0xFF1C7BFF)],
         ).createShader(bounds);
       },
       child: Text(
@@ -1402,7 +1470,7 @@ class _GlowingColumnSegment extends ColumnSegment<_BarPoint, String> {
       begin: Alignment.bottomCenter,
       end: Alignment.topCenter,
       colors: [
-        const Color(0xFF0A2342),
+        const Color(0xFF082C55),
         accent,
       ],
     );
