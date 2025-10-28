@@ -1239,10 +1239,10 @@ class _GradientTitle extends StatelessWidget {
 
 class _GlowingColumnSeriesRenderer extends ColumnSeriesRenderer<_BarPoint, String> {
   @override
-  ColumnSegment createSegment() => _GlowingColumnSegment();
+  ColumnSegment<_BarPoint, String> createSegment() => _GlowingColumnSegment();
 }
 
-class _GlowingColumnSegment extends ColumnSegment {
+class _GlowingColumnSegment extends ColumnSegment<_BarPoint, String> {
   @override
   void onPaint(Canvas canvas) {
     if (segmentRect == null) {
