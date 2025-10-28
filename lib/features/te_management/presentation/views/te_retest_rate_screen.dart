@@ -1402,17 +1402,7 @@ class _MachineBreakdownView extends StatelessWidget {
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Highlight the neon peaks to reveal the stations producing this failure pattern.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12.5,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 18),
                   Expanded(
                     child: machines.isEmpty
                         ? const Center(
