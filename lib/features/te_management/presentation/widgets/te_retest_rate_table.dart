@@ -8,10 +8,10 @@ const double _kIndexBaseWidth = 58;
 const double _kIndexMinWidth = 46;
 const double _kModelBaseWidth = 208;
 const double _kModelMinWidth = 152;
-const double _kGroupBaseWidth = 280;
-const double _kGroupMinWidth = 200;
-const double _kCellBaseWidth = 112;
-const double _kCellMinWidth = 72;
+const double _kGroupBaseWidth = 320;
+const double _kGroupMinWidth = 220;
+const double _kCellBaseWidth = 100;
+const double _kCellMinWidth = 68;
 const double _kHeaderTopHeight = 40;
 const double _kHeaderBottomHeight = 32;
 const double _kRowHeight = 54;
@@ -94,14 +94,16 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
 
     final fixedWidth = indexWidth + modelWidth + groupWidth;
     final remainingWidth = (width - fixedWidth).clamp(0.0, double.infinity);
-    cellWidth = remainingWidth / columns;
+    cellWidth = columns > 0 ? remainingWidth / columns : 0;
+
+    final totalWidth = indexWidth + modelWidth + groupWidth + (columns * cellWidth);
 
     return _TableMetrics(
       indexWidth: indexWidth,
       modelWidth: modelWidth,
       groupWidth: groupWidth,
       cellWidth: cellWidth,
-      totalWidth: width,
+      totalWidth: totalWidth,
     );
   }
 
@@ -370,10 +372,7 @@ class _HeaderRow extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const _HeaderShiftCell(label: 'Day'),
-                        _HeaderShiftCell(
-                          label: 'Night',
-                          showRightBorder: dateIndex != formattedDates.length - 1,
-                        ),
+                        const _HeaderShiftCell(label: 'Night'),
                       ],
                     ),
                   ),
@@ -574,7 +573,7 @@ class _ModelBlock extends StatelessWidget {
                     background: background,
                     onTap: onCellTap,
                     isFirstRow: isRowFirst,
-                    showRightBorder: i != cells.length - 1,
+                    showRightBorder: true,
                   ),
                 ),
             ],
@@ -635,7 +634,7 @@ class _ModelBlock extends StatelessWidget {
                     background: background,
                     onTap: onCellTap,
                     isFirstRow: isFirstBlock,
-                    showRightBorder: i != placeholderCells.length - 1,
+                    showRightBorder: true,
                   ),
                 ),
             ],

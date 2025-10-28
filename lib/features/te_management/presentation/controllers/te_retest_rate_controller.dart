@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -172,6 +173,12 @@ class TERetestRateController extends GetxController {
     );
     final effectiveRange =
         (range == null || range.isEmpty) ? rangeLabel : range;
+    final encodedRange = Uri.encodeComponent(effectiveRange);
+    final encodedModel = Uri.encodeComponent(modelName);
+    final encodedGroup = Uri.encodeComponent(groupName);
+    final apiPath =
+        'api/nvidia/temanagement/TEManagement/ErrorDetail?range=$encodedRange&model=$encodedModel&group=$encodedGroup';
+    debugPrint('[TERetestRate] GET $apiPath');
     return getErrorDetailUseCase(
       range: effectiveRange,
       model: modelName,

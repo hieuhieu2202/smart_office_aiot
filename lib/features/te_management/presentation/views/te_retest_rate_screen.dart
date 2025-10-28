@@ -641,8 +641,8 @@ class _CellErrorDetailDialog extends StatefulWidget {
 class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
   late Future<TEErrorDetailEntity?> _future;
   late final String _rangeLabel;
-  TEErrorDetailClusterEntity? _selectedCluster;
   int? _selectedClusterIndex;
+  bool _showingMachines = false;
 
   @override
   void initState() {
@@ -667,8 +667,8 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
   void _retry() {
     setState(() {
       _future = _load();
-      _selectedCluster = null;
       _selectedClusterIndex = null;
+      _showingMachines = false;
     });
   }
 
@@ -678,7 +678,20 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
     }
     setState(() {
       _selectedClusterIndex = index;
-      _selectedCluster = clusters[index];
+      _showingMachines = true;
+    });
+  }
+
+  void _returnToErrorChart() {
+    setState(() {
+      _showingMachines = false;
+    });
+  }
+
+  void _resetSelection() {
+    setState(() {
+      _showingMachines = false;
+      _selectedClusterIndex = null;
     });
   }
 
@@ -767,24 +780,31 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                   );
                 }
 
-                _selectedClusterIndex ??= 0;
-                if (_selectedClusterIndex! >= errorClusters.length) {
-                  _selectedClusterIndex = 0;
+                int? selectedIndex = _selectedClusterIndex;
+                if (selectedIndex != null &&
+                    (selectedIndex < 0 || selectedIndex >= errorClusters.length)) {
+                  selectedIndex = null;
                 }
-                _selectedCluster ??= errorClusters[_selectedClusterIndex!];
+
+                final selectedCluster =
+                    selectedIndex != null ? errorClusters[selectedIndex] : null;
+                final showMachines = _showingMachines && selectedCluster != null;
+
+                if (showMachines) {
+                  return Expanded(
+                    child: _MachineBreakdownView(
+                      cluster: selectedCluster!,
+                      onBack: _returnToErrorChart,
+                      onReset: _resetSelection,
+                    ),
+                  );
+                }
 
                 return Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _ErrorCodeChart(
-                        clusters: errorClusters,
-                        selectedIndex: _selectedClusterIndex!,
-                        onSelect: (index) => _selectCluster(errorClusters, index),
-                      ),
-                      const SizedBox(height: 24),
-                      _MachineBreakdownChart(cluster: _selectedCluster),
-                    ],
+                  child: _ErrorCodeChart(
+                    clusters: errorClusters,
+                    selectedIndex: selectedIndex ?? -1,
+                    onSelect: (index) => _selectCluster(errorClusters, index),
                   ),
                 );
               },
@@ -869,12 +889,17 @@ class _ErrorCodeChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Top Error Codes',
+            'Order By Error Code',
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Tap a bar to view affected machines.',
+            style: TextStyle(color: Colors.white54, fontSize: 12),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -927,29 +952,20 @@ class _ErrorCodeChart extends StatelessWidget {
   }
 }
 
-class _MachineBreakdownChart extends StatelessWidget {
-  const _MachineBreakdownChart({required this.cluster});
+class _MachineBreakdownView extends StatelessWidget {
+  const _MachineBreakdownView({
+    required this.cluster,
+    required this.onBack,
+    required this.onReset,
+  });
 
-  final TEErrorDetailClusterEntity? cluster;
+  final TEErrorDetailClusterEntity cluster;
+  final VoidCallback onBack;
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
-    if (cluster == null) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0B2846),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white12),
-        ),
-        child: const Text(
-          'Select an error code to see affected machines.',
-          style: TextStyle(color: Colors.white60),
-        ),
-      );
-    }
-
-    final machines = cluster!.breakdowns
+    final machines = cluster.breakdowns
         .where((breakdown) => breakdown.failQty > 0 || breakdown.label.isNotEmpty)
         .map((breakdown) => _BarPoint(
               breakdown.label.isEmpty ? 'N/A' : breakdown.label,
@@ -967,12 +983,44 @@ class _MachineBreakdownChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Machines for ${cluster!.label.isEmpty ? 'N/A' : cluster!.label}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: onBack,
+                style: TextButton.styleFrom(foregroundColor: _kAccentColor),
+                icon: const Icon(Icons.arrow_back, size: 18),
+                label: const Text(
+                  'Back',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: onReset,
+                style: TextButton.styleFrom(foregroundColor: _kAccentColor),
+                child: const Text(
+                  'Total',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                cluster.label.isEmpty ? 'Total' : cluster.label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Fail Qty by Machine',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 12),
@@ -996,7 +1044,8 @@ class _MachineBreakdownChart extends StatelessWidget {
                 primaryYAxis: NumericAxis(
                   minimum: 0,
                   labelStyle: const TextStyle(color: Colors.white70),
-                  majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.5),
+                  majorGridLines:
+                      const MajorGridLines(color: Colors.white24, width: 0.5),
                 ),
                 series: <CartesianSeries<_BarPoint, String>>[
                   ColumnSeries<_BarPoint, String>(
