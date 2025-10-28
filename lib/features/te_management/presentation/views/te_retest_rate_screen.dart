@@ -566,7 +566,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
                 labelStyle: const TextStyle(color: Colors.white70),
                 majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.5),
               ),
-              tooltipBehavior: TooltipBehavior(enable: true, header: '')
+              tooltipBehavior: TooltipBehavior(enable: true, header: ''),
               series: <CartesianSeries<_ChartPoint, String>>[
                 ColumnSeries<_ChartPoint, String>(
                   name: 'Day',
@@ -745,14 +745,6 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                                 fontWeight: FontWeight.w800,
                               ),
                               const SizedBox(height: 10),
-                              const Text(
-                                'Retest insight node',
-                                style: TextStyle(
-                                  color: Color(0xFFE3F2FF),
-                                  fontSize: 14,
-                                  letterSpacing: 0.45,
-                                ),
-                              ),
                             ],
                           ),
                         ),
@@ -974,6 +966,10 @@ class _ErrorCodeChart extends StatelessWidget {
               : 1080.0,
         );
 
+        final resolvedHeight = constraints.maxHeight.isFinite
+            ? math.max(constraints.maxHeight * 0.7, 420.0)
+            : 520.0;
+
         final tooltipBehavior = TooltipBehavior(
           enable: true,
           header: '',
@@ -1064,7 +1060,8 @@ class _ErrorCodeChart extends StatelessWidget {
               ),
             ],
           ),
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 30),
+            constraints: BoxConstraints(minHeight: resolvedHeight),
+            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1073,16 +1070,7 @@ class _ErrorCodeChart extends StatelessWidget {
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Select a signature to pivot the machine insight panel.',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13.5,
-                    letterSpacing: 0.35,
-                  ),
-                ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
                 Expanded(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
@@ -1292,6 +1280,10 @@ class _MachineBreakdownView extends StatelessWidget {
               : 1080.0,
         );
 
+        final resolvedHeight = constraints.maxHeight.isFinite
+            ? math.max(constraints.maxHeight * 0.72, 420.0)
+            : 520.0;
+
         const axisLabelTextStyle = TextStyle(
           color: Color(0xFF9EE5FF),
           fontSize: 11,
@@ -1394,7 +1386,8 @@ class _MachineBreakdownView extends StatelessWidget {
                   ),
                 ],
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 28),
+              constraints: BoxConstraints(minHeight: resolvedHeight),
+              padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 30),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
