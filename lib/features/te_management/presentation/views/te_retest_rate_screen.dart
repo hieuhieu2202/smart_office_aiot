@@ -641,6 +641,8 @@ class _CellErrorDetailDialog extends StatefulWidget {
 class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
   late Future<TEErrorDetailEntity?> _future;
   late final String _rangeLabel;
+  TEErrorDetailClusterEntity? _selectedCluster;
+  int? _selectedClusterIndex;
 
   @override
   void initState() {
@@ -665,6 +667,18 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
   void _retry() {
     setState(() {
       _future = _load();
+      _selectedCluster = null;
+      _selectedClusterIndex = null;
+    });
+  }
+
+  void _selectCluster(List<TEErrorDetailClusterEntity> clusters, int index) {
+    if (index < 0 || index >= clusters.length) {
+      return;
+    }
+    setState(() {
+      _selectedClusterIndex = index;
+      _selectedCluster = clusters[index];
     });
   }
 
@@ -741,26 +755,36 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                   );
                 }
 
-                return Expanded(
-                  child: Scrollbar(
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _ErrorClusterSection(
-                            title: 'Top Error Codes',
-                            clusters: data.byErrorCode,
-                          ),
-                          const SizedBox(height: 24),
-                          _ErrorClusterSection(
-                            title: 'Affected Machines',
-                            clusters: data.byMachine,
-                          ),
-                        ],
-                      ),
+                final errorClusters = data.byErrorCode
+                    .where((cluster) => cluster.totalFail > 0 || cluster.label.isNotEmpty)
+                    .toList();
+
+                if (errorClusters.isEmpty) {
+                  return const Expanded(
+                    child: _ErrorDetailMessage(
+                      message: 'No error code information available for this cell.',
                     ),
+                  );
+                }
+
+                _selectedClusterIndex ??= 0;
+                if (_selectedClusterIndex! >= errorClusters.length) {
+                  _selectedClusterIndex = 0;
+                }
+                _selectedCluster ??= errorClusters[_selectedClusterIndex!];
+
+                return Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _ErrorCodeChart(
+                        clusters: errorClusters,
+                        selectedIndex: _selectedClusterIndex!,
+                        onSelect: (index) => _selectCluster(errorClusters, index),
+                      ),
+                      const SizedBox(height: 24),
+                      _MachineBreakdownChart(cluster: _selectedCluster),
+                    ],
                   ),
                 );
               },
@@ -809,19 +833,20 @@ class _ErrorDetailMessage extends StatelessWidget {
   }
 }
 
-class _ErrorClusterSection extends StatelessWidget {
-  const _ErrorClusterSection({
-    required this.title,
+class _ErrorCodeChart extends StatelessWidget {
+  const _ErrorCodeChart({
     required this.clusters,
+    required this.selectedIndex,
+    required this.onSelect,
   });
 
-  final String title;
   final List<TEErrorDetailClusterEntity> clusters;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
 
   @override
   Widget build(BuildContext context) {
     final points = clusters
-        .where((cluster) => cluster.totalFail > 0 || cluster.label.isNotEmpty)
         .map(
           (cluster) => _BarPoint(
             cluster.label.isEmpty ? 'N/A' : cluster.label,
@@ -830,29 +855,32 @@ class _ErrorClusterSection extends StatelessWidget {
         )
         .toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (points.isEmpty)
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B2846),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           const Text(
-            'No records available.',
-            style: TextStyle(color: Colors.white54),
-          )
-        else
+            'Top Error Codes',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
           SizedBox(
-            height: _chartHeight(points.length),
+            height: 280,
             child: SfCartesianChart(
+              backgroundColor: Colors.transparent,
+              plotAreaBorderWidth: 0,
               legend: Legend(isVisible: false),
-              tooltipBehavior: TooltipBehavior(enable: true),
+              tooltipBehavior: TooltipBehavior(enable: true, header: ''),
               primaryXAxis: CategoryAxis(
                 labelStyle: const TextStyle(color: Colors.white70),
                 majorGridLines: const MajorGridLines(width: 0),
@@ -862,13 +890,26 @@ class _ErrorClusterSection extends StatelessWidget {
                 labelStyle: const TextStyle(color: Colors.white70),
                 majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.5),
               ),
+              onPointTapped: (details) {
+                final index = details.pointIndex;
+                if (index != null) {
+                  onSelect(index);
+                }
+              },
               series: <CartesianSeries<_BarPoint, String>>[
                 ColumnSeries<_BarPoint, String>(
                   dataSource: points,
                   xValueMapper: (point, _) => point.label,
                   yValueMapper: (point, _) => point.value,
                   borderRadius: BorderRadius.circular(6),
-                  color: const Color(0xFF38BDF8),
+                  color: const Color(0xFF1D4ED8),
+                  selectionBehavior: SelectionBehavior(
+                    enable: true,
+                    selectedIndexes: <int>[selectedIndex],
+                    selectedColor: const Color(0xFF22D3EE),
+                    unselectedColor: const Color(0xFF1D4ED8),
+                    unselectedOpacity: 0.35,
+                  ),
                   dataLabelSettings: const DataLabelSettings(
                     isVisible: true,
                     textStyle: TextStyle(color: Colors.white),
@@ -877,72 +918,98 @@ class _ErrorClusterSection extends StatelessWidget {
               ],
             ),
           ),
-        const SizedBox(height: 16),
-        ...clusters
-            .where((cluster) => cluster.hasBreakdown)
-            .map(
-              (cluster) => _ErrorBreakdownCard(cluster: cluster),
-            ),
-      ],
+        ],
+      ),
     );
-  }
-
-  static double _chartHeight(int count) {
-    const minHeight = 220.0;
-    const maxHeight = 360.0;
-    final dynamicHeight = 120 + count * 28;
-    return dynamicHeight.clamp(minHeight, maxHeight).toDouble();
   }
 }
 
-class _ErrorBreakdownCard extends StatelessWidget {
-  const _ErrorBreakdownCard({required this.cluster});
+class _MachineBreakdownChart extends StatelessWidget {
+  const _MachineBreakdownChart({required this.cluster});
 
-  final TEErrorDetailClusterEntity cluster;
+  final TEErrorDetailClusterEntity? cluster;
 
   @override
   Widget build(BuildContext context) {
+    if (cluster == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0B2846),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: const Text(
+          'Select an error code to see affected machines.',
+          style: TextStyle(color: Colors.white60),
+        ),
+      );
+    }
+
+    final machines = cluster!.breakdowns
+        .where((breakdown) => breakdown.failQty > 0 || breakdown.label.isNotEmpty)
+        .map((breakdown) => _BarPoint(
+              breakdown.label.isEmpty ? 'N/A' : breakdown.label,
+              breakdown.failQty,
+            ))
+        .toList();
+
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F2B4A),
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFF0B2846),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${cluster.label.isEmpty ? 'Others' : cluster.label} · ${cluster.totalFail} fails',
+            'Machines for ${cluster!.label.isEmpty ? 'N/A' : cluster!.label}',
             style: const TextStyle(
               color: Colors.white,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 8),
-          ...cluster.breakdowns.map(
-            (breakdown) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      breakdown.label.isEmpty ? 'N/A' : breakdown.label,
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  ),
-                  Text(
-                    breakdown.failQty.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+          const SizedBox(height: 12),
+          if (machines.isEmpty)
+            const Text(
+              'No machine failures recorded for this error code.',
+              style: TextStyle(color: Colors.white54),
+            )
+          else
+            SizedBox(
+              height: 280,
+              child: SfCartesianChart(
+                backgroundColor: Colors.transparent,
+                plotAreaBorderWidth: 0,
+                legend: Legend(isVisible: false),
+                tooltipBehavior: TooltipBehavior(enable: true, header: ''),
+                primaryXAxis: CategoryAxis(
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  majorGridLines: const MajorGridLines(width: 0),
+                ),
+                primaryYAxis: NumericAxis(
+                  minimum: 0,
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.5),
+                ),
+                series: <CartesianSeries<_BarPoint, String>>[
+                  ColumnSeries<_BarPoint, String>(
+                    dataSource: machines,
+                    xValueMapper: (point, _) => point.label,
+                    yValueMapper: (point, _) => point.value,
+                    borderRadius: BorderRadius.circular(6),
+                    color: const Color(0xFF059669),
+                    dataLabelSettings: const DataLabelSettings(
+                      isVisible: true,
+                      textStyle: TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
         ],
       ),
     );

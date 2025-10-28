@@ -107,6 +107,9 @@ class TEManagementRemoteDataSource {
       'model': model,
       'group': group,
     });
+    // Log request path so tapping a cell reveals the outgoing API route in debug output.
+    // ignore: avoid_print
+    print('[TEManagement] GET $uri');
     final response = await http.get(uri, headers: _headers());
     if (response.statusCode == 204 || response.body.isEmpty) {
       return null;

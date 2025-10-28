@@ -8,8 +8,8 @@ const double _kIndexBaseWidth = 58;
 const double _kIndexMinWidth = 46;
 const double _kModelBaseWidth = 208;
 const double _kModelMinWidth = 152;
-const double _kGroupBaseWidth = 236;
-const double _kGroupMinWidth = 168;
+const double _kGroupBaseWidth = 280;
+const double _kGroupMinWidth = 200;
 const double _kCellBaseWidth = 112;
 const double _kCellMinWidth = 72;
 const double _kHeaderTopHeight = 40;
@@ -54,86 +54,54 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
   int get _totalColumns => widget.formattedDates.length * 2;
 
   _TableMetrics _resolveMetrics(double availableWidth) {
-    if (availableWidth <= 0) {
-      return const _TableMetrics(
-        indexWidth: _kIndexMinWidth,
-        modelWidth: _kModelMinWidth,
-        groupWidth: _kGroupMinWidth,
-        cellWidth: _kCellMinWidth,
-        totalWidth: _kIndexMinWidth + _kModelMinWidth + _kGroupMinWidth,
-      );
+    final columns = math.max(_totalColumns, 1);
+    final width = availableWidth > 0 ? availableWidth : 1.0;
+
+    final double effectiveMinTotal =
+        _kIndexMinWidth + _kModelMinWidth + _kGroupMinWidth + (columns * _kCellMinWidth);
+
+    final double baseTotal =
+        _kIndexBaseWidth + _kModelBaseWidth + _kGroupBaseWidth + (columns * _kCellBaseWidth);
+
+    double indexWidth;
+    double modelWidth;
+    double groupWidth;
+    double cellWidth;
+
+    if (width <= effectiveMinTotal) {
+      final scale = width / effectiveMinTotal;
+      indexWidth = _kIndexMinWidth * scale;
+      modelWidth = _kModelMinWidth * scale;
+      groupWidth = _kGroupMinWidth * scale;
+      cellWidth = _kCellMinWidth * scale;
+    } else if (width >= baseTotal) {
+      indexWidth = _kIndexBaseWidth;
+      modelWidth = _kModelBaseWidth;
+      groupWidth = _kGroupBaseWidth;
+      final remaining = width - (_kIndexBaseWidth + _kModelBaseWidth + _kGroupBaseWidth);
+      cellWidth = remaining / columns;
+    } else {
+      final ratio = (width - effectiveMinTotal) / (baseTotal - effectiveMinTotal);
+      indexWidth =
+          _kIndexMinWidth + (_kIndexBaseWidth - _kIndexMinWidth) * ratio;
+      modelWidth =
+          _kModelMinWidth + (_kModelBaseWidth - _kModelMinWidth) * ratio;
+      groupWidth =
+          _kGroupMinWidth + (_kGroupBaseWidth - _kGroupMinWidth) * ratio;
+      cellWidth =
+          _kCellMinWidth + (_kCellBaseWidth - _kCellMinWidth) * ratio;
     }
 
-    final double minTotal = _kIndexMinWidth +
-        _kModelMinWidth +
-        _kGroupMinWidth +
-        (_totalColumns * _kCellMinWidth);
-    if (availableWidth <= minTotal) {
-      return _TableMetrics(
-        indexWidth: _kIndexMinWidth,
-        modelWidth: _kModelMinWidth,
-        groupWidth: _kGroupMinWidth,
-        cellWidth: _kCellMinWidth,
-        totalWidth: minTotal,
-      );
-    }
-
-    final baseFixed =
-        _kIndexBaseWidth + _kModelBaseWidth + _kGroupBaseWidth;
-    final baseTotal = baseFixed + (_totalColumns * _kCellBaseWidth);
-    final scale = baseTotal == 0
-        ? 1.0
-        : (availableWidth / baseTotal).clamp(0.0, 1.0);
-
-    double indexWidth =
-        (_kIndexBaseWidth * scale).clamp(_kIndexMinWidth, _kIndexBaseWidth);
-    double modelWidth =
-        (_kModelBaseWidth * scale).clamp(_kModelMinWidth, _kModelBaseWidth);
-    double groupWidth =
-        (_kGroupBaseWidth * scale).clamp(_kGroupMinWidth, _kGroupBaseWidth);
-
-    double remaining =
-        availableWidth - (indexWidth + modelWidth + groupWidth);
-    double cellWidth = remaining > 0
-        ? (remaining / _totalColumns)
-        : _kCellMinWidth;
-    cellWidth = cellWidth.clamp(_kCellMinWidth, _kCellBaseWidth);
-
-    double totalWidth =
-        indexWidth + modelWidth + groupWidth + cellWidth * _totalColumns;
-
-    if (totalWidth > availableWidth) {
-      final flexTotal = totalWidth - minTotal;
-      final targetFlex = availableWidth - minTotal;
-      final ratio = flexTotal == 0 ? 0.0 : (targetFlex / flexTotal).clamp(0.0, 1.0);
-
-      double adjust(double value, double min) =>
-          min + (value - min) * ratio;
-
-      indexWidth = adjust(indexWidth, _kIndexMinWidth);
-      modelWidth = adjust(modelWidth, _kModelMinWidth);
-      groupWidth = adjust(groupWidth, _kGroupMinWidth);
-      cellWidth = adjust(cellWidth, _kCellMinWidth);
-      totalWidth =
-          indexWidth + modelWidth + groupWidth + cellWidth * _totalColumns;
-    }
-
-    if (totalWidth < availableWidth) {
-      final extra = availableWidth - totalWidth;
-      cellWidth = math.min(
-        _kCellBaseWidth,
-        cellWidth + (extra / _totalColumns),
-      );
-      totalWidth =
-          indexWidth + modelWidth + groupWidth + cellWidth * _totalColumns;
-    }
+    final fixedWidth = indexWidth + modelWidth + groupWidth;
+    final remainingWidth = (width - fixedWidth).clamp(0.0, double.infinity);
+    cellWidth = remainingWidth / columns;
 
     return _TableMetrics(
       indexWidth: indexWidth,
       modelWidth: modelWidth,
       groupWidth: groupWidth,
       cellWidth: cellWidth,
-      totalWidth: totalWidth,
+      totalWidth: width,
     );
   }
 
