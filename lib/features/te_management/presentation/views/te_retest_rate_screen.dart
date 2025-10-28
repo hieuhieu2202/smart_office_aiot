@@ -1542,23 +1542,21 @@ class _GradientTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShaderMask(
-      shaderCallback: (Rect bounds) {
-        return const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF4FE3FF), Color(0xFF1C7BFF)],
-        ).createShader(bounds);
-      },
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: fontSize,
-          fontFamily: 'Inter',
-          fontWeight: fontWeight,
-          letterSpacing: 0.6,
-        ),
+    return Text(
+      text,
+      style: TextStyle(
+        color: const Color(0xFF8EEBFF),
+        fontSize: fontSize,
+        fontFamily: 'Inter',
+        fontWeight: fontWeight,
+        letterSpacing: 0.6,
+        shadows: const [
+          Shadow(
+            color: Color(0x6639D2FF),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
     );
   }
