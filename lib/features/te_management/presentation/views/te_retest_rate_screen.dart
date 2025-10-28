@@ -846,6 +846,7 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                     width: double.infinity,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Container(
@@ -873,6 +874,7 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               _GradientTitle(
@@ -888,6 +890,8 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                         const SizedBox(height: 20),
                         Wrap(
                           alignment: WrapAlignment.center,
+                          runAlignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           spacing: 18,
                           runSpacing: 12,
                           children: [
@@ -1112,7 +1116,7 @@ class _ErrorCodeChart extends StatelessWidget {
           enable: true,
           header: '',
           animationDuration: 250,
-          activationMode: ActivationMode.longPress,
+          activationMode: ActivationMode.singleTap,
           color: Colors.transparent,
           builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
               int seriesIndex) {
@@ -1383,7 +1387,7 @@ class _MachineBreakdownView extends StatelessWidget {
           enable: true,
           header: '',
           animationDuration: 250,
-          activationMode: ActivationMode.longPress,
+          activationMode: ActivationMode.singleTap,
           color: Colors.transparent,
           builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
               int seriesIndex) {
@@ -1671,6 +1675,7 @@ class _GradientTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
+      textAlign: TextAlign.center,
       style: TextStyle(
         color: const Color(0xFF8EEBFF),
         fontSize: fontSize,
