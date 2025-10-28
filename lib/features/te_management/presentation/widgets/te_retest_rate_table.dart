@@ -8,8 +8,8 @@ const double _kIndexBaseWidth = 58;
 const double _kIndexMinWidth = 46;
 const double _kModelBaseWidth = 208;
 const double _kModelMinWidth = 152;
-const double _kGroupBaseWidth = 188;
-const double _kGroupMinWidth = 140;
+const double _kGroupBaseWidth = 236;
+const double _kGroupMinWidth = 168;
 const double _kCellBaseWidth = 112;
 const double _kCellMinWidth = 72;
 const double _kHeaderTopHeight = 40;
@@ -286,6 +286,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                                   index: index + 1,
                                   row: row,
                                   formattedDates: widget.formattedDates,
+                                  rawDates: widget.detail.dates,
                                   totalColumns: _totalColumns,
                                   isFirstBlock: index == 0,
                                   onCellTap: widget.onCellTap,
@@ -367,8 +368,8 @@ class _HeaderRow extends StatelessWidget {
               alignment: Alignment.centerLeft,
             ),
           ),
-          for (final date in formattedDates)
-            SizedBox(
+          for (var dateIndex = 0; dateIndex < formattedDates.length; dateIndex++)
+          SizedBox(
               width: metrics.cellWidth * 2,
               height: _fullHeight,
               child: Column(
@@ -399,9 +400,12 @@ class _HeaderRow extends StatelessWidget {
                     height: _kHeaderBottomHeight,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: const [
-                        _HeaderShiftCell(label: 'Day'),
-                        _HeaderShiftCell(label: 'Night'),
+                      children: [
+                        const _HeaderShiftCell(label: 'Day'),
+                        _HeaderShiftCell(
+                          label: 'Night',
+                          showRightBorder: dateIndex != formattedDates.length - 1,
+                        ),
                       ],
                     ),
                   ),
@@ -474,17 +478,21 @@ class _HeaderLabel extends StatelessWidget {
 }
 
 class _HeaderShiftCell extends StatelessWidget {
-  const _HeaderShiftCell({required this.label});
+  const _HeaderShiftCell({
+    required this.label,
+    this.showRightBorder = true,
+  });
 
   final String label;
+  final bool showRightBorder;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            right: _kGridBorder,
+            right: showRightBorder ? _kGridBorder : BorderSide.none,
             bottom: _kGridBorder,
           ),
         ),
@@ -503,11 +511,13 @@ class _HeaderShiftCell extends StatelessWidget {
   }
 }
 
+
 class _ModelBlock extends StatelessWidget {
   const _ModelBlock({
     required this.index,
     required this.row,
     required this.formattedDates,
+    required this.rawDates,
     required this.totalColumns,
     required this.isFirstBlock,
     required this.onCellTap,
@@ -518,6 +528,7 @@ class _ModelBlock extends StatelessWidget {
   final int index;
   final TERetestDetailRowEntity row;
   final List<String> formattedDates;
+  final List<String> rawDates;
   final int totalColumns;
   final bool isFirstBlock;
   final ValueChanged<TERetestCellDetail>? onCellTap;
@@ -545,11 +556,15 @@ class _ModelBlock extends StatelessWidget {
         (i) {
           final dateIndex = i ~/ 2;
           final isDay = i.isEven;
+          final rawDate =
+              dateIndex < rawDates.length ? rawDates[dateIndex] : '';
           return TERetestCellDetail(
             modelName: row.modelName,
             groupName: groupName,
             dateLabel: formattedDates[dateIndex],
+            dateKey: rawDate,
             shiftLabel: isDay ? 'Day' : 'Night',
+            isDayShift: isDay,
             retestRate: i < rr.length ? rr[i] : null,
             input: i < input.length ? input[i] : null,
             firstFail: i < firstFail.length ? firstFail[i] : null,
@@ -591,7 +606,7 @@ class _ModelBlock extends StatelessWidget {
                     background: background,
                     onTap: onCellTap,
                     isFirstRow: isRowFirst,
-                    showRightBorder: true,
+                    showRightBorder: i != cells.length - 1,
                   ),
                 ),
             ],
@@ -612,12 +627,16 @@ class _ModelBlock extends StatelessWidget {
                   ? dateIndex
                   : formattedDates.length - 1)
               : 0;
+          final rawDate =
+              safeIndex < rawDates.length ? rawDates[safeIndex] : '';
           final dateLabel = hasDates ? formattedDates[safeIndex] : '-';
           return TERetestCellDetail(
             modelName: row.modelName,
             groupName: '-',
             dateLabel: dateLabel,
+            dateKey: rawDate,
             shiftLabel: isDay ? 'Day' : 'Night',
+            isDayShift: isDay,
             retestRate: null,
             input: null,
             firstFail: null,
@@ -640,15 +659,15 @@ class _ModelBlock extends StatelessWidget {
                 background: background,
                 isFirstRow: isFirstBlock,
               ),
-              for (final cellDetail in placeholderCells)
+              for (var i = 0; i < placeholderCells.length; i++)
                 SizedBox(
                   width: metrics.cellWidth,
                   child: _RetestValueCell(
-                    detail: cellDetail,
+                    detail: placeholderCells[i],
                     background: background,
                     onTap: onCellTap,
                     isFirstRow: isFirstBlock,
-                    showRightBorder: true,
+                    showRightBorder: i != placeholderCells.length - 1,
                   ),
                 ),
             ],
@@ -924,7 +943,9 @@ class TERetestCellDetail {
     required this.modelName,
     required this.groupName,
     required this.dateLabel,
+    required this.dateKey,
     required this.shiftLabel,
+    required this.isDayShift,
     required this.retestRate,
     required this.input,
     required this.firstFail,
@@ -935,7 +956,9 @@ class TERetestCellDetail {
   final String modelName;
   final String groupName;
   final String dateLabel;
+  final String dateKey;
   final String shiftLabel;
+  final bool isDayShift;
   final double? retestRate;
   final int? input;
   final int? firstFail;

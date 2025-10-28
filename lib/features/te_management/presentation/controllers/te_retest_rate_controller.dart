@@ -4,14 +4,17 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../domain/entities/te_report.dart';
 import '../../domain/entities/te_retest_rate.dart';
 import '../../domain/usecases/get_model_names.dart';
 import '../../domain/usecases/get_retest_rate_report.dart';
+import '../../domain/usecases/get_error_detail.dart';
 
 class TERetestRateController extends GetxController {
   TERetestRateController({
     required this.getRetestRateReportUseCase,
     required this.getModelNamesUseCase,
+    required this.getErrorDetailUseCase,
     this.initialModelSerial = 'SWITCH',
     List<String>? initialModels,
     this.defaultDayWindow = 6,
@@ -27,6 +30,7 @@ class TERetestRateController extends GetxController {
 
   final GetRetestRateReportUseCase getRetestRateReportUseCase;
   final GetModelNamesUseCase getModelNamesUseCase;
+  final GetErrorDetailUseCase getErrorDetailUseCase;
   final String initialModelSerial;
   final int defaultDayWindow;
 
@@ -138,6 +142,43 @@ class TERetestRateController extends GetxController {
 
   String formatShiftLabel(int index) => index.isEven ? 'Day' : 'Night';
 
+  String? buildRangeLabelForCell({
+    required String dateKey,
+    required bool isDayShift,
+  }) {
+    final date = _parseDateKey(dateKey);
+    if (date == null) return null;
+
+    final dayStart = DateTime(date.year, date.month, date.day, 7, 30);
+    final dayEnd = DateTime(date.year, date.month, date.day, 19, 30);
+    if (isDayShift) {
+      return '${_rangeFormatter.format(dayStart)} - ${_rangeFormatter.format(dayEnd)}';
+    }
+
+    final nightStart = dayEnd;
+    final nightEnd = nightStart.add(const Duration(hours: 12));
+    return '${_rangeFormatter.format(nightStart)} - ${_rangeFormatter.format(nightEnd)}';
+  }
+
+  Future<TEErrorDetailEntity?> fetchErrorDetailForCell({
+    required String dateKey,
+    required bool isDayShift,
+    required String modelName,
+    required String groupName,
+  }) async {
+    final range = buildRangeLabelForCell(
+      dateKey: dateKey,
+      isDayShift: isDayShift,
+    );
+    final effectiveRange =
+        (range == null || range.isEmpty) ? rangeLabel : range;
+    return getErrorDetailUseCase(
+      range: effectiveRange,
+      model: modelName,
+      group: groupName,
+    );
+  }
+
   String _formatDateString(String raw) {
     final cleaned = raw.trim();
     if (cleaned.isEmpty) {
@@ -159,6 +200,26 @@ class TERetestRateController extends GetxController {
       }
     } catch (_) {}
     return cleaned;
+  }
+
+  DateTime? _parseDateKey(String raw) {
+    final cleaned = raw.trim();
+    if (cleaned.isEmpty) {
+      return null;
+    }
+
+    if (cleaned.length == 8 && int.tryParse(cleaned) != null) {
+      final year = int.parse(cleaned.substring(0, 4));
+      final month = int.parse(cleaned.substring(4, 6));
+      final day = int.parse(cleaned.substring(6, 8));
+      return DateTime(year, month, day);
+    }
+
+    try {
+      return DateFormat('yyyy/MM/dd').parse(cleaned);
+    } catch (_) {
+      return DateTime.tryParse(cleaned);
+    }
   }
 
   Future<TERetestExportResult> exportToCsv() async {

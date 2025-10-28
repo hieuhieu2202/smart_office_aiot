@@ -8,8 +8,10 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../../data/datasources/te_management_remote_data_source.dart';
 import '../../data/repositories/te_management_repository_impl.dart';
+import '../../domain/entities/te_report.dart';
 import '../../domain/usecases/get_model_names.dart';
 import '../../domain/usecases/get_retest_rate_report.dart';
+import '../../domain/usecases/get_error_detail.dart';
 import '../controllers/te_retest_rate_controller.dart';
 import '../widgets/te_retest_rate_table.dart';
 
@@ -51,6 +53,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
       TERetestRateController(
         getRetestRateReportUseCase: GetRetestRateReportUseCase(repository),
         getModelNamesUseCase: GetModelNamesUseCase(repository),
+        getErrorDetailUseCase: GetErrorDetailUseCase(repository),
         initialModelSerial: widget.initialModelSerial,
         initialModels: widget.initialModels,
       ),
@@ -498,33 +501,11 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
   void _showCellDetailDialog(TERetestCellDetail detail) {
     showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: _kSurfaceColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: Text(
-            '${detail.modelName} - ${detail.groupName}',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _detailRow('Date', detail.dateLabel),
-              _detailRow('Shift', detail.shiftLabel),
-              _detailRow('Retest Rate', detail.retestRate == null ? 'N/A' : '${detail.retestRate!.toStringAsFixed(2)}%'),
-              _detailRow('WIP Qty', (detail.input ?? 0).toString()),
-              _detailRow('First Fail', (detail.firstFail ?? 0).toString()),
-              _detailRow('Retest Fail', (detail.retestFail ?? 0).toString()),
-              _detailRow('Pass Qty', (detail.pass ?? 0).toString()),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
+        return _CellErrorDetailDialog(
+          controller: _controller,
+          cellDetail: detail,
         );
       },
     );
@@ -642,6 +623,337 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
       ),
     );
   }
+}
+
+class _CellErrorDetailDialog extends StatefulWidget {
+  const _CellErrorDetailDialog({
+    required this.controller,
+    required this.cellDetail,
+  });
+
+  final TERetestRateController controller;
+  final TERetestCellDetail cellDetail;
+
+  @override
+  State<_CellErrorDetailDialog> createState() => _CellErrorDetailDialogState();
+}
+
+class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
+  late Future<TEErrorDetailEntity?> _future;
+  late final String _rangeLabel;
+
+  @override
+  void initState() {
+    super.initState();
+    _rangeLabel = widget.controller.buildRangeLabelForCell(
+          dateKey: widget.cellDetail.dateKey,
+          isDayShift: widget.cellDetail.isDayShift,
+        ) ??
+        widget.controller.rangeLabel;
+    _future = _load();
+  }
+
+  Future<TEErrorDetailEntity?> _load() {
+    return widget.controller.fetchErrorDetailForCell(
+      dateKey: widget.cellDetail.dateKey,
+      isDayShift: widget.cellDetail.isDayShift,
+      modelName: widget.cellDetail.modelName,
+      groupName: widget.cellDetail.groupName,
+    );
+  }
+
+  void _retry() {
+    setState(() {
+      _future = _load();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: _kSurfaceColor,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 860, maxHeight: 720),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${widget.cellDetail.modelName} — ${widget.cellDetail.groupName}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${widget.cellDetail.dateLabel} · ${widget.cellDetail.shiftLabel}',
+                        style: const TextStyle(color: Colors.white60),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _rangeLabel,
+                        style: const TextStyle(color: Colors.white38, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: Colors.white70),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<TEErrorDetailEntity?>(
+              future: _future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Expanded(
+                    child: Center(
+                      child: CircularProgressIndicator(color: _kAccentColor),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Expanded(
+                    child: _ErrorDetailMessage(
+                      message: 'Failed to load error details.\n${snapshot.error}',
+                      onRetry: _retry,
+                    ),
+                  );
+                }
+
+                final data = snapshot.data;
+                if (data == null || !data.hasData) {
+                  return const Expanded(
+                    child: _ErrorDetailMessage(
+                      message: 'No error details were reported for this cell.',
+                    ),
+                  );
+                }
+
+                return Expanded(
+                  child: Scrollbar(
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _ErrorClusterSection(
+                            title: 'Top Error Codes',
+                            clusters: data.byErrorCode,
+                          ),
+                          const SizedBox(height: 24),
+                          _ErrorClusterSection(
+                            title: 'Affected Machines',
+                            clusters: data.byMachine,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorDetailMessage extends StatelessWidget {
+  const _ErrorDetailMessage({
+    required this.message,
+    this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white60),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, color: _kAccentColor),
+              label: const Text(
+                'Retry',
+                style: TextStyle(color: _kAccentColor),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorClusterSection extends StatelessWidget {
+  const _ErrorClusterSection({
+    required this.title,
+    required this.clusters,
+  });
+
+  final String title;
+  final List<TEErrorDetailClusterEntity> clusters;
+
+  @override
+  Widget build(BuildContext context) {
+    final points = clusters
+        .where((cluster) => cluster.totalFail > 0 || cluster.label.isNotEmpty)
+        .map(
+          (cluster) => _BarPoint(
+            cluster.label.isEmpty ? 'N/A' : cluster.label,
+            cluster.totalFail,
+          ),
+        )
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (points.isEmpty)
+          const Text(
+            'No records available.',
+            style: TextStyle(color: Colors.white54),
+          )
+        else
+          SizedBox(
+            height: _chartHeight(points.length),
+            child: SfCartesianChart(
+              legend: Legend(isVisible: false),
+              tooltipBehavior: TooltipBehavior(enable: true),
+              primaryXAxis: CategoryAxis(
+                labelStyle: const TextStyle(color: Colors.white70),
+                majorGridLines: const MajorGridLines(width: 0),
+              ),
+              primaryYAxis: NumericAxis(
+                minimum: 0,
+                labelStyle: const TextStyle(color: Colors.white70),
+                majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.5),
+              ),
+              series: <CartesianSeries<_BarPoint, String>>[
+                ColumnSeries<_BarPoint, String>(
+                  dataSource: points,
+                  xValueMapper: (point, _) => point.label,
+                  yValueMapper: (point, _) => point.value,
+                  borderRadius: BorderRadius.circular(6),
+                  color: const Color(0xFF38BDF8),
+                  dataLabelSettings: const DataLabelSettings(
+                    isVisible: true,
+                    textStyle: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 16),
+        ...clusters
+            .where((cluster) => cluster.hasBreakdown)
+            .map(
+              (cluster) => _ErrorBreakdownCard(cluster: cluster),
+            ),
+      ],
+    );
+  }
+
+  static double _chartHeight(int count) {
+    const minHeight = 220.0;
+    const maxHeight = 360.0;
+    final dynamicHeight = 120 + count * 28;
+    return dynamicHeight.clamp(minHeight, maxHeight).toDouble();
+  }
+}
+
+class _ErrorBreakdownCard extends StatelessWidget {
+  const _ErrorBreakdownCard({required this.cluster});
+
+  final TEErrorDetailClusterEntity cluster;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F2B4A),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${cluster.label.isEmpty ? 'Others' : cluster.label} · ${cluster.totalFail} fails',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...cluster.breakdowns.map(
+            (breakdown) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      breakdown.label.isEmpty ? 'N/A' : breakdown.label,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                  Text(
+                    breakdown.failQty.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BarPoint {
+  const _BarPoint(this.label, this.value);
+
+  final String label;
+  final int value;
 }
 
 class _FilterTile extends StatelessWidget {
