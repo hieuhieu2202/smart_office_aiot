@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -872,89 +873,205 @@ class _ErrorCodeChart extends StatelessWidget {
         selectedIndex >= 0 && selectedIndex < clusters.length && points.isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF0B2747), Color(0xFF132E57)],
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment(-0.5, -0.9),
+          radius: 1.35,
+          colors: [Color(0xFF040C18), Color(0xFF010308)],
         ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white10),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 18,
-            offset: Offset(0, 6),
-          ),
-        ],
+        borderRadius: BorderRadius.all(Radius.circular(22)),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 26),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
+          const _GradientTitle(
+            text: 'Retest Error Landscape',
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+          const SizedBox(height: 8),
           const Text(
-            'Order By Error Code',
+            'Tap a neon bar to reveal impacted machines for that error signature.',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
+              color: Colors.white70,
+              fontSize: 13,
+              letterSpacing: 0.25,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Tap a bar to explore affected machines.',
-            style: TextStyle(color: Colors.white54, fontSize: 12),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 240,
+          const SizedBox(height: 24),
+          Container(
             width: double.infinity,
-            child: SfCartesianChart(
-              backgroundColor: Colors.transparent,
-              plotAreaBorderWidth: 0,
-              legend: Legend(isVisible: false),
-              tooltipBehavior: TooltipBehavior(enable: true, header: ''),
-              primaryXAxis: CategoryAxis(
-                labelStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
-                majorGridLines: const MajorGridLines(width: 0),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0x3300F6FF)),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0x6611223D), Color(0x33102038)],
               ),
-              primaryYAxis: NumericAxis(
-                minimum: 0,
-                labelStyle: const TextStyle(color: Colors.white60),
-                majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.4),
-              ),
-              series: <CartesianSeries<_BarPoint, String>>[
-                ColumnSeries<_BarPoint, String>(
-                  dataSource: points,
-                  xValueMapper: (point, _) => point.label,
-                  yValueMapper: (point, _) => point.value,
-                  borderRadius: BorderRadius.circular(8),
-                  pointColorMapper: (point, index) {
-                    const base = Color(0xFF3B82F6);
-                    if (index == null) {
-                      return base;
-                    }
-                    final isSelected = hasSelection && index == selectedIndex;
-                    return isSelected
-                        ? const Color(0xFF0EA5E9)
-                        : base.withOpacity(hasSelection ? 0.4 : 0.9);
-                  },
-                  dataLabelSettings: const DataLabelSettings(
-                    isVisible: true,
-                    textStyle: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  onPointTap: (details) {
-                    final index = details.pointIndex;
-                    if (index != null) {
-                      onSelect(index);
-                    }
-                  },
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x2200F6FF),
+                  blurRadius: 24,
+                  spreadRadius: 1,
+                  offset: Offset(0, 18),
                 ),
               ],
+            ),
+            child: SizedBox(
+              height: 280,
+              child: SfCartesianChart(
+                backgroundColor: Colors.transparent,
+                plotAreaBorderWidth: 0,
+                plotAreaBackgroundColor: const Color(0x1109A7C6),
+                margin: const EdgeInsets.fromLTRB(0, 10, 0, 16),
+                enableAxisAnimation: true,
+                tooltipBehavior: TooltipBehavior(
+                  enable: true,
+                  header: '',
+                  animationDuration: 300,
+                  color: Colors.transparent,
+                  builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
+                      int seriesIndex) {
+                    final value = point?.y?.toString() ?? '0';
+                    final label = point?.x?.toString() ?? '';
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xEE061224), Color(0xEE0F1D38)],
+                        ),
+                        border: Border.all(color: const Color(0xFF00F6FF), width: 1.2),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x6600F6FF),
+                            blurRadius: 18,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            label,
+                            style: const TextStyle(
+                              color: Color(0xFF88F9FF),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.25,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            value,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'fail occurrences',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                primaryXAxis: CategoryAxis(
+                  arrangeByIndex: true,
+                  labelAlignment: LabelAlignment.center,
+                  axisLine: AxisLine(color: Colors.white.withOpacity(0.1), width: 1.2),
+                  labelStyle: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontFamily: 'Inter',
+                    letterSpacing: 0.3,
+                  ),
+                  majorGridLines: MajorGridLines(color: Colors.white.withOpacity(0.05), width: 0.4),
+                  majorTickLines: const MajorTickLines(size: 0),
+                ),
+                primaryYAxis: NumericAxis(
+                  minimum: 0,
+                  labelStyle: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontFamily: 'Inter',
+                  ),
+                  axisLine: AxisLine(color: Colors.white.withOpacity(0.1), width: 1.2),
+                  majorGridLines: MajorGridLines(color: Colors.white.withOpacity(0.05), width: 0.4),
+                  majorTickLines: const MajorTickLines(size: 0),
+                ),
+                series: <CartesianSeries<_BarPoint, String>>[
+                  ColumnSeries<_BarPoint, String>(
+                    onCreateRenderer: (ChartSeries<_BarPoint, String> series) =>
+                        _GlowingColumnSeriesRenderer(),
+                    dataSource: points,
+                    width: 0.52,
+                    spacing: 0.22,
+                    animationDuration: 1200,
+                    xValueMapper: (point, _) => point.label,
+                    yValueMapper: (point, _) => point.value,
+                    pointColorMapper: (point, index) {
+                      const base = Color(0xFF12B4D9);
+                      if (index == null) return base;
+                      final isSelected = hasSelection && index == selectedIndex;
+                      return isSelected
+                          ? const Color(0xFF00F6FF)
+                          : base.withOpacity(hasSelection ? 0.45 : 0.85);
+                    },
+                    dataLabelSettings: const DataLabelSettings(
+                      isVisible: true,
+                      labelAlignment: ChartDataLabelAlignment.auto,
+                      textStyle: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    onPointTap: (details) {
+                      final index = details.pointIndex;
+                      if (index != null) {
+                        onSelect(index);
+                      }
+                    },
+                  ),
+                  SplineSeries<_BarPoint, String>(
+                    dataSource: points,
+                    xValueMapper: (point, _) => point.label,
+                    yValueMapper: (point, _) => point.value,
+                    color: const Color(0xFF5FFBFF),
+                    width: 2.4,
+                    markerSettings: const MarkerSettings(
+                      isVisible: true,
+                      color: Color(0xFF00F6FF),
+                      height: 9,
+                      width: 9,
+                      borderWidth: 2,
+                      borderColor: Colors.white,
+                    ),
+                    opacity: 0.9,
+                    enableTooltip: false,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1082,6 +1199,94 @@ class _MachineBreakdownView extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _GradientTitle extends StatelessWidget {
+  const _GradientTitle({
+    required this.text,
+    this.fontSize = 18,
+    this.fontWeight = FontWeight.w600,
+  });
+
+  final String text;
+  final double fontSize;
+  final FontWeight fontWeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (Rect bounds) {
+        return const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF00F6FF), Color(0xFF4B82FF)],
+        ).createShader(bounds);
+      },
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: fontSize,
+          fontFamily: 'Inter',
+          fontWeight: fontWeight,
+          letterSpacing: 0.6,
+        ),
+      ),
+    );
+  }
+}
+
+class _GlowingColumnSeriesRenderer extends ColumnSeriesRenderer {
+  @override
+  ColumnSegment createSegment() => _GlowingColumnSegment();
+}
+
+class _GlowingColumnSegment extends ColumnSegment {
+  @override
+  void onPaint(Canvas canvas) {
+    if (segmentRect == null) {
+      return;
+    }
+
+    final Rect rect = segmentRect!;
+    final RRect roundedRect = RRect.fromRectAndCorners(
+      rect,
+      topLeft: const Radius.circular(16),
+      topRight: const Radius.circular(16),
+    );
+
+    final Color accent = currentPoint?.color ?? const Color(0xFF00F6FF);
+
+    final Paint shadowPaint = Paint()
+      ..color = accent.withOpacity(0.35)
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 12);
+    canvas.drawRRect(roundedRect.shift(const Offset(0, 6)), shadowPaint);
+
+    final gradient = LinearGradient(
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
+      colors: [
+        const Color(0xFF0A2342),
+        accent,
+      ],
+    );
+
+    final Paint fillPaint = Paint()
+      ..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(roundedRect, fillPaint);
+
+    final Paint glossPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.center,
+        colors: [
+          Colors.white.withOpacity(0.18),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(rect.left, rect.top, rect.width, rect.height / 1.6));
+    canvas.drawRRect(roundedRect, glossPaint);
   }
 }
 
