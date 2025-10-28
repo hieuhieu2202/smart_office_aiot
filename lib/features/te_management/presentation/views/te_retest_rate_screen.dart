@@ -524,17 +524,32 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
       }
     }
 
+    TERetestCellDetail? _findCell(String label, bool isDay) {
+      for (final cell in detail.cells) {
+        if (cell.dateLabel == label && cell.isDayShift == isDay) {
+          return cell;
+        }
+      }
+      return null;
+    }
+
     for (final label in labels) {
-      final dayValue = detail.cells
-          .where((cell) => cell.dateLabel == label && cell.shiftLabel == 'Day')
-          .map((cell) => cell.retestRate)
-          .firstWhere((value) => value != null, orElse: () => null);
-      final nightValue = detail.cells
-          .where((cell) => cell.dateLabel == label && cell.shiftLabel == 'Night')
-          .map((cell) => cell.retestRate)
-          .firstWhere((value) => value != null, orElse: () => null);
-      daySeries.add(_ChartPoint(label, dayValue));
-      nightSeries.add(_ChartPoint(label, nightValue));
+      final dayCell = _findCell(label, true);
+      final nightCell = _findCell(label, false);
+
+      daySeries.add(_ChartPoint(
+        label: label,
+        shiftLabel: 'Day',
+        value: dayCell?.retestRate,
+        detail: dayCell,
+      ));
+
+      nightSeries.add(_ChartPoint(
+        label: label,
+        shiftLabel: 'Night',
+        value: nightCell?.retestRate,
+        detail: nightCell,
+      ));
     }
 
     showDialog<void>(
@@ -566,7 +581,90 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
                 labelStyle: const TextStyle(color: Colors.white70),
                 majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.5),
               ),
-              tooltipBehavior: TooltipBehavior(enable: true, header: ''),
+              tooltipBehavior: TooltipBehavior(
+                enable: true,
+                header: '',
+                activationMode: ActivationMode.singleTap,
+                color: Colors.transparent,
+                builder: (
+                  dynamic data,
+                  dynamic point,
+                  dynamic series,
+                  int pointIndex,
+                  int seriesIndex,
+                ) {
+                  final chartPoint = data is _ChartPoint ? data : null;
+                  final cell = chartPoint?.detail;
+                  final dateLabel = cell?.dateLabel ?? chartPoint?.label ?? '';
+                  final shift = cell?.shiftLabel ?? chartPoint?.shiftLabel ?? '';
+                  final retestRate = cell?.retestRate ?? chartPoint?.value;
+
+                  String formatRate(double? value) =>
+                      value != null ? '${value.toStringAsFixed(2)}%' : 'N/A';
+                  String formatQty(int? value) =>
+                      NumberFormat.decimalPattern().format(value ?? 0);
+
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xF0152645), Color(0xF0020B1D)],
+                      ),
+                      border: Border.all(
+                        color: const Color(0xFF3DD6FF),
+                        width: 1.1,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x553DD6FF),
+                          blurRadius: 18,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$dateLabel (${shift.isEmpty ? 'N/A' : shift})',
+                          style: const TextStyle(
+                            color: Color(0xFFA3F4FF),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.25,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        _TooltipStatRow(
+                          label: 'Retest Rate',
+                          value: formatRate(retestRate),
+                        ),
+                        _TooltipStatRow(
+                          label: 'WIP Qty',
+                          value: formatQty(cell?.input),
+                        ),
+                        _TooltipStatRow(
+                          label: 'First Fail',
+                          value: formatQty(cell?.firstFail),
+                        ),
+                        _TooltipStatRow(
+                          label: 'Retest Fail',
+                          value: formatQty(cell?.retestFail),
+                        ),
+                        _TooltipStatRow(
+                          label: 'Pass Qty',
+                          value: formatQty(cell?.pass),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
               series: <CartesianSeries<_ChartPoint, String>>[
                 ColumnSeries<_ChartPoint, String>(
                   name: 'Day',
@@ -1602,6 +1700,48 @@ class _DetailInfoChip extends StatelessWidget {
   }
 }
 
+class _TooltipStatRow extends StatelessWidget {
+  const _TooltipStatRow({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1.5),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              color: Color(0xFF7DD6FF),
+              fontSize: 11.5,
+              letterSpacing: 0.25,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _GlowingColumnSeriesRenderer extends ColumnSeriesRenderer<_BarPoint, String> {
   @override
   ColumnSegment<_BarPoint, String> createSegment() => _GlowingColumnSegment();
@@ -1742,8 +1882,15 @@ class _FilterTile extends StatelessWidget {
 }
 
 class _ChartPoint {
-  const _ChartPoint(this.label, this.value);
+  const _ChartPoint({
+    required this.label,
+    required this.shiftLabel,
+    required this.value,
+    this.detail,
+  });
 
   final String label;
+  final String shiftLabel;
   final double? value;
+  final TERetestCellDetail? detail;
 }
