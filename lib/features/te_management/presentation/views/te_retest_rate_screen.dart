@@ -700,38 +700,104 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${widget.cellDetail.modelName} — ${widget.cellDetail.groupName}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 8),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.08),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x2622B8FF),
+                            blurRadius: 18,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${widget.cellDetail.dateLabel} · ${widget.cellDetail.shiftLabel}',
-                        style: const TextStyle(color: Colors.white60),
+                      child: IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded, color: Colors.white),
+                        splashRadius: 22,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _rangeLabel,
-                        style: const TextStyle(color: Colors.white38, fontSize: 12),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close, color: Colors.white70),
-                ),
-              ],
+                  SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 26,
+                            vertical: 22,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(28),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF0A1D39), Color(0xFF123B72)],
+                            ),
+                            border: Border.all(color: const Color(0x5539D2FF)),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x40129BFF),
+                                blurRadius: 34,
+                                spreadRadius: 2,
+                                offset: Offset(0, 20),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _GradientTitle(
+                                text:
+                                    '${widget.cellDetail.modelName} — ${widget.cellDetail.groupName}',
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'Retest insight node',
+                                style: TextStyle(
+                                  color: Color(0xFFB6D7FF),
+                                  fontSize: 13,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 14,
+                          runSpacing: 10,
+                          children: [
+                            _DetailInfoChip(
+                              icon: Icons.event_note_rounded,
+                              label:
+                                  '${widget.cellDetail.dateLabel} · ${widget.cellDetail.shiftLabel}',
+                            ),
+                            _DetailInfoChip(
+                              icon: Icons.schedule_rounded,
+                              label: _rangeLabel,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             FutureBuilder<TEErrorDetailEntity?>(
@@ -1432,6 +1498,57 @@ class _GradientTitle extends StatelessWidget {
           fontFamily: 'Inter',
           fontWeight: fontWeight,
           letterSpacing: 0.6,
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailInfoChip extends StatelessWidget {
+  const _DetailInfoChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0x3324A6FF), Color(0x6616C2FF)],
+        ),
+        border: Border.all(color: const Color(0x5539D2FF)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x2622B8FF),
+            blurRadius: 18,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFF77E3FF)),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFFEBF6FF),
+                fontSize: 12.5,
+                letterSpacing: 0.3,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
