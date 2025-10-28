@@ -1196,35 +1196,8 @@ class _ErrorCodeChart extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 22),
                 if (hasSelection)
-                  Align(
-                    alignment: Alignment.center,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: targetWidth * 0.82,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            clusters[selectedIndex].label.isEmpty
-                                ? 'N/A'
-                                : clusters[selectedIndex].label,
-                            textAlign: TextAlign.center,
-                            softWrap: true,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 16),
               ],
             ),
           ),
