@@ -1403,11 +1403,14 @@ class _MachineBreakdownView extends StatelessWidget {
                           child: ConstrainedBox(
                             constraints: BoxConstraints(maxWidth: targetWidth * 0.8),
                             child: Text(
-                              cluster.label.isEmpty
-                                  ? 'Selected Error Signature'
-                                  : cluster.label,
+                              _truncateErrorLabel(
+                                cluster.label.isEmpty
+                                    ? 'Selected Error Signature'
+                                    : cluster.label,
+                              ),
                               textAlign: TextAlign.center,
-                              softWrap: true,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -1726,6 +1729,14 @@ String _truncateLabel(String input, int maxChars) {
     return trimmed;
   }
   return '${trimmed.substring(0, maxChars - 1)}…';
+}
+
+String _truncateErrorLabel(String input) {
+  final normalized = input.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (normalized.isEmpty) {
+    return 'Selected Error Signature';
+  }
+  return _truncateLabel(normalized, 200);
 }
 
 class _FilterTile extends StatelessWidget {
