@@ -1057,12 +1057,7 @@ class _ErrorCodeChart extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _GradientTitle(
-                  text: 'Retest Error Landscape',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 Expanded(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
