@@ -1197,29 +1197,17 @@ class _ErrorCodeChart extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 22),
-                Align(
-                  alignment: Alignment.center,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: targetWidth * 0.82,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          hasSelection
-                              ? 'Selected error signature'
-                              : 'Tap a neon column to inspect its failure signature',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xFF9EE5FF),
-                            fontSize: 13,
-                            letterSpacing: 0.35,
-                          ),
-                        ),
-                        if (hasSelection) ...[
-                          const SizedBox(height: 10),
+                if (hasSelection)
+                  Align(
+                    alignment: Alignment.center,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: targetWidth * 0.82,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
                           Text(
                             clusters[selectedIndex].label.isEmpty
                                 ? 'N/A'
@@ -1234,10 +1222,9 @@ class _ErrorCodeChart extends StatelessWidget {
                             ),
                           ),
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
