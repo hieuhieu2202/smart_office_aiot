@@ -963,6 +963,8 @@ class _ErrorCodeChart extends StatelessWidget {
                         children: [
                           Text(
                             label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Color(0xFF88F9FF),
                               fontSize: 13,
@@ -973,6 +975,8 @@ class _ErrorCodeChart extends StatelessWidget {
                           const SizedBox(height: 6),
                           Text(
                             value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -1100,25 +1104,18 @@ class _MachineBreakdownView extends StatelessWidget {
         .toList();
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF08213F), Color(0xFF0F2F57)],
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment(-0.4, -1.0),
+          radius: 1.4,
+          colors: [Color(0xFF030A16), Color(0xFF02040B)],
         ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white10),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
+        borderRadius: BorderRadius.all(Radius.circular(22)),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
@@ -1131,69 +1128,205 @@ class _MachineBreakdownView extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
-              const Spacer(),
-              Text(
-                cluster.label.isEmpty ? 'Total' : cluster.label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  cluster.label.isEmpty ? 'Selected Error' : cluster.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+          const _GradientTitle(
+            text: 'Impacted Machines',
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+          const SizedBox(height: 6),
           const Text(
-            'Fail Qty by Machine',
+            'Focus on the neon peaks to spot where this failure signature appears.',
             style: TextStyle(
               color: Colors.white70,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontSize: 12.5,
               letterSpacing: 0.2,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           if (machines.isEmpty)
             const Text(
               'No machine failures recorded for this error code.',
               style: TextStyle(color: Colors.white54),
             )
           else
-            SizedBox(
-              height: 220,
+            Container(
               width: double.infinity,
-              child: SfCartesianChart(
-                backgroundColor: Colors.transparent,
-                plotAreaBorderWidth: 0,
-                legend: Legend(isVisible: false),
-                tooltipBehavior: TooltipBehavior(enable: true, header: ''),
-                primaryXAxis: CategoryAxis(
-                  labelStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
-                  majorGridLines: const MajorGridLines(width: 0),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0x3300F6FF)),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0x6611223D), Color(0x33102038)],
                 ),
-                primaryYAxis: NumericAxis(
-                  minimum: 0,
-                  labelStyle: const TextStyle(color: Colors.white60),
-                  majorGridLines:
-                      const MajorGridLines(color: Colors.white24, width: 0.4),
-                ),
-                series: <CartesianSeries<_BarPoint, String>>[
-                  ColumnSeries<_BarPoint, String>(
-                    dataSource: machines,
-                    xValueMapper: (point, _) => point.label,
-                    yValueMapper: (point, _) => point.value,
-                    borderRadius: BorderRadius.circular(8),
-                    color: const Color(0xFF10B981),
-                    dataLabelSettings: const DataLabelSettings(
-                      isVisible: true,
-                      textStyle: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1F00F6FF),
+                    blurRadius: 20,
+                    spreadRadius: 1,
+                    offset: Offset(0, 16),
                   ),
                 ],
+              ),
+              child: SizedBox(
+                height: 260,
+                child: SfCartesianChart(
+                  backgroundColor: Colors.transparent,
+                  plotAreaBorderWidth: 0,
+                  plotAreaBackgroundColor: const Color(0x1109A7C6),
+                  margin: const EdgeInsets.fromLTRB(0, 8, 0, 12),
+                  tooltipBehavior: TooltipBehavior(
+                    enable: true,
+                    header: '',
+                    animationDuration: 300,
+                    color: Colors.transparent,
+                    builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
+                        int seriesIndex) {
+                      final value = point?.y?.toString() ?? '0';
+                      final label = point?.x?.toString() ?? '';
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xEE061224), Color(0xEE0F1D38)],
+                          ),
+                          border: Border.all(color: const Color(0xFF00F6FF), width: 1.2),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x6600F6FF),
+                              blurRadius: 18,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF88F9FF),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.25,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              value,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'fail occurrences',
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 11,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  primaryXAxis: CategoryAxis(
+                    arrangeByIndex: true,
+                    labelAlignment: LabelAlignment.center,
+                    axisLine: AxisLine(color: Colors.white.withOpacity(0.08), width: 1.1),
+                    labelStyle: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontFamily: 'Inter',
+                      letterSpacing: 0.3,
+                    ),
+                    majorGridLines: MajorGridLines(color: Colors.white.withOpacity(0.05), width: 0.35),
+                    majorTickLines: const MajorTickLines(size: 0),
+                  ),
+                  primaryYAxis: NumericAxis(
+                    minimum: 0,
+                    labelStyle: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontFamily: 'Inter',
+                    ),
+                    axisLine: AxisLine(color: Colors.white.withOpacity(0.08), width: 1.1),
+                    majorGridLines: MajorGridLines(color: Colors.white.withOpacity(0.05), width: 0.35),
+                    majorTickLines: const MajorTickLines(size: 0),
+                  ),
+                  series: <CartesianSeries<_BarPoint, String>>[
+                    ColumnSeries<_BarPoint, String>(
+                      onCreateRenderer: (ChartSeries<_BarPoint, String> series) =>
+                          _GlowingColumnSeriesRenderer(),
+                      dataSource: machines,
+                      width: 0.52,
+                      spacing: 0.22,
+                      animationDuration: 1000,
+                      xValueMapper: (point, _) => point.label,
+                      yValueMapper: (point, _) => point.value,
+                      pointColorMapper: (point, index) => const Color(0xFF0CD0FF),
+                      dataLabelSettings: const DataLabelSettings(
+                        isVisible: true,
+                        labelAlignment: ChartDataLabelAlignment.auto,
+                        textStyle: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    SplineSeries<_BarPoint, String>(
+                      dataSource: machines,
+                      xValueMapper: (point, _) => point.label,
+                      yValueMapper: (point, _) => point.value,
+                      color: const Color(0xFF5FFBFF),
+                      width: 2.2,
+                      markerSettings: const MarkerSettings(
+                        isVisible: true,
+                        color: Color(0xFF00F6FF),
+                        height: 9,
+                        width: 9,
+                        borderWidth: 2,
+                        borderColor: Colors.white,
+                      ),
+                      opacity: 0.9,
+                      enableTooltip: false,
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
