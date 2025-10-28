@@ -1237,7 +1237,7 @@ class _GradientTitle extends StatelessWidget {
   }
 }
 
-class _GlowingColumnSeriesRenderer extends ColumnSeriesRenderer {
+class _GlowingColumnSeriesRenderer extends ColumnSeriesRenderer<_BarPoint, String> {
   @override
   ColumnSegment createSegment() => _GlowingColumnSegment();
 }
@@ -1249,14 +1249,16 @@ class _GlowingColumnSegment extends ColumnSegment {
       return;
     }
 
-    final Rect rect = segmentRect!;
+    final RRect rect = segmentRect!;
+    final Rect outerRect = rect.outerRect;
     final RRect roundedRect = RRect.fromRectAndCorners(
-      rect,
+      outerRect,
       topLeft: const Radius.circular(16),
       topRight: const Radius.circular(16),
     );
 
-    final Color accent = currentPoint?.color ?? const Color(0xFF00F6FF);
+    final Paint basePaint = getFillPaint();
+    final Color accent = basePaint.color;
 
     final Paint shadowPaint = Paint()
       ..color = accent.withOpacity(0.35)
@@ -1273,7 +1275,7 @@ class _GlowingColumnSegment extends ColumnSegment {
     );
 
     final Paint fillPaint = Paint()
-      ..shader = gradient.createShader(rect)
+      ..shader = gradient.createShader(outerRect)
       ..style = PaintingStyle.fill;
     canvas.drawRRect(roundedRect, fillPaint);
 
@@ -1285,7 +1287,7 @@ class _GlowingColumnSegment extends ColumnSegment {
           Colors.white.withOpacity(0.18),
           Colors.transparent,
         ],
-      ).createShader(Rect.fromLTWH(rect.left, rect.top, rect.width, rect.height / 1.6));
+      ).createShader(Rect.fromLTWH(outerRect.left, outerRect.top, outerRect.width, outerRect.height / 1.6));
     canvas.drawRRect(roundedRect, glossPaint);
   }
 }
