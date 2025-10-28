@@ -721,6 +721,11 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                       ),
                       child: IconButton(
                         onPressed: () => Navigator.of(context).pop(),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withOpacity(0.12),
+                          hoverColor: Colors.white.withOpacity(0.2),
+                          highlightColor: Colors.white.withOpacity(0.15),
+                        ),
                         icon: const Icon(Icons.close_rounded, color: Colors.white),
                         splashRadius: 22,
                       ),
@@ -1081,6 +1086,7 @@ class _ErrorCodeChart extends StatelessWidget {
                           fontSize: 11,
                           fontFamily: 'Inter',
                           letterSpacing: 0.3,
+                          fontStyle: FontStyle.italic,
                         ),
                         majorGridLines: MajorGridLines(
                           color: Colors.white.withOpacity(0.04),
@@ -1376,6 +1382,7 @@ class _MachineBreakdownView extends StatelessWidget {
                                 fontSize: 11,
                                 fontFamily: 'Inter',
                                 letterSpacing: 0.3,
+                                fontStyle: FontStyle.italic,
                               ),
                               majorGridLines: MajorGridLines(
                                 color: Colors.white.withOpacity(0.04),
