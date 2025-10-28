@@ -705,37 +705,6 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF6CFFF4), Color(0xFF1C9DFF)],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x663BE4FF),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: IconButton.styleFrom(
-                          padding: const EdgeInsets.all(10),
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          overlayColor: Colors.white.withOpacity(0.22),
-                        ),
-                        icon: const Icon(Icons.close_rounded, color: Colors.white),
-                        splashRadius: 24,
-                      ),
-                    ),
-                  ),
                   SizedBox(
                     width: double.infinity,
                     child: Column(
@@ -805,6 +774,38 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                           ],
                         ),
                       ],
+                    ),
+                  ),
+                  Positioned(
+                    top: -8,
+                    right: -8,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF6CFFF4), Color(0xFF1C9DFF)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x883BE4FF),
+                            blurRadius: 20,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: IconButton.styleFrom(
+                          padding: const EdgeInsets.all(10),
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          overlayColor: Colors.white.withOpacity(0.22),
+                        ),
+                        icon: const Icon(Icons.close_rounded, color: Colors.white),
+                        splashRadius: 24,
+                      ),
                     ),
                   ),
                 ],
