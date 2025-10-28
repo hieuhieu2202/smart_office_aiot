@@ -855,6 +855,9 @@ class _ErrorCodeChart extends StatelessWidget {
         )
         .toList();
 
+    final hasSelection =
+        selectedIndex >= 0 && selectedIndex < clusters.length && points.isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -890,30 +893,30 @@ class _ErrorCodeChart extends StatelessWidget {
                 labelStyle: const TextStyle(color: Colors.white70),
                 majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.5),
               ),
-              onPointTapped: (details) {
-                final index = details.pointIndex;
-                if (index != null) {
-                  onSelect(index);
-                }
-              },
               series: <CartesianSeries<_BarPoint, String>>[
                 ColumnSeries<_BarPoint, String>(
                   dataSource: points,
                   xValueMapper: (point, _) => point.label,
                   yValueMapper: (point, _) => point.value,
                   borderRadius: BorderRadius.circular(6),
-                  color: const Color(0xFF1D4ED8),
-                  selectionBehavior: SelectionBehavior(
-                    enable: true,
-                    selectedIndexes: <int>[selectedIndex],
-                    selectedColor: const Color(0xFF22D3EE),
-                    unselectedColor: const Color(0xFF1D4ED8),
-                    unselectedOpacity: 0.35,
-                  ),
+                  pointColorMapper: (point, index) {
+                    const base = Color(0xFF1D4ED8);
+                    if (index == null) {
+                      return base;
+                    }
+                    final isSelected = hasSelection && index == selectedIndex;
+                    return isSelected ? const Color(0xFF22D3EE) : base.withOpacity(hasSelection ? 0.35 : 1);
+                  },
                   dataLabelSettings: const DataLabelSettings(
                     isVisible: true,
                     textStyle: TextStyle(color: Colors.white),
                   ),
+                  onPointTap: (details) {
+                    final index = details.pointIndex;
+                    if (index != null) {
+                      onSelect(index);
+                    }
+                  },
                 ),
               ],
             ),
