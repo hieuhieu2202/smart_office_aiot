@@ -385,7 +385,7 @@ class _HeaderRow extends StatelessWidget {
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      date,
+                      formattedDates[dateIndex],
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
