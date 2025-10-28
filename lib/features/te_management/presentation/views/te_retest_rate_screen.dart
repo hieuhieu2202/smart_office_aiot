@@ -689,20 +689,13 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
     });
   }
 
-  void _resetSelection() {
-    setState(() {
-      _showingMachines = false;
-      _selectedClusterIndex = null;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: _kSurfaceColor,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 860, maxHeight: 720),
+        constraints: const BoxConstraints(maxWidth: 940, maxHeight: 640),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -796,7 +789,6 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                     child: _MachineBreakdownView(
                       cluster: selectedCluster!,
                       onBack: _returnToErrorChart,
-                      onReset: _resetSelection,
                     ),
                   );
                 }
@@ -880,11 +872,22 @@ class _ErrorCodeChart extends StatelessWidget {
         selectedIndex >= 0 && selectedIndex < clusters.length && points.isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B2846),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0B2747), Color(0xFF132E57)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white10),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -893,49 +896,56 @@ class _ErrorCodeChart extends StatelessWidget {
             'Order By Error Code',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           const Text(
-            'Tap a bar to view affected machines.',
+            'Tap a bar to explore affected machines.',
             style: TextStyle(color: Colors.white54, fontSize: 12),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           SizedBox(
-            height: 280,
+            height: 240,
+            width: double.infinity,
             child: SfCartesianChart(
               backgroundColor: Colors.transparent,
               plotAreaBorderWidth: 0,
               legend: Legend(isVisible: false),
               tooltipBehavior: TooltipBehavior(enable: true, header: ''),
               primaryXAxis: CategoryAxis(
-                labelStyle: const TextStyle(color: Colors.white70),
+                labelStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
                 majorGridLines: const MajorGridLines(width: 0),
               ),
               primaryYAxis: NumericAxis(
                 minimum: 0,
-                labelStyle: const TextStyle(color: Colors.white70),
-                majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.5),
+                labelStyle: const TextStyle(color: Colors.white60),
+                majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.4),
               ),
               series: <CartesianSeries<_BarPoint, String>>[
                 ColumnSeries<_BarPoint, String>(
                   dataSource: points,
                   xValueMapper: (point, _) => point.label,
                   yValueMapper: (point, _) => point.value,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                   pointColorMapper: (point, index) {
-                    const base = Color(0xFF1D4ED8);
+                    const base = Color(0xFF3B82F6);
                     if (index == null) {
                       return base;
                     }
                     final isSelected = hasSelection && index == selectedIndex;
-                    return isSelected ? const Color(0xFF22D3EE) : base.withOpacity(hasSelection ? 0.35 : 1);
+                    return isSelected
+                        ? const Color(0xFF0EA5E9)
+                        : base.withOpacity(hasSelection ? 0.4 : 0.9);
                   },
                   dataLabelSettings: const DataLabelSettings(
                     isVisible: true,
-                    textStyle: TextStyle(color: Colors.white),
+                    textStyle: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   onPointTap: (details) {
                     final index = details.pointIndex;
@@ -957,12 +967,10 @@ class _MachineBreakdownView extends StatelessWidget {
   const _MachineBreakdownView({
     required this.cluster,
     required this.onBack,
-    required this.onReset,
   });
 
   final TEErrorDetailClusterEntity cluster;
   final VoidCallback onBack;
-  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -975,11 +983,22 @@ class _MachineBreakdownView extends StatelessWidget {
         .toList();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B2846),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF08213F), Color(0xFF0F2F57)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white10),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -995,22 +1014,14 @@ class _MachineBreakdownView extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: onReset,
-                style: TextButton.styleFrom(foregroundColor: _kAccentColor),
-                child: const Text(
-                  'Total',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
               const Spacer(),
               Text(
                 cluster.label.isEmpty ? 'Total' : cluster.label,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 17,
                   fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
                 ),
               ),
             ],
@@ -1022,9 +1033,10 @@ class _MachineBreakdownView extends StatelessWidget {
               color: Colors.white70,
               fontSize: 13,
               fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           if (machines.isEmpty)
             const Text(
               'No machine failures recorded for this error code.',
@@ -1032,32 +1044,36 @@ class _MachineBreakdownView extends StatelessWidget {
             )
           else
             SizedBox(
-              height: 280,
+              height: 220,
+              width: double.infinity,
               child: SfCartesianChart(
                 backgroundColor: Colors.transparent,
                 plotAreaBorderWidth: 0,
                 legend: Legend(isVisible: false),
                 tooltipBehavior: TooltipBehavior(enable: true, header: ''),
                 primaryXAxis: CategoryAxis(
-                  labelStyle: const TextStyle(color: Colors.white70),
+                  labelStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
                   majorGridLines: const MajorGridLines(width: 0),
                 ),
                 primaryYAxis: NumericAxis(
                   minimum: 0,
-                  labelStyle: const TextStyle(color: Colors.white70),
+                  labelStyle: const TextStyle(color: Colors.white60),
                   majorGridLines:
-                      const MajorGridLines(color: Colors.white24, width: 0.5),
+                      const MajorGridLines(color: Colors.white24, width: 0.4),
                 ),
                 series: <CartesianSeries<_BarPoint, String>>[
                   ColumnSeries<_BarPoint, String>(
                     dataSource: machines,
                     xValueMapper: (point, _) => point.label,
                     yValueMapper: (point, _) => point.value,
-                    borderRadius: BorderRadius.circular(6),
-                    color: const Color(0xFF059669),
+                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFF10B981),
                     dataLabelSettings: const DataLabelSettings(
                       isVisible: true,
-                      textStyle: TextStyle(color: Colors.white),
+                      textStyle: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
