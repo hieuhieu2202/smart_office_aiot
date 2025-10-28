@@ -1075,38 +1075,30 @@ class _ErrorCodeChart extends StatelessWidget {
                         },
                       ),
                       primaryXAxis: CategoryAxis(
-                        arrangeByIndex: true,
-                        labelAlignment: LabelAlignment.center,
-                        axisLine: AxisLine(
-                          color: Colors.white.withOpacity(0.12),
-                          width: 1.2,
-                        ),
+                        axisLine: const AxisLine(width: 0),
                         labelStyle: const TextStyle(
-                          color: Colors.white70,
+                          color: Color(0xFF9EE5FF),
                           fontSize: 11,
                           fontFamily: 'Inter',
                           letterSpacing: 0.3,
                         ),
                         majorGridLines: MajorGridLines(
-                          color: Colors.white.withOpacity(0.05),
-                          width: 0.4,
+                          color: Colors.white.withOpacity(0.04),
+                          width: 0.35,
                         ),
                         majorTickLines: const MajorTickLines(size: 0),
                       ),
                       primaryYAxis: NumericAxis(
                         minimum: 0,
                         labelStyle: const TextStyle(
-                          color: Colors.white70,
+                          color: Color(0xFF8BCFF8),
                           fontSize: 11,
                           fontFamily: 'Inter',
                         ),
-                        axisLine: AxisLine(
-                          color: Colors.white.withOpacity(0.12),
-                          width: 1.2,
-                        ),
+                        axisLine: const AxisLine(width: 0),
                         majorGridLines: MajorGridLines(
-                          color: Colors.white.withOpacity(0.05),
-                          width: 0.35,
+                          color: Colors.white.withOpacity(0.04),
+                          width: 0.32,
                         ),
                         majorTickLines: const MajorTickLines(size: 0),
                       ),
@@ -1378,38 +1370,30 @@ class _MachineBreakdownView extends StatelessWidget {
                               },
                             ),
                             primaryXAxis: CategoryAxis(
-                              arrangeByIndex: true,
-                              labelAlignment: LabelAlignment.center,
-                              axisLine: AxisLine(
-                                color: Colors.white.withOpacity(0.12),
-                                width: 1.2,
-                              ),
+                              axisLine: const AxisLine(width: 0),
                               labelStyle: const TextStyle(
-                                color: Colors.white70,
+                                color: Color(0xFF9EE5FF),
                                 fontSize: 11,
                                 fontFamily: 'Inter',
                                 letterSpacing: 0.3,
                               ),
                               majorGridLines: MajorGridLines(
-                                color: Colors.white.withOpacity(0.05),
-                                width: 0.35,
+                                color: Colors.white.withOpacity(0.04),
+                                width: 0.32,
                               ),
                               majorTickLines: const MajorTickLines(size: 0),
                             ),
                             primaryYAxis: NumericAxis(
                               minimum: 0,
                               labelStyle: const TextStyle(
-                                color: Colors.white70,
+                                color: Color(0xFF8BCFF8),
                                 fontSize: 11,
                                 fontFamily: 'Inter',
                               ),
-                              axisLine: AxisLine(
-                                color: Colors.white.withOpacity(0.12),
-                                width: 1.2,
-                              ),
+                              axisLine: const AxisLine(width: 0),
                               majorGridLines: MajorGridLines(
-                                color: Colors.white.withOpacity(0.05),
-                                width: 0.35,
+                                color: Colors.white.withOpacity(0.04),
+                                width: 0.3,
                               ),
                               majorTickLines: const MajorTickLines(size: 0),
                             ),
