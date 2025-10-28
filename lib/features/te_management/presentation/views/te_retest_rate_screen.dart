@@ -1167,13 +1167,6 @@ class _ErrorCodeChart extends StatelessWidget {
                               tooltipBehavior.showByIndex(seriesIndex, index);
                             }
                           },
-                          onPointHover: (details) {
-                            final index = details.pointIndex;
-                            if (index != null) {
-                              final seriesIndex = details.seriesIndex ?? 0;
-                              tooltipBehavior.showByIndex(seriesIndex, index);
-                            }
-                          },
                         ),
                         SplineSeries<_BarPoint, String>(
                           dataSource: points,
@@ -1498,13 +1491,6 @@ class _MachineBreakdownView extends StatelessWidget {
                                     }
                                   },
                                   onPointLongPress: (details) {
-                                    final index = details.pointIndex;
-                                    if (index != null) {
-                                      final seriesIndex = details.seriesIndex ?? 0;
-                                      tooltipBehavior.showByIndex(seriesIndex, index);
-                                    }
-                                  },
-                                  onPointHover: (details) {
                                     final index = details.pointIndex;
                                     if (index != null) {
                                       final seriesIndex = details.seriesIndex ?? 0;
