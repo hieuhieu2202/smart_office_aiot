@@ -16,6 +16,13 @@ abstract class TEManagementRepository {
     required String group,
   });
 
+  Future<TEErrorDetailEntity?> fetchRetestRateErrorDetail({
+    required String date,
+    required String shift,
+    required String model,
+    required String group,
+  });
+
   Future<TERetestDetailEntity> fetchRetestRateReport({
     required String modelSerial,
     required String range,

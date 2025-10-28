@@ -53,6 +53,21 @@ class TEManagementRepositoryImpl implements TEManagementRepository {
   }
 
   @override
+  Future<TEErrorDetailEntity?> fetchRetestRateErrorDetail({
+    required String date,
+    required String shift,
+    required String model,
+    required String group,
+  }) {
+    return _remoteDataSource.fetchRetestRateErrorDetail(
+      date: date,
+      shift: shift,
+      model: model,
+      group: group,
+    );
+  }
+
+  @override
   Future<TERetestDetailEntity> fetchRetestRateReport({
     required String modelSerial,
     required String range,

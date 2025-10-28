@@ -125,6 +125,35 @@ class TEManagementRemoteDataSource {
     return TEErrorDetailModel.fromJson(jsonMap);
   }
 
+  Future<TEErrorDetailModel?> fetchRetestRateErrorDetail({
+    required String date,
+    required String shift,
+    required String model,
+    required String group,
+  }) async {
+    final uri = _buildUri('RetestRateErrorDetail', {
+      'date': date,
+      'shift': shift,
+      'model': model,
+      'group': group,
+    });
+    // ignore: avoid_print
+    print('[TEManagement] GET $uri');
+    final response = await http.get(uri, headers: _headers());
+    if (response.statusCode == 204 || response.body.isEmpty) {
+      return null;
+    }
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load retest rate error detail (${response.statusCode})',
+      );
+    }
+
+    final Map<String, dynamic> jsonMap =
+        json.decode(response.body) as Map<String, dynamic>;
+    return TEErrorDetailModel.fromJson(jsonMap);
+  }
+
   Future<TERetestDetailModel> fetchRetestRateReport({
     required String modelSerial,
     required String range,

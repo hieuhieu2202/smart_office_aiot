@@ -9,13 +9,13 @@ import '../../domain/entities/te_report.dart';
 import '../../domain/entities/te_retest_rate.dart';
 import '../../domain/usecases/get_model_names.dart';
 import '../../domain/usecases/get_retest_rate_report.dart';
-import '../../domain/usecases/get_error_detail.dart';
+import '../../domain/usecases/get_retest_rate_error_detail.dart';
 
 class TERetestRateController extends GetxController {
   TERetestRateController({
     required this.getRetestRateReportUseCase,
     required this.getModelNamesUseCase,
-    required this.getErrorDetailUseCase,
+    required this.getRetestRateErrorDetailUseCase,
     this.initialModelSerial = 'SWITCH',
     List<String>? initialModels,
     this.defaultDayWindow = 6,
@@ -31,7 +31,7 @@ class TERetestRateController extends GetxController {
 
   final GetRetestRateReportUseCase getRetestRateReportUseCase;
   final GetModelNamesUseCase getModelNamesUseCase;
-  final GetErrorDetailUseCase getErrorDetailUseCase;
+  final GetRetestRateErrorDetailUseCase getRetestRateErrorDetailUseCase;
   final String initialModelSerial;
   final int defaultDayWindow;
 
@@ -48,6 +48,7 @@ class TERetestRateController extends GetxController {
   late String _modelSerial;
 
   final DateFormat _rangeFormatter = DateFormat('yyyy/MM/dd HH:mm');
+  final DateFormat _dateFormatter = DateFormat('yyyy/MM/dd');
 
   String get rangeLabel =>
       '${_rangeFormatter.format(startDate.value)} - ${_rangeFormatter.format(endDate.value)}';
@@ -167,20 +168,18 @@ class TERetestRateController extends GetxController {
     required String modelName,
     required String groupName,
   }) async {
-    final range = buildRangeLabelForCell(
-      dateKey: dateKey,
-      isDayShift: isDayShift,
-    );
-    final effectiveRange =
-        (range == null || range.isEmpty) ? rangeLabel : range;
-    final encodedRange = Uri.encodeComponent(effectiveRange);
+    final dateParam = _formatDateForApi(dateKey);
+    final shiftParam = isDayShift ? 'D' : 'N';
+    final encodedDate = Uri.encodeComponent(dateParam);
+    final encodedShift = Uri.encodeComponent(shiftParam);
     final encodedModel = Uri.encodeComponent(modelName);
     final encodedGroup = Uri.encodeComponent(groupName);
     final apiPath =
-        'api/nvidia/temanagement/TEManagement/ErrorDetail?range=$encodedRange&model=$encodedModel&group=$encodedGroup';
+        'api/nvidia/temanagement/TEManagement/RetestRateErrorDetail?date=$encodedDate&shift=$encodedShift&model=$encodedModel&group=$encodedGroup';
     debugPrint('[TERetestRate] GET $apiPath');
-    return getErrorDetailUseCase(
-      range: effectiveRange,
+    return getRetestRateErrorDetailUseCase(
+      date: dateParam,
+      shift: shiftParam,
       model: modelName,
       group: groupName,
     );
@@ -226,6 +225,25 @@ class TERetestRateController extends GetxController {
       return DateFormat('yyyy/MM/dd').parse(cleaned);
     } catch (_) {
       return DateTime.tryParse(cleaned);
+    }
+  }
+
+  String _formatDateForApi(String raw) {
+    final parsed = _parseDateKey(raw);
+    if (parsed != null) {
+      return _dateFormatter.format(parsed);
+    }
+
+    final cleaned = raw.trim();
+    if (cleaned.isEmpty) {
+      return cleaned;
+    }
+
+    try {
+      final parsedAlt = DateTime.parse(cleaned);
+      return _dateFormatter.format(parsedAlt);
+    } catch (_) {
+      return cleaned;
     }
   }
 

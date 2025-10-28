@@ -10,8 +10,8 @@ import '../../data/datasources/te_management_remote_data_source.dart';
 import '../../data/repositories/te_management_repository_impl.dart';
 import '../../domain/entities/te_report.dart';
 import '../../domain/usecases/get_model_names.dart';
+import '../../domain/usecases/get_retest_rate_error_detail.dart';
 import '../../domain/usecases/get_retest_rate_report.dart';
-import '../../domain/usecases/get_error_detail.dart';
 import '../controllers/te_retest_rate_controller.dart';
 import '../widgets/te_retest_rate_table.dart';
 
@@ -53,7 +53,8 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
       TERetestRateController(
         getRetestRateReportUseCase: GetRetestRateReportUseCase(repository),
         getModelNamesUseCase: GetModelNamesUseCase(repository),
-        getErrorDetailUseCase: GetErrorDetailUseCase(repository),
+        getRetestRateErrorDetailUseCase:
+            GetRetestRateErrorDetailUseCase(repository),
         initialModelSerial: widget.initialModelSerial,
         initialModels: widget.initialModels,
       ),
