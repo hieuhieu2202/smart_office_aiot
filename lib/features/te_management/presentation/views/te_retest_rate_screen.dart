@@ -1241,7 +1241,7 @@ class _MachineBreakdownView extends StatelessWidget {
         );
 
         const axisLabelMaxChars = 22;
-        final axisLabelTextStyle = const TextStyle(
+        const axisLabelTextStyle = TextStyle(
           color: Color(0xFF9EE5FF),
           fontSize: 11,
           fontFamily: 'Inter',
@@ -1255,270 +1255,284 @@ class _MachineBreakdownView extends StatelessWidget {
             width: targetWidth,
             child: Container(
               decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment(-0.42, -0.95),
-              radius: 1.5,
-              colors: [Color(0xFF02122C), Color(0xFF01040C)],
-            ),
-            borderRadius: BorderRadius.all(Radius.circular(26)),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x3300E1FF),
-                blurRadius: 36,
-                spreadRadius: 4,
-                offset: Offset(0, 24),
-              ),
-            ],
-          ),
-            padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    TextButton.icon(
-                    onPressed: onBack,
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF33E8FF),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    ),
-                    icon: const Icon(Icons.arrow_back, size: 18),
-                    label: const Text(
-                      'Back',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        cluster.label.isEmpty
-                            ? 'Selected Error Signature'
-                            : cluster.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ),
+                gradient: RadialGradient(
+                  center: Alignment(-0.42, -0.95),
+                  radius: 1.5,
+                  colors: [Color(0xFF02122C), Color(0xFF01040C)],
+                ),
+                borderRadius: BorderRadius.all(Radius.circular(26)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x3300E1FF),
+                    blurRadius: 36,
+                    spreadRadius: 4,
+                    offset: Offset(0, 24),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              const _GradientTitle(
-                text: 'Impacted Machines',
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Highlight the neon peaks to reveal the stations producing this failure pattern.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12.5,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: machines.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No machine failures recorded for this error code.',
-                          style: TextStyle(color: Colors.white54),
-                        ),
-                      )
-                    : DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: const Color(0x3D39D2FF)),
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0x66223C66), Color(0x33254B7E)],
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x2600D9FF),
-                              blurRadius: 24,
-                              spreadRadius: 2,
-                              offset: Offset(0, 18),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: onBack,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF33E8FF),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 18),
-                          child: SfCartesianChart(
-                            backgroundColor: Colors.transparent,
-                            plotAreaBorderWidth: 0,
-                            plotAreaBackgroundColor: const Color(0x110B8CFF),
-                            margin: const EdgeInsets.fromLTRB(0, 8, 0, 16),
-                            enableAxisAnimation: true,
-                            tooltipBehavior: TooltipBehavior(
-                              enable: true,
-                              header: '',
-                              animationDuration: 250,
-                              color: Colors.transparent,
-                              builder: (dynamic data, dynamic point, dynamic series,
-                                  int pointIndex, int seriesIndex) {
-                                final value = point?.y?.toString() ?? '0';
-                                final label = point?.x?.toString() ?? '';
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(14),
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [Color(0xF0152645), Color(0xF0020B1D)],
-                                    ),
-                                    border: Border.all(
-                                      color: const Color(0xFF3DD6FF),
-                                      width: 1.1,
-                                    ),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(0x553DD6FF),
-                                        blurRadius: 18,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        label,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Color(0xFFA3F4FF),
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.25,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        value,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      const Text(
-                                        'fail occurrences',
-                                        style: TextStyle(
-                                          color: Colors.white54,
-                                          fontSize: 11,
-                                          letterSpacing: 0.6,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                        ),
+                        icon: const Icon(Icons.arrow_back, size: 18),
+                        label: const Text(
+                          'Back',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            cluster.label.isEmpty
+                                ? 'Selected Error Signature'
+                                : cluster.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
                             ),
-                            primaryXAxis: CategoryAxis(
-                              axisLine: const AxisLine(width: 0),
-                              labelStyle: axisLabelTextStyle,
-                              labelRotation: -18,
-                              majorGridLines: MajorGridLines(
-                                color: Colors.white.withOpacity(0.04),
-                                width: 0.32,
-                              ),
-                              majorTickLines: const MajorTickLines(size: 0),
-                              axisLabelFormatter: (AxisLabelRenderDetails details) {
-                                final raw = details.text;
-                                final display = raw.length > axisLabelMaxChars
-                                    ? '${raw.substring(0, axisLabelMaxChars - 1)}…'
-                                    : raw;
-                                return ChartAxisLabel(display, axisLabelTextStyle);
-                              },
-                            ),
-                            primaryYAxis: NumericAxis(
-                              minimum: 0,
-                              labelStyle: const TextStyle(
-                                color: Color(0xFF8BCFF8),
-                                fontSize: 11,
-                                fontFamily: 'Inter',
-                              ),
-                              axisLine: const AxisLine(width: 0),
-                              majorGridLines: MajorGridLines(
-                                color: Colors.white.withOpacity(0.04),
-                                width: 0.3,
-                              ),
-                              majorTickLines: const MajorTickLines(size: 0),
-                            ),
-                            series: <CartesianSeries<_BarPoint, String>>[
-                              ColumnSeries<_BarPoint, String>(
-                                onCreateRenderer:
-                                    (ChartSeries<_BarPoint, String> series) =>
-                                        _GlowingColumnSeriesRenderer(),
-                                dataSource: machines,
-                                width: 0.64,
-                                spacing: 0.16,
-                                animationDuration: 1000,
-                                xValueMapper: (point, _) => point.label,
-                                yValueMapper: (point, _) => point.value,
-                                pointColorMapper: (point, index) =>
-                                    const Color(0xFF33E8FF),
-                                dataLabelSettings: const DataLabelSettings(
-                                  isVisible: true,
-                                  labelAlignment: ChartDataLabelAlignment.auto,
-                                  textStyle: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.4,
-                                  ),
-                                ),
-                                borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(18)),
-                              ),
-                              SplineSeries<_BarPoint, String>(
-                                dataSource: machines,
-                                xValueMapper: (point, _) => point.label,
-                                yValueMapper: (point, _) => point.value,
-                                color: const Color(0xFF7DFAFF),
-                                width: 2.4,
-                                markerSettings: const MarkerSettings(
-                                  isVisible: true,
-                                  color: Color(0xFF33E8FF),
-                                  height: 9,
-                                  width: 9,
-                                  borderWidth: 2,
-                                  borderColor: Colors.white,
-                                ),
-                                opacity: 0.9,
-                                enableTooltip: false,
-                              ),
-                            ],
                           ),
                         ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const _GradientTitle(
+                    text: 'Impacted Machines',
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Highlight the neon peaks to reveal the stations producing this failure pattern.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12.5,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: machines.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No machine failures recorded for this error code.',
+                              style: TextStyle(color: Colors.white54),
+                            ),
+                          )
+                        : DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(color: const Color(0x3D39D2FF)),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0x66223C66), Color(0x33254B7E)],
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x2600D9FF),
+                                  blurRadius: 24,
+                                  spreadRadius: 2,
+                                  offset: Offset(0, 18),
+                                ),
+                              ],
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 18,
+                              ),
+                              child: SfCartesianChart(
+                                backgroundColor: Colors.transparent,
+                                plotAreaBorderWidth: 0,
+                                plotAreaBackgroundColor: const Color(0x110B8CFF),
+                                margin: const EdgeInsets.fromLTRB(0, 8, 0, 16),
+                                enableAxisAnimation: true,
+                                tooltipBehavior: TooltipBehavior(
+                                  enable: true,
+                                  header: '',
+                                  animationDuration: 250,
+                                  color: Colors.transparent,
+                                  builder: (
+                                    dynamic data,
+                                    dynamic point,
+                                    dynamic series,
+                                    int pointIndex,
+                                    int seriesIndex,
+                                  ) {
+                                    final value = point?.y?.toString() ?? '0';
+                                    final label = point?.x?.toString() ?? '';
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(14),
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [Color(0xF0152645), Color(0xF0020B1D)],
+                                        ),
+                                        border: Border.all(
+                                          color: const Color(0xFF3DD6FF),
+                                          width: 1.1,
+                                        ),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Color(0x553DD6FF),
+                                            blurRadius: 18,
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            label,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: Color(0xFFA3F4FF),
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.25,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            value,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          const Text(
+                                            'fail occurrences',
+                                            style: TextStyle(
+                                              color: Colors.white54,
+                                              fontSize: 11,
+                                              letterSpacing: 0.6,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                                primaryXAxis: CategoryAxis(
+                                  axisLine: const AxisLine(width: 0),
+                                  labelStyle: axisLabelTextStyle,
+                                  labelRotation: -18,
+                                  majorGridLines: MajorGridLines(
+                                    color: Colors.white.withOpacity(0.04),
+                                    width: 0.32,
+                                  ),
+                                  majorTickLines: const MajorTickLines(size: 0),
+                                  axisLabelFormatter: (AxisLabelRenderDetails details) {
+                                    final raw = details.text;
+                                    final display = raw.length > axisLabelMaxChars
+                                        ? '${raw.substring(0, axisLabelMaxChars - 1)}…'
+                                        : raw;
+                                    return ChartAxisLabel(display, axisLabelTextStyle);
+                                  },
+                                ),
+                                primaryYAxis: NumericAxis(
+                                  minimum: 0,
+                                  labelStyle: const TextStyle(
+                                    color: Color(0xFF8BCFF8),
+                                    fontSize: 11,
+                                    fontFamily: 'Inter',
+                                  ),
+                                  axisLine: const AxisLine(width: 0),
+                                  majorGridLines: MajorGridLines(
+                                    color: Colors.white.withOpacity(0.04),
+                                    width: 0.3,
+                                  ),
+                                  majorTickLines: const MajorTickLines(size: 0),
+                                ),
+                                series: <CartesianSeries<_BarPoint, String>>[
+                                  ColumnSeries<_BarPoint, String>(
+                                    onCreateRenderer:
+                                        (ChartSeries<_BarPoint, String> series) =>
+                                            _GlowingColumnSeriesRenderer(),
+                                    dataSource: machines,
+                                    width: 0.64,
+                                    spacing: 0.16,
+                                    animationDuration: 1000,
+                                    xValueMapper: (point, _) => point.label,
+                                    yValueMapper: (point, _) => point.value,
+                                    pointColorMapper: (point, index) =>
+                                        const Color(0xFF33E8FF),
+                                    dataLabelSettings: const DataLabelSettings(
+                                      isVisible: true,
+                                      labelAlignment: ChartDataLabelAlignment.auto,
+                                      textStyle: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.4,
+                                      ),
+                                    ),
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(18),
+                                    ),
+                                  ),
+                                  SplineSeries<_BarPoint, String>(
+                                    dataSource: machines,
+                                    xValueMapper: (point, _) => point.label,
+                                    yValueMapper: (point, _) => point.value,
+                                    color: const Color(0xFF7DFAFF),
+                                    width: 2.4,
+                                    markerSettings: const MarkerSettings(
+                                      isVisible: true,
+                                      color: Color(0xFF33E8FF),
+                                      height: 9,
+                                      width: 9,
+                                      borderWidth: 2,
+                                      borderColor: Colors.white,
+                                    ),
+                                    opacity: 0.9,
+                                    enableTooltip: false,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
     );
   }
 }
-
 class _GradientTitle extends StatelessWidget {
   const _GradientTitle({
     required this.text,
