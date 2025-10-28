@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../../service/auth/auth_config.dart';
+import '../../domain/entities/te_report.dart';
 import '../models/te_report_models.dart';
 import '../models/te_retest_rate_models.dart';
 
@@ -120,9 +121,21 @@ class TEManagementRemoteDataSource {
       );
     }
 
-    final Map<String, dynamic> jsonMap =
-        json.decode(response.body) as Map<String, dynamic>;
-    return TEErrorDetailModel.fromJson(jsonMap);
+    final dynamic decoded = json.decode(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return TEErrorDetailModel.fromJson(decoded);
+    }
+    if (decoded is List) {
+      final clusters = decoded
+          .map((item) => TEErrorDetailClusterModel.fromDynamic(item))
+          .whereType<TEErrorDetailClusterModel>()
+          .toList();
+      return TEErrorDetailModel(
+        byErrorCode: clusters,
+        byMachine: const <TEErrorDetailClusterEntity>[],
+      );
+    }
+    throw Exception('Unexpected error detail payload');
   }
 
   Future<TEErrorDetailModel?> fetchRetestRateErrorDetail({
@@ -149,9 +162,21 @@ class TEManagementRemoteDataSource {
       );
     }
 
-    final Map<String, dynamic> jsonMap =
-        json.decode(response.body) as Map<String, dynamic>;
-    return TEErrorDetailModel.fromJson(jsonMap);
+    final dynamic decoded = json.decode(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return TEErrorDetailModel.fromJson(decoded);
+    }
+    if (decoded is List) {
+      final clusters = decoded
+          .map((item) => TEErrorDetailClusterModel.fromDynamic(item))
+          .whereType<TEErrorDetailClusterModel>()
+          .toList();
+      return TEErrorDetailModel(
+        byErrorCode: clusters,
+        byMachine: const <TEErrorDetailClusterEntity>[],
+      );
+    }
+    throw Exception('Unexpected retest rate error detail payload');
   }
 
   Future<TERetestDetailModel> fetchRetestRateReport({
