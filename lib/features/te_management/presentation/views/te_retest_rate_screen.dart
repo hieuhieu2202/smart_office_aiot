@@ -1377,12 +1377,6 @@ class _MachineBreakdownView extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  const _GradientTitle(
-                    text: 'Impacted Machines',
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
                   const SizedBox(height: 18),
                   Expanded(
                     child: machines.isEmpty
