@@ -16,14 +16,14 @@ const double _kHeaderTopHeight = 40;
 const double _kHeaderBottomHeight = 32;
 const double _kRowHeight = 54;
 
-const Color _kHeaderColor = Color(0xFF07162C);
-const Color _kHeaderAccent = Color(0xFF051022);
-const Color _kTableBackground = Color(0xFF020A18);
-const Color _kRowEvenColor = Color(0xFF07162C);
-const Color _kRowOddColor = Color(0xFF051020);
-const Color _kSpanBackground = Color(0xFF0C223D);
-const Color _kBorderColor = Color(0x5538D6FF);
-const BorderSide _kGridBorder = BorderSide(color: _kBorderColor, width: 0.9);
+const Color _kHeaderColor = Color(0xFF0A2342);
+const Color _kHeaderAccent = Color(0xFF112F54);
+const Color _kTableBackground = Color(0xFF010A18);
+const Color _kRowEvenColor = Color(0xFF0B1E36);
+const Color _kRowOddColor = Color(0xFF08162B);
+const Color _kSpanBackground = Color(0xFF103055);
+const Color _kBorderColor = Color(0x7737B8FF);
+const BorderSide _kGridBorder = BorderSide(color: _kBorderColor, width: 1.0);
 
 class TERetestRateTable extends StatefulWidget {
   const TERetestRateTable({
@@ -322,6 +322,7 @@ class _HeaderRow extends StatelessWidget {
         children: [
           _HeaderBlock(
             width: metrics.indexWidth,
+            showLeftBorder: true,
             child: const _HeaderLabel('#'),
           ),
           _HeaderBlock(
@@ -339,7 +340,7 @@ class _HeaderRow extends StatelessWidget {
             ),
           ),
           for (var dateIndex = 0; dateIndex < formattedDates.length; dateIndex++)
-          SizedBox(
+            SizedBox(
               width: metrics.cellWidth * 2,
               height: _fullHeight,
               child: Column(
@@ -347,9 +348,11 @@ class _HeaderRow extends StatelessWidget {
                 children: [
                   Container(
                     height: _kHeaderTopHeight,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       border: Border(
+                        left: dateIndex == 0 ? _kGridBorder : BorderSide.none,
                         right: _kGridBorder,
+                        top: _kGridBorder,
                         bottom: _kGridBorder,
                       ),
                     ),
@@ -371,8 +374,16 @@ class _HeaderRow extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const _HeaderShiftCell(label: 'Day'),
-                        const _HeaderShiftCell(label: 'Night'),
+                        _HeaderShiftCell(
+                          label: 'Day',
+                          showLeftBorder: dateIndex == 0,
+                          showTopBorder: true,
+                        ),
+                        const _HeaderShiftCell(
+                          label: 'Night',
+                          showLeftBorder: true,
+                          showTopBorder: true,
+                        ),
                       ],
                     ),
                   ),
@@ -389,10 +400,12 @@ class _HeaderBlock extends StatelessWidget {
   const _HeaderBlock({
     required this.width,
     required this.child,
+    this.showLeftBorder = false,
   });
 
   final double width;
   final Widget child;
+  final bool showLeftBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -400,9 +413,11 @@ class _HeaderBlock extends StatelessWidget {
       width: width,
       height: _kHeaderTopHeight + _kHeaderBottomHeight,
       child: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
+            left: showLeftBorder ? _kGridBorder : BorderSide.none,
             right: _kGridBorder,
+            top: _kGridBorder,
             bottom: _kGridBorder,
           ),
         ),
@@ -447,11 +462,15 @@ class _HeaderLabel extends StatelessWidget {
 class _HeaderShiftCell extends StatelessWidget {
   const _HeaderShiftCell({
     required this.label,
+    this.showLeftBorder = false,
     this.showRightBorder = true,
+    this.showTopBorder = false,
   });
 
   final String label;
+  final bool showLeftBorder;
   final bool showRightBorder;
+  final bool showTopBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -459,7 +478,9 @@ class _HeaderShiftCell extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           border: Border(
+            left: showLeftBorder ? _kGridBorder : BorderSide.none,
             right: showRightBorder ? _kGridBorder : BorderSide.none,
+            top: showTopBorder ? _kGridBorder : BorderSide.none,
             bottom: _kGridBorder,
           ),
         ),
