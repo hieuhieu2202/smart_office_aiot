@@ -203,8 +203,7 @@ class TERetestRateController extends GetxController {
 
   String friendlyErrorMessage(Object error) {
     if (_isNetworkError(error)) {
-      final detail = error.toString();
-      return '$_networkIssueMessage\n\nChi tiết: $detail';
+      return _networkIssueMessage;
     }
     return error.toString();
   }
