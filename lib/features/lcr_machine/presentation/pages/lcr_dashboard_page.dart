@@ -1452,35 +1452,35 @@ class _OutputChartState extends State<_OutputChart> {
                           ),
                         ),
                       ),
-                    ),
-                    barTouchData: BarTouchData(
-                      enabled: true,
-                      handleBuiltInTouches: false,
-                      touchTooltipData: BarTouchTooltipData(
-                        tooltipPadding: EdgeInsets.zero,
-                        tooltipMargin: 0,
-                        getTooltipItem: (_, __, ___, ____) => null,
-                      ),
-                      touchCallback: (event, response) {
-                        if (!event.isInterestedForInteractions ||
-                            response == null ||
-                            response.spot == null) {
-                          if (_touchedGroup != null) {
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        handleBuiltInTouches: false,
+                        touchTooltipData: BarTouchTooltipData(
+                          tooltipPadding: EdgeInsets.zero,
+                          tooltipMargin: 0,
+                          getTooltipItem: (_, __, ___, ____) => null,
+                        ),
+                        touchCallback: (event, response) {
+                          if (!event.isInterestedForInteractions ||
+                              response == null ||
+                              response.spot == null) {
+                            if (_touchedGroup != null) {
+                              setState(() {
+                                _touchedGroup = null;
+                              });
+                            }
+                            return;
+                          }
+                          final index = response.spot!.touchedBarGroupIndex;
+                          if (_touchedGroup != index) {
                             setState(() {
-                              _touchedGroup = null;
+                              _touchedGroup = index;
                             });
                           }
-                          return;
-                        }
-                        final index = response.spot!.touchedBarGroupIndex;
-                        if (_touchedGroup != index) {
-                          setState(() {
-                            _touchedGroup = index;
-                          });
-                        }
-                      },
+                        },
+                      ),
+                      barGroups: barGroups,
                     ),
-                    barGroups: barGroups,
                   ),
                 ),
                 IgnorePointer(
