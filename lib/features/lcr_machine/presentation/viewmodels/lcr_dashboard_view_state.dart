@@ -229,6 +229,45 @@ class LcrDashboardViewState {
         return null;
       }
 
+      void accumulateQuantities(_SlotTotals bucket, LcrRecord record) {
+        final passQty = record.qty ?? 0;
+        final failQty = record.extQty ?? 0;
+        final hasPassQty = passQty > 0;
+        final hasFailQty = failQty > 0;
+
+        if (!hasPassQty && !hasFailQty) {
+          if (record.status) {
+            bucket.pass += 1;
+          } else {
+            bucket.fail += 1;
+          }
+          return;
+        }
+
+        if (record.status) {
+          if (hasPassQty) {
+            bucket.pass += passQty;
+          } else if (hasFailQty) {
+            bucket.pass += failQty;
+          }
+
+          if (hasFailQty) {
+            bucket.fail += failQty;
+          }
+          return;
+        }
+
+        if (hasFailQty) {
+          bucket.fail += failQty;
+          if (hasPassQty) {
+            bucket.pass += passQty;
+          }
+          return;
+        }
+
+        bucket.fail += passQty;
+      }
+
       for (final record in analysisRecords) {
         final label = labelForRecord(record);
         if (label == null) {
@@ -242,18 +281,7 @@ class LcrDashboardViewState {
             grouped.putIfAbsent(normalized, () => _SlotTotals());
         insertionOrder.putIfAbsent(normalized, () => order++);
 
-        final passQty = record.qty ?? 0;
-        final failQty = record.extQty ?? 0;
-        if (passQty > 0 || failQty > 0) {
-          if (passQty > 0) bucket.pass += passQty;
-          if (failQty > 0) bucket.fail += failQty;
-        } else {
-          if (record.status) {
-            bucket.pass += 1;
-          } else {
-            bucket.fail += 1;
-          }
-        }
+        accumulateQuantities(bucket, record);
       }
 
       if (grouped.isEmpty) {
