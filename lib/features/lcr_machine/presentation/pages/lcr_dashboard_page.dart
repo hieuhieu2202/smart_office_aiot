@@ -1193,9 +1193,9 @@ class _BarTooltip extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            _TooltipEntry(label: 'PASS', value: pass, color: Colors.cyanAccent),
+            _LegendEntry(label: 'PASS', value: pass, color: Colors.cyanAccent),
             const SizedBox(height: 4),
-            _TooltipEntry(label: 'FAIL', value: fail, color: Colors.pinkAccent),
+            _LegendEntry(label: 'FAIL', value: fail, color: Colors.pinkAccent),
           ],
         ),
       ),
@@ -1203,8 +1203,8 @@ class _BarTooltip extends StatelessWidget {
   }
 }
 
-class _TooltipEntry extends StatelessWidget {
-  const _TooltipEntry({
+class _LegendEntry extends StatelessWidget {
+  const _LegendEntry({
     required this.label,
     required this.value,
     required this.color,
@@ -1381,7 +1381,7 @@ class _OutputChartState extends State<_OutputChart> {
                             }
                             final text = value.toInt().toString();
                             return SideTitleWidget(
-                              axisSide: meta.axisSide,
+                              meta: meta,
                               child: Text(
                                 text,
                                 style: const TextStyle(
@@ -1411,7 +1411,7 @@ class _OutputChartState extends State<_OutputChart> {
                             }
                             final label = _formatCategory(data[index].category);
                             return SideTitleWidget(
-                              axisSide: meta.axisSide,
+                              meta: meta,
                               child: Text(
                                 label,
                                 style: const TextStyle(
@@ -1430,7 +1430,7 @@ class _OutputChartState extends State<_OutputChart> {
                       enabled: true,
                       handleBuiltInTouches: false,
                       touchTooltipData: BarTouchTooltipData(
-                        tooltipBgColor: Colors.transparent,
+                        tooltipBackgroundColor: Colors.transparent,
                         tooltipPadding: EdgeInsets.zero,
                         tooltipMargin: 0,
                         getTooltipItem: (_, __, ___, ____) => null,
@@ -1494,7 +1494,7 @@ class _OutputChartState extends State<_OutputChart> {
                                 return const SizedBox.shrink();
                               }
                               return SideTitleWidget(
-                                axisSide: meta.axisSide,
+                                meta: meta,
                                 child: Text(
                                   '${value.toInt()}%',
                                   style: const TextStyle(
