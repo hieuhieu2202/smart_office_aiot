@@ -74,8 +74,6 @@ class LcrDashboardViewState {
     required List<LcrRecord> trackingRecords,
     required List<LcrRecord> analysisRecords,
   }) {
-    final overview = LcrOverview.fromRecords(trackingRecords);
-
     final Map<String, List<LcrRecord>> byFactory = <String, List<LcrRecord>>{};
     final Map<String, List<LcrRecord>> byDepartment = <String, List<LcrRecord>>{};
     final Map<String, List<LcrRecord>> byType = <String, List<LcrRecord>>{};
@@ -87,6 +85,10 @@ class LcrDashboardViewState {
     const shiftStartMinutes = startHour * 60 + 30;
     const shiftEndMinutes = (endHour + 1) * 60 + 30;
     final Map<int, _SlotTotals> bySlot = <int, _SlotTotals>{};
+    var trackingPassTotal = 0;
+    var trackingFailTotal = 0;
+    var analysisPassTotal = 0;
+    var analysisFailTotal = 0;
 
     int _resolveQuantity(int? primary, int? secondary) {
       if (primary != null && primary > 0) return primary;
@@ -117,15 +119,25 @@ class LcrDashboardViewState {
           ((record.description ?? '').isEmpty ? 'NO ERROR' : record.description!);
       byError.putIfAbsent(errorKey, () => <LcrRecord>[]).add(record);
 
+      final isPass = record.status;
+      final qty = isPass
+          ? _resolveQuantity(record.qty, record.extQty)
+          : _resolveQuantity(record.extQty, record.qty);
+      if (isPass) {
+        trackingPassTotal += qty;
+      } else {
+        trackingFailTotal += qty;
+      }
+
       final totalMinutes = record.dateTime.hour * 60 + record.dateTime.minute;
       if (totalMinutes >= shiftStartMinutes && totalMinutes < shiftEndMinutes) {
         final slotIndex = (totalMinutes - shiftStartMinutes) ~/ 60;
         final slotHour = startHour + slotIndex;
         final bucket = bySlot.putIfAbsent(slotHour, () => _SlotTotals());
-        if (record.status) {
-          bucket.pass += _resolveQuantity(record.qty, record.extQty);
+        if (isPass) {
+          bucket.pass += qty;
         } else {
-          bucket.fail += _resolveQuantity(record.extQty, record.qty);
+          bucket.fail += qty;
         }
       }
     }
@@ -258,45 +270,6 @@ class LcrDashboardViewState {
         return null;
       }
 
-      void accumulateQuantities(_SlotTotals bucket, LcrRecord record) {
-        final passQty = record.qty ?? 0;
-        final failQty = record.extQty ?? 0;
-        final hasPassQty = passQty > 0;
-        final hasFailQty = failQty > 0;
-
-        if (!hasPassQty && !hasFailQty) {
-          if (record.status) {
-            bucket.pass += 1;
-          } else {
-            bucket.fail += 1;
-          }
-          return;
-        }
-
-        if (record.status) {
-          if (hasPassQty) {
-            bucket.pass += passQty;
-          } else if (hasFailQty) {
-            bucket.pass += failQty;
-          }
-
-          if (hasFailQty) {
-            bucket.fail += failQty;
-          }
-          return;
-        }
-
-        if (hasFailQty) {
-          bucket.fail += failQty;
-          if (hasPassQty) {
-            bucket.pass += passQty;
-          }
-          return;
-        }
-
-        bucket.fail += passQty;
-      }
-
       for (final record in analysisRecords) {
         final label = labelForRecord(record);
         if (label == null) {
@@ -304,8 +277,28 @@ class LcrDashboardViewState {
         }
         final bucket = grouped.putIfAbsent(label, () => _SlotTotals());
         insertionOrder.putIfAbsent(label, () => order++);
+        final passQty = (record.qty ?? 0) > 0 ? record.qty! : 0;
+        final failQty = (record.extQty ?? 0) > 0 ? record.extQty! : 0;
 
-        accumulateQuantities(bucket, record);
+        if (passQty == 0 && failQty == 0) {
+          if (record.status) {
+            bucket.pass += 1;
+            analysisPassTotal += 1;
+          } else {
+            bucket.fail += 1;
+            analysisFailTotal += 1;
+          }
+          continue;
+        }
+
+        if (passQty > 0) {
+          bucket.pass += passQty;
+          analysisPassTotal += passQty;
+        }
+        if (failQty > 0) {
+          bucket.fail += failQty;
+          analysisFailTotal += failQty;
+        }
       }
 
       if (grouped.isEmpty) {
@@ -373,7 +366,20 @@ class LcrDashboardViewState {
       );
     }
 
-    final outputTrend = _buildTrendFromAnalysis() ?? _buildTrendFromTracking();
+    final analysisTrend = _buildTrendFromAnalysis();
+    final bool usingAnalysisTrend = analysisTrend != null;
+    final outputTrend = analysisTrend ?? _buildTrendFromTracking();
+
+    final passTotal = usingAnalysisTrend ? analysisPassTotal : trackingPassTotal;
+    final failTotal = usingAnalysisTrend ? analysisFailTotal : trackingFailTotal;
+    final combinedTotal = passTotal + failTotal;
+    final yieldRate = combinedTotal == 0 ? 0 : passTotal / combinedTotal * 100;
+    final overview = LcrOverview(
+      total: combinedTotal,
+      pass: passTotal,
+      fail: failTotal,
+      yieldRate: double.parse(yieldRate.toStringAsFixed(2)),
+    );
 
     final machineGauges = byMachine.entries.map((entry) {
       var passTotal = 0;
