@@ -126,6 +126,10 @@ class LcrDashboardController extends GetxController {
       final request = _buildRequest();
       final list = await _getAnalysisData(request);
       analysisRecords.assignAll(list);
+      dashboardView.value = LcrDashboardViewState.fromSources(
+        trackingRecords: trackingRecords.toList(),
+        analysisRecords: analysisRecords.toList(),
+      );
     } catch (e) {
       error.value = e.toString();
     }

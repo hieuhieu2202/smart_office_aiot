@@ -198,17 +198,46 @@ class LcrDashboardViewState {
       final Map<String, int> insertionOrder = <String, int>{};
       var order = 0;
 
+      String? _normalizeSlotLabel(String? raw) {
+        if (raw == null) {
+          return null;
+        }
+        final trimmed = raw.trim();
+        if (trimmed.isEmpty) {
+          return null;
+        }
+
+        final rangeMatch = RegExp(
+          r'^(\d{1,2})[:.](\d{2})\s*-\s*(\d{1,2})[:.](\d{2})',
+        ).firstMatch(trimmed);
+        if (rangeMatch != null) {
+          String _pad(String value) => value.padLeft(2, '0');
+          final startHour = _pad(rangeMatch.group(1)!);
+          final startMinute = rangeMatch.group(2)!;
+          final endHour = _pad(rangeMatch.group(3)!);
+          final endMinute = rangeMatch.group(4)!;
+          return '$startHour:$startMinute - $endHour:$endMinute';
+        }
+
+        final digitsOnly = RegExp(r'^\d{1,2}$');
+        if (digitsOnly.hasMatch(trimmed)) {
+          return trimmed.padLeft(2, '0');
+        }
+
+        return trimmed;
+      }
+
       String? labelForRecord(LcrRecord record) {
-        final className = record.className.trim();
-        if (className.isNotEmpty) {
-          return className;
-        }
-        final classDate = record.classDate.trim();
-        if (classDate.isNotEmpty) {
-          return classDate;
-        }
-        if (record.workSection != 0) {
-          return record.workSection.toString();
+        final candidates = <String?>[
+          record.classDate,
+          record.className,
+          record.workSection == 0 ? null : record.workSection.toString(),
+        ];
+        for (final candidate in candidates) {
+          final normalized = _normalizeSlotLabel(candidate);
+          if (normalized != null) {
+            return normalized;
+          }
         }
         return null;
       }
@@ -273,13 +302,8 @@ class LcrDashboardViewState {
         if (label == null) {
           continue;
         }
-        final normalized = label.trim();
-        if (normalized.isEmpty) {
-          continue;
-        }
-        final bucket =
-            grouped.putIfAbsent(normalized, () => _SlotTotals());
-        insertionOrder.putIfAbsent(normalized, () => order++);
+        final bucket = grouped.putIfAbsent(label, () => _SlotTotals());
+        insertionOrder.putIfAbsent(label, () => order++);
 
         accumulateQuantities(bucket, record);
       }
@@ -288,7 +312,37 @@ class LcrDashboardViewState {
         return null;
       }
 
-      final entries = grouped.entries.toList()
+      final defaultSlots = <String>[
+        for (var hour = startHour; hour <= endHour; hour++)
+          '${hour.toString().padLeft(2, '0')}:30 - '
+              '${(hour + 1).toString().padLeft(2, '0')}:30',
+      ];
+
+      final seen = <String>{};
+
+      final categories = <String>[];
+      final pass = <int>[];
+      final fail = <int>[];
+      final yr = <double>[];
+
+      void appendEntry(String label, _SlotTotals totals) {
+        categories.add(label);
+        pass.add(totals.pass);
+        fail.add(totals.fail);
+        final total = totals.pass + totals.fail;
+        final yieldValue = total == 0 ? 0 : totals.pass / total * 100;
+        yr.add(double.parse(yieldValue.toStringAsFixed(2)));
+      }
+
+      for (final slot in defaultSlots) {
+        final totals = grouped[slot];
+        appendEntry(slot, totals ?? _SlotTotals());
+        seen.add(slot);
+      }
+
+      final remaining = grouped.entries
+          .where((entry) => !seen.contains(entry.key))
+          .toList()
         ..sort((a, b) {
           final aKey = sortKey(a.key);
           final bKey = sortKey(b.key);
@@ -302,22 +356,13 @@ class LcrDashboardViewState {
           } else if (bKey != null) {
             return 1;
           }
-          return insertionOrder[a.key]!.compareTo(insertionOrder[b.key]!);
+          final aOrder = insertionOrder[a.key] ?? 0;
+          final bOrder = insertionOrder[b.key] ?? 0;
+          return aOrder.compareTo(bOrder);
         });
 
-      final categories = <String>[];
-      final pass = <int>[];
-      final fail = <int>[];
-      final yr = <double>[];
-
-      for (final entry in entries) {
-        categories.add(entry.key);
-        pass.add(entry.value.pass);
-        fail.add(entry.value.fail);
-        final total = entry.value.pass + entry.value.fail;
-        final yieldValue =
-            total == 0 ? 0 : entry.value.pass / total * 100;
-        yr.add(double.parse(yieldValue.toStringAsFixed(2)));
+      for (final entry in remaining) {
+        appendEntry(entry.key, entry.value);
       }
 
       return LcrOutputTrend(
