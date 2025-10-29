@@ -274,7 +274,7 @@ class TERetestRateController extends GetxController {
     }
 
     if (!previous.hasData) {
-      return _collectAllCellKeys(current);
+      return <String>{};
     }
 
     final result = <String>{};
@@ -345,23 +345,6 @@ class TERetestRateController extends GetxController {
       result[row.modelName] = groups;
     }
 
-    return result;
-  }
-
-  Set<String> _collectAllCellKeys(TERetestDetailEntity detail) {
-    if (!detail.hasData) {
-      return <String>{};
-    }
-
-    final result = <String>{};
-    final totalColumns = detail.dates.length * 2;
-    for (final row in detail.rows) {
-      for (final groupName in row.groupNames) {
-        for (var index = 0; index < totalColumns; index++) {
-          result.add(buildRetestCellKey(row.modelName, groupName, index));
-        }
-      }
-    }
     return result;
   }
 
