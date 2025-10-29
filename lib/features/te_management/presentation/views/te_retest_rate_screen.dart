@@ -436,22 +436,31 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: _kAccentColor.withOpacity(0.5)),
                 ),
-                child: DropdownButton<int>(
-                  value: value,
-                  isExpanded: true,
-                  dropdownColor: _kSurfaceColor,
-                  underline: const SizedBox(),
-                  iconEnabledColor: _kAccentColor,
-                  style: const TextStyle(color: Colors.white),
-                  items: items
-                      .map(
-                        (item) => DropdownMenuItem<int>(
-                          value: item,
-                          child: Text(item.toString().padLeft(2, '0')),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: onChanged,
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: value,
+                    isExpanded: true,
+                    dropdownColor: const Color(0xFF041733),
+                    borderRadius: BorderRadius.circular(12),
+                    menuMaxHeight: 280,
+                    iconEnabledColor: _kAccentColor,
+                    style: const TextStyle(color: Colors.white),
+                    itemHeight: 44,
+                    items: items
+                        .map(
+                          (item) => DropdownMenuItem<int>(
+                            value: item,
+                            child: Center(
+                              child: Text(
+                                item.toString().padLeft(2, '0'),
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: onChanged,
+                  ),
                 ),
               ),
             ],
