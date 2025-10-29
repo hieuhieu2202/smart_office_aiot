@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -54,6 +55,8 @@ class TERetestRateController extends GetxController {
   final DateFormat _rangeFormatter = DateFormat('yyyy/MM/dd HH:mm');
   final DateFormat _dateFormatter = DateFormat('yyyy/MM/dd');
   final Duration _autoRefreshInterval = const Duration(seconds: 20);
+  static const String _networkIssueMessage =
+      'Không thể kết nối tới máy chủ.\nVui lòng kiểm tra lại đường truyền và thử lại.';
 
   String get rangeLabel =>
       '${_rangeFormatter.format(startDate.value)} - ${_rangeFormatter.format(endDate.value)}';
@@ -151,7 +154,7 @@ class TERetestRateController extends GetxController {
         _setHighlightKeys(const <String>{});
       }
     } catch (error) {
-      errorMessage.value = error.toString();
+      errorMessage.value = friendlyErrorMessage(error);
       detail.value = TERetestDetailEntity.empty();
       _setHighlightKeys(const <String>{});
     } finally {
@@ -197,6 +200,24 @@ class TERetestRateController extends GetxController {
   void updateSearch(String query) {
     _searchQuery.value = query.trim();
   }
+
+  String friendlyErrorMessage(Object error) {
+    if (_isNetworkError(error)) {
+      return _networkIssueMessage;
+    }
+    return error.toString();
+  }
+
+  bool _isNetworkError(Object error) {
+    if (error is SocketException) {
+      return true;
+    }
+    final description = error.toString();
+    return description.contains('SocketException') ||
+        description.contains('Failed host lookup');
+  }
+
+  bool isNetworkError(Object error) => _isNetworkError(error);
 
   String formatShiftLabel(int index) => index.isEven ? 'Day' : 'Night';
 

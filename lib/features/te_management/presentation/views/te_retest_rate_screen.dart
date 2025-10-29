@@ -1058,7 +1058,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
             backgroundColor: _kSurfaceColor,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
             content: const Text(
-              'Không có dữ liệu cho nhóm này.',
+              'Không có dữ liệu cho nhóm này để hiển thị.',
               style: TextStyle(color: Colors.white, fontFamily: 'Arial'),
             ),
             actions: [
@@ -1520,9 +1520,14 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                 }
 
                 if (snapshot.hasError) {
+                  final error = snapshot.error!;
+                  final friendly = widget.controller.friendlyErrorMessage(error);
+                  final message = widget.controller.isNetworkError(error)
+                      ? friendly
+                      : 'Failed to load error details.\n$friendly';
                   return Expanded(
                     child: _ErrorDetailMessage(
-                      message: 'Failed to load error details.\n${snapshot.error}',
+                      message: message,
                       onRetry: _retry,
                     ),
                   );
@@ -1532,7 +1537,7 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                 if (data == null || !data.hasData) {
                   return const Expanded(
                     child: _ErrorDetailMessage(
-                      message: 'No error details were reported for this cell.',
+                      message: 'Không có dữ liệu chi tiết cho ô này.',
                     ),
                   );
                 }
@@ -1544,7 +1549,7 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                 if (errorClusters.isEmpty) {
                   return const Expanded(
                     child: _ErrorDetailMessage(
-                      message: 'No error code information available for this cell.',
+                      message: 'Không có dữ liệu mã lỗi cho ô này.',
                     ),
                   );
                 }
@@ -1599,6 +1604,8 @@ class _ErrorDetailMessage extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const Icon(Icons.error_outline, color: Colors.white70, size: 40),
+          const SizedBox(height: 12),
           Text(
             message,
             textAlign: TextAlign.center,
