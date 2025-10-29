@@ -1800,8 +1800,11 @@ class _PassLabel extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final groupCenter = width * (index + 0.5) / dataLength;
-    final labelWidth = 52.0;
-    final left = (groupCenter - labelWidth / 2).clamp(0.0, width - labelWidth);
+    const labelWidth = 52.0;
+    final maxLeft = math.max(0.0, width - labelWidth);
+    final left = maxLeft == 0
+        ? 0.0
+        : (groupCenter - labelWidth / 2).clamp(0.0, maxLeft);
     if (pass == 0) {
       return const SizedBox.shrink();
     }
