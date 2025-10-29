@@ -84,6 +84,11 @@ class LcrDashboardViewState {
     const endHour = 18;
     const shiftStartMinutes = startHour * 60 + 30;
     const shiftEndMinutes = (endHour + 1) * 60 + 30;
+    final defaultSlotLabels = <String>[
+      for (var hour = startHour; hour <= endHour; hour++)
+        '${hour.toString().padLeft(2, '0')}:30 - '
+            '${(hour + 1).toString().padLeft(2, '0')}:30',
+    ];
     final Map<int, _SlotTotals> bySlot = <int, _SlotTotals>{};
     var trackingPassTotal = 0;
     var trackingFailTotal = 0;
@@ -179,7 +184,8 @@ class LcrDashboardViewState {
       final outputYr = <double>[];
       final categoriesLabel = <String>[];
 
-      for (var hour = startHour; hour <= endHour; hour++) {
+      for (var index = 0; index < defaultSlotLabels.length; index++) {
+        final hour = startHour + index;
         final bucket = bySlot[hour];
         final passCount = bucket?.pass ?? 0;
         final failCount = bucket?.fail ?? 0;
@@ -188,9 +194,7 @@ class LcrDashboardViewState {
         final total = passCount + failCount;
         final yr = total == 0 ? 0 : passCount / total * 100;
         outputYr.add(double.parse(yr.toStringAsFixed(2)));
-        final startLabel = '${hour.toString().padLeft(2, '0')}:30';
-        final endLabel = '${(hour + 1).toString().padLeft(2, '0')}:30';
-        categoriesLabel.add('$startLabel - $endLabel');
+        categoriesLabel.add(defaultSlotLabels[index]);
       }
 
       return LcrOutputTrend(
@@ -219,20 +223,44 @@ class LcrDashboardViewState {
           return null;
         }
 
-        final rangeMatch = RegExp(
-          r'^(\d{1,2})[:.](\d{2})\s*-\s*(\d{1,2})[:.](\d{2})',
-        ).firstMatch(trimmed);
-        if (rangeMatch != null) {
-          String _pad(String value) => value.padLeft(2, '0');
-          final startHour = _pad(rangeMatch.group(1)!);
-          final startMinute = rangeMatch.group(2)!;
-          final endHour = _pad(rangeMatch.group(3)!);
-          final endMinute = rangeMatch.group(4)!;
+        final timeMatches =
+            RegExp(r'(\d{1,2})[:.](\d{2})').allMatches(trimmed).toList();
+        if (timeMatches.length >= 2) {
+          String _padHour(String value) => value.padLeft(2, '0');
+          final start = timeMatches.first;
+          final end = timeMatches[1];
+          final startHour = _padHour(start.group(1)!);
+          final startMinute = start.group(2)!;
+          final endHour = _padHour(end.group(1)!);
+          final endMinute = end.group(2)!;
           return '$startHour:$startMinute - $endHour:$endMinute';
+        }
+
+        final looksLikeDate =
+            RegExp(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}').hasMatch(trimmed);
+        if (looksLikeDate) {
+          return null;
+        }
+
+        final shiftLabelMatch =
+            RegExp(r'ca\s*(\d{1,2})', caseSensitive: false).firstMatch(trimmed);
+        if (shiftLabelMatch != null) {
+          final slotIndex = int.tryParse(shiftLabelMatch.group(1)!);
+          if (slotIndex != null &&
+              slotIndex > 0 &&
+              slotIndex <= defaultSlotLabels.length) {
+            return defaultSlotLabels[slotIndex - 1];
+          }
         }
 
         final digitsOnly = RegExp(r'^\d{1,2}$');
         if (digitsOnly.hasMatch(trimmed)) {
+          final slotNumber = int.tryParse(trimmed);
+          if (slotNumber != null &&
+              slotNumber > 0 &&
+              slotNumber <= defaultSlotLabels.length) {
+            return defaultSlotLabels[slotNumber - 1];
+          }
           return trimmed.padLeft(2, '0');
         }
 
@@ -241,8 +269,8 @@ class LcrDashboardViewState {
 
       String? labelForRecord(LcrRecord record) {
         final candidates = <String?>[
-          record.classDate,
           record.className,
+          record.classDate,
           record.workSection == 0 ? null : record.workSection.toString(),
         ];
         for (final candidate in candidates) {
@@ -250,6 +278,10 @@ class LcrDashboardViewState {
           if (normalized != null) {
             return normalized;
           }
+        }
+        final section = record.workSection;
+        if (section > 0 && section <= defaultSlotLabels.length) {
+          return defaultSlotLabels[section - 1];
         }
         return null;
       }
@@ -305,12 +337,6 @@ class LcrDashboardViewState {
         return null;
       }
 
-      final defaultSlots = <String>[
-        for (var hour = startHour; hour <= endHour; hour++)
-          '${hour.toString().padLeft(2, '0')}:30 - '
-              '${(hour + 1).toString().padLeft(2, '0')}:30',
-      ];
-
       final seen = <String>{};
 
       final categories = <String>[];
@@ -327,7 +353,7 @@ class LcrDashboardViewState {
         yr.add(double.parse(yieldValue.toStringAsFixed(2)));
       }
 
-      for (final slot in defaultSlots) {
+      for (final slot in defaultSlotLabels) {
         final totals = grouped[slot];
         appendEntry(slot, totals ?? _SlotTotals());
         seen.add(slot);
