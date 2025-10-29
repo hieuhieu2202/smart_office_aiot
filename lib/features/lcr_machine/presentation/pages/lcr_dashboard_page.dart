@@ -925,7 +925,24 @@ class _DashboardTab extends StatelessWidget {
                           child: LcrChartCard(
                             title: 'TYPE ANALYSIS',
                             height: 280,
-                            child: _StackedBarChart(data.typeSeries),
+                            child: _StackedBarChart(
+                              data.typeSeries,
+                              xLabelStyle: const TextStyle(
+                                color: Color(0xFFE8F4FF),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.4,
+                                shadows: [
+                                  Shadow(
+                                    color: Color(0x88000000),
+                                    offset: Offset(0, 1),
+                                    blurRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              xLabelIntersectAction: AxisLabelIntersectAction.wrap,
+                              maximumLabelWidth: 90,
+                            ),
                           ),
                         ),
                       ],
@@ -1394,10 +1411,19 @@ class _GradientProgressBar extends StatelessWidget {
 }
 
 class _StackedBarChart extends StatelessWidget {
-  const _StackedBarChart(this.series, {this.rotateLabels = false});
+  const _StackedBarChart(
+    this.series, {
+    this.rotateLabels = false,
+    this.xLabelStyle,
+    this.xLabelIntersectAction,
+    this.maximumLabelWidth,
+  });
 
   final LcrStackedSeries series;
   final bool rotateLabels;
+  final TextStyle? xLabelStyle;
+  final AxisLabelIntersectAction? xLabelIntersectAction;
+  final double? maximumLabelWidth;
 
   static const LinearGradient _passGradient = LinearGradient(
     colors: [Color(0xFF21D4FD), Color(0xFF2152FF)],
@@ -1444,9 +1470,12 @@ class _StackedBarChart extends StatelessWidget {
         },
       ),
       primaryXAxis: CategoryAxis(
-        labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
+        labelStyle: xLabelStyle ??
+            const TextStyle(color: Colors.white70, fontSize: 12),
         majorGridLines: const MajorGridLines(width: 0),
         labelRotation: rotateLabels ? -45 : 0,
+        labelIntersectAction: xLabelIntersectAction,
+        maximumLabelWidth: maximumLabelWidth,
       ),
       primaryYAxis: NumericAxis(
         labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
