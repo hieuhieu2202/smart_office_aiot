@@ -1476,39 +1476,13 @@ class _StackedBarChart extends StatelessWidget {
                 int pointIndex, int seriesIndex) {
               final bar = item as _StackedBarItem;
               final total = bar.pass + bar.fail;
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$total',
-                    style: const TextStyle(
-                      color: Colors.cyanAccent,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0xB3041026),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      child: Text(
-                        'F ${bar.fail}',
-                        style: const TextStyle(
-                          color: Colors.cyanAccent,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              return Text(
+                '$total',
+                style: const TextStyle(
+                  color: Colors.cyanAccent,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
               );
             },
           ),
@@ -1524,7 +1498,41 @@ class _StackedBarChart extends StatelessWidget {
           width: 0.6,
           spacing: 0.2,
           legendIconType: LegendIconType.rectangle,
-          dataLabelSettings: const DataLabelSettings(isVisible: false),
+          dataLabelSettings: DataLabelSettings(
+            isVisible: true,
+            labelAlignment: ChartDataLabelAlignment.outer,
+            builder: (dynamic item, dynamic point, dynamic series,
+                int pointIndex, int seriesIndex) {
+              final bar = item as _StackedBarItem;
+              if (bar.fail <= 0) {
+                return const SizedBox.shrink();
+              }
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0x33FF3D7F),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: const Color(0xFFFF5FA5),
+                    width: 1,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  child: Text(
+                    '${bar.fail}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFD6EC),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
