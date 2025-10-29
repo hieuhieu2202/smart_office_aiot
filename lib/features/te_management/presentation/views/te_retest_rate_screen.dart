@@ -142,6 +142,8 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
                               formattedDates: _controller.formattedDates,
                               onCellTap: _showCellDetailDialog,
                               onGroupTap: _showGroupTrendDialog,
+                              highlightCells:
+                                  Set.unmodifiable(_controller.highlightCells.value),
                             ),
                           ),
                           if (loading)
@@ -215,25 +217,10 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
       ),
     );
 
-    final exportButton = Obx(
-      () => OutlinedButton.icon(
-        onPressed: _controller.canExport ? _exportCsv : null,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Color(0xFF60A5FA)),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        ),
-        icon: const Icon(Icons.download),
-        label: const Text('Export CSV'),
-      ),
-    );
-
     final children = [
       SizedBox(width: isCompact ? double.infinity : 320, child: rangeTile),
       SizedBox(width: isCompact ? double.infinity : 240, child: modelTile),
       queryButton,
-      exportButton,
     ];
 
     if (isCompact) {
@@ -252,8 +239,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
         SizedBox(width: 260, child: modelTile),
         const SizedBox(width: 12),
         queryButton,
-        const SizedBox(width: 12),
-        exportButton,
       ],
     );
   }
@@ -482,19 +467,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
       _controller.setSelectedModels(result);
       await _controller.fetchReport(showLoading: true);
     }
-  }
-
-  Future<void> _exportCsv() async {
-    final outcome = await _controller.exportToCsv();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: _kSurfaceColor,
-        content: Text(outcome.message, style: const TextStyle(color: Colors.white)),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   void _showCellDetailDialog(TERetestCellDetail detail) {

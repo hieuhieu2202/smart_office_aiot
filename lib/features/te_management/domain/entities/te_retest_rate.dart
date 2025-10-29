@@ -76,3 +76,7 @@ Map<String, List<double?>> _freezeDoubleMap(Map<String, List<double?>> source) {
       entry.key: UnmodifiableListView<double?>(entry.value),
   });
 }
+
+String buildRetestCellKey(String modelName, String groupName, int columnIndex) {
+  return '$modelName|$groupName|$columnIndex';
+}

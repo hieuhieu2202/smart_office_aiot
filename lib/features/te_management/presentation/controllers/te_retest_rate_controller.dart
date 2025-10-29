@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
@@ -42,12 +41,14 @@ class TERetestRateController extends GetxController {
   final RxList<String> availableModels = <String>[].obs;
   final RxList<String> selectedModels = <String>[].obs;
   final Rx<TERetestDetailEntity> detail = TERetestDetailEntity.empty().obs;
+  final Rx<Set<String>> highlightCells = Rx<Set<String>>(<String>{});
 
   final Rx<DateTime> startDate = DateTime.now().obs;
   final Rx<DateTime> endDate = DateTime.now().obs;
 
   late String _modelSerial;
   Timer? _autoRefreshTimer;
+  Timer? _highlightClearTimer;
 
   final DateFormat _rangeFormatter = DateFormat('yyyy/MM/dd HH:mm');
   final DateFormat _dateFormatter = DateFormat('yyyy/MM/dd');
@@ -57,8 +58,6 @@ class TERetestRateController extends GetxController {
       '${_rangeFormatter.format(startDate.value)} - ${_rangeFormatter.format(endDate.value)}';
 
   bool get hasError => errorMessage.isNotEmpty;
-
-  bool get canExport => detail.value.hasData;
 
   List<String> get formattedDates =>
       detail.value.dates.map(_formatDateString).toList(growable: false);
@@ -96,6 +95,7 @@ class TERetestRateController extends GetxController {
   Future<void> fetchReport({bool showLoading = true}) async {
     final currentRange = rangeLabel;
     final filter = _selectedModelsFilter();
+    final previousDetail = detail.value;
 
     try {
       if (showLoading) {
@@ -109,9 +109,17 @@ class TERetestRateController extends GetxController {
       );
       detail.value = data;
       lastUpdated.value = DateTime.now();
+
+      if (data.hasData) {
+        final changedCells = _identifyChangedCells(previousDetail, data);
+        _setHighlightKeys(changedCells);
+      } else {
+        _setHighlightKeys(const <String>{});
+      }
     } catch (error) {
       errorMessage.value = error.toString();
       detail.value = TERetestDetailEntity.empty();
+      _setHighlightKeys(const <String>{});
     } finally {
       if (showLoading) {
         isLoading.value = false;
@@ -257,75 +265,135 @@ class TERetestRateController extends GetxController {
     }
   }
 
-  Future<TERetestExportResult> exportToCsv() async {
-    final currentDetail = detail.value;
-    if (!currentDetail.hasData) {
-      return const TERetestExportResult(
-        success: false,
-        message: 'No data available to export.',
-      );
+  Set<String> _identifyChangedCells(
+    TERetestDetailEntity previous,
+    TERetestDetailEntity current,
+  ) {
+    if (!current.hasData) {
+      return <String>{};
     }
 
-    final headerDates = formattedDates;
-    final totalColumns = headerDates.length * 2;
-
-    final rows = <List<String>>[];
-    final header = <String>['#', 'Model Name', 'Group Name'];
-    for (final date in headerDates) {
-      header.add('$date Day');
-      header.add('$date Night');
+    if (!previous.hasData) {
+      return _collectAllCellKeys(current);
     }
-    rows.add(header);
 
-    var index = 1;
-    for (final row in currentDetail.rows) {
-      var firstGroup = true;
-      for (final group in row.groupNames) {
-        final rr = row.retestRate[group] ?? const <double?>[];
-        final cells = <String>[];
-        cells.add(firstGroup ? index.toString() : '');
-        cells.add(firstGroup ? row.modelName : '');
-        cells.add(group);
-        for (var i = 0; i < totalColumns; i++) {
-          final value = i < rr.length ? rr[i] : null;
-          if (value == null) {
-            cells.add('N/A');
+    final result = <String>{};
+    final snapshot = _buildSnapshot(previous);
+    final totalColumns = current.dates.length * 2;
+
+    for (final row in current.rows) {
+      final previousGroups = snapshot[row.modelName];
+      for (final groupName in row.groupNames) {
+        final previousMetrics = previousGroups?[groupName];
+        final rateValues = row.retestRate[groupName] ?? const <double?>[];
+        final inputValues = row.input[groupName] ?? const <int?>[];
+        final firstFailValues = row.firstFail[groupName] ?? const <int?>[];
+        final retestFailValues = row.retestFail[groupName] ?? const <int?>[];
+        final passValues = row.pass[groupName] ?? const <int?>[];
+
+        for (var index = 0; index < totalColumns; index++) {
+          final rate = _valueAt(rateValues, index);
+          final input = _valueAt(inputValues, index);
+          final firstFail = _valueAt(firstFailValues, index);
+          final retestFail = _valueAt(retestFailValues, index);
+          final pass = _valueAt(passValues, index);
+
+          var changed = false;
+          if (previousMetrics == null) {
+            changed = true;
           } else {
-            cells.add('${value.toStringAsFixed(2)}%');
+            if (_doubleChanged(rate, previousMetrics.rateAt(index))) {
+              changed = true;
+            } else if (input != previousMetrics.inputAt(index) ||
+                firstFail != previousMetrics.firstFailAt(index) ||
+                retestFail != previousMetrics.retestFailAt(index) ||
+                pass != previousMetrics.passAt(index)) {
+              changed = true;
+            }
+          }
+
+          if (changed) {
+            result.add(buildRetestCellKey(row.modelName, groupName, index));
           }
         }
-        rows.add(cells);
-        firstGroup = false;
       }
-      index++;
     }
 
-    final buffer = StringBuffer();
-    for (final line in rows) {
-      buffer.writeln(line.map(_escapeCsv).join(','));
+    return result;
+  }
+
+  Map<String, Map<String, _RetestGroupSnapshot>> _buildSnapshot(
+    TERetestDetailEntity detail,
+  ) {
+    final result = <String, Map<String, _RetestGroupSnapshot>>{};
+    if (!detail.hasData) {
+      return result;
     }
 
-    final output = buffer.toString().trim();
-    if (output.isEmpty) {
-      return const TERetestExportResult(
-        success: false,
-        message: 'No data available to export.',
-      );
+    for (final row in detail.rows) {
+      final groups = <String, _RetestGroupSnapshot>{};
+      for (final groupName in row.groupNames) {
+        groups[groupName] = _RetestGroupSnapshot(
+          retestRate:
+              List<double?>.of(row.retestRate[groupName] ?? const <double?>[]),
+          input: List<int?>.of(row.input[groupName] ?? const <int?>[]),
+          firstFail: List<int?>.of(row.firstFail[groupName] ?? const <int?>[]),
+          retestFail: List<int?>.of(row.retestFail[groupName] ?? const <int?>[]),
+          pass: List<int?>.of(row.pass[groupName] ?? const <int?>[]),
+        );
+      }
+      result[row.modelName] = groups;
     }
 
-    try {
-      await Clipboard.setData(ClipboardData(text: output));
-      return TERetestExportResult(
-        success: true,
-        message:
-            'CSV copied to clipboard. Paste into a spreadsheet to save the file.',
-      );
-    } catch (error) {
-      return TERetestExportResult(
-        success: false,
-        message: 'Failed to copy CSV to clipboard: $error',
-      );
+    return result;
+  }
+
+  Set<String> _collectAllCellKeys(TERetestDetailEntity detail) {
+    if (!detail.hasData) {
+      return <String>{};
     }
+
+    final result = <String>{};
+    final totalColumns = detail.dates.length * 2;
+    for (final row in detail.rows) {
+      for (final groupName in row.groupNames) {
+        for (var index = 0; index < totalColumns; index++) {
+          result.add(buildRetestCellKey(row.modelName, groupName, index));
+        }
+      }
+    }
+    return result;
+  }
+
+  void _setHighlightKeys(Set<String> keys) {
+    highlightCells.value = Set<String>.of(keys);
+    _highlightClearTimer?.cancel();
+    if (keys.isEmpty) {
+      _highlightClearTimer = null;
+      return;
+    }
+
+    _highlightClearTimer = Timer(const Duration(seconds: 2), () {
+      highlightCells.value = <String>{};
+      _highlightClearTimer = null;
+    });
+  }
+
+  T? _valueAt<T>(List<T?> values, int index) {
+    if (index < 0 || index >= values.length) {
+      return null;
+    }
+    return values[index];
+  }
+
+  bool _doubleChanged(double? current, double? previous) {
+    if (current == null && previous == null) {
+      return false;
+    }
+    if (current == null || previous == null) {
+      return true;
+    }
+    return (current - previous).abs() > 0.0001;
   }
 
   Future<void> _loadModelNames() async {
@@ -358,15 +426,6 @@ class TERetestRateController extends GetxController {
   DateTime _applyEndTime(DateTime value) =>
       DateTime(value.year, value.month, value.day, 19, 30);
 
-  String _escapeCsv(String input) {
-    final sanitized = input.replaceAll('"', '""');
-    if (sanitized.contains(',') || sanitized.contains('\n') ||
-        sanitized.contains('"')) {
-      return '"$sanitized"';
-    }
-    return sanitized;
-  }
-
   void _scheduleAutoRefresh() {
     if (isClosed) {
       _autoRefreshTimer?.cancel();
@@ -387,13 +446,33 @@ class TERetestRateController extends GetxController {
   void onClose() {
     _autoRefreshTimer?.cancel();
     _autoRefreshTimer = null;
+    _highlightClearTimer?.cancel();
+    _highlightClearTimer = null;
     super.onClose();
   }
 }
 
-class TERetestExportResult {
-  const TERetestExportResult({required this.success, required this.message});
+class _RetestGroupSnapshot {
+  _RetestGroupSnapshot({
+    required this.retestRate,
+    required this.input,
+    required this.firstFail,
+    required this.retestFail,
+    required this.pass,
+  });
 
-  final bool success;
-  final String message;
+  final List<double?> retestRate;
+  final List<int?> input;
+  final List<int?> firstFail;
+  final List<int?> retestFail;
+  final List<int?> pass;
+
+  double? rateAt(int index) =>
+      index >= 0 && index < retestRate.length ? retestRate[index] : null;
+  int? inputAt(int index) => index >= 0 && index < input.length ? input[index] : null;
+  int? firstFailAt(int index) =>
+      index >= 0 && index < firstFail.length ? firstFail[index] : null;
+  int? retestFailAt(int index) =>
+      index >= 0 && index < retestFail.length ? retestFail[index] : null;
+  int? passAt(int index) => index >= 0 && index < pass.length ? pass[index] : null;
 }

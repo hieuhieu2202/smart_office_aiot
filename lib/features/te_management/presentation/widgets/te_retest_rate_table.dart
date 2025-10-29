@@ -32,12 +32,14 @@ class TERetestRateTable extends StatefulWidget {
     required this.formattedDates,
     this.onCellTap,
     this.onGroupTap,
+    required this.highlightCells,
   });
 
   final TERetestDetailEntity detail;
   final List<String> formattedDates;
   final ValueChanged<TERetestCellDetail>? onCellTap;
   final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final Set<String> highlightCells;
 
   @override
   State<TERetestRateTable> createState() => _TERetestRateTableState();
@@ -262,6 +264,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                                   onCellTap: widget.onCellTap,
                                   onGroupTap: widget.onGroupTap,
                                   metrics: metrics,
+                                  highlightCells: widget.highlightCells,
                                 );
                               },
                             ),
@@ -511,6 +514,7 @@ class _ModelBlock extends StatelessWidget {
     required this.onCellTap,
     required this.onGroupTap,
     required this.metrics,
+    required this.highlightCells,
   });
 
   final int index;
@@ -522,6 +526,7 @@ class _ModelBlock extends StatelessWidget {
   final ValueChanged<TERetestCellDetail>? onCellTap;
   final ValueChanged<TERetestGroupDetail>? onGroupTap;
   final _TableMetrics metrics;
+  final Set<String> highlightCells;
 
   @override
   Widget build(BuildContext context) {
@@ -595,6 +600,9 @@ class _ModelBlock extends StatelessWidget {
                     onTap: onCellTap,
                     isFirstRow: isRowFirst,
                     showRightBorder: i < cells.length - 1,
+                    highlighted: highlightCells.contains(
+                      buildRetestCellKey(row.modelName, groupName, i),
+                    ),
                   ),
                 ),
             ],
@@ -656,6 +664,7 @@ class _ModelBlock extends StatelessWidget {
                     onTap: onCellTap,
                     isFirstRow: isFirstBlock,
                     showRightBorder: i < placeholderCells.length - 1,
+                    highlighted: false,
                   ),
                 ),
             ],
@@ -843,6 +852,7 @@ class _RetestValueCell extends StatelessWidget {
     this.onTap,
     required this.isFirstRow,
     required this.showRightBorder,
+    required this.highlighted,
   });
 
   final TERetestCellDetail detail;
@@ -850,6 +860,7 @@ class _RetestValueCell extends StatelessWidget {
   final ValueChanged<TERetestCellDetail>? onTap;
   final bool isFirstRow;
   final bool showRightBorder;
+  final bool highlighted;
 
   static const Color _dangerColor = Color(0xFFE11D48);
   static const Color _warningColor = Color(0xFFF59E0B);
@@ -877,22 +888,40 @@ class _RetestValueCell extends StatelessWidget {
 
     final tooltip = _buildTooltip(detail);
 
-    Widget cell = Container(
+    final animatedColor = highlighted
+        ? Color.lerp(fillColor, const Color(0xFF38BDF8), 0.4) ?? fillColor
+        : fillColor;
+    final effectiveTextColor = highlighted
+        ? Color.lerp(textColor, Colors.white, 0.35) ?? textColor
+        : textColor;
+
+    Widget cell = AnimatedContainer(
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
       height: _kRowHeight,
       decoration: BoxDecoration(
-        color: fillColor,
+        color: animatedColor,
         border: Border(
           right: showRightBorder ? _kGridBorder : BorderSide.none,
           top: isFirstRow ? _kGridBorder : BorderSide.none,
           bottom: _kGridBorder,
         ),
+        boxShadow: highlighted
+            ? const [
+                BoxShadow(
+                  color: Color(0x5528D8FF),
+                  blurRadius: 18,
+                  spreadRadius: 1.2,
+                ),
+              ]
+            : null,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       alignment: Alignment.center,
       child: Text(
         value == null ? 'N/A' : '${value.toStringAsFixed(2)}%',
         style: TextStyle(
-          color: textColor,
+          color: effectiveTextColor,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.1,
         ),
