@@ -88,6 +88,7 @@ class LcrDashboardViewState {
     const shiftStartMinutes = startHour * 60 + 30;
     const shiftEndMinutes = (endHour + 1) * 60 + 30;
     final Map<int, _PassFailTotals> bySlot = <int, _PassFailTotals>{};
+    final bool hasAnalysisEmployees = analysisRecords.isNotEmpty;
     final Map<String, _PassFailTotals> byEmployeeTotals =
         <String, _PassFailTotals>{};
 
@@ -135,17 +136,26 @@ class LcrDashboardViewState {
       return 0;
     }
 
-    final Iterable<LcrRecord> employeeSource =
-        analysisRecords.isNotEmpty ? analysisRecords : records;
-    for (final record in employeeSource) {
-      final employeeKey =
-          ((record.employeeId ?? '').isEmpty ? 'UNKNOWN' : record.employeeId!);
-      final bucket =
-          byEmployeeTotals.putIfAbsent(employeeKey, () => _PassFailTotals());
-      if (record.status) {
-        bucket.pass += _resolveQuantityOrZero(record.qty, record.extQty);
-      } else {
-        bucket.fail += _resolveQuantityOrZero(record.extQty, record.qty);
+    if (hasAnalysisEmployees) {
+      for (final record in analysisRecords) {
+        final employeeKey =
+            ((record.employeeId ?? '').isEmpty ? 'UNKNOWN' : record.employeeId!);
+        final bucket =
+            byEmployeeTotals.putIfAbsent(employeeKey, () => _PassFailTotals());
+        bucket.pass += _nonNegative(record.qty);
+        bucket.fail += _nonNegative(record.extQty);
+      }
+    } else {
+      for (final record in records) {
+        final employeeKey =
+            ((record.employeeId ?? '').isEmpty ? 'UNKNOWN' : record.employeeId!);
+        final bucket =
+            byEmployeeTotals.putIfAbsent(employeeKey, () => _PassFailTotals());
+        if (record.status) {
+          bucket.pass += _resolveQuantityOrZero(record.qty, record.extQty);
+        } else {
+          bucket.fail += _resolveQuantityOrZero(record.extQty, record.qty);
+        }
       }
     }
 
@@ -273,4 +283,9 @@ class _PassFailTotals {
 
   int pass;
   int fail;
+}
+
+int _nonNegative(int? value) {
+  if (value == null || value <= 0) return 0;
+  return value;
 }
