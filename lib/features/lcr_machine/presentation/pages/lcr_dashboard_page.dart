@@ -1209,14 +1209,30 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                   columns: const [
                                     DataColumn(label: Text('DATE')),
                                     DataColumn(label: Text('TIME')),
+                                    DataColumn(label: Text('WORK DATE')),
+                                    DataColumn(label: Text('WORK SECTION')),
+                                    DataColumn(label: Text('CLASS')),
+                                    DataColumn(label: Text('CLASS DATE')),
                                     DataColumn(label: Text('FACTORY')),
                                     DataColumn(label: Text('DEPARTMENT')),
                                     DataColumn(label: Text('MACHINE')),
                                     DataColumn(label: Text('EMPLOYEE')),
                                     DataColumn(label: Text('SERIAL NO.')),
+                                    DataColumn(label: Text('CUSTOMER P/N')),
+                                    DataColumn(label: Text('DATE CODE')),
+                                    DataColumn(label: Text('LOT CODE')),
+                                    DataColumn(label: Text('VENDOR')),
+                                    DataColumn(label: Text('VENDOR NO.')),
+                                    DataColumn(label: Text('LOCATION')),
+                                    DataColumn(label: Text('QTY')),
+                                    DataColumn(label: Text('EXT QTY')),
                                     DataColumn(label: Text('DESCRIPTION')),
-                                    DataColumn(label: Text('MEASURE')),
+                                    DataColumn(label: Text('MATERIAL TYPE')),
+                                    DataColumn(label: Text('LOW SPEC')),
+                                    DataColumn(label: Text('HIGH SPEC')),
+                                    DataColumn(label: Text('MEASURE VALUE')),
                                     DataColumn(label: Text('STATUS')),
+                                    DataColumn(label: Text('RECORD ID')),
                                   ],
                                   rows: records.map((record) {
                                     final statusLabel =
@@ -1228,6 +1244,12 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                         ? Colors.white.withOpacity(0.01)
                                         : const Color(0xFFFF77A9)
                                             .withOpacity(0.08);
+                                    final machineLabel =
+                                        'MC-${record.machineNo.toString().padLeft(2, '0')}';
+                                    final classLabel =
+                                        record.className == 'D'
+                                            ? 'DAY'
+                                            : record.className;
                                     return DataRow(
                                       color: MaterialStateProperty.all(rowTint),
                                       cells: [
@@ -1237,13 +1259,29 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                         DataCell(Text(
                                             timeFormatter
                                                 .format(record.dateTime))),
+                                        DataCell(Text(record.workDate)),
+                                        DataCell(
+                                            Text(record.workSection.toString())),
+                                        DataCell(Text(classLabel)),
+                                        DataCell(Text(record.classDate)),
                                         DataCell(Text(record.factory)),
                                         DataCell(Text(record.department ?? '-')),
-                                        DataCell(Text(
-                                            'MC-${record.machineNo.toString().padLeft(2, '0')}')),
+                                        DataCell(Text(machineLabel)),
                                         DataCell(Text(record.employeeId ?? '-')),
                                         DataCell(Text(record.serialNumber ?? '-')),
+                                        DataCell(Text(record.customerPn ?? '-')),
+                                        DataCell(Text(record.dateCode ?? '-')),
+                                        DataCell(Text(record.lotCode ?? '-')),
+                                        DataCell(Text(record.vendor ?? '-')),
+                                        DataCell(Text(record.vendorNo ?? '-')),
+                                        DataCell(Text(record.location ?? '-')),
+                                        DataCell(Text(record.qty?.toString() ?? '-')),
+                                        DataCell(
+                                            Text(record.extQty?.toString() ?? '-')),
                                         DataCell(Text(record.description ?? '-')),
+                                        DataCell(Text(record.materialType ?? '-')),
+                                        DataCell(Text(record.lowSpec ?? '-')),
+                                        DataCell(Text(record.highSpec ?? '-')),
                                         DataCell(Text(record.measureValue ?? '-')),
                                         DataCell(
                                           Text(
@@ -1254,6 +1292,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                             ),
                                           ),
                                         ),
+                                        DataCell(Text(record.recordId)),
                                       ],
                                     );
                                   }).toList(),
