@@ -16,25 +16,25 @@ const double _kHeaderTopHeight = 40;
 const double _kHeaderBottomHeight = 32;
 const double _kRowHeight = 54;
 
-const Color _kHeaderColor = Color(0xFF0A2342);
-const Color _kHeaderAccent = Color(0xFF123563);
+const Color _kHeaderColor = Color(0xFF0B304B);
+const Color _kHeaderAccent = Color(0xFF092441);
 const LinearGradient _kTableBackgroundGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFF07162D), Color(0xFF020812)],
+  colors: [Color(0xFF052840), Color(0xFF021324)],
 );
-const Color _kRowEvenColor = Color(0xFF0D2743);
-const Color _kRowOddColor = Color(0xFF0A1E36);
-const Color _kSpanBackground = Color(0xFF14345C);
-const Color _kBorderColor = Color(0x8839B8FF);
+const Color _kRowEvenColor = Color(0xFF0B2F48);
+const Color _kRowOddColor = Color(0xFF08283E);
+const Color _kSpanBackground = Color(0xFF113C5D);
+const Color _kBorderColor = Color(0x443CD0FF);
 const List<BoxShadow> _kTableShadows = [
   const BoxShadow(
-    color: Color(0x331B6CFF),
-    blurRadius: 28,
-    offset: Offset(0, 18),
+    color: Color(0x2218C3FF),
+    blurRadius: 30,
+    offset: Offset(0, 24),
   ),
 ];
-const BorderSide _kGridBorder = BorderSide(color: _kBorderColor, width: 1.0);
+const BorderSide _kGridBorder = BorderSide(color: Color(0x333CD0FF), width: 1.0);
 
 class TERetestRateTable extends StatefulWidget {
   const TERetestRateTable({
@@ -377,10 +377,10 @@ class _HeaderRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Color(0xFFCBE8FF),
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        letterSpacing: 0.4,
+                        letterSpacing: 0.45,
                       ),
                     ),
                   ),
@@ -464,9 +464,9 @@ class _HeaderLabel extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            color: Colors.white,
+            color: Color(0xFFD6F0FF),
             fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
+            letterSpacing: 0.45,
           ),
         ),
       ),
@@ -503,10 +503,10 @@ class _HeaderShiftCell extends StatelessWidget {
         child: Text(
           label,
           style: const TextStyle(
-            color: Colors.white70,
+            color: Color(0xFF9EDBFF),
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
+            letterSpacing: 0.25,
           ),
         ),
       ),
@@ -705,7 +705,7 @@ class _ModelBlock extends StatelessWidget {
             isFirst: isFirstBlock,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             textStyle: const TextStyle(
-              color: Colors.white,
+              color: Color(0xFFE8F6FF),
               fontWeight: FontWeight.w700,
               fontSize: 14,
               letterSpacing: 0.3,
@@ -747,7 +747,7 @@ class _SpanCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = textStyle ??
         const TextStyle(
-          color: Colors.white,
+          color: Color(0xFFBFE6FF),
           fontWeight: FontWeight.w600,
           fontSize: 13,
         );
@@ -757,7 +757,14 @@ class _SpanCell extends StatelessWidget {
       height: height,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: _kSpanBackground,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.alphaBlend(const Color(0x183DD0FF), _kSpanBackground),
+              _kSpanBackground,
+            ],
+          ),
           border: Border(
             top: isFirst ? _kGridBorder : BorderSide.none,
             right: _kGridBorder,
@@ -810,27 +817,41 @@ class _GroupCell extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
+              color: Color(0xFFE2F4FF),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.25,
             ),
           ),
         ),
         if (onTap != null) ...[
           const SizedBox(width: 6),
-          const Icon(Icons.area_chart, size: 16, color: Colors.white70),
+          const Icon(Icons.area_chart, size: 16, color: Color(0xFF7DEAFF)),
         ],
       ],
     );
 
     final decoration = BoxDecoration(
-      color: background,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color.alphaBlend(const Color(0x142CD7FF), background),
+          background,
+        ],
+      ),
       border: Border(
         left: _kGridBorder,
         right: _kGridBorder,
         top: isFirstRow ? _kGridBorder : BorderSide.none,
         bottom: _kGridBorder,
       ),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x1514C4FF),
+          blurRadius: 12,
+          offset: Offset(0, 6),
+        ),
+      ],
     );
 
     final child = SizedBox(
@@ -874,34 +895,35 @@ class _RetestValueCell extends StatelessWidget {
   final bool showRightBorder;
   final bool highlighted;
 
-  static const Color _dangerColor = Color(0xFFE11D48);
-  static const Color _warningColor = Color(0xFFF59E0B);
-  static const Color _normalColor = Color(0xFF22C55E);
+  static const Color _dangerColor = Color(0xFFFF8BA3);
+  static const Color _warningColor = Color(0xFFF7D77E);
+  static const Color _normalColor = Color(0xFF6EF2CE);
 
   @override
   Widget build(BuildContext context) {
     final value = detail.retestRate;
-    Color fillColor = Color.alphaBlend(const Color(0x14000000), background);
-    Color textColor = Colors.white70;
+    Color fillColor = Color.alphaBlend(const Color(0x143DD0FF), background);
+    Color textColor = const Color(0xFFE4F5FF);
     if (value != null) {
       if (value >= 5) {
-        fillColor = const Color(0x33F87171);
+        fillColor = Color.alphaBlend(const Color(0x44FF6B81), background);
         textColor = _dangerColor;
       } else if (value >= 3) {
-        fillColor = const Color(0x33FACC15);
+        fillColor = Color.alphaBlend(const Color(0x44F9D262), background);
         textColor = _warningColor;
       } else {
-        fillColor = const Color(0x3322C55E);
+        fillColor = Color.alphaBlend(const Color(0x4437F4C5), background);
         textColor = _normalColor;
       }
     } else {
-      textColor = Colors.white54;
+      textColor = Colors.white60;
+      fillColor = Color.alphaBlend(const Color(0x0F2C5A80), background);
     }
 
     final tooltip = _buildTooltip(detail);
 
     final animatedColor = highlighted
-        ? Color.lerp(fillColor, const Color(0xFF38BDF8), 0.4) ?? fillColor
+        ? Color.lerp(fillColor, const Color(0xFF3BD5FF), 0.45) ?? fillColor
         : fillColor;
     final effectiveTextColor = highlighted
         ? Color.lerp(textColor, Colors.white, 0.35) ?? textColor
@@ -934,8 +956,8 @@ class _RetestValueCell extends StatelessWidget {
         value == null ? 'N/A' : '${value.toStringAsFixed(2)}%',
         style: TextStyle(
           color: effectiveTextColor,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.1,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.15,
         ),
       ),
     );
@@ -944,7 +966,11 @@ class _RetestValueCell extends StatelessWidget {
       message: tooltip,
       textStyle: const TextStyle(color: Colors.white, fontSize: 12),
       decoration: BoxDecoration(
-        color: _kSpanBackground,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF123A5C), Color(0xFF0A2038)],
+        ),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.white10),
       ),

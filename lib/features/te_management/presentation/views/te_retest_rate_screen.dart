@@ -16,8 +16,12 @@ import '../../domain/usecases/get_retest_rate_report.dart';
 import '../controllers/te_retest_rate_controller.dart';
 import '../widgets/te_retest_rate_table.dart';
 
-const Color _kBackgroundColor = Color(0xFF04142A);
-const Color _kSurfaceColor = Color(0xFF08213F);
+const LinearGradient _kBackgroundGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFF031C31), Color(0xFF010B17)],
+);
+const Color _kSurfaceColor = Color(0xFF0A2340);
 const Color _kAccentColor = Color(0xFF22D3EE);
 
 class TERetestRateScreen extends StatefulWidget {
@@ -74,10 +78,12 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTextStyle.merge(
-      style: const TextStyle(fontFamily: 'Arial'),
-      child: Scaffold(
-        backgroundColor: _kBackgroundColor,
+    return Container(
+      decoration: const BoxDecoration(gradient: _kBackgroundGradient),
+      child: DefaultTextStyle.merge(
+        style: const TextStyle(fontFamily: 'Arial'),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -99,7 +105,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
             ),
           ],
         ),
-        body: ResponsiveBuilder(
+          body: ResponsiveBuilder(
           builder: (context, sizing) {
             final horizontalPadding = sizing.isDesktop ? 24.0 : 16.0;
             final verticalPadding = sizing.isDesktop ? 20.0 : 12.0;
@@ -204,10 +210,11 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
             ? null
             : () => _controller.fetchReport(showLoading: true),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF253C63),
+          backgroundColor: const Color(0xFF1E4F7A),
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 6,
         ),
         icon: _controller.isLoading.value
             ? const SizedBox(
@@ -221,8 +228,8 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
     );
 
     final children = [
-      SizedBox(width: isCompact ? double.infinity : 320, child: rangeTile),
-      SizedBox(width: isCompact ? double.infinity : 240, child: modelTile),
+      SizedBox(width: isCompact ? double.infinity : 280, child: rangeTile),
+      SizedBox(width: isCompact ? double.infinity : 220, child: modelTile),
       queryButton,
     ];
 
@@ -237,9 +244,9 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
 
     return Row(
       children: [
-        Expanded(child: rangeTile),
+        SizedBox(width: 280, child: rangeTile),
         const SizedBox(width: 12),
-        SizedBox(width: 260, child: modelTile),
+        SizedBox(width: 220, child: modelTile),
         const SizedBox(width: 12),
         queryButton,
       ],
@@ -255,7 +262,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
         children: [
           Text(
             'Last updated: ${formatter.format(lastUpdated)}',
-            style: const TextStyle(color: Colors.white60),
+            style: const TextStyle(color: Color(0xFF8FCBFF), fontWeight: FontWeight.w500),
           ),
           if (_controller.hasError)
             Text(
@@ -2268,9 +2275,20 @@ class _FilterTile extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: _kSurfaceColor,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF123755), Color(0xFF0A2441)],
+          ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x331DAFFF),
+              blurRadius: 20,
+              offset: Offset(0, 12),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -2283,7 +2301,7 @@ class _FilterTile extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -2292,8 +2310,8 @@ class _FilterTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
