@@ -903,7 +903,7 @@ class _DashboardTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          flex: 3,
+                          flex: 2,
                           child: LcrChartCard(
                             title: 'DEPARTMENT ANALYSIS',
                             height: 280,
@@ -912,7 +912,7 @@ class _DashboardTab extends StatelessWidget {
                         ),
                         const SizedBox(width: 24),
                         Expanded(
-                          flex: 4,
+                          flex: 5,
                           child: LcrChartCard(
                             title: 'YIELD RATE & OUTPUT',
                             height: 360,
@@ -1399,6 +1399,18 @@ class _StackedBarChart extends StatelessWidget {
   final LcrStackedSeries series;
   final bool rotateLabels;
 
+  static const LinearGradient _passGradient = LinearGradient(
+    colors: [Color(0xFF21D4FD), Color(0xFF2152FF)],
+    begin: Alignment.bottomCenter,
+    end: Alignment.topCenter,
+  );
+
+  static const LinearGradient _failGradient = LinearGradient(
+    colors: [Color(0xFFFF9CCF), Color(0xFFFF3D7F)],
+    begin: Alignment.bottomCenter,
+    end: Alignment.topCenter,
+  );
+
   @override
   Widget build(BuildContext context) {
     if (series.categories.isEmpty) {
@@ -1445,6 +1457,7 @@ class _StackedBarChart extends StatelessWidget {
         isVisible: true,
         position: LegendPosition.bottom,
         textStyle: const TextStyle(color: Colors.white70),
+        iconType: LegendIconType.rectangle,
       ),
       series: <CartesianSeries<dynamic, dynamic>>[
         StackedColumnSeries<dynamic, dynamic>(
@@ -1452,7 +1465,10 @@ class _StackedBarChart extends StatelessWidget {
           dataSource: data,
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
           yValueMapper: (item, _) => (item as _StackedBarItem).pass,
-          color: Colors.cyanAccent,
+          gradient: _passGradient,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          width: 0.6,
+          spacing: 0.2,
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
             textStyle: const TextStyle(
@@ -1475,8 +1491,11 @@ class _StackedBarChart extends StatelessWidget {
           dataSource: data,
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
           yValueMapper: (item, _) => (item as _StackedBarItem).fail,
-          gradient: _EmployeeStatisticsChart._failGradient,
+          gradient: _failGradient,
           color: _EmployeeStatisticsChart._failColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          width: 0.6,
+          spacing: 0.2,
           dataLabelSettings: const DataLabelSettings(isVisible: false),
         ),
       ],
