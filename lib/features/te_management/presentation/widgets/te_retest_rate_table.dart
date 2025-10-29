@@ -16,25 +16,26 @@ const double _kHeaderTopHeight = 40;
 const double _kHeaderBottomHeight = 32;
 const double _kRowHeight = 54;
 
-const Color _kHeaderColor = Color(0xFF0B304B);
-const Color _kHeaderAccent = Color(0xFF092441);
+const Color _kHeaderColor = Color(0xFF0D3B5B);
+const Color _kHeaderAccent = Color(0xFF082A44);
 const LinearGradient _kTableBackgroundGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFF052840), Color(0xFF021324)],
+  colors: [Color(0xFF063356), Color(0xFF03172C)],
 );
-const Color _kRowEvenColor = Color(0xFF0B2F48);
-const Color _kRowOddColor = Color(0xFF08283E);
-const Color _kSpanBackground = Color(0xFF113C5D);
-const Color _kBorderColor = Color(0x443CD0FF);
+const Color _kRowEvenColor = Color(0xFF0A3654);
+const Color _kRowOddColor = Color(0xFF072C47);
+const Color _kSpanBackground = Color(0xFF0E3F61);
+const Color _kBorderColor = Color(0x553AD2FF);
 const List<BoxShadow> _kTableShadows = [
   const BoxShadow(
-    color: Color(0x2218C3FF),
-    blurRadius: 30,
-    offset: Offset(0, 24),
+    color: Color(0x2229C6FF),
+    blurRadius: 34,
+    spreadRadius: 2,
+    offset: const Offset(0, 26),
   ),
 ];
-const BorderSide _kGridBorder = BorderSide(color: Color(0x333CD0FF), width: 1.0);
+const BorderSide _kGridBorder = BorderSide(color: Color(0x335FE0FF), width: 1.05);
 
 class TERetestRateTable extends StatefulWidget {
   const TERetestRateTable({

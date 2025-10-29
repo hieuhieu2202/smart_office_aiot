@@ -20,12 +20,14 @@ import '../widgets/te_retest_rate_table.dart';
 const LinearGradient _kBackgroundGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFF04213F), Color(0xFF010A18)],
+  colors: [Color(0xFF041830), Color(0xFF010712)],
 );
-const Color _kSurfaceColor = Color(0xFF0A2340);
+const Color _kSurfaceColor = Color(0xFF0A233C);
 const Color _kAccentColor = Color(0xFF22D3EE);
 const Color _kAppBarTitleColor = Color(0xFF8FE9FF);
 const Color _kAppBarIconColor = Color(0xFFB6F4FF);
+const Color _kStatusChipColor = Color(0xFF0E2F4A);
+const Color _kErrorChipColor = Color(0xFF3E1A2F);
 
 class TERetestRateScreen extends StatefulWidget {
   const TERetestRateScreen({
@@ -130,10 +132,8 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildFilters(sizing),
-                      const SizedBox(height: 16),
-                      _buildStatusRow(),
-                      const SizedBox(height: 16),
+                      _buildTopBar(sizing),
+                      const SizedBox(height: 20),
                       Expanded(
                         child: Obx(() {
                           final rawDetail = _controller.detail.value;
@@ -204,75 +204,184 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
     );
   }
 
-  Widget _buildFilters(SizingInformation sizing) {
+  Widget _buildTopBar(SizingInformation sizing) {
     final isCompact = sizing.isMobile || sizing.screenSize.width < 900;
     final searchWidth = isCompact
         ? double.infinity
-        : (sizing.screenSize.width * 0.32).clamp(240.0, 420.0) as double;
+        : (sizing.screenSize.width * 0.3).clamp(260.0, 420.0) as double;
 
-    final filterButton = SizedBox(
-      height: 48,
-      child: ElevatedButton.icon(
-        onPressed: _openFilterSheet,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF114368),
-          foregroundColor: Colors.white,
-          elevation: 6,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        ),
-        icon: const Icon(Icons.filter_alt_rounded),
-        label: const Text('Filters'),
-      ),
-    );
-
-    final searchField = SizedBox(
-      width: searchWidth,
-      child: TESearchBar(
-        controller: _searchController,
-        onChanged: _controller.updateSearch,
-      ),
-    );
-
-    if (isCompact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          filterButton,
-          const SizedBox(height: 12),
-          TESearchBar(
-            controller: _searchController,
-            onChanged: _controller.updateSearch,
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        SizedBox(width: 160, child: filterButton),
-        const SizedBox(width: 16),
-        searchField,
-      ],
-    );
-  }
-
-  Widget _buildStatusRow() {
     return Obx(() {
+      final loading = _controller.isLoading.value;
       final lastUpdated = _controller.lastUpdated.value;
+      final hasError = _controller.hasError;
       final formatter = DateFormat('yyyy/MM/dd HH:mm:ss');
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Last updated: ${formatter.format(lastUpdated)}',
-            style: const TextStyle(color: Color(0xFF8FCBFF), fontWeight: FontWeight.w500),
-          ),
-          if (_controller.hasError)
-            Text(
-              'Refresh to retry',
-              style: TextStyle(color: Colors.redAccent.shade200, fontWeight: FontWeight.w600),
+
+      Widget buildFilterButton() {
+        return SizedBox(
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed: _openFilterSheet,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF12506F),
+              foregroundColor: Colors.white,
+              elevation: 8,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
+            icon: const Icon(Icons.tune_rounded, size: 20),
+            label: const Text('Filters'),
+          ),
+        );
+      }
+
+      Widget buildRefreshButton() {
+        return SizedBox(
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed:
+                loading ? null : () => _controller.fetchReport(showLoading: true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F3F60),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: const Color(0xFF0F3F60).withOpacity(0.6),
+              disabledForegroundColor: Colors.white70,
+              elevation: 8,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            icon: loading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.refresh_rounded, size: 20),
+            label: Text(loading ? 'Loading…' : 'Reload'),
+          ),
+        );
+      }
+
+      Widget buildLastUpdateChip() {
+        return Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          decoration: BoxDecoration(
+            color: _kStatusChipColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x2216D7FF),
+                blurRadius: 16,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.schedule_rounded, color: Color(0xFF6EDCFF), size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Last updated: ${formatter.format(lastUpdated)}',
+                style: const TextStyle(
+                  color: Color(0xFFBCEAFF),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      Widget buildErrorChip() {
+        if (!hasError) {
+          return const SizedBox.shrink();
+        }
+        return Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: _kErrorChipColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.redAccent.withOpacity(0.45)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.warning_amber_rounded, color: Color(0xFFFCCF6B), size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Refresh to retry',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (isCompact) {
+        final rawWidth = sizing.screenSize.width.isFinite
+            ? sizing.screenSize.width - 48
+            : 200.0;
+        final filterWidth = rawWidth.clamp(140.0, 220.0).toDouble();
+        final refreshWidth = rawWidth.clamp(130.0, 200.0).toDouble();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                SizedBox(width: filterWidth, child: buildFilterButton()),
+                SizedBox(width: refreshWidth, child: buildRefreshButton()),
+                buildLastUpdateChip(),
+                if (hasError) buildErrorChip(),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TESearchBar(
+              controller: _searchController,
+              onChanged: _controller.updateSearch,
+            ),
+          ],
+        );
+      }
+
+      final searchField = SizedBox(
+        width: searchWidth,
+        child: TESearchBar(
+          controller: _searchController,
+          onChanged: _controller.updateSearch,
+        ),
+      );
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                buildFilterButton(),
+                buildRefreshButton(),
+                buildLastUpdateChip(),
+                if (hasError) buildErrorChip(),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          searchField,
         ],
       );
     });
