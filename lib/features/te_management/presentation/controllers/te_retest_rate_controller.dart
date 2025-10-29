@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
@@ -46,9 +47,11 @@ class TERetestRateController extends GetxController {
   final Rx<DateTime> endDate = DateTime.now().obs;
 
   late String _modelSerial;
+  Timer? _autoRefreshTimer;
 
   final DateFormat _rangeFormatter = DateFormat('yyyy/MM/dd HH:mm');
   final DateFormat _dateFormatter = DateFormat('yyyy/MM/dd');
+  final Duration _autoRefreshInterval = const Duration(seconds: 20);
 
   String get rangeLabel =>
       '${_rangeFormatter.format(startDate.value)} - ${_rangeFormatter.format(endDate.value)}';
@@ -113,6 +116,7 @@ class TERetestRateController extends GetxController {
       if (showLoading) {
         isLoading.value = false;
       }
+      _scheduleAutoRefresh();
     }
   }
 
@@ -361,6 +365,29 @@ class TERetestRateController extends GetxController {
       return '"$sanitized"';
     }
     return sanitized;
+  }
+
+  void _scheduleAutoRefresh() {
+    if (isClosed) {
+      _autoRefreshTimer?.cancel();
+      _autoRefreshTimer = null;
+      return;
+    }
+
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer(_autoRefreshInterval, () async {
+      if (isClosed) {
+        return;
+      }
+      await fetchReport(showLoading: false);
+    });
+  }
+
+  @override
+  void onClose() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = null;
+    super.onClose();
   }
 }
 
