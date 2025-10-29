@@ -231,12 +231,6 @@ class EmployeeStatisticsChart extends StatelessWidget {
             0,
             stat.fail,
             _failColor,
-            BorderRadius.only(
-              topLeft: const Radius.circular(4),
-              bottomLeft: const Radius.circular(4),
-              topRight: stat.pass > 0 ? Radius.zero : const Radius.circular(4),
-              bottomRight: stat.pass > 0 ? Radius.zero : const Radius.circular(4),
-            ),
           ),
         );
       }
@@ -246,12 +240,6 @@ class EmployeeStatisticsChart extends StatelessWidget {
             stat.fail,
             stat.total,
             _passColor,
-            BorderRadius.only(
-              topRight: const Radius.circular(4),
-              bottomRight: const Radius.circular(4),
-              topLeft: stat.fail > 0 ? Radius.zero : const Radius.circular(4),
-              bottomLeft: stat.fail > 0 ? Radius.zero : const Radius.circular(4),
-            ),
           ),
         );
       }
@@ -263,7 +251,7 @@ class EmployeeStatisticsChart extends StatelessWidget {
             toY: stat.total,
             rodStackItems: rods,
             width: 24,
-            borderRadius: BorderRadius.zero,
+            borderRadius: const BorderRadius.all(Radius.circular(4)),
             backDrawRodData: BackgroundBarChartRodData(
               show: true,
               toY: maxValue,
