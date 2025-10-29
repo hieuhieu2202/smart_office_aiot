@@ -47,7 +47,6 @@ class TETop10ErrorCodeScreen extends StatefulWidget {
 }
 
 class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
-  static const List<String> _modelSerials = ['ADAPTER', 'SWITCH'];
   static const List<Color> _barPalette = [
     Color(0xFF5EEAD4),
     Color(0xFF60A5FA),
@@ -63,7 +62,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
   late final String _controllerTag;
   late final TETopErrorCodeController _controller;
-  final DateFormat _timeFormatter = DateFormat('HH:mm');
+  final DateFormat _rangeDisplayFormatter = DateFormat('yyyy/MM/dd HH:mm');
   final TooltipBehavior _trendTooltip = TooltipBehavior(
     enable: true,
     color: const Color(0xFF0B1F39),
@@ -71,6 +70,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     textStyle: const TextStyle(color: Colors.white, fontSize: 12),
     borderWidth: 0,
   );
+  bool _isFilterPanelOpen = false;
+  static const Duration _kFilterAnimationDuration = Duration(milliseconds: 280);
 
   @override
   void initState() {
@@ -176,133 +177,275 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     }
   }
 
+  void _toggleFilterPanel() {
+    setState(() {
+      _isFilterPanelOpen = !_isFilterPanelOpen;
+    });
+  }
+
+  void _closeFilterPanel() {
+    if (!_isFilterPanelOpen) return;
+    setState(() {
+      _isFilterPanelOpen = false;
+    });
+  }
+
   Widget _buildControlBar(SizingInformation sizing) {
     return Obx(() {
-      final start = _controller.startDateTime.value;
-      final end = _controller.endDateTime.value;
-      final isDesktop = sizing.isDesktop;
-      final chipSpacing = isDesktop ? 12.0 : 8.0;
-      return Wrap(
-        spacing: 16,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: _kPanelColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _kPanelBorderColor),
+      final range = _controller.rangeLabel;
+      final modelSerial = _controller.modelSerial.value;
+      return Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: sizing.isDesktop ? 22 : 16,
+          vertical: sizing.isDesktop ? 16 : 14,
+        ),
+        decoration: BoxDecoration(
+          color: _kPanelColor.withOpacity(0.92),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _kPanelBorderColor),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 16,
+              offset: Offset(0, 10),
             ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _controller.modelSerial.value,
-                dropdownColor: _kPanelColor,
-                iconEnabledColor: _kAccentColor,
-                style: const TextStyle(
-                  color: _kTextPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-                items: _modelSerials
-                    .map(
-                      (item) => DropdownMenuItem<String>(
-                        value: item,
-                        child: Text('Model Serial: $item'),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    _controller.updateModelSerial(value);
-                  }
-                },
+          ],
+        ),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _FilterActionButton(
+              isActive: _isFilterPanelOpen,
+              onPressed: _toggleFilterPanel,
+            ),
+            _InfoBadge(
+              icon: Icons.memory_outlined,
+              label: 'Model Serial',
+              value: modelSerial,
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: _kSurfaceMuted.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _kPanelBorderColor),
+              ),
+              constraints: const BoxConstraints(minWidth: 220),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Date Range',
+                    style: TextStyle(
+                      color: _kTextSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    range,
+                    style: const TextStyle(
+                      color: _kTextPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: _kPanelColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _kPanelBorderColor),
+            TERefreshLabel(
+              lastUpdated: _controller.lastUpdated.value,
+              isRefreshing: _controller.isLoading.value,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Wrap(
-              spacing: chipSpacing,
-              children: TETopErrorCategory.values.map((category) {
-                final selected = category == _controller.category.value;
-                return ChoiceChip(
-                  label: Text(category.label),
-                  selected: selected,
-                  labelStyle: TextStyle(
-                    color: selected ? Colors.black : _kTextSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  selectedColor: _kAccentColor,
-                  backgroundColor: _kSurfaceMuted,
-                  onSelected: (_) => _controller.updateCategory(category),
-                );
-              }).toList(),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: _kPanelColor,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: _kPanelBorderColor),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Date Range',
-                  style: TextStyle(
-                    color: _kTextSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: [
-                    _RangeButton(
-                      label: 'Start ${_timeFormatter.format(start)}',
-                      onTap: () => _pickDateTime(isStart: true),
-                    ),
-                    _RangeButton(
-                      label: 'End ${_timeFormatter.format(end)}',
-                      onTap: () => _pickDateTime(isStart: false),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: _controller.shiftToTodayRange,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: _kAccentColor,
-                        side: const BorderSide(color: _kAccentColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                      ),
-                      icon: const Icon(Icons.today_outlined, size: 18),
-                      label: const Text('Today'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          TERefreshLabel(
-            lastUpdated: _controller.lastUpdated.value,
-            isRefreshing: _controller.isLoading.value,
-          ),
-        ],
+          ],
+        ),
       );
     });
+  }
+
+  Widget _buildFilterScrim() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: !_isFilterPanelOpen,
+        child: AnimatedOpacity(
+          duration: _kFilterAnimationDuration,
+          opacity: _isFilterPanelOpen ? 0.6 : 0,
+          curve: Curves.easeOutCubic,
+          child: GestureDetector(
+            onTap: _closeFilterPanel,
+            child: Container(color: Colors.black87),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterPanel(SizingInformation sizing) {
+    final width = sizing.screenSize.width;
+    final double panelWidth;
+    if (width >= 1480) {
+      panelWidth = 400;
+    } else if (width >= 1100) {
+      panelWidth = 360;
+    } else {
+      panelWidth = width * 0.88;
+    }
+
+    return AnimatedPositioned(
+      duration: _kFilterAnimationDuration,
+      curve: Curves.easeOutCubic,
+      top: 0,
+      bottom: 0,
+      left: _isFilterPanelOpen ? 0 : -panelWidth - 48,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 16, top: 16, bottom: 16),
+          child: Obx(() {
+            final start = _controller.startDateTime.value;
+            final end = _controller.endDateTime.value;
+            final modelSerial = _controller.modelSerial.value;
+            return Container(
+              width: panelWidth,
+              decoration: BoxDecoration(
+                color: _kPanelColor.withOpacity(0.98),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: _kPanelBorderColor),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black38,
+                    blurRadius: 20,
+                    offset: Offset(6, 12),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _kSurfaceMuted,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.tune, color: _kAccentColor),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Filters',
+                          style: TextStyle(
+                            color: _kTextPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _closeFilterPanel,
+                        icon: const Icon(Icons.close, color: _kTextSecondary),
+                        tooltip: 'Close filters',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Current selection',
+                    style: TextStyle(
+                      color: _kTextSecondary,
+                      fontSize: 12,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoBadge(
+                    icon: Icons.memory_outlined,
+                    label: 'Model Serial',
+                    value: modelSerial,
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Date range',
+                    style: TextStyle(
+                      color: _kTextPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _RangeButton(
+                    label: 'Start · ${_rangeDisplayFormatter.format(start)}',
+                    onTap: () => _pickDateTime(isStart: true),
+                  ),
+                  const SizedBox(height: 10),
+                  _RangeButton(
+                    label: 'End · ${_rangeDisplayFormatter.format(end)}',
+                    onTap: () => _pickDateTime(isStart: false),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await _controller.shiftToTodayRange();
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _kAccentColor,
+                      side: const BorderSide(color: _kAccentColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    icon: const Icon(Icons.calendar_today_outlined, size: 18),
+                    label: const Text(
+                      'Today 07:30 - 19:30',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Tip: use the cards or table rows to drill into weekly trends.',
+                    style: TextStyle(
+                      color: _kTextSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const Spacer(),
+                  FilledButton.icon(
+                    onPressed: _closeFilterPanel,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _kAccentColor,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text(
+                      'Done',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
+      ),
+    );
   }
 
   Widget _buildContent(SizingInformation sizing) {
@@ -366,18 +509,26 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
       final isWide = sizing.screenSize.width >= 1100;
       if (isWide) {
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        return Column(
           children: [
             Expanded(
-              flex: 11,
-              child: _buildErrorListPanel(isWide: true),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    flex: 11,
+                    child: _buildErrorListPanel(isWide: true),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    flex: 9,
+                    child: _buildAnalyticsPanel(),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(width: 20),
-            Expanded(
-              flex: 9,
-              child: _buildAnalyticsPanel(),
-            ),
+            const SizedBox(height: 20),
+            _buildDetailTable(isWide: true),
           ],
         );
       }
@@ -388,6 +539,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           _buildErrorListPanel(isWide: false),
           const SizedBox(height: 20),
           _buildAnalyticsPanel(),
+          const SizedBox(height: 20),
+          _buildDetailTable(isWide: false),
         ],
       );
     });
@@ -997,6 +1150,218 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     });
   }
 
+  Widget _buildDetailTable({required bool isWide}) {
+    final tableHeight = isWide ? 320.0 : 420.0;
+    return SizedBox(
+      height: tableHeight,
+      child: Obx(() {
+        final errors = _controller.errors;
+        final selectedError = _controller.selectedError.value;
+        final selectedDetail = _controller.selectedDetail.value;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: _kPanelColor.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: _kPanelBorderColor),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 18,
+                offset: Offset(0, 12),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.table_chart_outlined, color: _kAccentColor),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Detail Breakdown',
+                    style: TextStyle(
+                      color: _kTextPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    _controller.rangeLabel,
+                    style: const TextStyle(color: _kTextSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Tap a row to focus the weekly trend by error, model, and station.',
+                style: TextStyle(color: _kTextSecondary, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: errors.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No detailed data available.',
+                          style: TextStyle(color: _kTextSecondary),
+                        ),
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: _kSurfaceMuted.withOpacity(0.35),
+                            border: Border.all(
+                              color: _kPanelBorderColor.withOpacity(0.6),
+                            ),
+                          ),
+                          child: ScrollConfiguration(
+                            behavior: ScrollConfiguration.of(context).copyWith(
+                              scrollbars: false,
+                              physics: const BouncingScrollPhysics(),
+                            ),
+                            child: SingleChildScrollView(
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(minWidth: 860),
+                                  child: DataTableTheme(
+                                    data: DataTableThemeData(
+                                      headingRowColor: MaterialStatePropertyAll(
+                                        _kSurfaceMuted.withOpacity(0.75),
+                                      ),
+                                      dataRowColor:
+                                          const MaterialStatePropertyAll(Colors.transparent),
+                                      headingTextStyle: const TextStyle(
+                                        color: _kTextPrimary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                      ),
+                                      dataTextStyle: const TextStyle(
+                                        color: _kTextPrimary,
+                                        fontSize: 12,
+                                      ),
+                                      dividerThickness: 0.6,
+                                    ),
+                                    child: DataTable(
+                                      showCheckboxColumn: false,
+                                      headingRowHeight: 44,
+                                      dataRowMinHeight: 44,
+                                      dataRowMaxHeight: 52,
+                                      columnSpacing: 18,
+                                      horizontalMargin: 16,
+                                      border: TableBorder(
+                                        top: BorderSide(
+                                          color: _kPanelBorderColor.withOpacity(0.6),
+                                          width: 0.8,
+                                        ),
+                                        bottom: BorderSide(
+                                          color: _kPanelBorderColor.withOpacity(0.6),
+                                          width: 0.8,
+                                        ),
+                                        left: BorderSide(
+                                          color: _kPanelBorderColor.withOpacity(0.6),
+                                          width: 0.8,
+                                        ),
+                                        right: BorderSide(
+                                          color: _kPanelBorderColor.withOpacity(0.6),
+                                          width: 0.8,
+                                        ),
+                                        verticalInside: BorderSide(
+                                          color: _kPanelBorderColor.withOpacity(0.4),
+                                          width: 0.8,
+                                        ),
+                                        horizontalInside: BorderSide(
+                                          color: _kPanelBorderColor.withOpacity(0.4),
+                                          width: 0.6,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      columns: const [
+                                        DataColumn(label: Text('Top')),
+                                        DataColumn(label: Text('Error Code')),
+                                        DataColumn(label: Text('F_FAIL'), numeric: true),
+                                        DataColumn(label: Text('R_FAIL'), numeric: true),
+                                        DataColumn(label: Text('Model Name (Top 3)')),
+                                        DataColumn(label: Text('Group Name')),
+                                        DataColumn(label: Text('First Fail'), numeric: true),
+                                        DataColumn(label: Text('Repair Fail'), numeric: true),
+                                      ],
+                                      rows: _buildDetailRows(
+                                        errors: errors,
+                                        selectedError: selectedError,
+                                        selectedDetail: selectedDetail,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  List<DataRow> _buildDetailRows({
+    required List<TETopErrorEntity> errors,
+    required TETopErrorEntity? selectedError,
+    required TETopErrorDetailEntity? selectedDetail,
+  }) {
+    final rows = <DataRow>[];
+    for (var i = 0; i < errors.length; i++) {
+      final error = errors[i];
+      final details = error.details.isNotEmpty
+          ? error.details.take(3).toList()
+          : <TETopErrorDetailEntity?>[null];
+
+      for (var j = 0; j < details.length; j++) {
+        final detail = details[j];
+        final isFirst = j == 0;
+        final highlight = selectedDetail != null
+            ? (detail != null && selectedDetail == detail)
+            : selectedError == error;
+        final color = highlight ? Colors.white.withOpacity(0.07) : Colors.transparent;
+
+        rows.add(
+          DataRow(
+            color: MaterialStateProperty.resolveWith<Color?>(
+              (states) => color == Colors.transparent ? null : color,
+            ),
+            onSelectChanged: (_) async {
+              await _controller.selectError(error);
+              if (detail != null) {
+                await _controller.selectDetail(detail);
+              } else {
+                _controller.clearDetailSelection();
+              }
+            },
+            cells: [
+              DataCell(Text(isFirst ? '#${i + 1}' : '')),
+              DataCell(Text(isFirst ? error.errorCode : '')),
+              DataCell(Text(isFirst ? '${error.firstFail}' : '')),
+              DataCell(Text(isFirst ? '${error.repairFail}' : '')),
+              DataCell(Text(detail?.modelName ?? (error.details.isEmpty ? '—' : ''))),
+              DataCell(Text(detail?.groupName ?? (error.details.isEmpty ? '—' : ''))),
+              DataCell(Text(detail != null ? '${detail.firstFail}' : '—')),
+              DataCell(Text(detail != null ? '${detail.repairFail}' : '—')),
+            ],
+          ),
+        );
+      }
+    }
+
+    return rows;
+  }
+
   Widget _buildDistributionCard(int totalFailures) {
     return Container(
       decoration: BoxDecoration(
@@ -1109,9 +1474,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           leading: const BackButton(color: _kTextSecondary),
           title: Obx(() {
             final modelSerial = _controller.modelSerial.value;
-            final category = _controller.categoryLabel;
             return Text(
-              widget.title ?? '$modelSerial · $category · Top 10 Error Codes',
+              widget.title ?? 'TE TOP 10 ERROR CODE ($modelSerial)',
               style: const TextStyle(
                 color: _kTextPrimary,
                 fontFamily: 'Arial',
@@ -1138,19 +1502,26 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             final horizontalPadding = sizing.screenSize.width > 1200 ? 32.0 : 18.0;
             final verticalPadding = sizing.isDesktop ? 24.0 : 14.0;
             return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: verticalPadding,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildControlBar(sizing),
-                    const SizedBox(height: 20),
-                    Expanded(child: _buildContent(sizing)),
-                  ],
-                ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: verticalPadding,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildControlBar(sizing),
+                        const SizedBox(height: 20),
+                        Expanded(child: _buildContent(sizing)),
+                      ],
+                    ),
+                  ),
+                  _buildFilterScrim(),
+                  _buildFilterPanel(sizing),
+                ],
               ),
             );
           },
@@ -1170,6 +1541,88 @@ class _DistributionDatum {
   final String label;
   final double value;
   final Color color;
+}
+
+class _FilterActionButton extends StatelessWidget {
+  const _FilterActionButton({required this.isActive, required this.onPressed});
+
+  final bool isActive;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isActive ? _kAccentColor : Colors.transparent,
+        foregroundColor: isActive ? Colors.black : _kAccentColor,
+        side: const BorderSide(color: _kAccentColor),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      ),
+      icon: Icon(isActive ? Icons.close_fullscreen : Icons.filter_alt_outlined, size: 18),
+      label: Text(
+        isActive ? 'Hide Filters' : 'Filters',
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      ),
+    );
+  }
+}
+
+class _InfoBadge extends StatelessWidget {
+  const _InfoBadge({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: _kSurfaceMuted.withOpacity(0.68),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _kPanelBorderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, color: _kAccentColor, size: 18),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: _kTextSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: _kTextPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StatTile extends StatelessWidget {
