@@ -70,8 +70,11 @@ class LcrDashboardViewState {
   final List<LcrMachineGauge> machineGauges;
   final List<LcrPieSlice> errorSlices;
 
-  factory LcrDashboardViewState.fromRecords(List<LcrRecord> records) {
-    final overview = LcrOverview.fromRecords(records);
+  factory LcrDashboardViewState.fromSources({
+    required List<LcrRecord> trackingRecords,
+    required List<LcrRecord> analysisRecords,
+  }) {
+    final overview = LcrOverview.fromRecords(trackingRecords);
 
     final Map<String, List<LcrRecord>> byFactory = <String, List<LcrRecord>>{};
     final Map<String, List<LcrRecord>> byDepartment = <String, List<LcrRecord>>{};
@@ -91,7 +94,7 @@ class LcrDashboardViewState {
       return 1;
     }
 
-    for (final record in records) {
+    for (final record in trackingRecords) {
       final factoryKey = (record.factory.isEmpty ? 'UNKNOWN' : record.factory);
       byFactory.putIfAbsent(factoryKey, () => <LcrRecord>[]).add(record);
 
@@ -158,31 +161,146 @@ class LcrDashboardViewState {
     final employeeSeries = _buildStacked(byEmployee);
     final errorSlices = _buildPie(byError, includeZero: true);
 
-    final outputPass = <int>[];
-    final outputFail = <int>[];
-    final outputYr = <double>[];
-    final categoriesLabel = <String>[];
+    LcrOutputTrend _buildTrendFromTracking() {
+      final outputPass = <int>[];
+      final outputFail = <int>[];
+      final outputYr = <double>[];
+      final categoriesLabel = <String>[];
 
-    for (var hour = startHour; hour <= endHour; hour++) {
-      final bucket = bySlot[hour];
-      final passCount = bucket?.pass ?? 0;
-      final failCount = bucket?.fail ?? 0;
-      outputPass.add(passCount);
-      outputFail.add(failCount);
-      final total = passCount + failCount;
-      final yr = total == 0 ? 0 : passCount / total * 100;
-      outputYr.add(double.parse(yr.toStringAsFixed(2)));
-      final startLabel = '${hour.toString().padLeft(2, '0')}:30';
-      final endLabel = '${(hour + 1).toString().padLeft(2, '0')}:30';
-      categoriesLabel.add('$startLabel - $endLabel');
+      for (var hour = startHour; hour <= endHour; hour++) {
+        final bucket = bySlot[hour];
+        final passCount = bucket?.pass ?? 0;
+        final failCount = bucket?.fail ?? 0;
+        outputPass.add(passCount);
+        outputFail.add(failCount);
+        final total = passCount + failCount;
+        final yr = total == 0 ? 0 : passCount / total * 100;
+        outputYr.add(double.parse(yr.toStringAsFixed(2)));
+        final startLabel = '${hour.toString().padLeft(2, '0')}:30';
+        final endLabel = '${(hour + 1).toString().padLeft(2, '0')}:30';
+        categoriesLabel.add('$startLabel - $endLabel');
+      }
+
+      return LcrOutputTrend(
+        categories: categoriesLabel,
+        pass: outputPass,
+        fail: outputFail,
+        yieldRate: outputYr,
+      );
     }
 
-    final outputTrend = LcrOutputTrend(
-      categories: categoriesLabel,
-      pass: outputPass,
-      fail: outputFail,
-      yieldRate: outputYr,
-    );
+    LcrOutputTrend? _buildTrendFromAnalysis() {
+      if (analysisRecords.isEmpty) {
+        return null;
+      }
+
+      final Map<String, _SlotTotals> grouped = <String, _SlotTotals>{};
+      final Map<String, int> insertionOrder = <String, int>{};
+      var order = 0;
+
+      String? labelForRecord(LcrRecord record) {
+        final className = record.className.trim();
+        if (className.isNotEmpty) {
+          return className;
+        }
+        final classDate = record.classDate.trim();
+        if (classDate.isNotEmpty) {
+          return classDate;
+        }
+        if (record.workSection != 0) {
+          return record.workSection.toString();
+        }
+        return null;
+      }
+
+      int? sortKey(String label) {
+        final rangeMatch = RegExp(r'(\d{1,2})[:.](\d{2})').firstMatch(label);
+        if (rangeMatch != null) {
+          final hour = int.tryParse(rangeMatch.group(1)!);
+          final minute = int.tryParse(rangeMatch.group(2)!);
+          if (hour != null && minute != null) {
+            return hour * 60 + minute;
+          }
+        }
+        final digitMatch = RegExp(r'\d+').firstMatch(label);
+        if (digitMatch != null) {
+          return int.tryParse(digitMatch.group(0)!);
+        }
+        return null;
+      }
+
+      for (final record in analysisRecords) {
+        final label = labelForRecord(record);
+        if (label == null) {
+          continue;
+        }
+        final normalized = label.trim();
+        if (normalized.isEmpty) {
+          continue;
+        }
+        final bucket =
+            grouped.putIfAbsent(normalized, () => _SlotTotals());
+        insertionOrder.putIfAbsent(normalized, () => order++);
+
+        final passQty = record.qty ?? 0;
+        final failQty = record.extQty ?? 0;
+        if (passQty > 0 || failQty > 0) {
+          if (passQty > 0) bucket.pass += passQty;
+          if (failQty > 0) bucket.fail += failQty;
+        } else {
+          if (record.status) {
+            bucket.pass += 1;
+          } else {
+            bucket.fail += 1;
+          }
+        }
+      }
+
+      if (grouped.isEmpty) {
+        return null;
+      }
+
+      final entries = grouped.entries.toList()
+        ..sort((a, b) {
+          final aKey = sortKey(a.key);
+          final bKey = sortKey(b.key);
+          if (aKey != null && bKey != null) {
+            final comparison = aKey.compareTo(bKey);
+            if (comparison != 0) {
+              return comparison;
+            }
+          } else if (aKey != null) {
+            return -1;
+          } else if (bKey != null) {
+            return 1;
+          }
+          return insertionOrder[a.key]!.compareTo(insertionOrder[b.key]!);
+        });
+
+      final categories = <String>[];
+      final pass = <int>[];
+      final fail = <int>[];
+      final yr = <double>[];
+
+      for (final entry in entries) {
+        categories.add(entry.key);
+        pass.add(entry.value.pass);
+        fail.add(entry.value.fail);
+        final total = entry.value.pass + entry.value.fail;
+        final yieldValue =
+            total == 0 ? 0 : entry.value.pass / total * 100;
+        yr.add(double.parse(yieldValue.toStringAsFixed(2)));
+      }
+
+      return LcrOutputTrend(
+        categories: categories,
+        pass: pass,
+        fail: fail,
+        yieldRate: yr,
+      );
+    }
+
+    final outputTrend = _buildTrendFromAnalysis() ?? _buildTrendFromTracking();
 
     final machineGauges = byMachine.entries.map((entry) {
       var passTotal = 0;

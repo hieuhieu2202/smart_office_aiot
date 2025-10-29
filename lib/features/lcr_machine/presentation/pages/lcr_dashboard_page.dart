@@ -903,7 +903,7 @@ class _DashboardTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          flex: 3,
+                          flex: 2,
                           child: LcrChartCard(
                             title: 'DEPARTMENT ANALYSIS',
                             height: 280,
@@ -912,10 +912,10 @@ class _DashboardTab extends StatelessWidget {
                         ),
                         const SizedBox(width: 24),
                         Expanded(
-                          flex: 4,
+                          flex: 5,
                           child: LcrChartCard(
                             title: 'YIELD RATE & OUTPUT',
-                            height: 360,
+                            height: 400,
                             child: _OutputChart(data.outputTrend),
                           ),
                         ),
