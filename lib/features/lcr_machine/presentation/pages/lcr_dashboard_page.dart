@@ -1173,11 +1173,6 @@ class _FactoryDistributionTile extends StatelessWidget {
           ),
         ],
       ),
-      textStyle: const TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.4,
-      ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       waitDuration: const Duration(milliseconds: 120),
       showDuration: const Duration(milliseconds: 3500),
@@ -1189,6 +1184,7 @@ class _FactoryDistributionTile extends StatelessWidget {
           fontWeight: FontWeight.w700,
           fontSize: 13,
           letterSpacing: 0.6,
+          color: Colors.white,
         ),
         children: [
           const TextSpan(text: '\n'),
