@@ -416,47 +416,47 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                             ),
                           ],
                         ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF052043),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.cyanAccent.withOpacity(0.4)),
-                ),
-                child: Text(
-                  previewText(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF052043),
+                    borderRadius: BorderRadius.circular(12),
+                    border:
+                        Border.all(color: Colors.cyanAccent.withOpacity(0.4)),
+                  ),
+                  child: Text(
+                    previewText(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
           actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: applySelection,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyanAccent,
-                    foregroundColor: Colors.black,
-                  ),
-                  child: const Text('Apply'),
-                ),
-              ],
-            );
-          },
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: applySelection,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyanAccent,
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('Apply'),
+            ),
+          ],
         );
       },
     );
