@@ -1090,50 +1090,103 @@ class _FactoryDistributionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: gradient),
-                borderRadius: BorderRadius.circular(4),
-              ),
+    final percentText = (percent * 100).toStringAsFixed(1);
+    return Tooltip(
+      decoration: BoxDecoration(
+        color: const Color(0xFF09264D),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.cyanAccent.withOpacity(0.35)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33092046),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      textStyle: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.4,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      waitDuration: const Duration(milliseconds: 120),
+      showDuration: const Duration(milliseconds: 3500),
+      verticalOffset: 18,
+      preferBelow: false,
+      richMessage: TextSpan(
+        text: label,
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+          letterSpacing: 0.6,
+        ),
+        children: [
+          const TextSpan(text: '\n'),
+          TextSpan(
+            text: '$value pcs',
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              color: Colors.white70,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.4,
+          ),
+          const TextSpan(text: '  •  '),
+          TextSpan(
+            text: '$percentText%',
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: Colors.cyanAccent,
+            ),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradient),
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ),
-            ),
-            Text(
-              '${(percent * 100).toStringAsFixed(1)}%',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        _GradientProgressBar(
-          value: percent.clamp(0.0, 1.0),
-          gradient: gradient,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '$value pcs',
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-      ],
+              Text(
+                '$percentText%',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _GradientProgressBar(
+            value: percent.clamp(0.0, 1.0),
+            gradient: gradient,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$value pcs',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1179,12 +1232,12 @@ class _PulsingTotalBadgeState extends State<_PulsingTotalBadge>
     final textStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w800,
-          fontSize: 28,
+          fontSize: 22,
           letterSpacing: 1.1,
         ) ??
         const TextStyle(
           color: Colors.white,
-          fontSize: 28,
+          fontSize: 22,
           fontWeight: FontWeight.w800,
           letterSpacing: 1.1,
         );
