@@ -1307,16 +1307,16 @@ class _OutputChartState extends State<_OutputChart> {
       final isTouched = _touchedGroup == index;
       return BarChartGroupData(
         x: index,
-        barsSpace: 6,
+        barsSpace: 10,
         barRods: [
           BarChartRodData(
             toY: item.pass.toDouble(),
             width: 18,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
             gradient: LinearGradient(
               colors: isTouched
-                  ? const [Color(0xFF5EE7FF), Color(0xFF3AC6FF)]
-                  : const [Color(0xFF3AC6FF), Color(0xFF1EA5FF)],
+                  ? const [Color(0xFF68E8FF), Color(0xFF27C6FF)]
+                  : const [Color(0xFF34D2FF), Color(0xFF15A9FF)],
               begin: Alignment.bottomCenter,
               end: Alignment.topCenter,
             ),
@@ -1324,9 +1324,9 @@ class _OutputChartState extends State<_OutputChart> {
           BarChartRodData(
             toY: item.fail.toDouble(),
             width: 12,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
             color: isTouched
-                ? const Color(0xFFFF6E6E)
+                ? const Color(0xFFFF7A7A)
                 : const Color(0xFFE53935),
           ),
         ],
@@ -1339,90 +1339,117 @@ class _OutputChartState extends State<_OutputChart> {
     );
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        color: _chartBackground,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF05192B), Color(0xFF07263C)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         child: LayoutBuilder(
           builder: (context, constraints) {
             return Stack(
               clipBehavior: Clip.none,
               children: [
-                BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    minY: 0,
-                    maxY: yMax,
-                    gridData: FlGridData(
-                      drawHorizontalLine: true,
-                      drawVerticalLine: false,
-                      horizontalInterval: interval,
-                      getDrawingHorizontalLine: (value) => FlLine(
-                        color: Colors.white.withOpacity(0.08),
-                        strokeWidth: 1,
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x66020F1E),
+                        blurRadius: 18,
+                        spreadRadius: 2,
+                        offset: Offset(0, 10),
                       ),
+                    ],
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.03),
+                        Colors.white.withOpacity(0.01),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
-                    borderData: FlBorderData(show: false),
-                    titlesData: FlTitlesData(
-                      topTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: false,
-                          reservedSize: _topReserved,
+                  ),
+                  child: BarChart(
+                    BarChartData(
+                      alignment: BarChartAlignment.center,
+                      minY: 0,
+                      maxY: yMax,
+                      gridData: FlGridData(
+                        drawHorizontalLine: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: interval,
+                        getDrawingHorizontalLine: (value) => FlLine(
+                          color: Colors.white.withOpacity(0.08),
+                          strokeWidth: 0.7,
                         ),
                       ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: _leftReserved,
-                          interval: interval,
-                          getTitlesWidget: (value, meta) {
-                            if (value < 0) {
-                              return const SizedBox.shrink();
-                            }
-                            final text = value.toInt().toString();
-                            return SideTitleWidget(
-                              meta: meta,
-                              child: Text(
-                                text,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        topTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: false,
+                            reservedSize: _topReserved,
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: _leftReserved,
+                            interval: interval,
+                            getTitlesWidget: (value, meta) {
+                              if (value < 0) {
+                                return const SizedBox.shrink();
+                              }
+                              final text = value.toInt().toString();
+                              return SideTitleWidget(
+                                meta: meta,
+                                child: Text(
+                                  text,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                      rightTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: false,
-                          reservedSize: _rightReserved,
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: false,
+                            reservedSize: _rightReserved,
+                          ),
                         ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: _bottomReserved,
-                          getTitlesWidget: (value, meta) {
-                            final index = value.toInt();
-                            if (index < 0 || index >= data.length) {
-                              return const SizedBox.shrink();
-                            }
-                            final label = _formatCategory(data[index].category);
-                            return SideTitleWidget(
-                              meta: meta,
-                              child: Text(
-                                label,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: _bottomReserved,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              if (index < 0 || index >= data.length) {
+                                return const SizedBox.shrink();
+                              }
+                              final label = _formatCategory(data[index].category);
+                              return SideTitleWidget(
+                                meta: meta,
+                                child: Text(
+                                  label,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -1526,7 +1553,17 @@ class _OutputChartState extends State<_OutputChart> {
                             },
                           ),
                           isStrokeCapRound: true,
-                          belowBarData: BarAreaData(show: false),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            gradient: LinearGradient(
+                              colors: const [
+                                Color(0x33FFF176),
+                                Color(0x00FFF176),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
                         ),
                         LineChartBarData(
                           spots: List.generate(
@@ -1572,25 +1609,69 @@ class _OutputChartState extends State<_OutputChart> {
                   ),
                 ),
                 Positioned(
-                  top: 12,
-                  right: 16,
+                  top: 8,
+                  right: 14,
                   child: Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color(0x33227C41),
-                      borderRadius: BorderRadius.circular(8),
+                      color: const Color(0x26227C41),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: const Color(0xFF81C784),
-                        width: 0.8,
+                        width: 0.9,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x33091B12),
+                          blurRadius: 12,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.flag, size: 12, color: Color(0xFF81C784)),
+                        SizedBox(width: 6),
+                        Text(
+                          'Target 99%',
+                          style: TextStyle(
+                            color: Color(0xFF81C784),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  top: 6,
+                  child: const RotatedBox(
+                    quarterTurns: 3,
+                    child: Text(
+                      'pcs',
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
                       ),
                     ),
-                    child: const Text(
-                      'Target 99%',
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  top: 6,
+                  child: const RotatedBox(
+                    quarterTurns: 3,
+                    child: Text(
+                      'Yield %',
                       style: TextStyle(
-                        color: Color(0xFF81C784),
+                        color: Color(0xFF4DD0E1),
                         fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
                       ),
                     ),
                   ),
@@ -1725,21 +1806,32 @@ class _PassLabel extends StatelessWidget {
     final groupCenter = width * (index + 0.5) / dataLength;
     final labelWidth = 52.0;
     final left = (groupCenter - labelWidth / 2).clamp(0.0, width - labelWidth);
+    if (pass == 0) {
+      return const SizedBox.shrink();
+    }
     final barHeight = height * (pass / maxY);
-    final bottom = math.max(barHeight + 6, 6.0);
+    final bottom = math.max(barHeight + 8, 10.0);
 
     return Positioned(
       left: left,
       bottom: bottom,
       child: SizedBox(
         width: labelWidth,
-        child: Text(
-          '$pass',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xCC0F3044),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.white24, width: 0.6),
+          ),
+          child: Text(
+            '$pass',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
