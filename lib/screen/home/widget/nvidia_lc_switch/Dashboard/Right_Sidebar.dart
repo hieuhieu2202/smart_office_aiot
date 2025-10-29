@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'circular_kpi.dart';
-import 'model_pass_tile.dart';
+import 'Circular_Kpi.dart';
+import 'Model_Pass_Tile.dart';
 
 class RightSidebar extends StatelessWidget {
   final List<Map<String, dynamic>> passDetails;
@@ -25,7 +25,6 @@ class RightSidebar extends StatelessWidget {
     // ✅ Responsive
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 600;
-    final isTablet = width >= 600 && width < 1000;
 
     // === Tìm giá trị lớn nhất trong Model Pass ===
     int maxQty = 1;
@@ -34,102 +33,177 @@ class RightSidebar extends StatelessWidget {
       if (q > maxQty) maxQty = q;
     }
 
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderClr.withOpacity(.25)),
-        boxShadow: [
-          BoxShadow(
-              color: borderClr.withOpacity(.15),
-              blurRadius: 20,
-              spreadRadius: 2)
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // === TITLE ===
-          Text(
-            "MODEL PASS",
-            style: TextStyle(
-              color: borderClr,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 14),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final hasBoundedHeight =
+            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+        final panelWidth = constraints.maxWidth.isFinite &&
+                constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : width;
+        final isCompactPanel = panelWidth < 340;
+        final isMediumPanel = panelWidth < 420;
+        final outerPadding = isCompactPanel
+            ? const EdgeInsets.all(12)
+            : isMediumPanel
+                ? const EdgeInsets.all(14)
+                : const EdgeInsets.all(16);
+        final titleSize = isCompactPanel
+            ? 14.0
+            : isMediumPanel
+                ? 15.0
+                : 16.0;
+        final sectionSpacing = isCompactPanel ? 12.0 : 14.0;
+        final passSpacing = isCompactPanel ? 4.0 : 6.0;
+        final circleSize = isCompactPanel
+            ? (panelWidth < 260 ? 72.0 : 88.0)
+            : isMediumPanel
+                ? 100.0
+                : 120.0;
+        final stackKpis = panelWidth < 220;
 
-          // === MODEL PASS LIST ===
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  ...List.generate(passDetails.length, (i) {
-                    final item = passDetails[i];
-                    return ModelPassTile(
-                      modelName: item['ModelName'] ?? '',
-                      qty: item['Qty'] ?? 0,
-                      maxQty: maxQty,
-                      colorIndex: i,
-                      isMobile: isMobile,
-                    );
-                  }),
-                ],
+        Widget buildPassList(bool scrollable) {
+          if (passDetails.isEmpty) {
+            final emptyColor = isDark ? Colors.white30 : Colors.black38;
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: sectionSpacing * 1.5),
+                child: Text(
+                  'No data',
+                  style: TextStyle(color: emptyColor, fontSize: titleSize - 2),
+                ),
               ),
-            ),
-          ),
+            );
+          }
 
-          const Divider(height: 28, color: Colors.white12),
+          return ListView.separated(
+            primary: false,
+            shrinkWrap: !scrollable,
+            physics: scrollable
+                ? const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics())
+                : const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            itemCount: passDetails.length,
+            separatorBuilder: (_, __) => SizedBox(height: passSpacing),
+            itemBuilder: (_, i) {
+              final item = passDetails[i];
+              return ModelPassTile(
+                modelName: item['ModelName'] ?? '',
+                qty: item['Qty'] ?? 0,
+                maxQty: maxQty,
+                colorIndex: i,
+                isMobile: isMobile,
+              );
+            },
+          );
+        }
 
-          // === KPI SECTION (WIP + PASS) ===
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: isMobile
-                ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularKpi(
-                  label: "WIP",
-                  valueText: "$wip PCS",
-                  iconData: Icons.hourglass_bottom,
-                ),
-                const SizedBox(height: 12),
-                CircularKpi(
-                  label: "PASS",
-                  valueText: "$pass PCS",
-                  iconData: Icons.local_shipping,
-                ),
-              ],
-            )
-                : Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Flexible(
-                  flex: 1,
-                  child: CircularKpi(
-                    label: "WIP",
-                    valueText: "$wip PCS",
-                    iconData: Icons.hourglass_bottom,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Flexible(
-                  flex: 1,
-                  child: CircularKpi(
-                    label: "PASS",
-                    valueText: "$pass PCS",
-                    iconData: Icons.local_shipping,
-                  ),
-                ),
-              ],
-            ),
+        final passList = hasBoundedHeight
+            ? Expanded(child: buildPassList(true))
+            : buildPassList(false);
+
+        final dividerColor = isDark ? Colors.white12 : Colors.black12;
+
+        return Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: borderClr.withOpacity(.25)),
+            boxShadow: [
+              BoxShadow(
+                  color: borderClr.withOpacity(.15),
+                  blurRadius: 20,
+                  spreadRadius: 2)
+            ],
           ),
-        ],
-      ),
+          padding: outerPadding,
+          child: Column(
+            mainAxisSize:
+                hasBoundedHeight ? MainAxisSize.max : MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // === TITLE ===
+              Text(
+                "MODEL PASS",
+                style: TextStyle(
+                  color: borderClr,
+                  fontSize: titleSize,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              SizedBox(height: sectionSpacing),
+
+              // === MODEL PASS LIST ===
+              passList,
+              SizedBox(height: sectionSpacing),
+
+              Divider(height: sectionSpacing + 16, color: dividerColor),
+
+              // === KPI SECTION (WIP + PASS) ===
+              Padding(
+                padding: EdgeInsets.only(bottom: stackKpis ? 4.0 : 0.0),
+                child: stackKpis
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: circleSize,
+                            child: CircularKpi(
+                              label: "WIP",
+                              valueText: "$wip PCS",
+                              iconData: Icons.hourglass_bottom,
+                            ),
+                          ),
+                          SizedBox(height: sectionSpacing - 2),
+                          SizedBox(
+                            width: circleSize,
+                            child: CircularKpi(
+                              label: "PASS",
+                              valueText: "$pass PCS",
+                              iconData: Icons.local_shipping,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: SizedBox(
+                                width: circleSize,
+                                child: CircularKpi(
+                                  label: "WIP",
+                                  valueText: "$wip PCS",
+                                  iconData: Icons.hourglass_bottom,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: sectionSpacing),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: SizedBox(
+                                width: circleSize,
+                                child: CircularKpi(
+                                  label: "PASS",
+                                  valueText: "$pass PCS",
+                                  iconData: Icons.local_shipping,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

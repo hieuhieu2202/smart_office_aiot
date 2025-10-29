@@ -496,6 +496,13 @@ List<AppProject> appProjects = [
         screenType: "stencil_monitor",
       ),
       AppProject(
+        name: "LCR MACHINE",
+        progress: 1.0,
+        status: "Monitoring",
+        icon: Icons.grid_on,
+        screenType: "lcr_machine_dashboard",
+      ),
+      AppProject(
         name: "PRINTER ONLINE",
         progress: 1.0,
         status: "Online",
