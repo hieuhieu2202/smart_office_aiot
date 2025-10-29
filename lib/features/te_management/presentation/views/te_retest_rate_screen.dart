@@ -80,9 +80,9 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: const BoxDecoration(gradient: _kBackgroundGradient),
-      child: DefaultTextStyle.merge(
+      child: DefaultTextStyle(
         style: const TextStyle(fontFamily: 'Arial'),
         child: Scaffold(
           backgroundColor: Colors.transparent,
@@ -114,72 +114,76 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
             ],
           ),
           body: ResponsiveBuilder(
-          builder: (context, sizing) {
-            final horizontalPadding = sizing.isDesktop ? 24.0 : 16.0;
-            final verticalPadding = sizing.isDesktop ? 20.0 : 12.0;
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: verticalPadding,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildFilters(sizing),
-                    const SizedBox(height: 16),
-                    _buildStatusRow(),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: Obx(() {
-                        final detail = _controller.detail.value;
-                        final loading = _controller.isLoading.value;
-                        final hasError = _controller.hasError;
-                        final message = _controller.errorMessage.value;
+            builder: (context, sizing) {
+              final horizontalPadding = sizing.isDesktop ? 24.0 : 16.0;
+              final verticalPadding = sizing.isDesktop ? 20.0 : 12.0;
+              return SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: verticalPadding,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildFilters(sizing),
+                      const SizedBox(height: 16),
+                      _buildStatusRow(),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: Obx(() {
+                          final detail = _controller.detail.value;
+                          final loading = _controller.isLoading.value;
+                          final hasError = _controller.hasError;
+                          final message = _controller.errorMessage.value;
 
-                        if (hasError && !loading) {
-                          return _buildErrorState(message);
-                        }
+                          if (hasError && !loading) {
+                            return _buildErrorState(message);
+                          }
 
-                        if (!loading && !detail.hasData) {
-                          return const Center(
-                            child: Text(
-                              'No data available for the selected filters.',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                          );
-                        }
-
-                        return Stack(
-                          children: [
-                            Positioned.fill(
-                              child: TERetestRateTable(
-                                detail: detail,
-                                formattedDates: _controller.formattedDates,
-                                onCellTap: _showCellDetailDialog,
-                                onGroupTap: _showGroupTrendDialog,
-                                highlightCells:
-                                    Set.unmodifiable(_controller.highlightCells.value),
+                          if (!loading && !detail.hasData) {
+                            return const Center(
+                              child: Text(
+                                'No data available for the selected filters.',
+                                style: TextStyle(color: Colors.white70),
                               ),
-                            ),
-                            if (loading)
+                            );
+                          }
+
+                          return Stack(
+                            children: [
                               Positioned.fill(
-                                child: Container(
-                                  color: Colors.black.withOpacity(0.35),
-                                  child: const Center(
-                                    child: CircularProgressIndicator(color: _kAccentColor),
+                                child: TERetestRateTable(
+                                  detail: detail,
+                                  formattedDates: _controller.formattedDates,
+                                  onCellTap: _showCellDetailDialog,
+                                  onGroupTap: _showGroupTrendDialog,
+                                  highlightCells: Set.unmodifiable(
+                                    _controller.highlightCells.value,
                                   ),
                                 ),
                               ),
-                          ],
-                        );
-                      }),
-                    ),
-                  ],
+                              if (loading)
+                                Positioned.fill(
+                                  child: Container(
+                                    color: Colors.black.withOpacity(0.35),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: _kAccentColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
