@@ -234,36 +234,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
         );
       }
 
-      Widget buildRefreshButton() {
-        return SizedBox(
-          height: 44,
-          child: ElevatedButton.icon(
-            onPressed:
-                loading ? null : () => _controller.fetchReport(showLoading: true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F3F60),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFF0F3F60).withOpacity(0.6),
-              disabledForegroundColor: Colors.white70,
-              elevation: 8,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            icon: loading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Icon(Icons.refresh_rounded, size: 20),
-            label: Text(loading ? 'Loading…' : 'Reload'),
-          ),
-        );
-      }
-
       Widget buildLastUpdateChip() {
         return Container(
           height: 44,
@@ -316,7 +286,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
               Icon(Icons.warning_amber_rounded, color: Color(0xFFFCCF6B), size: 18),
               SizedBox(width: 8),
               Text(
-                'Refresh to retry',
+                'Auto refresh pending',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -332,7 +302,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
             ? sizing.screenSize.width - 48
             : 200.0;
         final filterWidth = rawWidth.clamp(140.0, 220.0).toDouble();
-        final refreshWidth = rawWidth.clamp(130.0, 200.0).toDouble();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -342,7 +311,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 SizedBox(width: filterWidth, child: buildFilterButton()),
-                SizedBox(width: refreshWidth, child: buildRefreshButton()),
                 buildLastUpdateChip(),
                 if (hasError) buildErrorChip(),
               ],
@@ -374,7 +342,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 buildFilterButton(),
-                buildRefreshButton(),
                 buildLastUpdateChip(),
                 if (hasError) buildErrorChip(),
               ],
