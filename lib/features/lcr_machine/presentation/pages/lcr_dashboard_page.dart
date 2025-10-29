@@ -980,13 +980,13 @@ class _FactoryDistributionList extends StatelessWidget {
 
   final List<LcrPieSlice> slices;
 
-  static const _palette = <Color>[
-    Color(0xFF4DD0E1),
-    Color(0xFFFFF59D),
-    Color(0xFFF48FB1),
-    Color(0xFF82B1FF),
-    Color(0xFFB39DDB),
-    Color(0xFF80CBC4),
+  static const _gradients = <List<Color>>[
+    const [Color(0xFF6DD5FA), Color(0xFF2980B9)],
+    const [Color(0xFFFFD26F), Color(0xFFFB8D34)],
+    const [Color(0xFFFF758C), Color(0xFFFED6E3)],
+    const [Color(0xFFA18CD1), Color(0xFFFBC2EB)],
+    const [Color(0xFF84FAB0), Color(0xFF00C6FB)],
+    const [Color(0xFFFFC3A0), Color(0xFFFFAFBD)],
   ];
 
   @override
@@ -1002,44 +1002,72 @@ class _FactoryDistributionList extends StatelessWidget {
     final total = sorted.fold<int>(0, (prev, element) => prev + element.value);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'TOTAL',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white54,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.1,
+        Center(
+          child: Column(
+            children: [
+              Text(
+                'TOTAL',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.cyanAccent.withOpacity(0.85),
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                    ) ??
+                    const TextStyle(
+                      color: Colors.cyanAccent,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                    ),
               ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          total.toString(),
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+              const SizedBox(height: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF56CCF2), Color(0xFF2F80ED)],
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x442980B9),
+                      blurRadius: 20,
+                      offset: Offset(0, 8),
+                    )
+                  ],
+                ),
+                child: Text(
+                  total.toString(),
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ) ??
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
               ),
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: ListView.separated(
-            itemCount: sorted.length,
-            padding: EdgeInsets.zero,
-            physics: const ClampingScrollPhysics(),
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final slice = sorted[index];
-              final percent = total == 0 ? 0.0 : slice.value / total;
-              final color = _palette[index % _palette.length];
-              return _FactoryDistributionTile(
-                label: slice.label,
-                value: slice.value,
-                percent: percent,
-                color: color,
-              );
-            },
+            ],
           ),
         ),
+        const SizedBox(height: 22),
+        ...List.generate(sorted.length, (index) {
+          final slice = sorted[index];
+          final percent = total == 0 ? 0.0 : slice.value / total;
+          final gradient = _gradients[index % _gradients.length];
+          return Padding(
+            padding: EdgeInsets.only(bottom: index == sorted.length - 1 ? 0 : 16),
+            child: _FactoryDistributionTile(
+              label: slice.label,
+              value: slice.value,
+              percent: percent,
+              gradient: gradient,
+            ),
+          );
+        }),
       ],
     );
   }
@@ -1050,13 +1078,13 @@ class _FactoryDistributionTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.percent,
-    required this.color,
+    required this.gradient,
   });
 
   final String label;
   final int value;
   final double percent;
-  final Color color;
+  final List<Color> gradient;
 
   @override
   Widget build(BuildContext context) {
@@ -1066,11 +1094,11 @@ class _FactoryDistributionTile extends StatelessWidget {
         Row(
           children: [
             Container(
-              width: 10,
-              height: 10,
+              width: 12,
+              height: 12,
               decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(3),
+                gradient: LinearGradient(colors: gradient),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
             const SizedBox(width: 8),
@@ -1079,32 +1107,67 @@ class _FactoryDistributionTile extends StatelessWidget {
                 label,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
                 ),
               ),
             ),
             Text(
               '${(percent * 100).toStringAsFixed(1)}%',
-              style: const TextStyle(color: Colors.white70),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
         const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: percent.clamp(0.0, 1.0),
-            minHeight: 8,
-            backgroundColor: Colors.white12,
-            color: color,
-          ),
+        _GradientProgressBar(
+          value: percent.clamp(0.0, 1.0),
+          gradient: gradient,
         ),
         const SizedBox(height: 4),
         Text(
           '$value pcs',
-          style: const TextStyle(color: Colors.white54, fontSize: 12),
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
       ],
+    );
+  }
+}
+
+class _GradientProgressBar extends StatelessWidget {
+  const _GradientProgressBar({
+    required this.value,
+    required this.gradient,
+  });
+
+  final double value;
+  final List<Color> gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: SizedBox(
+        height: 10,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white12.withOpacity(0.3),
+          ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: value,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradient),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

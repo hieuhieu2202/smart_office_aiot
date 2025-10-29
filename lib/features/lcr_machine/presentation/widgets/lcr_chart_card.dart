@@ -16,7 +16,7 @@ class LcrChartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: height,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
         color: const Color(0xFF041C3B).withOpacity(0.85),
         borderRadius: BorderRadius.circular(16),
@@ -32,15 +32,19 @@ class LcrChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.cyanAccent,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
-                ),
+          Row(
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.cyanAccent,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
+                    ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Expanded(child: child),
         ],
       ),
