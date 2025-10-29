@@ -798,6 +798,13 @@ class _DashboardTab extends StatelessWidget {
 
   final LcrDashboardController controller;
 
+  double _factoryDistributionHeight(int itemCount) {
+    const baseHeight = 190.0;
+    const perTile = 68.0;
+    final computed = baseHeight + (itemCount * perTile);
+    return math.max(320.0, computed);
+  }
+
   double _machinePerformanceHeight(int itemCount) {
     if (itemCount <= 0) {
       return 300.0;
@@ -853,7 +860,9 @@ class _DashboardTab extends StatelessWidget {
                           flex: 2,
                           child: LcrChartCard(
                             title: 'FACTORY DISTRIBUTION',
-                            height: 300,
+                            height: _factoryDistributionHeight(
+                              data.factorySlices.length,
+                            ),
                             child: _FactoryDistributionList(
                               data.factorySlices,
                             ),
