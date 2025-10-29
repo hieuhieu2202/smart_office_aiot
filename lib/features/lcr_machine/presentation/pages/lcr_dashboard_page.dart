@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
@@ -661,7 +662,7 @@ class _DashboardTab extends StatelessWidget {
                           child: LcrChartCard(
                             title: 'TYPE ANALYSIS',
                             height: 280,
-                            child: _StackedBarChart(data.typeSeries),
+                            child: _TypeAnalysisChart(data.typeSeries),
                           ),
                         ),
                       ],
@@ -856,6 +857,309 @@ class _FactoryDistributionTile extends StatelessWidget {
           style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
       ],
+    );
+  }
+}
+
+class _TypePoint {
+  const _TypePoint({required this.label, required this.pass, required this.fail});
+
+  final String label;
+  final double pass;
+  final double fail;
+}
+
+class _TypeAnalysisChart extends StatefulWidget {
+  const _TypeAnalysisChart(this.series);
+
+  final LcrStackedSeries series;
+
+  @override
+  State<_TypeAnalysisChart> createState() => _TypeAnalysisChartState();
+}
+
+class _TypeAnalysisChartState extends State<_TypeAnalysisChart> {
+  bool showPass = true;
+  bool showFail = true;
+
+  List<_TypePoint> get _points {
+    const fallback = <_TypePoint>[
+      _TypePoint(label: 'CAPACITOR(C)', pass: 91, fail: 5),
+      _TypePoint(label: 'MARKING', pass: 32, fail: 2),
+      _TypePoint(label: 'RESISTANCE(R)', pass: 70, fail: 6),
+    ];
+
+    final categories = widget.series.categories;
+    final passValues = widget.series.pass;
+    final failValues = widget.series.fail;
+
+    if (categories.isEmpty || passValues.isEmpty || failValues.isEmpty) {
+      return fallback;
+    }
+
+    final length = math.min(
+      categories.length,
+      math.min(passValues.length, failValues.length),
+    );
+
+    final items = <_TypePoint>[];
+    for (var i = 0; i < length; i++) {
+      items.add(
+        _TypePoint(
+          label: categories[i],
+          pass: passValues[i].toDouble(),
+          fail: failValues[i].toDouble(),
+        ),
+      );
+    }
+    return items.isEmpty ? fallback : items;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final points = _points;
+    final visibleValues = <double>[];
+    if (showPass) {
+      visibleValues.addAll(points.map((p) => p.pass));
+    }
+    if (showFail) {
+      visibleValues.addAll(points.map((p) => p.fail));
+    }
+
+    final fallbackMax = points
+        .map((p) => math.max(p.pass, p.fail))
+        .fold<double>(0, (previousValue, element) => math.max(previousValue, element));
+    final maxValue = visibleValues.isNotEmpty
+        ? visibleValues.reduce(math.max)
+        : fallbackMax;
+    final maxY = maxValue <= 0 ? 10.0 : maxValue * 1.2;
+
+    final lineBars = <LineChartBarData>[];
+    if (showPass) {
+      lineBars.add(_buildLine(points, isPass: true));
+    }
+    if (showFail) {
+      lineBars.add(_buildLine(points, isPass: false));
+    }
+
+    final titles = points.map((p) => p.label).toList(growable: false);
+
+    final maxX = points.length <= 1 ? 0.0 : (points.length - 1).toDouble();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: maxX,
+                minY: 0,
+                maxY: maxY,
+                lineBarsData: lineBars,
+                lineTouchData: (showPass || showFail)
+                    ? _buildLineTouchData(points)
+                    : LineTouchData(enabled: false),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY <= 0 ? 1 : maxY / 4,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: Colors.white10.withOpacity(0.35),
+                    strokeWidth: 1,
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  leftTitles:
+                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles:
+                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles:
+                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 48,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index < 0 || index >= titles.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            titles[index],
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.cyanAccent,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(
+                  show: true,
+                  border: const Border(
+                    bottom: BorderSide(color: Colors.white24, width: 1),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _LegendToggle(
+              label: 'PASS',
+              color: Colors.cyanAccent,
+              isActive: showPass,
+              onTap: () {
+                setState(() {
+                  showPass = !showPass;
+                });
+              },
+            ),
+            const SizedBox(width: 28),
+            _LegendToggle(
+              label: 'FAIL',
+              color: Colors.pinkAccent,
+              isActive: showFail,
+              onTap: () {
+                setState(() {
+                  showFail = !showFail;
+                });
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+      ],
+    );
+  }
+
+  LineChartBarData _buildLine(List<_TypePoint> points, {required bool isPass}) {
+    final color = isPass ? Colors.cyanAccent : Colors.pinkAccent;
+    final gradientColors = isPass
+        ? [
+            Colors.cyanAccent.withOpacity(0.3),
+            Colors.cyanAccent.withOpacity(0.05),
+          ]
+        : [
+            Colors.pinkAccent.withOpacity(0.25),
+            Colors.pinkAccent.withOpacity(0.05),
+          ];
+
+    return LineChartBarData(
+      isCurved: true,
+      isStrokeCapRound: true,
+      barWidth: 3,
+      color: color,
+      spots: List.generate(
+        points.length,
+        (index) => FlSpot(
+          index.toDouble(),
+          (isPass ? points[index].pass : points[index].fail),
+        ),
+      ),
+      dotData: FlDotData(
+        show: true,
+        getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+          radius: 3,
+          color: Colors.white,
+          strokeWidth: 2,
+          strokeColor: color,
+        ),
+      ),
+      belowBarData: BarAreaData(
+        show: true,
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+    );
+  }
+
+  LineTouchData _buildLineTouchData(List<_TypePoint> points) {
+    return LineTouchData(
+      handleBuiltInTouches: true,
+      touchTooltipData: LineTouchTooltipData(
+        tooltipBgColor: Colors.black87,
+        tooltipRoundedRadius: 8,
+        fitInsideHorizontally: true,
+        fitInsideVertically: true,
+        getTooltipItems: (touchedSpots) {
+          if (touchedSpots.isEmpty) {
+            return <LineTooltipItem>[];
+          }
+          final index = touchedSpots.first.x
+              .round()
+              .clamp(0, points.length - 1);
+          final point = points[index];
+          final text = '${point.label}\nPASS: ${point.pass.toInt()} pcs\nFAIL: ${point.fail.toInt()} pcs';
+          return [
+            LineTooltipItem(
+              text,
+              const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+  }
+}
+
+class _LegendToggle extends StatelessWidget {
+  const _LegendToggle({
+    required this.label,
+    required this.color,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color color;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = color.withOpacity(isActive ? 1 : 0.3);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.circle,
+            size: 12,
+            color: effectiveColor,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: effectiveColor,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
