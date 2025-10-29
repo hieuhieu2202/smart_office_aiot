@@ -343,7 +343,7 @@ class LcrDashboardViewState {
         if (section != null) {
           final bucket = bySection.putIfAbsent(section, () => _SlotTotals());
           if (section > defaultSlotLabels.length && normalizedLabel != null) {
-            extraSectionLabels.putIfAbsent(section, () => normalizedLabel);
+            extraSectionLabels.putIfAbsent(section, () => normalizedLabel!);
           }
           _applyQuantities(bucket, record);
           continue;
@@ -351,8 +351,8 @@ class LcrDashboardViewState {
 
         if (normalizedLabel != null) {
           final bucket =
-              fallbackByLabel.putIfAbsent(normalizedLabel, () => _SlotTotals());
-          fallbackOrder.putIfAbsent(normalizedLabel, () => orderCounter++);
+              fallbackByLabel.putIfAbsent(normalizedLabel!, () => _SlotTotals());
+          fallbackOrder.putIfAbsent(normalizedLabel!, () => orderCounter++);
           _applyQuantities(bucket, record);
           continue;
         }
