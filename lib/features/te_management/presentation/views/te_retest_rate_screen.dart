@@ -74,96 +74,99 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _kBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: const BackButton(color: Colors.white),
-        title: Text(
-          widget.title ?? 'TE Retest Rate Report',
-          style: const TextStyle(color: Colors.white),
-        ),
-        centerTitle: true,
-        actions: [
-          Obx(
-            () => IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white70),
-              tooltip: 'Refresh',
-              onPressed: _controller.isLoading.value
-                  ? null
-                  : () => _controller.fetchReport(showLoading: true),
-            ),
+    return DefaultTextStyle.merge(
+      fontFamily: 'Arial',
+      child: Scaffold(
+        backgroundColor: _kBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: const BackButton(color: Colors.white),
+          title: Text(
+            widget.title ?? 'TE Retest Rate Report',
+            style: const TextStyle(color: Colors.white, fontFamily: 'Arial'),
           ),
-        ],
-      ),
-      body: ResponsiveBuilder(
-        builder: (context, sizing) {
-          final horizontalPadding = sizing.isDesktop ? 24.0 : 16.0;
-          final verticalPadding = sizing.isDesktop ? 20.0 : 12.0;
-          return SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: verticalPadding,
+          centerTitle: true,
+          actions: [
+            Obx(
+              () => IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white70),
+                tooltip: 'Refresh',
+                onPressed: _controller.isLoading.value
+                    ? null
+                    : () => _controller.fetchReport(showLoading: true),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildFilters(sizing),
-                  const SizedBox(height: 16),
-                  _buildStatusRow(),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: Obx(() {
-                      final detail = _controller.detail.value;
-                      final loading = _controller.isLoading.value;
-                      final hasError = _controller.hasError;
-                      final message = _controller.errorMessage.value;
+            ),
+          ],
+        ),
+        body: ResponsiveBuilder(
+          builder: (context, sizing) {
+            final horizontalPadding = sizing.isDesktop ? 24.0 : 16.0;
+            final verticalPadding = sizing.isDesktop ? 20.0 : 12.0;
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildFilters(sizing),
+                    const SizedBox(height: 16),
+                    _buildStatusRow(),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: Obx(() {
+                        final detail = _controller.detail.value;
+                        final loading = _controller.isLoading.value;
+                        final hasError = _controller.hasError;
+                        final message = _controller.errorMessage.value;
 
-                      if (hasError && !loading) {
-                        return _buildErrorState(message);
-                      }
+                        if (hasError && !loading) {
+                          return _buildErrorState(message);
+                        }
 
-                      if (!loading && !detail.hasData) {
-                        return const Center(
-                          child: Text(
-                            'No data available for the selected filters.',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        );
-                      }
-
-                      return Stack(
-                        children: [
-                          Positioned.fill(
-                            child: TERetestRateTable(
-                              detail: detail,
-                              formattedDates: _controller.formattedDates,
-                              onCellTap: _showCellDetailDialog,
-                              onGroupTap: _showGroupTrendDialog,
-                              highlightCells:
-                                  Set.unmodifiable(_controller.highlightCells.value),
+                        if (!loading && !detail.hasData) {
+                          return const Center(
+                            child: Text(
+                              'No data available for the selected filters.',
+                              style: TextStyle(color: Colors.white70),
                             ),
-                          ),
-                          if (loading)
+                          );
+                        }
+
+                        return Stack(
+                          children: [
                             Positioned.fill(
-                              child: Container(
-                                color: Colors.black.withOpacity(0.35),
-                                child: const Center(
-                                  child: CircularProgressIndicator(color: _kAccentColor),
-                                ),
+                              child: TERetestRateTable(
+                                detail: detail,
+                                formattedDates: _controller.formattedDates,
+                                onCellTap: _showCellDetailDialog,
+                                onGroupTap: _showGroupTrendDialog,
+                                highlightCells:
+                                    Set.unmodifiable(_controller.highlightCells.value),
                               ),
                             ),
-                        ],
-                      );
-                    }),
-                  ),
-                ],
+                            if (loading)
+                              Positioned.fill(
+                                child: Container(
+                                  color: Colors.black.withOpacity(0.35),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(color: _kAccentColor),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      }),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -804,6 +807,33 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
   }
 
   void _showGroupTrendDialog(TERetestGroupDetail detail) {
+    final hasData = detail.cells.any((cell) => cell.retestRate != null);
+    if (!hasData) {
+      showDialog<void>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: _kSurfaceColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            content: const Text(
+              'Không có dữ liệu cho nhóm này.',
+              style: TextStyle(color: Colors.white, fontFamily: 'Arial'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'Đóng',
+                  style: TextStyle(color: Colors.white70, fontFamily: 'Arial'),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
     final labels = <String>[];
     final daySeries = <_ChartPoint>[];
     final nightSeries = <_ChartPoint>[];

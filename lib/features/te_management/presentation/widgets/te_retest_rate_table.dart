@@ -17,12 +17,23 @@ const double _kHeaderBottomHeight = 32;
 const double _kRowHeight = 54;
 
 const Color _kHeaderColor = Color(0xFF0A2342);
-const Color _kHeaderAccent = Color(0xFF112F54);
-const Color _kTableBackground = Color(0xFF010A18);
-const Color _kRowEvenColor = Color(0xFF0B1E36);
-const Color _kRowOddColor = Color(0xFF08162B);
-const Color _kSpanBackground = Color(0xFF103055);
-const Color _kBorderColor = Color(0x7737B8FF);
+const Color _kHeaderAccent = Color(0xFF123563);
+const LinearGradient _kTableBackgroundGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFF07162D), Color(0xFF020812)],
+);
+const Color _kRowEvenColor = Color(0xFF0D2743);
+const Color _kRowOddColor = Color(0xFF0A1E36);
+const Color _kSpanBackground = Color(0xFF14345C);
+const Color _kBorderColor = Color(0x8839B8FF);
+const List<BoxShadow> _kTableShadows = [
+  const BoxShadow(
+    color: Color(0x331B6CFF),
+    blurRadius: 28,
+    offset: Offset(0, 18),
+  ),
+];
 const BorderSide _kGridBorder = BorderSide(color: _kBorderColor, width: 1.0);
 
 class TERetestRateTable extends StatefulWidget {
@@ -163,122 +174,129 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.detail.hasData || widget.formattedDates.isEmpty) {
-      return const Center(
-        child: Text(
-          'No data available',
-          style: TextStyle(color: Colors.white70),
-        ),
-      );
-    }
+    return DefaultTextStyle.merge(
+      fontFamily: 'Arial',
+      child: Builder(
+        builder: (context) {
+          if (!widget.detail.hasData || widget.formattedDates.isEmpty) {
+            return const Center(
+              child: Text(
+                'No data available',
+                style: TextStyle(color: Colors.white70),
+              ),
+            );
+          }
 
-    const headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
-    final totalGroupRows = widget.detail.rows.fold<int>(
-      0,
-      (sum, row) => sum + math.max(row.groupNames.length, 1),
-    );
-    final naturalHeight =
-        headerHeight + (totalGroupRows * _kRowHeight.toDouble());
-    final fallbackTotalWidth = _kIndexBaseWidth +
-        _kModelBaseWidth +
-        _kGroupBaseWidth +
-        (_totalColumns * _kCellBaseWidth);
+          const headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
+          final totalGroupRows = widget.detail.rows.fold<int>(
+            0,
+            (sum, row) => sum + math.max(row.groupNames.length, 1),
+          );
+          final naturalHeight =
+              headerHeight + (totalGroupRows * _kRowHeight.toDouble());
+          final fallbackTotalWidth = _kIndexBaseWidth +
+              _kModelBaseWidth +
+              _kGroupBaseWidth +
+              (_totalColumns * _kCellBaseWidth);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final hasBoundedWidth =
-            constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
-        final hasBoundedHeight =
-            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final hasBoundedWidth =
+                  constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
+              final hasBoundedHeight =
+                  constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
 
-        final width = hasBoundedWidth
-            ? constraints.maxWidth
-            : math.max(fallbackTotalWidth.toDouble(), constraints.minWidth);
-        final height = hasBoundedHeight
-            ? constraints.maxHeight
-            : math.max(naturalHeight, constraints.minHeight.toDouble());
-        final metrics = _resolveMetrics(width);
-        final tableWidth = metrics.totalWidth > 0 ? metrics.totalWidth : width;
+              final width = hasBoundedWidth
+                  ? constraints.maxWidth
+                  : math.max(fallbackTotalWidth.toDouble(), constraints.minWidth);
+              final height = hasBoundedHeight
+                  ? constraints.maxHeight
+                  : math.max(naturalHeight, constraints.minHeight.toDouble());
+              final metrics = _resolveMetrics(width);
+              final tableWidth = metrics.totalWidth > 0 ? metrics.totalWidth : width;
 
-        return SizedBox(
-          width: width,
-          height: height,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: _kTableBackground,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: _kBorderColor),
-              boxShadow: const [],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    height: headerHeight,
-                    child: Scrollbar(
-                      controller: _horizontalHeaderController,
-                      thumbVisibility: false,
-                      child: SingleChildScrollView(
-                        controller: _horizontalHeaderController,
-                        scrollDirection: Axis.horizontal,
-                        child: SizedBox(
-                          width: tableWidth,
-                          height: headerHeight,
-                          child: _HeaderRow(
-                            formattedDates: widget.formattedDates,
-                            metrics: metrics,
-                          ),
-                        ),
-                      ),
-                    ),
+              return SizedBox(
+                width: width,
+                height: height,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: _kTableBackgroundGradient,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: _kBorderColor),
+                    boxShadow: _kTableShadows,
                   ),
-                  const Divider(height: 1, color: Colors.transparent),
-                  Expanded(
-                    child: Scrollbar(
-                      controller: _horizontalBodyController,
-                      thumbVisibility: false,
-                      child: SingleChildScrollView(
-                        controller: _horizontalBodyController,
-                        scrollDirection: Axis.horizontal,
-                        child: SizedBox(
-                          width: tableWidth,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          height: headerHeight,
                           child: Scrollbar(
-                            controller: _verticalBodyController,
-                            thumbVisibility: true,
-                            child: ListView.builder(
-                              controller: _verticalBodyController,
-                              padding: EdgeInsets.zero,
-                              physics: const ClampingScrollPhysics(),
-                              itemCount: widget.detail.rows.length,
-                              itemBuilder: (context, index) {
-                                final row = widget.detail.rows[index];
-                                return _ModelBlock(
-                                  index: index + 1,
-                                  row: row,
+                            controller: _horizontalHeaderController,
+                            thumbVisibility: false,
+                            child: SingleChildScrollView(
+                              controller: _horizontalHeaderController,
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: tableWidth,
+                                height: headerHeight,
+                                child: _HeaderRow(
                                   formattedDates: widget.formattedDates,
-                                  rawDates: widget.detail.dates,
-                                  totalColumns: _totalColumns,
-                                  isFirstBlock: index == 0,
-                                  onCellTap: widget.onCellTap,
-                                  onGroupTap: widget.onGroupTap,
                                   metrics: metrics,
-                                  highlightCells: widget.highlightCells,
-                                );
-                              },
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                        const Divider(height: 1, color: Colors.transparent),
+                        Expanded(
+                          child: Scrollbar(
+                            controller: _horizontalBodyController,
+                            thumbVisibility: false,
+                            child: SingleChildScrollView(
+                              controller: _horizontalBodyController,
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: tableWidth,
+                                child: Scrollbar(
+                                  controller: _verticalBodyController,
+                                  thumbVisibility: true,
+                                  child: ListView.builder(
+                                    controller: _verticalBodyController,
+                                    padding: EdgeInsets.zero,
+                                    physics: const ClampingScrollPhysics(),
+                                    itemCount: widget.detail.rows.length,
+                                    itemBuilder: (context, index) {
+                                      final row = widget.detail.rows[index];
+                                      return _ModelBlock(
+                                        index: index + 1,
+                                        row: row,
+                                        formattedDates: widget.formattedDates,
+                                        rawDates: widget.detail.dates,
+                                        totalColumns: _totalColumns,
+                                        isFirstBlock: index == 0,
+                                        onCellTap: widget.onCellTap,
+                                        onGroupTap: widget.onGroupTap,
+                                        metrics: metrics,
+                                        highlightCells: widget.highlightCells,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -330,17 +348,11 @@ class _HeaderRow extends StatelessWidget {
           ),
           _HeaderBlock(
             width: metrics.modelWidth,
-            child: const _HeaderLabel(
-              'MODEL NAME',
-              alignment: Alignment.centerLeft,
-            ),
+            child: const _HeaderLabel('MODEL NAME'),
           ),
           _HeaderBlock(
             width: metrics.groupWidth,
-            child: const _HeaderLabel(
-              'GROUP NAME',
-              alignment: Alignment.centerLeft,
-            ),
+            child: const _HeaderLabel('GROUP NAME'),
           ),
           for (var dateIndex = 0; dateIndex < formattedDates.length; dateIndex++)
             SizedBox(
