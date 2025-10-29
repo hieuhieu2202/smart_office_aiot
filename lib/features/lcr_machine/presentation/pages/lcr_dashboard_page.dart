@@ -1042,7 +1042,7 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-class _StatusOverviewDialog extends StatelessWidget {
+class _StatusOverviewDialog extends StatefulWidget {
   const _StatusOverviewDialog({
     required this.title,
     required this.records,
@@ -1054,7 +1054,32 @@ class _StatusOverviewDialog extends StatelessWidget {
   final Color highlightColor;
 
   @override
+  State<_StatusOverviewDialog> createState() => _StatusOverviewDialogState();
+}
+
+class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
+  late final ScrollController _verticalController;
+  late final ScrollController _horizontalController;
+
+  @override
+  void initState() {
+    super.initState();
+    _verticalController = ScrollController();
+    _horizontalController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _verticalController.dispose();
+    _horizontalController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final title = widget.title;
+    final records = widget.records;
+    final highlightColor = widget.highlightColor;
     final theme = Theme.of(context);
     final media = MediaQuery.of(context);
     final width = math.min(media.size.width * 0.9, 1120.0);
@@ -1146,16 +1171,28 @@ class _StatusOverviewDialog extends StatelessWidget {
                           color: Colors.white.withOpacity(0.03),
                         ),
                         child: Scrollbar(
+                          controller: _verticalController,
                           thumbVisibility: true,
                           child: SingleChildScrollView(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: DataTable(
-                                headingRowHeight: 48,
-                                dataRowMinHeight: 44,
-                                dataRowMaxHeight: 60,
-                                headingRowColor: MaterialStateProperty.all(
-                                  Colors.white.withOpacity(0.05),
+                            controller: _verticalController,
+                            primary: false,
+                            child: Scrollbar(
+                              controller: _horizontalController,
+                              thumbVisibility: true,
+                              notificationPredicate: (notification) {
+                                return notification.metrics.axis ==
+                                    Axis.horizontal;
+                              },
+                              child: SingleChildScrollView(
+                                controller: _horizontalController,
+                                scrollDirection: Axis.horizontal,
+                                primary: false,
+                                child: DataTable(
+                                  headingRowHeight: 48,
+                                  dataRowMinHeight: 44,
+                                  dataRowMaxHeight: 60,
+                                  headingRowColor: MaterialStateProperty.all(
+                                    Colors.white.withOpacity(0.05),
                                 ),
                                 headingTextStyle:
                                     theme.textTheme.labelSmall?.copyWith(
