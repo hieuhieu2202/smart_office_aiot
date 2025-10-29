@@ -34,13 +34,17 @@ class LcrChartCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.cyanAccent,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.1,
-                    ),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.cyanAccent,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.1,
+                      ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
