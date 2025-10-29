@@ -210,9 +210,11 @@ class LcrDashboardViewState {
         return null;
       }
 
-      final Map<String, _SlotTotals> grouped = <String, _SlotTotals>{};
-      final Map<String, int> insertionOrder = <String, int>{};
-      var order = 0;
+      final Map<int, _SlotTotals> bySection = <int, _SlotTotals>{};
+      final Map<int, String> extraSectionLabels = <int, String>{};
+      final Map<String, _SlotTotals> fallbackByLabel = <String, _SlotTotals>{};
+      final Map<String, int> fallbackOrder = <String, int>{};
+      var orderCounter = 0;
 
       String? _normalizeSlotLabel(String? raw) {
         if (raw == null) {
@@ -226,12 +228,12 @@ class LcrDashboardViewState {
         final timeMatches =
             RegExp(r'(\d{1,2})[:.](\d{2})').allMatches(trimmed).toList();
         if (timeMatches.length >= 2) {
-          String _padHour(String value) => value.padLeft(2, '0');
+          String _pad(String value) => value.padLeft(2, '0');
           final start = timeMatches.first;
           final end = timeMatches[1];
-          final startHour = _padHour(start.group(1)!);
+          final startHour = _pad(start.group(1)!);
           final startMinute = start.group(2)!;
-          final endHour = _padHour(end.group(1)!);
+          final endHour = _pad(end.group(1)!);
           final endMinute = end.group(2)!;
           return '$startHour:$startMinute - $endHour:$endMinute';
         }
@@ -246,69 +248,56 @@ class LcrDashboardViewState {
             RegExp(r'ca\s*(\d{1,2})', caseSensitive: false).firstMatch(trimmed);
         if (shiftLabelMatch != null) {
           final slotIndex = int.tryParse(shiftLabelMatch.group(1)!);
-          if (slotIndex != null &&
-              slotIndex > 0 &&
-              slotIndex <= defaultSlotLabels.length) {
-            return defaultSlotLabels[slotIndex - 1];
+          if (slotIndex != null) {
+            return 'Ca ${slotIndex.toString().padLeft(2, '0')}';
           }
         }
 
         final digitsOnly = RegExp(r'^\d{1,2}$');
         if (digitsOnly.hasMatch(trimmed)) {
-          final slotNumber = int.tryParse(trimmed);
-          if (slotNumber != null &&
-              slotNumber > 0 &&
-              slotNumber <= defaultSlotLabels.length) {
-            return defaultSlotLabels[slotNumber - 1];
-          }
-          return trimmed.padLeft(2, '0');
+          return 'Ca ${trimmed.padLeft(2, '0')}';
         }
 
         return trimmed;
       }
 
-      String? labelForRecord(LcrRecord record) {
-        final candidates = <String?>[
-          record.className,
-          record.classDate,
-          record.workSection == 0 ? null : record.workSection.toString(),
-        ];
-        for (final candidate in candidates) {
-          final normalized = _normalizeSlotLabel(candidate);
-          if (normalized != null) {
-            return normalized;
-          }
+      int? _slotIndexFromLabel(String label) {
+        final defaultIndex = defaultSlotLabels
+            .indexWhere((element) => element.toLowerCase() == label.toLowerCase());
+        if (defaultIndex != -1) {
+          return defaultIndex + 1;
         }
-        final section = record.workSection;
-        if (section > 0 && section <= defaultSlotLabels.length) {
-          return defaultSlotLabels[section - 1];
-        }
-        return null;
-      }
 
-      int? sortKey(String label) {
-        final rangeMatch = RegExp(r'(\d{1,2})[:.](\d{2})').firstMatch(label);
-        if (rangeMatch != null) {
-          final hour = int.tryParse(rangeMatch.group(1)!);
-          final minute = int.tryParse(rangeMatch.group(2)!);
+        final shiftLabelMatch =
+            RegExp(r'ca\s*(\d{1,2})', caseSensitive: false).firstMatch(label);
+        if (shiftLabelMatch != null) {
+          return int.tryParse(shiftLabelMatch.group(1)!);
+        }
+
+        final digitsOnly = RegExp(r'^\d{1,2}$');
+        if (digitsOnly.hasMatch(label)) {
+          return int.tryParse(label);
+        }
+
+        final timeMatches =
+            RegExp(r'(\d{1,2})[:.](\d{2})').allMatches(label).toList();
+        if (timeMatches.isNotEmpty) {
+          final start = timeMatches.first;
+          final hour = int.tryParse(start.group(1)!);
+          final minute = int.tryParse(start.group(2)!);
           if (hour != null && minute != null) {
-            return hour * 60 + minute;
+            final totalMinutes = hour * 60 + minute;
+            final offset = totalMinutes - shiftStartMinutes;
+            if (offset >= 0 && offset % 60 == 0) {
+              return offset ~/ 60 + 1;
+            }
           }
         }
-        final digitMatch = RegExp(r'\d+').firstMatch(label);
-        if (digitMatch != null) {
-          return int.tryParse(digitMatch.group(0)!);
-        }
+
         return null;
       }
 
-      for (final record in analysisRecords) {
-        final label = labelForRecord(record);
-        if (label == null) {
-          continue;
-        }
-        final bucket = grouped.putIfAbsent(label, () => _SlotTotals());
-        insertionOrder.putIfAbsent(label, () => order++);
+      void _applyQuantities(_SlotTotals bucket, LcrRecord record) {
         final passQty = (record.qty ?? 0) > 0 ? record.qty! : 0;
         final failQty = (record.extQty ?? 0) > 0 ? record.extQty! : 0;
 
@@ -320,7 +309,7 @@ class LcrDashboardViewState {
             bucket.fail += 1;
             analysisFailTotal += 1;
           }
-          continue;
+          return;
         }
 
         if (passQty > 0) {
@@ -333,11 +322,51 @@ class LcrDashboardViewState {
         }
       }
 
-      if (grouped.isEmpty) {
-        return null;
+      for (final record in analysisRecords) {
+        final candidates = <String?>[
+          record.className,
+          record.classDate,
+        ];
+
+        String? normalizedLabel;
+        int? section = record.workSection > 0 ? record.workSection : null;
+
+        for (final candidate in candidates) {
+          final normalized = _normalizeSlotLabel(candidate);
+          if (normalized == null) {
+            continue;
+          }
+          normalizedLabel ??= normalized;
+          section ??= _slotIndexFromLabel(normalized);
+        }
+
+        if (section != null) {
+          final bucket = bySection.putIfAbsent(section, () => _SlotTotals());
+          if (section > defaultSlotLabels.length && normalizedLabel != null) {
+            extraSectionLabels.putIfAbsent(section, () => normalizedLabel);
+          }
+          _applyQuantities(bucket, record);
+          continue;
+        }
+
+        if (normalizedLabel != null) {
+          final bucket =
+              fallbackByLabel.putIfAbsent(normalizedLabel, () => _SlotTotals());
+          fallbackOrder.putIfAbsent(normalizedLabel, () => orderCounter++);
+          _applyQuantities(bucket, record);
+          continue;
+        }
+
+        const unknownLabel = 'UNKNOWN';
+        final bucket =
+            fallbackByLabel.putIfAbsent(unknownLabel, () => _SlotTotals());
+        fallbackOrder.putIfAbsent(unknownLabel, () => orderCounter++);
+        _applyQuantities(bucket, record);
       }
 
-      final seen = <String>{};
+      if (bySection.isEmpty && fallbackByLabel.isEmpty) {
+        return null;
+      }
 
       final categories = <String>[];
       final pass = <int>[];
@@ -353,34 +382,23 @@ class LcrDashboardViewState {
         yr.add(double.parse(yieldValue.toStringAsFixed(2)));
       }
 
-      for (final slot in defaultSlotLabels) {
-        final totals = grouped[slot];
-        appendEntry(slot, totals ?? _SlotTotals());
-        seen.add(slot);
+      for (var section = 1; section <= defaultSlotLabels.length; section++) {
+        final totals = bySection.remove(section) ?? _SlotTotals();
+        appendEntry(defaultSlotLabels[section - 1], totals);
       }
 
-      final remaining = grouped.entries
-          .where((entry) => !seen.contains(entry.key))
-          .toList()
-        ..sort((a, b) {
-          final aKey = sortKey(a.key);
-          final bKey = sortKey(b.key);
-          if (aKey != null && bKey != null) {
-            final comparison = aKey.compareTo(bKey);
-            if (comparison != 0) {
-              return comparison;
-            }
-          } else if (aKey != null) {
-            return -1;
-          } else if (bKey != null) {
-            return 1;
-          }
-          final aOrder = insertionOrder[a.key] ?? 0;
-          final bOrder = insertionOrder[b.key] ?? 0;
-          return aOrder.compareTo(bOrder);
-        });
+      final remainingSections = bySection.keys.toList()..sort();
+      for (final section in remainingSections) {
+        final totals = bySection[section] ?? _SlotTotals();
+        final label = extraSectionLabels[section] ??
+            'Ca ${section.toString().padLeft(2, '0')}';
+        appendEntry(label, totals);
+      }
 
-      for (final entry in remaining) {
+      final fallbackEntries = fallbackByLabel.entries.toList()
+        ..sort((a, b) =>
+            (fallbackOrder[a.key] ?? 0).compareTo(fallbackOrder[b.key] ?? 0));
+      for (final entry in fallbackEntries) {
         appendEntry(entry.key, entry.value);
       }
 
