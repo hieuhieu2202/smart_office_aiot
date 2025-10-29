@@ -915,7 +915,7 @@ class _DashboardTab extends StatelessWidget {
                           flex: 5,
                           child: LcrChartCard(
                             title: 'YIELD RATE & OUTPUT',
-                            height: 360,
+                            height: 280,
                             child: _OutputChart(data.outputTrend),
                           ),
                         ),
@@ -1471,17 +1471,44 @@ class _StackedBarChart extends StatelessWidget {
           legendIconType: LegendIconType.rectangle,
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
-            textStyle: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+            labelAlignment: ChartDataLabelAlignment.outer,
             builder: (dynamic item, dynamic point, dynamic series,
                 int pointIndex, int seriesIndex) {
               final bar = item as _StackedBarItem;
               final total = bar.pass + bar.fail;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text('$total'),
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$total',
+                    style: const TextStyle(
+                      color: Colors.cyanAccent,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xB3041026),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      child: Text(
+                        'F ${bar.fail}',
+                        style: const TextStyle(
+                          color: Colors.cyanAccent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               );
             },
           ),
