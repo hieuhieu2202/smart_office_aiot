@@ -188,23 +188,38 @@ class EmployeeStatisticsChart extends StatelessWidget {
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
-              tooltipBackgroundColor: Colors.black.withOpacity(0.8),
               tooltipPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
                 vertical: 10,
               ),
               tooltipMargin: 12,
-              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              tooltipBuilder: (context, group, groupIndex, rod, rodIndex) {
                 final stat = topEntries[groupIndex];
-                return BarTooltipItem(
-                  '${stat.name}\n'
-                  'PASS: ${stat.pass.toStringAsFixed(0)}\n'
-                  'FAIL: ${stat.fail.toStringAsFixed(0)}\n'
-                  'TOTAL: ${stat.total.toStringAsFixed(0)}',
-                  const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  child: DefaultTextStyle(
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(stat.name),
+                        Text('PASS: ${stat.pass.toStringAsFixed(0)}'),
+                        Text('FAIL: ${stat.fail.toStringAsFixed(0)}'),
+                        Text('TOTAL: ${stat.total.toStringAsFixed(0)}'),
+                      ],
+                    ),
                   ),
                 );
               },
