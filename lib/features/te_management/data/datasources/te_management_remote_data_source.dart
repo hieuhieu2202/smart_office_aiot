@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../../service/auth/auth_config.dart';
+import '../../domain/entities/te_report.dart';
 import '../models/te_report_models.dart';
+import '../models/te_retest_rate_models.dart';
 
 class TEManagementRemoteDataSource {
   static const String _baseUrl =
@@ -106,6 +108,9 @@ class TEManagementRemoteDataSource {
       'model': model,
       'group': group,
     });
+    // Log request path so tapping a cell reveals the outgoing API route in debug output.
+    // ignore: avoid_print
+    print('[TEManagement] GET $uri');
     final response = await http.get(uri, headers: _headers());
     if (response.statusCode == 204 || response.body.isEmpty) {
       return null;
@@ -116,8 +121,85 @@ class TEManagementRemoteDataSource {
       );
     }
 
-    final Map<String, dynamic> jsonMap =
-        json.decode(response.body) as Map<String, dynamic>;
-    return TEErrorDetailModel.fromJson(jsonMap);
+    final dynamic decoded = json.decode(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return TEErrorDetailModel.fromJson(decoded);
+    }
+    if (decoded is List) {
+      final clusters = decoded
+          .map((item) => TEErrorDetailClusterModel.fromDynamic(item))
+          .whereType<TEErrorDetailClusterModel>()
+          .toList();
+      return TEErrorDetailModel(
+        byErrorCode: clusters,
+        byMachine: const <TEErrorDetailClusterEntity>[],
+      );
+    }
+    throw Exception('Unexpected error detail payload');
+  }
+
+  Future<TEErrorDetailModel?> fetchRetestRateErrorDetail({
+    required String date,
+    required String shift,
+    required String model,
+    required String group,
+  }) async {
+    final uri = _buildUri('RetestRateErrorDetail', {
+      'date': date,
+      'shift': shift,
+      'model': model,
+      'group': group,
+    });
+    // ignore: avoid_print
+    print('[TEManagement] GET $uri');
+    final response = await http.get(uri, headers: _headers());
+    if (response.statusCode == 204 || response.body.isEmpty) {
+      return null;
+    }
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load retest rate error detail (${response.statusCode})',
+      );
+    }
+
+    final dynamic decoded = json.decode(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return TEErrorDetailModel.fromJson(decoded);
+    }
+    if (decoded is List) {
+      final clusters = decoded
+          .map((item) => TEErrorDetailClusterModel.fromDynamic(item))
+          .whereType<TEErrorDetailClusterModel>()
+          .toList();
+      return TEErrorDetailModel(
+        byErrorCode: clusters,
+        byMachine: const <TEErrorDetailClusterEntity>[],
+      );
+    }
+    throw Exception('Unexpected retest rate error detail payload');
+  }
+
+  Future<TERetestDetailModel> fetchRetestRateReport({
+    required String modelSerial,
+    required String range,
+    String model = '',
+  }) async {
+    final uri = _buildUri('RetestRateReport', {
+      'customer': modelSerial,
+      'range': range,
+      'model': model,
+    });
+    final response = await http.get(uri, headers: _headers());
+    if (response.statusCode == 204 || response.body.isEmpty) {
+      return TERetestDetailModel(dates: const [], rows: const []);
+    }
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load TE retest rate report (${response.statusCode})',
+      );
+    }
+
+    final dynamic decoded = json.decode(response.body);
+    return TERetestDetailModel.fromJson(decoded);
   }
 }

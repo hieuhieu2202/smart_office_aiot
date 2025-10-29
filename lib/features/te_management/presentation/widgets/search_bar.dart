@@ -18,7 +18,11 @@ class TESearchBar extends StatelessWidget {
         return TextField(
           controller: controller,
           onChanged: onChanged,
-          style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+          style: const TextStyle(
+            color: Color(0xFFE2E8F0),
+            fontSize: 14,
+            fontFamily: 'Arial',
+          ),
           cursorColor: const Color(0xFF22D3EE),
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.search, color: Color(0xFF9AB3CF)),
@@ -32,7 +36,11 @@ class TESearchBar extends StatelessWidget {
                     },
                   ),
             hintText: 'Search group or model...',
-            hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+            hintStyle: const TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 14,
+              fontFamily: 'Arial',
+            ),
             filled: true,
             fillColor: const Color(0xFF10213A),
             contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),

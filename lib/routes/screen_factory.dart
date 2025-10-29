@@ -5,6 +5,7 @@ import 'package:smart_factory/screen/home/widget/clean_room/clean_room_screen.da
 import 'package:smart_factory/screen/home/widget/racks_monitor/racks_monitor_screen.dart';
 import 'package:smart_factory/screen/home/widget/yield_report/yield_report_screen.dart';
 import 'package:smart_factory/features/te_management/presentation/views/te_management_screen.dart';
+import 'package:smart_factory/features/te_management/presentation/views/te_retest_rate_screen.dart';
 import 'package:smart_factory/screen/home/widget/PCBA_LINE/CLEAN_SENSOR_ES2/pcba_line_dashboard_screen.dart';
 import 'package:smart_factory/screen/home/widget/nvidia_lc_switch/Dashboard/Curing_Room_Monitoring_Screen.dart';
 import 'package:smart_factory/screen/home/controller/cdu_controller.dart';
@@ -41,6 +42,20 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
         initialModelSerial: 'SWITCH',
         title: project.name,
         controllerTag: 'te_management_switch',
+      ),
+  'te_retest_rate': (project) => TERetestRateScreen(
+        title: project.name,
+        controllerTag: 'te_retest_rate_default',
+      ),
+  'te_retest_rate_switch': (project) => TERetestRateScreen(
+        initialModelSerial: 'SWITCH',
+        title: project.name,
+        controllerTag: 'te_retest_rate_switch',
+      ),
+  'te_retest_rate_adapter': (project) => TERetestRateScreen(
+        initialModelSerial: 'ADAPTER',
+        title: project.name,
+        controllerTag: 'te_retest_rate_adapter',
       ),
   'te_management_adapter': (project) => TEManagementScreen(
         initialModelSerial: 'ADAPTER',
