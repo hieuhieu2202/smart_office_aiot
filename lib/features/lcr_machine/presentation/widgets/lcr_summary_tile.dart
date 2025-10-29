@@ -8,6 +8,8 @@ class LcrSummaryTile extends StatelessWidget {
     this.suffix,
     required this.color,
     this.onTap,
+    this.actionLabel,
+    this.onActionTap,
   });
 
   final String title;
@@ -15,6 +17,8 @@ class LcrSummaryTile extends StatelessWidget {
   final String? suffix;
   final Color color;
   final VoidCallback? onTap;
+  final String? actionLabel;
+  final VoidCallback? onActionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -46,12 +50,53 @@ class LcrSummaryTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              title,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: Colors.white70,
-                fontWeight: FontWeight.w600,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (actionLabel != null && onActionTap != null)
+                  GestureDetector(
+                    onTap: onActionTap,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white24, width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            actionLabel!,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.table_rows_rounded,
+                            size: 14,
+                            color: Colors.white60,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
             FittedBox(

@@ -818,6 +818,27 @@ class _DashboardTab extends StatelessWidget {
     return 480.0;
   }
 
+  void _showStatusOverview(BuildContext context, bool showPass) {
+    final records = controller.trackingRecords
+        .where((record) => showPass ? record.isPass : !record.isPass)
+        .toList()
+      ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+    final accentColor = showPass
+        ? const Color(0xFF2DE5FF)
+        : const Color(0xFFFF77A9);
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.65),
+      builder: (_) => _StatusOverviewDialog(
+        title: showPass ? 'PASS OVERVIEW' : 'FAIL OVERVIEW',
+        highlightColor: accentColor,
+        records: records,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -861,7 +882,11 @@ class _DashboardTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _SummaryRow(overview: data.overview),
+                    _SummaryRow(
+                      overview: data.overview,
+                      onPassOverview: () => _showStatusOverview(context, true),
+                      onFailOverview: () => _showStatusOverview(context, false),
+                    ),
                     const SizedBox(height: 24),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -959,9 +984,15 @@ class _DashboardTab extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.overview});
+  const _SummaryRow({
+    required this.overview,
+    this.onPassOverview,
+    this.onFailOverview,
+  });
 
   final LcrOverview overview;
+  final VoidCallback? onPassOverview;
+  final VoidCallback? onFailOverview;
 
   @override
   Widget build(BuildContext context) {
@@ -982,6 +1013,8 @@ class _SummaryRow extends StatelessWidget {
             value: overview.pass.toString(),
             suffix: 'PCS',
             color: Colors.greenAccent,
+            actionLabel: 'Overview',
+            onActionTap: onPassOverview,
           ),
         ),
         const SizedBox(width: 16),
@@ -991,6 +1024,8 @@ class _SummaryRow extends StatelessWidget {
             value: overview.fail.toString(),
             suffix: 'PCS',
             color: Colors.redAccent,
+            actionLabel: 'Overview',
+            onActionTap: onFailOverview,
           ),
         ),
         const SizedBox(width: 16),
@@ -1003,6 +1038,195 @@ class _SummaryRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _StatusOverviewDialog extends StatelessWidget {
+  const _StatusOverviewDialog({
+    required this.title,
+    required this.records,
+    required this.highlightColor,
+  });
+
+  final String title;
+  final List<LcrRecord> records;
+  final Color highlightColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final media = MediaQuery.of(context);
+    final width = math.min(media.size.width * 0.9, 1120.0);
+    final height = math.min(media.size.height * 0.8, 640.0);
+    final dateFormatter = DateFormat('yyyy-MM-dd');
+    final timeFormatter = DateFormat('HH:mm');
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(24),
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: const Color(0xFF020D24).withOpacity(0.96),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white24),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black54,
+              blurRadius: 32,
+              offset: Offset(0, 18),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+              child: Row(
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: highlightColor.withOpacity(0.16),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      '${records.length} records',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: highlightColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    splashRadius: 22,
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Divider(color: Colors.white12, height: 1),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                child: records.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No records available for this status.',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.white60,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: Colors.white12),
+                          color: Colors.white.withOpacity(0.03),
+                        ),
+                        child: Scrollbar(
+                          thumbVisibility: true,
+                          child: SingleChildScrollView(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: DataTable(
+                                headingRowHeight: 48,
+                                dataRowMinHeight: 44,
+                                dataRowMaxHeight: 60,
+                                headingRowColor: MaterialStateProperty.all(
+                                  Colors.white.withOpacity(0.05),
+                                ),
+                                headingTextStyle:
+                                    theme.textTheme.labelSmall?.copyWith(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.6,
+                                ),
+                                dataTextStyle:
+                                    theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                columnSpacing: 28,
+                                horizontalMargin: 24,
+                                columns: const [
+                                  DataColumn(label: Text('DATE')),
+                                  DataColumn(label: Text('TIME')),
+                                  DataColumn(label: Text('FACTORY')),
+                                  DataColumn(label: Text('DEPARTMENT')),
+                                  DataColumn(label: Text('MACHINE')),
+                                  DataColumn(label: Text('EMPLOYEE')),
+                                  DataColumn(label: Text('SERIAL NO.')),
+                                  DataColumn(label: Text('DESCRIPTION')),
+                                  DataColumn(label: Text('MEASURE')),
+                                  DataColumn(label: Text('STATUS')),
+                                ],
+                                rows: records.map((record) {
+                                  final statusLabel = record.isPass ? 'PASS' : 'FAIL';
+                                  final statusColor = record.isPass
+                                      ? const Color(0xFF20E0FF)
+                                      : const Color(0xFFFF77A9);
+                                  final rowTint = record.isPass
+                                      ? Colors.white.withOpacity(0.01)
+                                      : const Color(0xFFFF77A9).withOpacity(0.08);
+                                  return DataRow(
+                                    color: MaterialStateProperty.all(rowTint),
+                                    cells: [
+                                      DataCell(Text(
+                                          dateFormatter.format(record.dateTime))),
+                                      DataCell(Text(
+                                          timeFormatter.format(record.dateTime))),
+                                      DataCell(Text(record.factory)),
+                                      DataCell(Text(record.department ?? '-')),
+                                      DataCell(Text(
+                                          'MC-${record.machineNo.toString().padLeft(2, '0')}')),
+                                      DataCell(Text(record.employeeId ?? '-')),
+                                      DataCell(Text(record.serialNumber ?? '-')),
+                                      DataCell(Text(record.description ?? '-')),
+                                      DataCell(Text(record.measureValue ?? '-')),
+                                      DataCell(
+                                        Text(
+                                          statusLabel,
+                                          style: TextStyle(
+                                            color: statusColor,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
