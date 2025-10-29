@@ -1,4 +1,6 @@
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -600,21 +602,28 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         builder: (context, constraints) {
           final maxWidth = constraints.maxWidth;
           const double spacing = 12.0;
-          final crossAxisCount = maxWidth >= 1480 ? 3 : 2;
+          const double minCardWidth = 340.0;
+          final itemCount = data.length;
+          final rawCount =
+              (maxWidth / (minCardWidth + spacing)).floor().clamp(1, 4);
+          final crossAxisCount = itemCount == 0
+              ? 1
+              : math.min(rawCount, itemCount);
+          final totalSpacing = spacing * (crossAxisCount - 1);
           final cardWidth =
-              (maxWidth - ((crossAxisCount - 1) * spacing)) / crossAxisCount;
+              (maxWidth - totalSpacing) / crossAxisCount;
 
           return Scrollbar(
             thumbVisibility: true,
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(right: 4),
               physics: const ClampingScrollPhysics(),
-              child: Align(
-                alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: maxWidth,
                 child: Wrap(
                   spacing: spacing,
                   runSpacing: spacing,
-                  children: List.generate(data.length, (index) {
+                  children: List.generate(itemCount, (index) {
                     final item = data[index];
                     final isSelected = selected == item;
                     final barColor =
