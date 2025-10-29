@@ -105,6 +105,13 @@ List<AppProject> appProjects = [
         screenType: "te_management_adapter",
       ),
       AppProject(
+        name: "TE RETEST RATE (ADAPTER)",
+        progress: 1.0,
+        status: "Ready",
+        icon: Icons.query_stats,
+        screenType: "te_retest_rate_adapter",
+      ),
+      AppProject(
         name: "GLUE MACHINE",
         progress: 1.0,
         status: "Ready",
@@ -238,6 +245,13 @@ List<AppProject> appProjects = [
         status: "Ready",
         icon: Icons.storage,
         screenType: "te_management_switch",
+      ),
+      AppProject(
+        name: "TE RETEST RATE (SWITCH)",
+        progress: 1.0,
+        status: "Ready",
+        icon: Icons.query_stats,
+        screenType: "te_retest_rate_switch",
       ),
       AppProject(
         name: "ROOM MONITORING",
@@ -480,6 +494,13 @@ List<AppProject> appProjects = [
         status: "Monitoring",
         icon: Icons.grid_on,
         screenType: "stencil_monitor",
+      ),
+      AppProject(
+        name: "LCR MACHINE",
+        progress: 1.0,
+        status: "Monitoring",
+        icon: Icons.grid_on,
+        screenType: "lcr_machine_dashboard",
       ),
       AppProject(
         name: "PRINTER ONLINE",

@@ -56,103 +56,150 @@ class _ModelPassTileState extends State<ModelPassTile>
     final barColors = gradients[widget.colorIndex % gradients.length];
     final ratio = widget.maxQty == 0 ? 0.0 : widget.qty / widget.maxQty;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // === LABEL + VALUE ===
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Tên Model
-              Expanded(
-                child: Text(
-                  widget.modelName,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: widget.isMobile ? 13 : 14,
-                  ),
-                ),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final availableWidth = constraints.maxWidth.isFinite &&
+                constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : screenWidth;
+        final safeWidth = availableWidth.isFinite && availableWidth > 0
+            ? availableWidth
+            : screenWidth;
 
-              // Badge Qty
-              Container(
-                margin: const EdgeInsets.only(left: 6),
-                padding: EdgeInsets.symmetric(
-                  horizontal: widget.isMobile ? 8 : 10,
-                  vertical: widget.isMobile ? 5 : 6,
-                ),
-                decoration: BoxDecoration(
-                  color: barColors.last.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: barColors.last.withOpacity(.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    )
-                  ],
-                ),
-                child: Text(
-                  '${widget.qty}',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: widget.isMobile ? 13 : 15,
+        final isCompact = safeWidth < 280;
+        final isUltraCompact = safeWidth < 230;
+
+        final nameFontSize = isUltraCompact
+            ? 12.0
+            : isCompact || widget.isMobile
+                ? 13.0
+                : 14.0;
+        final qtyFontSize = isUltraCompact
+            ? 11.5
+            : isCompact
+                ? 12.5
+                : widget.isMobile
+                    ? 13.0
+                    : 15.0;
+        final badgeHorizontal = isUltraCompact
+            ? 6.0
+            : isCompact
+                ? 8.0
+                : widget.isMobile
+                    ? 8.0
+                    : 10.0;
+        final badgeVertical = isUltraCompact
+            ? 4.0
+            : isCompact
+                ? 4.5
+                : widget.isMobile
+                    ? 5.0
+                    : 6.0;
+        final progressHeight = isUltraCompact
+            ? 7.0
+            : isCompact
+                ? 8.0
+                : 10.0;
+        final verticalSpacing = isUltraCompact ? 4.0 : isCompact ? 5.0 : 6.0;
+        final tilePadding = isUltraCompact ? 6.0 : isCompact ? 7.0 : 8.0;
+
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: tilePadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.modelName,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: nameFontSize,
+                      ),
+                    ),
                   ),
-                ),
+                  Container(
+                    margin: const EdgeInsets.only(left: 6),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: badgeHorizontal,
+                      vertical: badgeVertical,
+                    ),
+                    decoration: BoxDecoration(
+                      color: barColors.last.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: barColors.last.withOpacity(.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      '${widget.qty}',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: qtyFontSize,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: verticalSpacing),
+              AnimatedBuilder(
+                animation: _fillCtrl,
+                builder: (_, __) {
+                  final animatedRatio = ratio * _fillCtrl.value;
+                  final fillWidth = safeWidth * animatedRatio;
+
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(progressHeight / 2),
+                    child: Stack(
+                      children: [
+                        Container(
+                          height: progressHeight,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.05)
+                                : Colors.grey.withOpacity(0.2),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            width: fillWidth,
+                            height: progressHeight,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: barColors,
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: barColors.last.withOpacity(.35),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
-          const SizedBox(height: 6),
-
-          // === ANIMATED FILL BAR ===
-          LayoutBuilder(builder: (context, constraints) {
-            final maxW = constraints.maxWidth;
-            return AnimatedBuilder(
-              animation: _fillCtrl,
-              builder: (_, __) {
-                final animatedRatio = ratio * _fillCtrl.value;
-                return Stack(
-                  children: [
-                    Container(
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.grey.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    Container(
-                      width: animatedRatio * maxW,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: barColors,
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: barColors.last.withOpacity(.35),
-                            blurRadius: 8,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          }),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -4,7 +4,8 @@ import 'package:smart_factory/screen/home/widget/aoivi/avi_dashboard_screen.dart
 import 'package:smart_factory/screen/home/widget/clean_room/clean_room_screen.dart';
 import 'package:smart_factory/screen/home/widget/racks_monitor/racks_monitor_screen.dart';
 import 'package:smart_factory/screen/home/widget/yield_report/yield_report_screen.dart';
-import 'package:smart_factory/screen/home/widget/te_management/te_management_screen.dart';
+import 'package:smart_factory/features/te_management/presentation/views/te_management_screen.dart';
+import 'package:smart_factory/features/te_management/presentation/views/te_retest_rate_screen.dart';
 import 'package:smart_factory/screen/home/widget/PCBA_LINE/CLEAN_SENSOR_ES2/pcba_line_dashboard_screen.dart';
 import 'package:smart_factory/screen/home/widget/nvidia_lc_switch/Dashboard/Curing_Room_Monitoring_Screen.dart';
 import 'package:smart_factory/screen/home/controller/cdu_controller.dart';
@@ -13,6 +14,7 @@ import 'package:smart_factory/screen/home/widget/nvidia_lc_switch/Cdu_Monitoring
 import 'package:smart_factory/screen/home/widget/smt/stencil_monitor/stencil_monitor_screen.dart';
 import '../model/AppModel.dart';
 import '../features/nvidia_lc_switch_kanban/presentation/pages/output_tracking_page.dart';
+import '../features/lcr_machine/presentation/pages/lcr_dashboard_page.dart';
 import '../screen/home/widget/project_list_page.dart';
 
 final Map<String, Widget Function(AppProject)> screenBuilderMap = {
@@ -42,6 +44,20 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
         title: project.name,
         controllerTag: 'te_management_switch',
       ),
+  'te_retest_rate': (project) => TERetestRateScreen(
+        title: project.name,
+        controllerTag: 'te_retest_rate_default',
+      ),
+  'te_retest_rate_switch': (project) => TERetestRateScreen(
+        initialModelSerial: 'SWITCH',
+        title: project.name,
+        controllerTag: 'te_retest_rate_switch',
+      ),
+  'te_retest_rate_adapter': (project) => TERetestRateScreen(
+        initialModelSerial: 'ADAPTER',
+        title: project.name,
+        controllerTag: 'te_retest_rate_adapter',
+      ),
   'te_management_adapter': (project) => TEManagementScreen(
         initialModelSerial: 'ADAPTER',
         title: project.name,
@@ -55,6 +71,7 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
       ),
   'curing_monitoring_dashboard': (project) => CuringRoomMonitoringScreen(),
   'output_tracking': (project) => const OutputTrackingPage(),
+  'lcr_machine_dashboard': (project) => const LcrDashboardPage(),
   'output_tracking_switch':
       (project) => const OutputTrackingPage(initialModelSerial: 'SWITCH'),
   'output_tracking_adapter':
