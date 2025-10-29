@@ -1,4 +1,3 @@
-import 'dart:math' show max, min;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -189,84 +188,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     if (!_isFilterPanelOpen) return;
     setState(() {
       _isFilterPanelOpen = false;
-    });
-  }
-
-  Widget _buildControlBar(SizingInformation sizing) {
-    return Obx(() {
-      final range = _controller.rangeLabel;
-      final modelSerial = _controller.modelSerial.value;
-      return Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: sizing.isDesktop ? 22 : 16,
-          vertical: sizing.isDesktop ? 16 : 14,
-        ),
-        decoration: BoxDecoration(
-          color: _kPanelColor.withOpacity(0.92),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _kPanelBorderColor),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 16,
-              offset: Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Wrap(
-          spacing: 16,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            _FilterActionButton(
-              isActive: _isFilterPanelOpen,
-              onPressed: _toggleFilterPanel,
-            ),
-            _InfoBadge(
-              icon: Icons.memory_outlined,
-              label: 'Model Serial',
-              value: modelSerial,
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: _kSurfaceMuted.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _kPanelBorderColor),
-              ),
-              constraints: const BoxConstraints(minWidth: 220),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Date Range',
-                    style: TextStyle(
-                      color: _kTextSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    range,
-                    style: const TextStyle(
-                      color: _kTextPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            TERefreshLabel(
-              lastUpdated: _controller.lastUpdated.value,
-              isRefreshing: _controller.isLoading.value,
-            ),
-          ],
-        ),
-      );
     });
   }
 
@@ -514,50 +435,46 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         return LayoutBuilder(
           builder: (context, constraints) {
             const gap = 16.0;
-            final maxHeight = constraints.maxHeight;
-            final topHeight = max(320.0, min(maxHeight * 0.48, 520.0));
-            final remainingHeight = maxHeight - topHeight - gap;
-            final distributionHeight = max(
-              210.0,
-              min(remainingHeight * 0.45, remainingHeight - gap - 260.0),
-            );
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  height: topHeight,
-                  child: _buildErrorListPanel(isWide: true),
-                ),
-                const SizedBox(height: gap),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        flex: 6,
-                        child: _buildDetailTable(isWide: true, expand: true),
-                      ),
-                      const SizedBox(width: gap),
-                      Expanded(
-                        flex: 4,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            SizedBox(
-                              height: distributionHeight,
-                              child: _buildDistributionPanel(),
-                            ),
-                            const SizedBox(height: gap),
-                            Expanded(
-                              child: _buildTrendPanel(),
-                            ),
-                          ],
+            return SizedBox(
+              height: constraints.maxHeight,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: _buildErrorListPanel(isWide: true),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: gap),
+                        Expanded(
+                          flex: 3,
+                          child: _buildDetailTable(isWide: true, expand: true),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: gap),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: _buildDistributionPanel(),
+                        ),
+                        const SizedBox(height: gap),
+                        Expanded(
+                          flex: 2,
+                          child: _buildTrendPanel(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             );
           },
         );
@@ -606,6 +523,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   padding:
@@ -632,12 +550,22 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  _controller.rangeLabel,
-                  style: const TextStyle(
-                    color: _kTextSecondary,
-                    fontSize: 12,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    TERefreshLabel(
+                      lastUpdated: _controller.lastUpdated.value,
+                      isRefreshing: _controller.isLoading.value,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _controller.rangeLabel,
+                      style: const TextStyle(
+                        color: _kTextSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1520,6 +1448,16 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           }),
           centerTitle: true,
           actions: [
+            IconButton(
+              onPressed: _toggleFilterPanel,
+              icon: Icon(
+                _isFilterPanelOpen
+                    ? Icons.close_fullscreen
+                    : Icons.filter_alt_outlined,
+                color: _isFilterPanelOpen ? _kAccentColor : _kTextSecondary,
+              ),
+              tooltip: _isFilterPanelOpen ? 'Hide filters' : 'Show filters',
+            ),
             Obx(() {
               final busy = _controller.isLoading.value;
               return IconButton(
@@ -1544,14 +1482,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                       horizontal: horizontalPadding,
                       vertical: verticalPadding,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildControlBar(sizing),
-                        const SizedBox(height: 20),
-                        Expanded(child: _buildContent(sizing)),
-                      ],
-                    ),
+                    child: _buildContent(sizing),
                   ),
                   _buildFilterScrim(),
                   _buildFilterPanel(sizing),
@@ -1575,32 +1506,6 @@ class _DistributionDatum {
   final String label;
   final double value;
   final Color color;
-}
-
-class _FilterActionButton extends StatelessWidget {
-  const _FilterActionButton({required this.isActive, required this.onPressed});
-
-  final bool isActive;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isActive ? _kAccentColor : Colors.transparent,
-        foregroundColor: isActive ? Colors.black : _kAccentColor,
-        side: const BorderSide(color: _kAccentColor),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      ),
-      icon: Icon(isActive ? Icons.close_fullscreen : Icons.filter_alt_outlined, size: 18),
-      label: Text(
-        isActive ? 'Hide Filters' : 'Filters',
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-      ),
-    );
-  }
 }
 
 class _InfoBadge extends StatelessWidget {
