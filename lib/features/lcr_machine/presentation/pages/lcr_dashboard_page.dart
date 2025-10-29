@@ -649,7 +649,7 @@ class _DashboardTab extends StatelessWidget {
                         ),
                         const SizedBox(width: 24),
                         Expanded(
-                          flex: 5,
+                          flex: 7,
                           child: LcrChartCard(
                             title: 'YIELD RATE & OUTPUT',
                             height: 360,
@@ -1305,28 +1305,49 @@ class _OutputChartState extends State<_OutputChart> {
     final barGroups = List<BarChartGroupData>.generate(data.length, (index) {
       final item = data[index];
       final isTouched = _touchedGroup == index;
+      final passGradient = LinearGradient(
+        colors: isTouched
+            ? const [Color(0xFF7BE8FF), Color(0xFF3AD7FF)]
+            : const [Color(0xFF1F8BFF), Color(0xFF33D1FF)],
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+      );
+      final failGradient = LinearGradient(
+        colors: isTouched
+            ? const [Color(0xFFFF9A8D), Color(0xFFFF6D6D)]
+            : const [Color(0xFFD84343), Color(0xFFFF7676)],
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+      );
+
       return BarChartGroupData(
         x: index,
-        barsSpace: 8,
+        barsSpace: 10,
         barRods: [
           BarChartRodData(
             toY: item.pass.toDouble(),
-            width: 18,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-            color:
-                isTouched ? const Color(0xFF6FE0FF) : const Color(0xFF39C8FF),
+            width: 26,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+            gradient: passGradient,
+            borderSide: BorderSide(
+              color: Colors.white.withOpacity(isTouched ? 0.35 : 0.2),
+              width: isTouched ? 1.6 : 1,
+            ),
             backDrawRodData: BackgroundBarChartRodData(
               show: true,
               toY: yMax,
-              color: Colors.white.withOpacity(0.03),
+              color: Colors.white.withOpacity(0.06),
             ),
           ),
           BarChartRodData(
             toY: item.fail.toDouble(),
-            width: 10,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-            color:
-                isTouched ? const Color(0xFFFF8484) : const Color(0xFFE53935),
+            width: 12,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+            gradient: failGradient,
+            borderSide: BorderSide(
+              color: Colors.white.withOpacity(isTouched ? 0.28 : 0.16),
+              width: isTouched ? 1.2 : 0.8,
+            ),
           ),
         ],
       );
@@ -1339,18 +1360,27 @@ class _OutputChartState extends State<_OutputChart> {
 
     return Container(
       decoration: BoxDecoration(
-        color: _chartBackground,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          colors: [Color(0xF0061B28), Color(0xF0042745)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/background_dark.png'),
+          fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(Color(0xB0061B28), BlendMode.darken),
+        ),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x33091428),
-            blurRadius: 18,
-            offset: Offset(0, 12),
+            blurRadius: 20,
+            offset: Offset(0, 14),
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1359,20 +1389,20 @@ class _OutputChartState extends State<_OutputChart> {
             runSpacing: 8,
             children: [
               _LegendChip(
-                color: const Color(0xFF39C8FF),
+                color: const Color(0xFF4DD0E1),
                 label: 'PASS',
               ),
               _LegendChip(
-                color: const Color(0xFFE53935),
+                color: const Color(0xFFFF616F),
                 label: 'FAIL',
                 width: 14,
               ),
               _LegendChip.line(
-                color: const Color(0xFFFFF176),
+                color: const Color(0xFFFFF59D),
                 label: 'YIELD RATE',
               ),
               _LegendChip.dashed(
-                color: const Color(0xFF81C784),
+                color: const Color(0xFF69F0AE),
                 label: 'TARGET 99%',
               ),
             ],
@@ -1394,7 +1424,7 @@ class _OutputChartState extends State<_OutputChart> {
                         ),
                         child: BarChart(
                           BarChartData(
-                            alignment: BarChartAlignment.spaceAround,
+                            alignment: BarChartAlignment.spaceBetween,
                             minY: 0,
                             maxY: yMax,
                             gridData: FlGridData(
@@ -1402,8 +1432,9 @@ class _OutputChartState extends State<_OutputChart> {
                               drawVerticalLine: false,
                               horizontalInterval: interval,
                               getDrawingHorizontalLine: (value) => FlLine(
-                                color: Colors.white.withOpacity(0.08),
-                                strokeWidth: 0.7,
+                                color: Colors.white
+                                    .withOpacity(value == 0 ? 0.28 : 0.14),
+                                strokeWidth: value == 0 ? 1 : 0.7,
                               ),
                             ),
                             borderData: FlBorderData(show: false),
@@ -1428,9 +1459,16 @@ class _OutputChartState extends State<_OutputChart> {
                                       child: Text(
                                         value.toInt().toString(),
                                         style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 11,
+                                          color: Color(0xFFB3E5FC),
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w600,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black54,
+                                              blurRadius: 6,
+                                              offset: Offset(0, 1),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     );
@@ -1454,17 +1492,18 @@ class _OutputChartState extends State<_OutputChart> {
                                     }
                                     return SideTitleWidget(
                                       meta: meta,
-                                      child: Text(
-                                        _formatCategory(data[index].category),
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    );
-                                  },
+                                  child: Text(
+                                    _formatCategory(data[index].category),
+                                    style: const TextStyle(
+                                      color: Color(0xFFB3E5FC),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.25,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                );
+                              },
                                 ),
                               ),
                             ),
@@ -1551,9 +1590,16 @@ class _OutputChartState extends State<_OutputChart> {
                                         child: Text(
                                           '${value.toInt()}%',
                                           style: const TextStyle(
-                                            color: Color(0xFF4DD0E1),
-                                            fontSize: 11,
+                                            color: Color(0xFF80DEEA),
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w600,
+                                            shadows: [
+                                              Shadow(
+                                                color: Colors.black45,
+                                                blurRadius: 6,
+                                                offset: Offset(0, 1),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       );
@@ -1566,19 +1612,39 @@ class _OutputChartState extends State<_OutputChart> {
                                 LineChartBarData(
                                   spots: yieldSpots,
                                   isCurved: true,
-                                  barWidth: 2.5,
-                                  color: const Color(0xFFFFF176),
+                                  curveSmoothness: 0.26,
+                                  barWidth: 2.6,
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFFFFF59D),
+                                      Color(0xFFFFE082),
+                                    ],
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                  ),
                                   dotData: FlDotData(
                                     show: true,
                                     getDotPainter:
                                         (spot, percent, barData, index) {
                                       return FlDotCirclePainter(
-                                        radius: 3.4,
-                                        color: const Color(0xFFFFF59D),
-                                        strokeWidth: 1.3,
-                                        strokeColor: _chartBackground,
+                                        radius: 3.6,
+                                        color: const Color(0xFFFFF9C4),
+                                        strokeWidth: 1.4,
+                                        strokeColor:
+                                            _chartBackground.withOpacity(0.7),
                                       );
                                     },
+                                  ),
+                                  belowBarData: BarAreaData(
+                                    show: true,
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0x33FFF59D),
+                                        Color(0x00061B28),
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
                                   ),
                                   isStrokeCapRound: true,
                                 ),
@@ -1588,9 +1654,9 @@ class _OutputChartState extends State<_OutputChart> {
                                     (index) => FlSpot(index.toDouble(), 99),
                                   ),
                                   isCurved: false,
-                                  barWidth: 1.2,
-                                  color: const Color(0xFF81C784),
-                                  dashArray: const [6, 4],
+                                  barWidth: 1.4,
+                                  color: const Color(0xFF69F0AE),
+                                  dashArray: const [5, 5],
                                   dotData: FlDotData(show: false),
                                 ),
                               ],
@@ -1635,8 +1701,8 @@ class _OutputChartState extends State<_OutputChart> {
                         child: Text(
                           'pcs',
                           style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 11,
+                            color: Color(0xFF80DEEA),
+                            fontSize: 12,
                             letterSpacing: 1.1,
                           ),
                         ),
@@ -1650,11 +1716,38 @@ class _OutputChartState extends State<_OutputChart> {
                         child: Text(
                           'Yield %',
                           style: TextStyle(
-                            color: Color(0xFF4DD0E1),
-                            fontSize: 11,
+                            color: Color(0xFF80DEEA),
+                            fontSize: 12,
                             letterSpacing: 1.1,
                           ),
                         ),
+                      ),
+                    ),
+                    Positioned(
+                      right: _rightReserved - 26,
+                      top: _topReserved - 16,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          SizedBox(
+                            width: 28,
+                            height: 1.5,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Color(0xFF69F0AE),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Target 99%',
+                            style: TextStyle(
+                              color: Color(0xFF69F0AE),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     _buildTooltip(constraints, data),
@@ -1695,10 +1788,10 @@ class _OutputChartState extends State<_OutputChart> {
           width: _tooltipWidth,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xE60A2232),
+            color: const Color(0xF0152B3D),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.white.withOpacity(0.12),
+              color: Colors.white.withOpacity(0.16),
               width: 1,
             ),
             boxShadow: const [
@@ -1725,21 +1818,21 @@ class _OutputChartState extends State<_OutputChart> {
               _TooltipEntry(
                 label: 'PASS',
                 value: item.pass.toString(),
-                indicatorColor: const Color(0xFF39C8FF),
+                indicatorColor: const Color(0xFF33D1FF),
               ),
               const SizedBox(height: 6),
               _TooltipEntry(
                 label: 'FAIL',
                 value: item.fail.toString(),
-                indicatorColor: const Color(0xFFE53935),
-                valueColor: const Color(0xFFFF8A80),
+                indicatorColor: const Color(0xFFFF6D6D),
+                valueColor: const Color(0xFFFFA4A2),
               ),
               const SizedBox(height: 6),
               _TooltipEntry(
                 label: 'YIELD',
                 value: '$yrText%',
-                indicatorColor: const Color(0xFFFFF176),
-                valueColor: const Color(0xFFFFF59D),
+                indicatorColor: const Color(0xFFFFF59D),
+                valueColor: const Color(0xFFFFF9C4),
               ),
             ],
           ),
@@ -1800,7 +1893,7 @@ class _PassLabel extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final groupCenter = width * (index + 0.5) / dataLength;
-    const labelWidth = 52.0;
+    const labelWidth = 44.0;
     final maxLeft = math.max(0.0, width - labelWidth);
     final left = maxLeft == 0
         ? 0.0
@@ -1809,29 +1902,27 @@ class _PassLabel extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final barHeight = height * (pass / maxY);
-    final bottom = math.max(barHeight + 8, 10.0);
+    final bottom = math.max(barHeight + 12, 12.0);
 
     return Positioned(
       left: left,
       bottom: bottom,
       child: SizedBox(
         width: labelWidth,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: const Color(0xCC0A2A3F),
-            borderRadius: BorderRadius.circular(5),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Text(
-              '$pass',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
+        child: Text(
+          '$pass',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            shadows: [
+              Shadow(
+                color: Colors.black54,
+                blurRadius: 8,
+                offset: Offset(0, 2),
               ),
-            ),
+            ],
           ),
         ),
       ),
