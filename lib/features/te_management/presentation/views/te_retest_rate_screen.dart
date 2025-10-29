@@ -14,6 +14,7 @@ import '../../domain/usecases/get_model_names.dart';
 import '../../domain/usecases/get_retest_rate_error_detail.dart';
 import '../../domain/usecases/get_retest_rate_report.dart';
 import '../controllers/te_retest_rate_controller.dart';
+import '../widgets/search_bar.dart';
 import '../widgets/te_retest_rate_table.dart';
 
 const LinearGradient _kBackgroundGradient = LinearGradient(
@@ -47,6 +48,7 @@ class TERetestRateScreen extends StatefulWidget {
 class _TERetestRateScreenState extends State<TERetestRateScreen> {
   late final String _controllerTag;
   late final TERetestRateController _controller;
+  late final TextEditingController _searchController;
   final TextEditingController _modelSearchController = TextEditingController();
 
   @override
@@ -67,6 +69,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
       ),
       tag: _controllerTag,
     );
+    _searchController = TextEditingController();
   }
 
   @override
@@ -74,6 +77,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
     if (Get.isRegistered<TERetestRateController>(tag: _controllerTag)) {
       Get.delete<TERetestRateController>(tag: _controllerTag);
     }
+    _searchController.dispose();
     _modelSearchController.dispose();
     super.dispose();
   }
@@ -132,19 +136,30 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
                       const SizedBox(height: 16),
                       Expanded(
                         child: Obx(() {
-                          final detail = _controller.detail.value;
+                          final rawDetail = _controller.detail.value;
+                          final filteredDetail = _controller.filteredDetail;
                           final loading = _controller.isLoading.value;
                           final hasError = _controller.hasError;
                           final message = _controller.errorMessage.value;
+                          final hasSearch = _controller.searchQuery.isNotEmpty;
 
                           if (hasError && !loading) {
                             return _buildErrorState(message);
                           }
 
-                          if (!loading && !detail.hasData) {
+                          if (!loading && !rawDetail.hasData) {
                             return const Center(
                               child: Text(
                                 'No data available for the selected filters.',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            );
+                          }
+
+                          if (!loading && hasSearch && !filteredDetail.hasData) {
+                            return const Center(
+                              child: Text(
+                                'No rows match your search.',
                                 style: TextStyle(color: Colors.white70),
                               ),
                             );
@@ -154,7 +169,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
                             children: [
                               Positioned.fill(
                                 child: TERetestRateTable(
-                                  detail: detail,
+                                  detail: filteredDetail,
                                   formattedDates: _controller.formattedDates,
                                   onCellTap: _showCellDetailDialog,
                                   onGroupTap: _showGroupTrendDialog,
@@ -190,77 +205,54 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
   }
 
   Widget _buildFilters(SizingInformation sizing) {
-    final isCompact = sizing.screenSize.width < 900;
+    final isCompact = sizing.isMobile || sizing.screenSize.width < 900;
+    final searchWidth = isCompact
+        ? double.infinity
+        : (sizing.screenSize.width * 0.32).clamp(240.0, 420.0) as double;
 
-    final rangeTile = Obx(
-      () => _FilterTile(
-        icon: Icons.date_range,
-        label: 'Date Range',
-        value: _controller.rangeLabel,
-        onTap: _pickDateRange,
-      ),
-    );
-
-    final modelTile = Obx(
-      () {
-        final selection = _controller.selectedModels;
-        final text = selection.isEmpty
-            ? 'All Models'
-            : 'Selected ${selection.length}';
-        return _FilterTile(
-          icon: Icons.widgets,
-          label: 'Models',
-          value: text,
-          onTap: _openModelSelector,
-        );
-      },
-    );
-
-    final queryButton = Obx(
-      () => ElevatedButton.icon(
-        onPressed: _controller.isLoading.value
-            ? null
-            : () => _controller.fetchReport(showLoading: true),
+    final filterButton = SizedBox(
+      height: 48,
+      child: ElevatedButton.icon(
+        onPressed: _openFilterSheet,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1E4F7A),
+          backgroundColor: const Color(0xFF114368),
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           elevation: 6,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
-        icon: _controller.isLoading.value
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-              )
-            : const Icon(Icons.search),
-        label: const Text('Query'),
+        icon: const Icon(Icons.filter_alt_rounded),
+        label: const Text('Filters'),
       ),
     );
 
-    final children = [
-      SizedBox(width: isCompact ? double.infinity : 280, child: rangeTile),
-      SizedBox(width: isCompact ? double.infinity : 220, child: modelTile),
-      queryButton,
-    ];
+    final searchField = SizedBox(
+      width: searchWidth,
+      child: TESearchBar(
+        controller: _searchController,
+        onChanged: _controller.updateSearch,
+      ),
+    );
 
     if (isCompact) {
-      return Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: children,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          filterButton,
+          const SizedBox(height: 12),
+          TESearchBar(
+            controller: _searchController,
+            onChanged: _controller.updateSearch,
+          ),
+        ],
       );
     }
 
     return Row(
       children: [
-        SizedBox(width: 280, child: rangeTile),
-        const SizedBox(width: 12),
-        SizedBox(width: 220, child: modelTile),
-        const SizedBox(width: 12),
-        queryButton,
+        SizedBox(width: 160, child: filterButton),
+        const SizedBox(width: 16),
+        searchField,
       ],
     );
   }
@@ -333,7 +325,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
     );
   }
 
-  Future<void> _pickDateRange() async {
+  Future<void> _pickDateRange({bool triggerFetch = true}) async {
     final result = await _pickDashboardDateTimeRange(
       context,
       DateTimeRange(
@@ -343,7 +335,9 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
     );
     if (result != null) {
       _controller.setDateRange(start: result.start, end: result.end);
-      await _controller.fetchReport(showLoading: true);
+      if (triggerFetch) {
+        await _controller.fetchReport(showLoading: true);
+      }
     }
   }
 
@@ -654,7 +648,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
     );
   }
 
-  Future<void> _openModelSelector() async {
+  Future<void> _openModelSelector({bool triggerFetch = true}) async {
     final available = _controller.availableModels.toList();
     if (available.isEmpty) {
       await _controller.refreshModelNames();
@@ -808,8 +802,162 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
 
     if (result != null) {
       _controller.setSelectedModels(result);
-      await _controller.fetchReport(showLoading: true);
+      if (triggerFetch) {
+        await _controller.fetchReport(showLoading: true);
+      }
     }
+  }
+
+  void _openFilterSheet() {
+    final media = MediaQuery.of(context);
+    final isWide = media.size.width > 720;
+    final panelWidth = isWide
+        ? math.min(420.0, media.size.width * 0.38)
+        : math.min(media.size.width, 420.0);
+
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Filters',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: Material(
+            color: Colors.transparent,
+            child: SafeArea(
+              child: Container(
+                margin: EdgeInsets.only(
+                  right: isWide ? 24 : 0,
+                  left: isWide ? 16 : 0,
+                  top: 16,
+                  bottom: 16,
+                ),
+                width: panelWidth,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF07172D),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x55061D33),
+                      blurRadius: 28,
+                      offset: Offset(0, 18),
+                    ),
+                  ],
+                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                      child: Row(
+                        children: [
+                          const Text(
+                            'Filters',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'Arial',
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Obx(
+                              () => _FilterTile(
+                                icon: Icons.date_range,
+                                label: 'Date Range',
+                                value: _controller.rangeLabel,
+                                onTap: () => _pickDateRange(triggerFetch: false),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Obx(
+                              () {
+                                final selection = _controller.selectedModels;
+                                final text = selection.isEmpty
+                                    ? 'All Models'
+                                    : 'Selected ${selection.length}';
+                                return _FilterTile(
+                                  icon: Icons.widgets,
+                                  label: 'Models',
+                                  value: text,
+                                  onTap: () => _openModelSelector(triggerFetch: false),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            Obx(
+                              () => _controller.selectedModels.isEmpty
+                                  ? const SizedBox.shrink()
+                                  : TextButton(
+                                      onPressed: _controller.clearSelectedModels,
+                                      child: const Text('Clear model selection'),
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                      child: Obx(
+                        () => ElevatedButton.icon(
+                          onPressed: _controller.isLoading.value
+                              ? null
+                              : () async {
+                                  Navigator.of(context).pop();
+                                  await _controller.fetchReport(showLoading: true);
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _kAccentColor,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          icon: _controller.isLoading.value
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: Colors.black,
+                                  ),
+                                )
+                              : const Icon(Icons.playlist_add_check_rounded),
+                          label: const Text(
+                            'Apply Filters',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              fontFamily: 'Arial',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showCellDetailDialog(TERetestCellDetail detail) {

@@ -42,6 +42,7 @@ class TERetestRateController extends GetxController {
   final RxList<String> selectedModels = <String>[].obs;
   final Rx<TERetestDetailEntity> detail = TERetestDetailEntity.empty().obs;
   final Rx<Set<String>> highlightCells = Rx<Set<String>>(<String>{});
+  final RxString _searchQuery = ''.obs;
 
   final Rx<DateTime> startDate = DateTime.now().obs;
   final Rx<DateTime> endDate = DateTime.now().obs;
@@ -59,8 +60,41 @@ class TERetestRateController extends GetxController {
 
   bool get hasError => errorMessage.isNotEmpty;
 
+  String get searchQuery => _searchQuery.value;
+
   List<String> get formattedDates =>
       detail.value.dates.map(_formatDateString).toList(growable: false);
+
+  TERetestDetailEntity get filteredDetail {
+    final current = detail.value;
+    final query = _searchQuery.value.trim().toLowerCase();
+    if (query.isEmpty) {
+      return current;
+    }
+
+    final filteredRows = current.rows.where((row) {
+      final modelMatch = row.modelName.toLowerCase().contains(query);
+      if (modelMatch) return true;
+      for (final group in row.groupNames) {
+        if (group.toLowerCase().contains(query)) {
+          return true;
+        }
+      }
+      return false;
+    }).toList(growable: false);
+
+    if (filteredRows.isEmpty) {
+      return TERetestDetailEntity(
+        dates: List<String>.from(current.dates),
+        rows: const <TERetestDetailRowEntity>[],
+      );
+    }
+
+    return TERetestDetailEntity(
+      dates: List<String>.from(current.dates),
+      rows: filteredRows,
+    );
+  }
 
   @override
   void onInit() {
@@ -158,6 +192,10 @@ class TERetestRateController extends GetxController {
 
   void clearSelectedModels() {
     selectedModels.clear();
+  }
+
+  void updateSearch(String query) {
+    _searchQuery.value = query.trim();
   }
 
   String formatShiftLabel(int index) => index.isEven ? 'Day' : 'Night';
