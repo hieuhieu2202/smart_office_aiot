@@ -531,172 +531,176 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Filter',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
+                                Row(
+                                  children: [
+                                    const Text(
+                                      'Filter',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
-                                  ),
-                                  const Spacer(),
-                                  IconButton(
-                                    onPressed: () => Navigator.of(context).pop(),
-                                    icon: const Icon(Icons.close, color: Colors.white70),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'Refine your query',
-                                style: TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 13,
+                                    const Spacer(),
+                                    IconButton(
+                                      onPressed: () => Navigator.of(context).pop(),
+                                      icon: const Icon(
+                                        Icons.close,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(height: 24),
-                              const Text(
-                                'Date Range',
-                                style: TextStyle(
-                                  color: Colors.white60,
-                                  fontWeight: FontWeight.w600,
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Refine your query',
+                                  style: TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 13,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 10),
-                              _FilterDateRangeTile(
-                                rangeLabel: _formatRangeLabel(tempRange),
-                                onPressed: () async {
-                                  final picked = await _pickDashboardDateTimeRange(
-                                    context,
-                                    tempRange,
-                                  );
-                                  if (picked != null) {
+                                const SizedBox(height: 24),
+                                const Text(
+                                  'Date Range',
+                                  style: TextStyle(
+                                    color: Colors.white60,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                _FilterDateRangeTile(
+                                  rangeLabel: _formatRangeLabel(tempRange),
+                                  onPressed: () async {
+                                    final picked = await _pickDashboardDateTimeRange(
+                                      context,
+                                      tempRange,
+                                    );
+                                    if (picked != null) {
+                                      setState(() {
+                                        tempRange = picked;
+                                      });
+                                    }
+                                  },
+                                ),
+                                const SizedBox(height: 24),
+                                _FilterSheetDropdown(
+                                  label: 'Factory',
+                                  value: tempFactory,
+                                  items: factoryOptions,
+                                  onChanged: (value) {
+                                    if (value == null) return;
                                     setState(() {
-                                      tempRange = picked;
+                                      tempFactory = value;
+                                      tempDepartment = 'ALL';
+                                      tempMachine = 'ALL';
                                     });
-                                  }
-                                },
-                              ),
-                              const SizedBox(height: 24),
-                              _FilterSheetDropdown(
-                                label: 'Factory',
-                                value: tempFactory,
-                                items: factoryOptions,
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setState(() {
-                                    tempFactory = value;
-                                    tempDepartment = 'ALL';
-                                    tempMachine = 'ALL';
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 20),
-                              _FilterSheetDropdown(
-                                label: 'Department',
-                                value: tempDepartment,
-                                items: departmentOptions,
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setState(() {
-                                    tempDepartment = value;
-                                    tempMachine = 'ALL';
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 20),
-                              _FilterSheetDropdown(
-                                label: 'Machine',
-                                value: tempMachine,
-                                items: machineOptions,
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setState(() {
-                                    tempMachine = value;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 20),
-                              _FilterSheetDropdown(
-                                label: 'Status',
-                                value: tempStatus,
-                                items: statusOptions,
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setState(() {
-                                    tempStatus = value;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 28),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.white70,
-                                        side: const BorderSide(color: Colors.white24),
-                                        backgroundColor: const Color(0xFF0B1F3D),
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 14,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(14),
-                                        ),
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          tempFactory = 'ALL';
-                                          tempDepartment = 'ALL';
-                                          tempMachine = 'ALL';
-                                          tempStatus = 'ALL';
-                                          tempRange = DateTimeRange(
-                                            start: initialRange.start,
-                                            end: initialRange.end,
-                                          );
-                                        });
-                                      },
-                                      child: const Text(
-                                        'Reset',
-                                        style: TextStyle(fontWeight: FontWeight.w600),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.cyanAccent,
-                                        foregroundColor: Colors.black,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 14,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(14),
-                                        ),
-                                      ),
-                                      onPressed: () {
-                                        Navigator.of(context).pop(
-                                          _FilterSelection(
-                                            factory: tempFactory,
-                                            department: tempDepartment,
-                                            machine: tempMachine,
-                                            status: tempStatus,
-                                            dateRange: tempRange,
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                                _FilterSheetDropdown(
+                                  label: 'Department',
+                                  value: tempDepartment,
+                                  items: departmentOptions,
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    setState(() {
+                                      tempDepartment = value;
+                                      tempMachine = 'ALL';
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                                _FilterSheetDropdown(
+                                  label: 'Machine',
+                                  value: tempMachine,
+                                  items: machineOptions,
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    setState(() {
+                                      tempMachine = value;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                                _FilterSheetDropdown(
+                                  label: 'Status',
+                                  value: tempStatus,
+                                  items: statusOptions,
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    setState(() {
+                                      tempStatus = value;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 28),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton(
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.white70,
+                                          side: const BorderSide(color: Colors.white24),
+                                          backgroundColor: const Color(0xFF0B1F3D),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 14,
                                           ),
-                                        );
-                                      },
-                                      child: const Text(
-                                        'QUERY',
-                                        style: TextStyle(fontWeight: FontWeight.w700),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            tempFactory = 'ALL';
+                                            tempDepartment = 'ALL';
+                                            tempMachine = 'ALL';
+                                            tempStatus = 'ALL';
+                                            tempRange = DateTimeRange(
+                                              start: initialRange.start,
+                                              end: initialRange.end,
+                                            );
+                                          });
+                                        },
+                                        child: const Text(
+                                          'Reset',
+                                          style: TextStyle(fontWeight: FontWeight.w600),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.cyanAccent,
+                                          foregroundColor: Colors.black,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                        ),
+                                        onPressed: () {
+                                          Navigator.of(context).pop(
+                                            _FilterSelection(
+                                              factory: tempFactory,
+                                              department: tempDepartment,
+                                              machine: tempMachine,
+                                              status: tempStatus,
+                                              dateRange: tempRange,
+                                            ),
+                                          );
+                                        },
+                                        child: const Text(
+                                          'QUERY',
+                                          style: TextStyle(fontWeight: FontWeight.w700),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
