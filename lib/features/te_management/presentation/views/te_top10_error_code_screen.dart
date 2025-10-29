@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -478,234 +476,308 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     required TETopErrorEntity? selected,
     required bool isWide,
   }) {
+    if (isWide) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth;
+          const double spacing = 14.0;
+          final crossAxisCount = maxWidth >= 1480 ? 3 : 2;
+          final cardWidth =
+              (maxWidth - ((crossAxisCount - 1) * spacing)) / crossAxisCount;
+
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: List.generate(data.length, (index) {
+              final item = data[index];
+              final isSelected = selected == item;
+              final barColor = _barPalette[index % _barPalette.length];
+              return SizedBox(
+                width: cardWidth,
+                child: _buildErrorCard(
+                  item: item,
+                  barColor: barColor,
+                  index: index,
+                  isSelected: isSelected,
+                  compact: true,
+                ),
+              );
+            }),
+          );
+        },
+      );
+    }
+
     return ListView.separated(
-      shrinkWrap: !isWide,
-      physics: isWide
-          ? const BouncingScrollPhysics()
-          : const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 6),
       itemBuilder: (context, index) {
         final item = data[index];
-        final isSelected = selected?.errorCode == item.errorCode;
+        final isSelected = selected == item;
         final barColor = _barPalette[index % _barPalette.length];
-        final total = math.max(1, item.totalFail);
-        final firstRatio = item.firstFail / total;
-        final repairRatio = item.repairFail / total;
-        return GestureDetector(
-          onTap: () => _controller.selectError(item),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeInOut,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: isSelected
-                  ? LinearGradient(
-                      colors: [
-                        barColor.withOpacity(0.18),
-                        Colors.transparent,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : null,
-              border: Border.all(
-                color: isSelected ? barColor : _kPanelBorderColor,
-                width: isSelected ? 1.6 : 1,
-              ),
-              color: isSelected
-                  ? _kPanelColor.withOpacity(0.9)
-                  : _kPanelColor.withOpacity(0.75),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: barColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '#${index + 1}',
-                        style: TextStyle(
-                          color: barColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        item.errorCode,
-                        style: const TextStyle(
-                          color: _kTextPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.6,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      isSelected
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_unchecked,
-                      color: isSelected ? barColor : _kTextSecondary,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: _kSurfaceMuted,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      final firstWidth = width * firstRatio;
-                      final repairWidth = width * repairRatio;
-                      return Stack(
-                        children: [
-                          Positioned(
-                            left: 0,
-                            width: firstWidth,
-                            top: 0,
-                            bottom: 0,
-                            child: Container(color: _kErrorColor.withOpacity(0.85)),
-                          ),
-                          Positioned(
-                            left: firstWidth,
-                            width: repairWidth,
-                            top: 0,
-                            bottom: 0,
-                            child: Container(color: _kRepairColor.withOpacity(0.85)),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _StatTile(
-                      color: _kErrorColor,
-                      title: 'First Fail',
-                      value: item.firstFail.toString(),
-                      fraction: firstRatio,
-                    ),
-                    const SizedBox(width: 12),
-                    _StatTile(
-                      color: _kRepairColor,
-                      title: 'Repair Fail',
-                      value: item.repairFail.toString(),
-                      fraction: repairRatio,
-                    ),
-                    const SizedBox(width: 12),
-                    _StatTile(
-                      color: barColor,
-                      title: 'Total',
-                      value: item.totalFail.toString(),
-                      fraction: 1,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (item.details.isEmpty)
-                  const Text(
-                    'No model breakdown available.',
-                    style: TextStyle(color: _kTextSecondary, fontSize: 13),
-                  )
-                else
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: item.details.take(3).map((detail) {
-                      final detailSelected =
-                          _controller.selectedDetail.value == detail;
-                      return GestureDetector(
-                        onTap: () => _controller.selectDetail(detail),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: detailSelected
-                                ? barColor.withOpacity(0.22)
-                                : _kSurfaceMuted,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: detailSelected
-                                  ? barColor
-                                  : _kSurfaceMuted,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                detail.modelName,
-                                style: const TextStyle(
-                                  color: _kTextPrimary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                detail.groupName,
-                                style: const TextStyle(
-                                  color: _kTextSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'F:${detail.firstFail}',
-                                    style: const TextStyle(
-                                      color: _kErrorColor,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'R:${detail.repairFail}',
-                                    style: const TextStyle(
-                                      color: _kRepairColor,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-              ],
-            ),
-          ),
+
+        return _buildErrorCard(
+          item: item,
+          barColor: barColor,
+          index: index,
+          isSelected: isSelected,
+          compact: false,
         );
       },
-      separatorBuilder: (context, index) => const SizedBox(height: 14),
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemCount: data.length,
     );
   }
 
+  Widget _buildErrorCard({
+    required TETopErrorEntity item,
+    required Color barColor,
+    required int index,
+    required bool isSelected,
+    required bool compact,
+  }) {
+    final total = item.totalFail == 0 ? 1.0 : item.totalFail.toDouble();
+    final firstRatio = item.firstFail / total;
+    final repairRatio = item.repairFail / total;
+
+    final contentPadding = EdgeInsets.symmetric(
+      horizontal: compact ? 14 : 18,
+      vertical: compact ? 14 : 18,
+    );
+
+    return GestureDetector(
+      onTap: () => _controller.selectError(item),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: contentPadding,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(compact ? 16 : 18),
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [
+                    barColor.withOpacity(0.18),
+                    Colors.transparent,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          border: Border.all(
+            color: isSelected ? barColor : _kPanelBorderColor,
+            width: isSelected ? 1.6 : 1,
+          ),
+          color: isSelected
+              ? _kPanelColor.withOpacity(0.92)
+              : _kPanelColor.withOpacity(0.78),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compact ? 10 : 12,
+                    vertical: compact ? 4 : 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: barColor.withOpacity(0.22),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '#${index + 1}',
+                    style: TextStyle(
+                      color: barColor,
+                      fontSize: compact ? 13 : 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.errorCode,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _kTextPrimary,
+                          fontSize: compact ? 17 : 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'F ${item.firstFail} · R ${item.repairFail} · Σ ${item.totalFail}',
+                        style: TextStyle(
+                          color: _kTextSecondary,
+                          fontSize: compact ? 11 : 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  size: compact ? 18 : 20,
+                  color: isSelected ? barColor : _kTextSecondary,
+                ),
+              ],
+            ),
+            SizedBox(height: compact ? 12 : 14),
+            Container(
+              height: compact ? 10 : 12,
+              decoration: BoxDecoration(
+                color: _kSurfaceMuted,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final firstWidth = width * firstRatio;
+                  final repairWidth = width * repairRatio;
+                  return Stack(
+                    children: [
+                      Positioned(
+                        left: 0,
+                        width: firstWidth,
+                        top: 0,
+                        bottom: 0,
+                        child: Container(color: _kErrorColor.withOpacity(0.85)),
+                      ),
+                      Positioned(
+                        left: firstWidth,
+                        width: repairWidth,
+                        top: 0,
+                        bottom: 0,
+                        child: Container(color: _kRepairColor.withOpacity(0.85)),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: compact ? 10 : 12),
+            Row(
+              children: [
+                _StatTile(
+                  color: _kErrorColor,
+                  title: 'First Fail',
+                  value: item.firstFail.toString(),
+                  fraction: firstRatio,
+                  compact: compact,
+                ),
+                const SizedBox(width: 10),
+                _StatTile(
+                  color: _kRepairColor,
+                  title: 'Repair Fail',
+                  value: item.repairFail.toString(),
+                  fraction: repairRatio,
+                  compact: compact,
+                ),
+                const SizedBox(width: 10),
+                _StatTile(
+                  color: barColor,
+                  title: 'Total',
+                  value: item.totalFail.toString(),
+                  fraction: 1,
+                  compact: compact,
+                ),
+              ],
+            ),
+            if (item.details.isNotEmpty) ...[
+              SizedBox(height: compact ? 10 : 12),
+              Wrap(
+                spacing: compact ? 6 : 8,
+                runSpacing: compact ? 6 : 8,
+                children: item.details.take(3).map((detail) {
+                  final detailSelected =
+                      _controller.selectedDetail.value == detail;
+                  return GestureDetector(
+                    onTap: () => _controller.selectDetail(detail),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? 10 : 12,
+                        vertical: compact ? 6 : 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: detailSelected
+                            ? barColor.withOpacity(0.22)
+                            : _kSurfaceMuted,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: detailSelected ? barColor : _kSurfaceMuted,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            detail.modelName,
+                            style: TextStyle(
+                              color: _kTextPrimary,
+                              fontSize: compact ? 12 : 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            detail.groupName,
+                            style: TextStyle(
+                              color: _kTextSecondary,
+                              fontSize: compact ? 11 : 12,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'F:${detail.firstFail}',
+                                style: TextStyle(
+                                  color: _kErrorColor,
+                                  fontSize: compact ? 11 : 12,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'R:${detail.repairFail}',
+                                style: TextStyle(
+                                  color: _kRepairColor,
+                                  fontSize: compact ? 11 : 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ] else ...[
+              SizedBox(height: compact ? 10 : 12),
+              const Text(
+                'No model breakdown available.',
+                style: TextStyle(color: _kTextSecondary, fontSize: 13),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
   Widget _buildAnalyticsPanel() {
     return Obx(() {
       final selectedError = _controller.selectedError.value;
@@ -1106,18 +1178,20 @@ class _StatTile extends StatelessWidget {
     required this.title,
     required this.value,
     required this.fraction,
+    this.compact = false,
   });
 
   final Color color;
   final String title;
   final String value;
   final double fraction;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(compact ? 10 : 12),
         decoration: BoxDecoration(
           color: color.withOpacity(0.16),
           borderRadius: BorderRadius.circular(14),
@@ -1130,26 +1204,26 @@ class _StatTile extends StatelessWidget {
               title,
               style: TextStyle(
                 color: color,
-                fontSize: 12,
+                fontSize: compact ? 11 : 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.3,
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: compact ? 4 : 6),
             Text(
               value,
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w700,
-                fontSize: 16,
+                fontSize: compact ? 15 : 16,
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: compact ? 4 : 6),
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: LinearProgressIndicator(
                 value: fraction.clamp(0, 1),
-                minHeight: 6,
+                minHeight: compact ? 5 : 6,
                 backgroundColor: Colors.black26,
                 valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.7)),
               ),
