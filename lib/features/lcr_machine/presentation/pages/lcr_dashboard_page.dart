@@ -1059,19 +1059,16 @@ class _StatusOverviewDialog extends StatefulWidget {
 
 class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
   late final ScrollController _verticalController;
-  late final ScrollController _horizontalController;
 
   @override
   void initState() {
     super.initState();
     _verticalController = ScrollController();
-    _horizontalController = ScrollController();
   }
 
   @override
   void dispose() {
     _verticalController.dispose();
-    _horizontalController.dispose();
     super.dispose();
   }
 
@@ -1082,7 +1079,11 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     final highlightColor = widget.highlightColor;
     final theme = Theme.of(context);
     final media = MediaQuery.of(context);
-    final width = math.min(media.size.width * 0.9, 1120.0);
+    final width = math.min(
+      math.max(media.size.width * 0.92, media.size.width - 48),
+      1800.0,
+    );
+    final tableMinWidth = math.max(width * 0.92, width - 64);
     final height = math.min(media.size.height * 0.8, 640.0);
     final dateTimeFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
     final infoTextStyle = theme.textTheme.bodySmall?.copyWith(
@@ -1199,17 +1200,11 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                           child: SingleChildScrollView(
                             controller: _verticalController,
                             primary: false,
-                            child: Scrollbar(
-                              controller: _horizontalController,
-                              thumbVisibility: true,
-                              notificationPredicate: (notification) =>
-                                  notification.metrics.axis ==
-                                  Axis.horizontal,
-                              child: SingleChildScrollView(
-                                controller: _horizontalController,
-                                scrollDirection: Axis.horizontal,
-                                primary: false,
-                                child: DataTable(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: tableMinWidth,
+                              ),
+                              child: DataTable(
                                   headingRowHeight: 48,
                                   dataRowMinHeight: 44,
                                   dataRowMaxHeight: 60,
@@ -1227,8 +1222,8 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                     color: Colors.white.withOpacity(0.9),
                                     fontWeight: FontWeight.w600,
                                   ),
-                                  columnSpacing: 26,
-                                  horizontalMargin: 24,
+                                  columnSpacing: 18,
+                                  horizontalMargin: 20,
                                   columns: const [
                                     DataColumn(label: Text('#')),
                                     DataColumn(label: Text('DATE TIME')),
@@ -1293,9 +1288,22 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                         )),
                                         DataCell(
                                             Text(record.employeeId ?? '-')),
-                                        DataCell(Text(record.factory)),
-                                        DataCell(Text(record.department ?? '-')),
-                                        DataCell(Text(record.machineNo.toString())),
+                                        DataCell(
+                                          Text(
+                                            record.factory.isEmpty
+                                                ? '-'
+                                                : record.factory,
+                                          ),
+                                        ),
+                                        DataCell(
+                                            Text(record.department ?? '-')),
+                                        DataCell(
+                                          Text(
+                                            record.machineNo == 0
+                                                ? '-'
+                                                : record.machineNo.toString(),
+                                          ),
+                                        ),
                                       ],
                                     );
                                   }).toList(),

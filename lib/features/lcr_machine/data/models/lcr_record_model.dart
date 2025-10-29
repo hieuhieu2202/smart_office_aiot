@@ -31,7 +31,10 @@ class LcrRecordModel extends LcrRecord {
   });
 
   factory LcrRecordModel.fromJson(Map<String, dynamic> json) {
-    final dateTimeRaw = _firstNonNull<dynamic>(json, 'dateTime', 'DateTime');
+    final dateTimeRaw = _firstNonNull<dynamic>(
+      json,
+      const ['dateTime', 'DateTime'],
+    );
     final dateTime = dateTimeRaw is String
         ? DateTime.tryParse(dateTimeRaw)
         : dateTimeRaw is DateTime
@@ -40,7 +43,7 @@ class LcrRecordModel extends LcrRecord {
 
     final workDate = _string(json, 'workDate', 'WorkDate');
     final workSection = _int(json, 'workSection', 'WorkSection');
-    final className = _string(json, 'class', 'Class');
+    final className = _string(json, 'class', 'Class', additionalKeys: const ['ClassName']);
     final classDate = _string(json, 'classDate', 'ClassDate');
 
     return LcrRecordModel(
@@ -50,55 +53,196 @@ class LcrRecordModel extends LcrRecord {
       workSection: workSection ?? 0,
       className: className ?? '',
       classDate: classDate ?? '',
-      serialNumber: _string(json, 'sn', 'Sn'),
-      customerPn: _string(json, 'custPn', 'CustPn'),
-      dateCode: _string(json, 'datecode', 'Datecode'),
-      lotCode: _string(json, 'lotcode', 'Lotcode'),
+      serialNumber: _string(
+        json,
+        'sn',
+        'Sn',
+        additionalKeys: const ['SN'],
+      ),
+      customerPn: _string(
+        json,
+        'custPn',
+        'CustPn',
+        additionalKeys: const ['customerPn', 'CustomerPn', 'CUSTOMERPN'],
+      ),
+      dateCode: _string(
+        json,
+        'datecode',
+        'Datecode',
+        additionalKeys: const ['DateCode', 'DATECODE'],
+      ),
+      lotCode: _string(
+        json,
+        'lotcode',
+        'Lotcode',
+        additionalKeys: const ['LotCode', 'LOTCODE'],
+      ),
       vendor: _string(json, 'vendor', 'Vendor'),
-      vendorNo: _string(json, 'vendorNo', 'Vendorno'),
+      vendorNo: _string(
+        json,
+        'vendorNo',
+        'Vendorno',
+        additionalKeys: const ['VendorNo', 'VENDORNO'],
+      ),
       location: _string(json, 'location', 'Location'),
-      qty: _int(json, 'qty', 'Qty'),
-      extQty: _int(json, 'extqty', 'Extqty'),
+      qty: _int(
+        json,
+        'qty',
+        'Qty',
+        additionalKeys: const ['QTY'],
+      ),
+      extQty: _int(
+        json,
+        'extqty',
+        'Extqty',
+        additionalKeys: const ['ExtQty', 'EXTQTY'],
+      ),
       description: _string(json, 'description', 'Description'),
-      materialType: _string(json, 'materialtype', 'Materialtype'),
-      lowSpec: _string(json, 'lowspec', 'Lowspec'),
-      highSpec: _string(json, 'highspec', 'Highspec'),
-      measureValue: _string(json, 'measurevalue', 'Measurevalue'),
-      status: _bool(json, 'status', 'Status') ?? false,
-      employeeId: _string(json, 'employeeid', 'Employeeid'),
-      recordId: _string(json, 'idrecord', 'Idrecord') ?? '',
-      factory: _string(json, 'factory', 'Factory') ?? '',
-      department: _string(json, 'department', 'Department'),
-      machineNo: _int(json, 'machineno', 'Machineno') ?? 0,
+      materialType: _string(
+        json,
+        'materialtype',
+        'Materialtype',
+        additionalKeys: const ['MaterialType', 'MATERIALTYPE'],
+      ),
+      lowSpec: _string(
+        json,
+        'lowspec',
+        'Lowspec',
+        additionalKeys: const ['LowSpec', 'LOWSPEC'],
+      ),
+      highSpec: _string(
+        json,
+        'highspec',
+        'Highspec',
+        additionalKeys: const ['HighSpec', 'HIGHSPEC'],
+      ),
+      measureValue: _string(
+        json,
+        'measurevalue',
+        'Measurevalue',
+        additionalKeys: const ['MeasureValue', 'MEASUREVALUE'],
+      ),
+      status: _bool(
+            json,
+            'status',
+            'Status',
+            additionalKeys: const ['STATUS'],
+          ) ??
+          false,
+      employeeId: _string(
+        json,
+        'employeeid',
+        'Employeeid',
+        additionalKeys: const ['EmployeeId', 'EMPLOYEEID'],
+      ),
+      recordId: _string(
+            json,
+            'idrecord',
+            'Idrecord',
+            additionalKeys: const ['IdRecord', 'IDRECORD'],
+          ) ??
+          '',
+      factory: _string(
+            json,
+            'factory',
+            'Factory',
+            additionalKeys: const ['FACTORY'],
+          ) ??
+          '',
+      department: _string(
+        json,
+        'department',
+        'Department',
+        additionalKeys: const ['DEPARTMENT'],
+      ),
+      machineNo: _int(
+            json,
+            'machineno',
+            'Machineno',
+            additionalKeys: const ['MachineNo', 'MACHINENO'],
+          ) ??
+          0,
     );
   }
 
-  static T? _firstNonNull<T>(Map<String, dynamic> json, String k1, String k2) {
-    final dynamic v1 = json[k1];
-    if (v1 != null) return v1 as T;
-    final dynamic v2 = json[k2];
-    if (v2 != null) return v2 as T;
+  static T? _firstNonNull<T>(
+    Map<String, dynamic> json,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = _read(json, key);
+      if (value != null) {
+        return value as T;
+      }
+    }
     return null;
   }
 
-  static String? _string(Map<String, dynamic> json, String k1, String k2) {
-    final dynamic value = _firstNonNull<dynamic>(json, k1, k2);
-    if (value == null) return null;
-    if (value is String) return value;
-    return value.toString();
+  static dynamic _read(Map<String, dynamic> json, String key) {
+    if (json.containsKey(key)) {
+      final value = json[key];
+      if (value != null && !(value is String && value.trim().isEmpty)) {
+        return value;
+      }
+    }
+    final lowerKey = key.toLowerCase();
+    for (final entry in json.entries) {
+      if (entry.key.toLowerCase() == lowerKey) {
+        final value = entry.value;
+        if (value != null && !(value is String && value.trim().isEmpty)) {
+          return value;
+        }
+      }
+    }
+    return null;
   }
 
-  static int? _int(Map<String, dynamic> json, String k1, String k2) {
-    final dynamic value = _firstNonNull<dynamic>(json, k1, k2);
+  static String? _string(
+    Map<String, dynamic> json,
+    String k1,
+    String k2, {
+    List<String> additionalKeys = const [],
+  }) {
+    final dynamic value = _firstNonNull<dynamic>(
+      json,
+      <String>[k1, k2, ...additionalKeys],
+    );
+    if (value == null) return null;
+    if (value is String) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    final converted = value.toString().trim();
+    return converted.isEmpty ? null : converted;
+  }
+
+  static int? _int(
+    Map<String, dynamic> json,
+    String k1,
+    String k2, {
+    List<String> additionalKeys = const [],
+  }) {
+    final dynamic value = _firstNonNull<dynamic>(
+      json,
+      <String>[k1, k2, ...additionalKeys],
+    );
     if (value == null) return null;
     if (value is int) return value;
     if (value is double) return value.toInt();
-    if (value is String) return int.tryParse(value);
+    if (value is String) return int.tryParse(value.trim());
     return null;
   }
 
-  static bool? _bool(Map<String, dynamic> json, String k1, String k2) {
-    final dynamic value = _firstNonNull<dynamic>(json, k1, k2);
+  static bool? _bool(
+    Map<String, dynamic> json,
+    String k1,
+    String k2, {
+    List<String> additionalKeys = const [],
+  }) {
+    final dynamic value = _firstNonNull<dynamic>(
+      json,
+      <String>[k1, k2, ...additionalKeys],
+    );
     if (value == null) return null;
     if (value is bool) return value;
     if (value is int) return value == 1;
