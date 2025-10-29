@@ -1084,8 +1084,31 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     final media = MediaQuery.of(context);
     final width = math.min(media.size.width * 0.9, 1120.0);
     final height = math.min(media.size.height * 0.8, 640.0);
-    final dateFormatter = DateFormat('yyyy-MM-dd');
-    final timeFormatter = DateFormat('HH:mm');
+    final dateTimeFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
+    final infoTextStyle = theme.textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF20E0FF),
+          fontWeight: FontWeight.w700,
+        ) ??
+        const TextStyle(
+          color: Color(0xFF20E0FF),
+          fontWeight: FontWeight.w700,
+        );
+    final warningTextStyle = theme.textTheme.bodySmall?.copyWith(
+          color: const Color(0xFFFF77A9),
+          fontWeight: FontWeight.w700,
+        ) ??
+        const TextStyle(
+          color: Color(0xFFFF77A9),
+          fontWeight: FontWeight.w700,
+        );
+    final successTextStyle = theme.textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF5CFF8F),
+          fontWeight: FontWeight.w700,
+        ) ??
+        const TextStyle(
+          color: Color(0xFF5CFF8F),
+          fontWeight: FontWeight.w700,
+        );
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -1204,26 +1227,15 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                     color: Colors.white.withOpacity(0.9),
                                     fontWeight: FontWeight.w600,
                                   ),
-                                  columnSpacing: 28,
+                                  columnSpacing: 26,
                                   horizontalMargin: 24,
                                   columns: const [
-                                    DataColumn(label: Text('DATE')),
-                                    DataColumn(label: Text('TIME')),
-                                    DataColumn(label: Text('WORK DATE')),
-                                    DataColumn(label: Text('WORK SECTION')),
-                                    DataColumn(label: Text('CLASS')),
-                                    DataColumn(label: Text('CLASS DATE')),
-                                    DataColumn(label: Text('FACTORY')),
-                                    DataColumn(label: Text('DEPARTMENT')),
-                                    DataColumn(label: Text('MACHINE')),
-                                    DataColumn(label: Text('EMPLOYEE')),
+                                    DataColumn(label: Text('#')),
+                                    DataColumn(label: Text('DATE TIME')),
                                     DataColumn(label: Text('SERIAL NO.')),
                                     DataColumn(label: Text('CUSTOMER P/N')),
                                     DataColumn(label: Text('DATE CODE')),
                                     DataColumn(label: Text('LOT CODE')),
-                                    DataColumn(label: Text('VENDOR')),
-                                    DataColumn(label: Text('VENDOR NO.')),
-                                    DataColumn(label: Text('LOCATION')),
                                     DataColumn(label: Text('QTY')),
                                     DataColumn(label: Text('EXT QTY')),
                                     DataColumn(label: Text('DESCRIPTION')),
@@ -1231,68 +1243,59 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                     DataColumn(label: Text('LOW SPEC')),
                                     DataColumn(label: Text('HIGH SPEC')),
                                     DataColumn(label: Text('MEASURE VALUE')),
-                                    DataColumn(label: Text('STATUS')),
-                                    DataColumn(label: Text('RECORD ID')),
+                                    DataColumn(label: Text('EMPLOYEE ID')),
+                                    DataColumn(label: Text('FACTORY')),
+                                    DataColumn(label: Text('DEPARTMENT')),
+                                    DataColumn(label: Text('MACHINE NO.')),
                                   ],
-                                  rows: records.map((record) {
-                                    final statusLabel =
-                                        record.isPass ? 'PASS' : 'FAIL';
-                                    final statusColor = record.isPass
-                                        ? const Color(0xFF20E0FF)
-                                        : const Color(0xFFFF77A9);
+                                  rows: records
+                                      .asMap()
+                                      .entries
+                                      .map((entry) {
+                                    final index = entry.key + 1;
+                                    final record = entry.value;
                                     final rowTint = record.isPass
                                         ? Colors.white.withOpacity(0.01)
                                         : const Color(0xFFFF77A9)
                                             .withOpacity(0.08);
-                                    final machineLabel =
-                                        'MC-${record.machineNo.toString().padLeft(2, '0')}';
-                                    final classLabel =
-                                        record.className == 'D'
-                                            ? 'DAY'
-                                            : record.className;
+
                                     return DataRow(
                                       color: MaterialStateProperty.all(rowTint),
                                       cells: [
+                                        DataCell(Text(index.toString())),
                                         DataCell(Text(
-                                            dateFormatter
+                                            dateTimeFormatter
                                                 .format(record.dateTime))),
                                         DataCell(Text(
-                                            timeFormatter
-                                                .format(record.dateTime))),
-                                        DataCell(Text(record.workDate)),
+                                          record.serialNumber ?? '-',
+                                          style: infoTextStyle,
+                                        )),
                                         DataCell(
-                                            Text(record.workSection.toString())),
-                                        DataCell(Text(classLabel)),
-                                        DataCell(Text(record.classDate)),
-                                        DataCell(Text(record.factory)),
-                                        DataCell(Text(record.department ?? '-')),
-                                        DataCell(Text(machineLabel)),
-                                        DataCell(Text(record.employeeId ?? '-')),
-                                        DataCell(Text(record.serialNumber ?? '-')),
-                                        DataCell(Text(record.customerPn ?? '-')),
+                                            Text(record.customerPn ?? '-')),
                                         DataCell(Text(record.dateCode ?? '-')),
                                         DataCell(Text(record.lotCode ?? '-')),
-                                        DataCell(Text(record.vendor ?? '-')),
-                                        DataCell(Text(record.vendorNo ?? '-')),
-                                        DataCell(Text(record.location ?? '-')),
                                         DataCell(Text(record.qty?.toString() ?? '-')),
                                         DataCell(
                                             Text(record.extQty?.toString() ?? '-')),
                                         DataCell(Text(record.description ?? '-')),
                                         DataCell(Text(record.materialType ?? '-')),
-                                        DataCell(Text(record.lowSpec ?? '-')),
-                                        DataCell(Text(record.highSpec ?? '-')),
-                                        DataCell(Text(record.measureValue ?? '-')),
+                                        DataCell(Text(
+                                          record.lowSpec ?? '-',
+                                          style: infoTextStyle,
+                                        )),
+                                        DataCell(Text(
+                                          record.highSpec ?? '-',
+                                          style: warningTextStyle,
+                                        )),
+                                        DataCell(Text(
+                                          record.measureValue ?? '-',
+                                          style: successTextStyle,
+                                        )),
                                         DataCell(
-                                          Text(
-                                            statusLabel,
-                                            style: TextStyle(
-                                              color: statusColor,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                        DataCell(Text(record.recordId)),
+                                            Text(record.employeeId ?? '-')),
+                                        DataCell(Text(record.factory)),
+                                        DataCell(Text(record.department ?? '-')),
+                                        DataCell(Text(record.machineNo.toString())),
                                       ],
                                     );
                                   }).toList(),
