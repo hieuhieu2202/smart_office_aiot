@@ -1457,7 +1457,6 @@ class _StackedBarChart extends StatelessWidget {
         isVisible: true,
         position: LegendPosition.bottom,
         textStyle: const TextStyle(color: Colors.white70),
-        iconType: LegendIconType.rectangle,
       ),
       series: <CartesianSeries<dynamic, dynamic>>[
         StackedColumnSeries<dynamic, dynamic>(
@@ -1469,6 +1468,7 @@ class _StackedBarChart extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
           width: 0.6,
           spacing: 0.2,
+          legendIconType: LegendIconType.rectangle,
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
             textStyle: const TextStyle(
@@ -1496,6 +1496,7 @@ class _StackedBarChart extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
           width: 0.6,
           spacing: 0.2,
+          legendIconType: LegendIconType.rectangle,
           dataLabelSettings: const DataLabelSettings(isVisible: false),
         ),
       ],
