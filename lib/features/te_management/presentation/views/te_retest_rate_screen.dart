@@ -652,6 +652,13 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
         String filter = '';
         return StatefulBuilder(
           builder: (context, setState) {
+            final allSelected = tempSelection.length == options.length;
+            final selectAllValue = allSelected
+                ? true
+                : tempSelection.isNotEmpty
+                    ? null
+                    : false;
+
             final filtered = options
                 .where(
                   (model) => filter.isEmpty
@@ -692,6 +699,31 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
                       },
                     ),
                     const SizedBox(height: 12),
+                    CheckboxListTile(
+                      value: selectAllValue,
+                      tristate: true,
+                      onChanged: (value) {
+                        setState(() {
+                          if (value == true) {
+                            tempSelection
+                              ..clear()
+                              ..addAll(options);
+                          } else {
+                            tempSelection.clear();
+                          }
+                        });
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text(
+                        'Select All',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                      activeColor: _kAccentColor,
+                      checkboxShape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Expanded(
                       child: Scrollbar(
                         thumbVisibility: true,
