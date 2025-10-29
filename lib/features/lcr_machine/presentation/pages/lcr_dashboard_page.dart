@@ -990,10 +990,32 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-class _FactoryDistributionList extends StatelessWidget {
+class _FactoryDistributionList extends StatefulWidget {
   const _FactoryDistributionList(this.slices);
 
   final List<LcrPieSlice> slices;
+
+  @override
+  State<_FactoryDistributionList> createState() =>
+      _FactoryDistributionListState();
+}
+
+class _FactoryDistributionListState extends State<_FactoryDistributionList> {
+  late final ScrollController _scrollController;
+
+  List<LcrPieSlice> get slices => widget.slices;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   static const Map<String, List<Color>> _namedGradients = {
     'F17': [Color(0xFF6DD5FA), Color(0xFF2980B9)],
@@ -1103,8 +1125,10 @@ class _FactoryDistributionList extends StatelessWidget {
             const SizedBox(height: 22),
             Expanded(
               child: Scrollbar(
+                controller: _scrollController,
                 thumbVisibility: true,
                 child: ListView.separated(
+                  controller: _scrollController,
                   padding: EdgeInsets.zero,
                   physics: const BouncingScrollPhysics(),
                   itemCount: sorted.length,
