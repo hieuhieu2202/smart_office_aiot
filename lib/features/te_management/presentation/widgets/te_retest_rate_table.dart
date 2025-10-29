@@ -175,7 +175,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
   @override
   Widget build(BuildContext context) {
     return DefaultTextStyle.merge(
-      fontFamily: 'Arial',
+      style: const TextStyle(fontFamily: 'Arial'),
       child: Builder(
         builder: (context) {
           if (!widget.detail.hasData || widget.formattedDates.isEmpty) {

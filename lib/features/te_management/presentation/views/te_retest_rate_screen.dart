@@ -75,7 +75,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTextStyle.merge(
-      fontFamily: 'Arial',
+      style: const TextStyle(fontFamily: 'Arial'),
       child: Scaffold(
         backgroundColor: _kBackgroundColor,
         appBar: AppBar(
