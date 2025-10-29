@@ -1474,7 +1474,8 @@ class _StackedBarChart extends StatelessWidget {
             const TextStyle(color: Colors.white70, fontSize: 12),
         majorGridLines: const MajorGridLines(width: 0),
         labelRotation: rotateLabels ? -45 : 0,
-        labelIntersectAction: xLabelIntersectAction,
+        labelIntersectAction:
+            xLabelIntersectAction ?? AxisLabelIntersectAction.hide,
         maximumLabelWidth: maximumLabelWidth,
       ),
       primaryYAxis: NumericAxis(
