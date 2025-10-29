@@ -1179,10 +1179,9 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                             child: Scrollbar(
                               controller: _horizontalController,
                               thumbVisibility: true,
-                              notificationPredicate: (notification) {
-                                return notification.metrics.axis ==
-                                    Axis.horizontal;
-                              },
+                              notificationPredicate: (notification) =>
+                                  notification.metrics.axis ==
+                                  Axis.horizontal,
                               child: SingleChildScrollView(
                                 controller: _horizontalController,
                                 scrollDirection: Axis.horizontal,
@@ -1193,67 +1192,72 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                   dataRowMaxHeight: 60,
                                   headingRowColor: MaterialStateProperty.all(
                                     Colors.white.withOpacity(0.05),
-                                ),
-                                headingTextStyle:
-                                    theme.textTheme.labelSmall?.copyWith(
-                                  color: Colors.white70,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.6,
-                                ),
-                                dataTextStyle:
-                                    theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                columnSpacing: 28,
-                                horizontalMargin: 24,
-                                columns: const [
-                                  DataColumn(label: Text('DATE')),
-                                  DataColumn(label: Text('TIME')),
-                                  DataColumn(label: Text('FACTORY')),
-                                  DataColumn(label: Text('DEPARTMENT')),
-                                  DataColumn(label: Text('MACHINE')),
-                                  DataColumn(label: Text('EMPLOYEE')),
-                                  DataColumn(label: Text('SERIAL NO.')),
-                                  DataColumn(label: Text('DESCRIPTION')),
-                                  DataColumn(label: Text('MEASURE')),
-                                  DataColumn(label: Text('STATUS')),
-                                ],
-                                rows: records.map((record) {
-                                  final statusLabel = record.isPass ? 'PASS' : 'FAIL';
-                                  final statusColor = record.isPass
-                                      ? const Color(0xFF20E0FF)
-                                      : const Color(0xFFFF77A9);
-                                  final rowTint = record.isPass
-                                      ? Colors.white.withOpacity(0.01)
-                                      : const Color(0xFFFF77A9).withOpacity(0.08);
-                                  return DataRow(
-                                    color: MaterialStateProperty.all(rowTint),
-                                    cells: [
-                                      DataCell(Text(
-                                          dateFormatter.format(record.dateTime))),
-                                      DataCell(Text(
-                                          timeFormatter.format(record.dateTime))),
-                                      DataCell(Text(record.factory)),
-                                      DataCell(Text(record.department ?? '-')),
-                                      DataCell(Text(
-                                          'MC-${record.machineNo.toString().padLeft(2, '0')}')),
-                                      DataCell(Text(record.employeeId ?? '-')),
-                                      DataCell(Text(record.serialNumber ?? '-')),
-                                      DataCell(Text(record.description ?? '-')),
-                                      DataCell(Text(record.measureValue ?? '-')),
-                                      DataCell(
-                                        Text(
-                                          statusLabel,
-                                          style: TextStyle(
-                                            color: statusColor,
-                                            fontWeight: FontWeight.w700,
+                                  ),
+                                  headingTextStyle:
+                                      theme.textTheme.labelSmall?.copyWith(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.6,
+                                  ),
+                                  dataTextStyle:
+                                      theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  columnSpacing: 28,
+                                  horizontalMargin: 24,
+                                  columns: const [
+                                    DataColumn(label: Text('DATE')),
+                                    DataColumn(label: Text('TIME')),
+                                    DataColumn(label: Text('FACTORY')),
+                                    DataColumn(label: Text('DEPARTMENT')),
+                                    DataColumn(label: Text('MACHINE')),
+                                    DataColumn(label: Text('EMPLOYEE')),
+                                    DataColumn(label: Text('SERIAL NO.')),
+                                    DataColumn(label: Text('DESCRIPTION')),
+                                    DataColumn(label: Text('MEASURE')),
+                                    DataColumn(label: Text('STATUS')),
+                                  ],
+                                  rows: records.map((record) {
+                                    final statusLabel =
+                                        record.isPass ? 'PASS' : 'FAIL';
+                                    final statusColor = record.isPass
+                                        ? const Color(0xFF20E0FF)
+                                        : const Color(0xFFFF77A9);
+                                    final rowTint = record.isPass
+                                        ? Colors.white.withOpacity(0.01)
+                                        : const Color(0xFFFF77A9)
+                                            .withOpacity(0.08);
+                                    return DataRow(
+                                      color: MaterialStateProperty.all(rowTint),
+                                      cells: [
+                                        DataCell(Text(
+                                            dateFormatter
+                                                .format(record.dateTime))),
+                                        DataCell(Text(
+                                            timeFormatter
+                                                .format(record.dateTime))),
+                                        DataCell(Text(record.factory)),
+                                        DataCell(Text(record.department ?? '-')),
+                                        DataCell(Text(
+                                            'MC-${record.machineNo.toString().padLeft(2, '0')}')),
+                                        DataCell(Text(record.employeeId ?? '-')),
+                                        DataCell(Text(record.serialNumber ?? '-')),
+                                        DataCell(Text(record.description ?? '-')),
+                                        DataCell(Text(record.measureValue ?? '-')),
+                                        DataCell(
+                                          Text(
+                                            statusLabel,
+                                            style: TextStyle(
+                                              color: statusColor,
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  );
-                                }).toList(),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
                               ),
                             ),
                           ),
