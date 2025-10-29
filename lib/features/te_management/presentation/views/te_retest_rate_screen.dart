@@ -108,6 +108,29 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
             ),
             centerTitle: true,
             actions: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                child: ElevatedButton.icon(
+                  onPressed: _openFilterSheet,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF12506F),
+                    foregroundColor: Colors.white,
+                    elevation: 8,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    minimumSize: const Size(0, 36),
+                    textStyle: const TextStyle(
+                      fontFamily: 'Arial',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.tune_rounded, size: 18),
+                  label: const Text('Filters'),
+                ),
+              ),
               Obx(
                 () => IconButton(
                   icon: const Icon(Icons.refresh, color: _kAppBarIconColor),
@@ -216,24 +239,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
       final hasError = _controller.hasError;
       final formatter = DateFormat('yyyy/MM/dd HH:mm:ss');
 
-      Widget buildFilterButton() {
-        return SizedBox(
-          height: 44,
-          child: ElevatedButton.icon(
-            onPressed: _openFilterSheet,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF12506F),
-              foregroundColor: Colors.white,
-              elevation: 8,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            icon: const Icon(Icons.tune_rounded, size: 20),
-            label: const Text('Filters'),
-          ),
-        );
-      }
-
       Widget buildLastUpdateChip() {
         return Container(
           height: 44,
@@ -298,10 +303,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
       }
 
       if (isCompact) {
-        final rawWidth = sizing.screenSize.width.isFinite
-            ? sizing.screenSize.width - 48
-            : 200.0;
-        final filterWidth = rawWidth.clamp(140.0, 220.0).toDouble();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -310,7 +311,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
               runSpacing: 10,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                SizedBox(width: filterWidth, child: buildFilterButton()),
                 buildLastUpdateChip(),
                 if (hasError) buildErrorChip(),
               ],
@@ -341,7 +341,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                buildFilterButton(),
                 buildLastUpdateChip(),
                 if (hasError) buildErrorChip(),
               ],
