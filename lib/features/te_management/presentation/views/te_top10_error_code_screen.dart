@@ -1,3 +1,5 @@
+import 'dart:math' show max;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -509,27 +511,55 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
       final isWide = sizing.screenSize.width >= 1100;
       if (isWide) {
-        return Column(
-          children: [
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: 11,
-                    child: _buildErrorListPanel(isWide: true),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            const gap = 16.0;
+            final maxHeight = constraints.maxHeight;
+            final topHeight = max(320.0, min(maxHeight * 0.48, 520.0));
+            final remainingHeight = maxHeight - topHeight - gap;
+            final distributionHeight = max(
+              210.0,
+              min(remainingHeight * 0.45, remainingHeight - gap - 260.0),
+            );
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  height: topHeight,
+                  child: _buildErrorListPanel(isWide: true),
+                ),
+                const SizedBox(height: gap),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        flex: 6,
+                        child: _buildDetailTable(isWide: true, expand: true),
+                      ),
+                      const SizedBox(width: gap),
+                      Expanded(
+                        flex: 4,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(
+                              height: distributionHeight,
+                              child: _buildDistributionPanel(),
+                            ),
+                            const SizedBox(height: gap),
+                            Expanded(
+                              child: _buildTrendPanel(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    flex: 9,
-                    child: _buildAnalyticsPanel(),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            _buildDetailTable(isWide: true),
-          ],
+                ),
+              ],
+            );
+          },
         );
       }
 
@@ -537,9 +567,17 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         padding: EdgeInsets.zero,
         children: [
           _buildErrorListPanel(isWide: false),
-          const SizedBox(height: 20),
-          _buildAnalyticsPanel(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 280,
+            child: _buildDistributionPanel(),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 420,
+            child: _buildTrendPanel(),
+          ),
+          const SizedBox(height: 18),
           _buildDetailTable(isWide: false),
         ],
       );
@@ -940,7 +978,113 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       }).toList(),
     );
   }
-  Widget _buildAnalyticsPanel() {
+
+  Widget _buildDistributionPanel() {
+    return Obx(() {
+      final errors = _controller.errors;
+      final totalFailures = errors.fold<int>(
+        0,
+        (sum, item) => sum + item.totalFail,
+      );
+
+      return Container(
+        decoration: BoxDecoration(
+          color: _kPanelColor.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _kPanelBorderColor),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 18,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.donut_small_outlined, color: _kAccentColor),
+                const SizedBox(width: 8),
+                const Text(
+                  'Failure Distribution',
+                  style: TextStyle(
+                    color: _kTextPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Total Failures: $totalFailures',
+                  style: const TextStyle(color: _kTextSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: errors.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No data',
+                        style: TextStyle(color: _kTextSecondary),
+                      ),
+                    )
+                  : SfCircularChart(
+                      backgroundColor: Colors.transparent,
+                      legend: Legend(
+                        isVisible: true,
+                        position: LegendPosition.right,
+                        overflowMode: LegendItemOverflowMode.wrap,
+                        textStyle:
+                            const TextStyle(color: _kTextSecondary, fontSize: 11),
+                        itemPadding: 8,
+                      ),
+                      tooltipBehavior: TooltipBehavior(
+                        enable: true,
+                        color: const Color(0xFF0B1F39),
+                        header: '',
+                        textStyle:
+                            const TextStyle(color: Colors.white, fontSize: 11),
+                      ),
+                      series: <CircularSeries<_DistributionDatum, String>>[
+                        DoughnutSeries<_DistributionDatum, String>(
+                          dataSource: List.generate(errors.length, (index) {
+                            final item = errors[index];
+                            return _DistributionDatum(
+                              label: item.errorCode,
+                              value: item.totalFail.toDouble(),
+                              color: _barPalette[index % _barPalette.length],
+                            );
+                          }),
+                          xValueMapper: (datum, _) => datum.label,
+                          yValueMapper: (datum, _) => datum.value,
+                          pointColorMapper: (datum, _) => datum.color,
+                          radius: '78%',
+                          innerRadius: '55%',
+                          explode: true,
+                          explodeOffset: '4%',
+                          dataLabelSettings: const DataLabelSettings(
+                            isVisible: true,
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
+                            labelPosition: ChartDataLabelPosition.outside,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildTrendPanel() {
     return Obx(() {
       final selectedError = _controller.selectedError.value;
       final selectedDetail = _controller.selectedDetail.value;
@@ -948,362 +1092,336 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       final hasTrendError = _controller.hasTrendError;
       final trendError = _controller.trendErrorMessage.value;
       final trendData = _controller.trendPoints;
-      final totalFailures = _controller.errors.fold<int>(
-        0,
-        (sum, item) => sum + item.totalFail,
-      );
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildDistributionCard(totalFailures),
-          const SizedBox(height: 20),
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: _kPanelColor.withOpacity(0.94),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: _kPanelBorderColor),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 18,
-                    offset: Offset(0, 12),
+      return Container(
+        decoration: BoxDecoration(
+          color: _kPanelColor.withOpacity(0.94),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _kPanelBorderColor),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 18,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(Icons.timeline_outlined, color: _kAccentColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    selectedDetail == null
+                        ? '${selectedError?.errorCode ?? '--'} · Weekly Trend'
+                        : '${selectedDetail.modelName} · ${selectedDetail.groupName}',
+                    style: const TextStyle(
+                      color: _kTextPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.timeline_outlined,
-                          color: _kAccentColor),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          selectedDetail == null
-                              ? '${selectedError?.errorCode ?? '--'} · Weekly Trend'
-                              : '${selectedDetail.modelName} · ${selectedDetail.groupName}',
-                          style: const TextStyle(
-                            color: _kTextPrimary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                ),
+                if (selectedDetail != null)
+                  TextButton.icon(
+                    onPressed: _controller.clearDetailSelection,
+                    style: TextButton.styleFrom(
+                      foregroundColor: _kAccentColor,
+                    ),
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Back to error code'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _controller.rangeLabel,
+              style: const TextStyle(color: _kTextSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: trendLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(_kAccentColor),
                         ),
-                      ),
-                      if (selectedDetail != null)
-                        TextButton.icon(
-                          onPressed: _controller.clearDetailSelection,
-                          style: TextButton.styleFrom(
-                            foregroundColor: _kAccentColor,
-                          ),
-                          icon: const Icon(Icons.close, size: 18),
-                          label: const Text('Back to error code'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _controller.rangeLabel,
-                    style: const TextStyle(color: _kTextSecondary, fontSize: 12),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: trendLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(_kAccentColor),
+                      )
+                    : hasTrendError
+                        ? Center(
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                trendError,
+                                style: const TextStyle(
+                                  color: _kTextSecondary,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                            )
-                          : hasTrendError
-                              ? Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12),
-                                    child: Text(
-                                      trendError,
-                                      style: const TextStyle(
-                                        color: _kTextSecondary,
-                                        fontSize: 13,
+                            ),
+                          )
+                        : trendData.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No weekly trend data available.',
+                                  style: TextStyle(
+                                    color: _kTextSecondary,
+                                  ),
+                                ),
+                              )
+                            : SfCartesianChart(
+                                backgroundColor: Colors.transparent,
+                                legend: Legend(
+                                  isVisible: true,
+                                  textStyle: const TextStyle(
+                                    color: _kTextSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                tooltipBehavior: _trendTooltip,
+                                primaryXAxis: CategoryAxis(
+                                  axisLine: const AxisLine(color: _kPanelBorderColor),
+                                  majorGridLines: const MajorGridLines(width: 0),
+                                  labelStyle: const TextStyle(
+                                    color: _kTextSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                primaryYAxis: NumericAxis(
+                                  axisLine: const AxisLine(width: 0),
+                                  majorGridLines: const MajorGridLines(
+                                    dashArray: [4, 4],
+                                    color: Color(0xFF123357),
+                                  ),
+                                  labelStyle: const TextStyle(
+                                    color: _kTextSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                series: <CartesianSeries<dynamic, dynamic>>[
+                                  ColumnSeries<dynamic, dynamic>(
+                                    name: 'First Fail',
+                                    dataSource: trendData,
+                                    xValueMapper: (item, _) =>
+                                        (item as TETopErrorTrendPointEntity).label,
+                                    yValueMapper: (item, _) =>
+                                        (item as TETopErrorTrendPointEntity).firstFail,
+                                    color: _kErrorColor,
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(10),
+                                    ),
+                                    dataLabelSettings: const DataLabelSettings(
+                                      isVisible: true,
+                                      textStyle: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
                                       ),
-                                      textAlign: TextAlign.center,
                                     ),
                                   ),
-                                )
-                              : trendData.isEmpty
-                                  ? const Center(
-                                      child: Text(
-                                        'No weekly trend data available.',
-                                        style: TextStyle(
-                                          color: _kTextSecondary,
-                                        ),
-                                      ),
-                                    )
-                                  : SfCartesianChart(
-                                      backgroundColor: Colors.transparent,
-                                      legend: Legend(
-                                        isVisible: true,
-                                        textStyle: const TextStyle(
-                                          color: _kTextSecondary,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      tooltipBehavior: _trendTooltip,
-                                      primaryXAxis: CategoryAxis(
-                                        axisLine: const AxisLine(color: _kPanelBorderColor),
-                                        majorGridLines: const MajorGridLines(width: 0),
-                                        labelStyle: const TextStyle(
-                                          color: _kTextSecondary,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      primaryYAxis: NumericAxis(
-                                        axisLine: const AxisLine(width: 0),
-                                        majorGridLines: const MajorGridLines(
-                                          dashArray: [4, 4],
-                                          color: Color(0xFF123357),
-                                        ),
-                                        labelStyle: const TextStyle(
-                                          color: _kTextSecondary,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      series: <CartesianSeries<dynamic, dynamic>>[
-                                        ColumnSeries<dynamic, dynamic>(
-                                          name: 'First Fail',
-                                          dataSource: trendData,
-                                          xValueMapper: (item, _) =>
-                                              (item as TETopErrorTrendPointEntity)
-                                                  .label,
-                                          yValueMapper: (item, _) =>
-                                              (item as TETopErrorTrendPointEntity)
-                                                  .firstFail,
-                                          color: _kErrorColor,
-                                          borderRadius:
-                                              const BorderRadius.vertical(
-                                            top: Radius.circular(10),
-                                          ),
-                                          dataLabelSettings: const DataLabelSettings(
-                                            isVisible: true,
-                                            textStyle: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ),
-                                        ColumnSeries<dynamic, dynamic>(
-                                          name: 'Repair Fail',
-                                          dataSource: trendData,
-                                          xValueMapper: (item, _) =>
-                                              (item as TETopErrorTrendPointEntity)
-                                                  .label,
-                                          yValueMapper: (item, _) =>
-                                              (item as TETopErrorTrendPointEntity)
-                                                  .repairFail,
-                                          color: _kRepairColor,
-                                          borderRadius:
-                                              const BorderRadius.vertical(
-                                            top: Radius.circular(10),
-                                          ),
-                                          dataLabelSettings: const DataLabelSettings(
-                                            isVisible: true,
-                                            textStyle: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ),
-                                        LineSeries<dynamic, dynamic>(
-                                          name: 'Total',
-                                          dataSource: trendData,
-                                          xValueMapper: (item, _) =>
-                                              (item as TETopErrorTrendPointEntity)
-                                                  .label,
-                                          yValueMapper: (item, _) =>
-                                              (item as TETopErrorTrendPointEntity)
-                                                  .total,
-                                          color: _kAccentColor,
-                                          markerSettings: const MarkerSettings(
-                                            isVisible: true,
-                                            shape: DataMarkerType.circle,
-                                            width: 8,
-                                            height: 8,
-                                            borderColor: Colors.black,
-                                            borderWidth: 1,
-                                          ),
-                                          dataLabelSettings: const DataLabelSettings(
-                                            isVisible: true,
-                                            textStyle: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                  ColumnSeries<dynamic, dynamic>(
+                                    name: 'Repair Fail',
+                                    dataSource: trendData,
+                                    xValueMapper: (item, _) =>
+                                        (item as TETopErrorTrendPointEntity).label,
+                                    yValueMapper: (item, _) =>
+                                        (item as TETopErrorTrendPointEntity).repairFail,
+                                    color: _kRepairColor,
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(10),
                                     ),
-                    ),
-                  ),
-                ],
+                                    dataLabelSettings: const DataLabelSettings(
+                                      isVisible: true,
+                                      textStyle: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                  LineSeries<dynamic, dynamic>(
+                                    name: 'Total',
+                                    dataSource: trendData,
+                                    xValueMapper: (item, _) =>
+                                        (item as TETopErrorTrendPointEntity).label,
+                                    yValueMapper: (item, _) =>
+                                        (item as TETopErrorTrendPointEntity).total,
+                                    color: _kAccentColor,
+                                    markerSettings: const MarkerSettings(
+                                      isVisible: true,
+                                      shape: DataMarkerType.circle,
+                                      width: 8,
+                                      height: 8,
+                                      borderColor: Colors.black,
+                                      borderWidth: 1,
+                                    ),
+                                    dataLabelSettings: const DataLabelSettings(
+                                      isVisible: true,
+                                      textStyle: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     });
   }
 
-  Widget _buildDetailTable({required bool isWide}) {
-    final tableHeight = isWide ? 320.0 : 420.0;
-    return SizedBox(
-      height: tableHeight,
-      child: Obx(() {
-        final errors = _controller.errors;
-        final selectedError = _controller.selectedError.value;
-        final selectedDetail = _controller.selectedDetail.value;
+  Widget _buildDetailTable({required bool isWide, bool expand = false}) {
+    final table = Obx(() {
+      final errors = _controller.errors;
+      final selectedError = _controller.selectedError.value;
+      final selectedDetail = _controller.selectedDetail.value;
 
-        return Container(
-          decoration: BoxDecoration(
-            color: _kPanelColor.withOpacity(0.95),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _kPanelBorderColor),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 18,
-                offset: Offset(0, 12),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.table_chart_outlined, color: _kAccentColor),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Detail Breakdown',
-                    style: TextStyle(
-                      color: _kTextPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+      return Container(
+        decoration: BoxDecoration(
+          color: _kPanelColor.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _kPanelBorderColor),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 18,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.table_chart_outlined, color: _kAccentColor),
+                const SizedBox(width: 8),
+                const Text(
+                  'Detail Breakdown',
+                  style: TextStyle(
+                    color: _kTextPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const Spacer(),
-                  Text(
-                    _controller.rangeLabel,
-                    style: const TextStyle(color: _kTextSecondary, fontSize: 12),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Tap a row to focus the weekly trend by error, model, and station.',
-                style: TextStyle(color: _kTextSecondary, fontSize: 12),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: errors.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No detailed data available.',
-                          style: TextStyle(color: _kTextSecondary),
-                        ),
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _kSurfaceMuted.withOpacity(0.35),
-                            border: Border.all(
-                              color: _kPanelBorderColor.withOpacity(0.6),
-                            ),
+                ),
+                const Spacer(),
+                Text(
+                  _controller.rangeLabel,
+                  style: const TextStyle(color: _kTextSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Tap a row to focus the weekly trend by error, model, and station.',
+              style: TextStyle(color: _kTextSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: errors.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No detailed data available.',
+                        style: TextStyle(color: _kTextSecondary),
+                      ),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _kSurfaceMuted.withOpacity(0.35),
+                          border: Border.all(
+                            color: _kPanelBorderColor.withOpacity(0.6),
                           ),
-                          child: ScrollConfiguration(
-                            behavior: ScrollConfiguration.of(context).copyWith(
-                              scrollbars: false,
-                              physics: const BouncingScrollPhysics(),
-                            ),
+                        ),
+                        child: ScrollConfiguration(
+                          behavior: ScrollConfiguration.of(context).copyWith(
+                            scrollbars: false,
+                            physics: const BouncingScrollPhysics(),
+                          ),
+                          child: SingleChildScrollView(
                             child: SingleChildScrollView(
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(minWidth: 860),
-                                  child: DataTableTheme(
-                                    data: DataTableThemeData(
-                                      headingRowColor: MaterialStatePropertyAll(
-                                        _kSurfaceMuted.withOpacity(0.75),
-                                      ),
-                                      dataRowColor:
-                                          const MaterialStatePropertyAll(Colors.transparent),
-                                      headingTextStyle: const TextStyle(
-                                        color: _kTextPrimary,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 13,
-                                      ),
-                                      dataTextStyle: const TextStyle(
-                                        color: _kTextPrimary,
-                                        fontSize: 12,
-                                      ),
-                                      dividerThickness: 0.6,
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(minWidth: 860),
+                                child: DataTableTheme(
+                                  data: DataTableThemeData(
+                                    headingRowColor: MaterialStatePropertyAll(
+                                      _kSurfaceMuted.withOpacity(0.75),
                                     ),
-                                    child: DataTable(
-                                      showCheckboxColumn: false,
-                                      headingRowHeight: 44,
-                                      dataRowMinHeight: 44,
-                                      dataRowMaxHeight: 52,
-                                      columnSpacing: 18,
-                                      horizontalMargin: 16,
-                                      border: TableBorder(
-                                        top: BorderSide(
-                                          color: _kPanelBorderColor.withOpacity(0.6),
-                                          width: 0.8,
-                                        ),
-                                        bottom: BorderSide(
-                                          color: _kPanelBorderColor.withOpacity(0.6),
-                                          width: 0.8,
-                                        ),
-                                        left: BorderSide(
-                                          color: _kPanelBorderColor.withOpacity(0.6),
-                                          width: 0.8,
-                                        ),
-                                        right: BorderSide(
-                                          color: _kPanelBorderColor.withOpacity(0.6),
-                                          width: 0.8,
-                                        ),
-                                        verticalInside: BorderSide(
-                                          color: _kPanelBorderColor.withOpacity(0.4),
-                                          width: 0.8,
-                                        ),
-                                        horizontalInside: BorderSide(
-                                          color: _kPanelBorderColor.withOpacity(0.4),
-                                          width: 0.6,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
+                                    dataRowColor:
+                                        const MaterialStatePropertyAll(Colors.transparent),
+                                    headingTextStyle: const TextStyle(
+                                      color: _kTextPrimary,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
+                                    dataTextStyle: const TextStyle(
+                                      color: _kTextPrimary,
+                                      fontSize: 12,
+                                    ),
+                                    dividerThickness: 0.6,
+                                  ),
+                                  child: DataTable(
+                                    showCheckboxColumn: false,
+                                    headingRowHeight: 44,
+                                    dataRowMinHeight: 44,
+                                    dataRowMaxHeight: 52,
+                                    columnSpacing: 18,
+                                    horizontalMargin: 16,
+                                    border: TableBorder(
+                                      top: BorderSide(
+                                        color: _kPanelBorderColor.withOpacity(0.6),
+                                        width: 0.8,
                                       ),
-                                      columns: const [
-                                        DataColumn(label: Text('Top')),
-                                        DataColumn(label: Text('Error Code')),
-                                        DataColumn(label: Text('F_FAIL'), numeric: true),
-                                        DataColumn(label: Text('R_FAIL'), numeric: true),
-                                        DataColumn(label: Text('Model Name (Top 3)')),
-                                        DataColumn(label: Text('Group Name')),
-                                        DataColumn(label: Text('First Fail'), numeric: true),
-                                        DataColumn(label: Text('Repair Fail'), numeric: true),
-                                      ],
-                                      rows: _buildDetailRows(
-                                        errors: errors,
-                                        selectedError: selectedError,
-                                        selectedDetail: selectedDetail,
+                                      bottom: BorderSide(
+                                        color: _kPanelBorderColor.withOpacity(0.6),
+                                        width: 0.8,
                                       ),
+                                      left: BorderSide(
+                                        color: _kPanelBorderColor.withOpacity(0.6),
+                                        width: 0.8,
+                                      ),
+                                      right: BorderSide(
+                                        color: _kPanelBorderColor.withOpacity(0.6),
+                                        width: 0.8,
+                                      ),
+                                      verticalInside: BorderSide(
+                                        color: _kPanelBorderColor.withOpacity(0.4),
+                                        width: 0.8,
+                                      ),
+                                      horizontalInside: BorderSide(
+                                        color: _kPanelBorderColor.withOpacity(0.4),
+                                        width: 0.6,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    columns: const [
+                                      DataColumn(label: Text('Top')),
+                                      DataColumn(label: Text('Error Code')),
+                                      DataColumn(label: Text('F_FAIL'), numeric: true),
+                                      DataColumn(label: Text('R_FAIL'), numeric: true),
+                                      DataColumn(label: Text('Model Name (Top 3)')),
+                                      DataColumn(label: Text('Group Name')),
+                                      DataColumn(label: Text('First Fail'), numeric: true),
+                                      DataColumn(label: Text('Repair Fail'), numeric: true),
+                                    ],
+                                    rows: _buildDetailRows(
+                                      errors: errors,
+                                      selectedError: selectedError,
+                                      selectedDetail: selectedDetail,
                                     ),
                                   ),
                                 ),
@@ -1312,13 +1430,19 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                           ),
                         ),
                       ),
-              ),
-            ],
-          ),
-        );
-      }),
-    );
+                    ),
+            ),
+          ],
+        ),
+      );
+    });
+    if (expand) {
+      return table;
+    }
+    final tableHeight = isWide ? 320.0 : 420.0;
+    return SizedBox(height: tableHeight, child: table);
   }
+
 
   List<DataRow> _buildDetailRows({
     required List<TETopErrorEntity> errors,
@@ -1369,107 +1493,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     }
 
     return rows;
-  }
-
-  Widget _buildDistributionCard(int totalFailures) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _kPanelColor.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _kPanelBorderColor),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 18,
-            offset: Offset(0, 12),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.donut_small_outlined, color: _kAccentColor),
-              const SizedBox(width: 8),
-              const Text(
-                'Failure Distribution',
-                style: TextStyle(
-                  color: _kTextPrimary,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                'Total Failures: $totalFailures',
-                style: const TextStyle(color: _kTextSecondary, fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 200,
-            child: Obx(() {
-              final data = _controller.errors;
-              if (data.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'No data',
-                    style: TextStyle(color: _kTextSecondary),
-                  ),
-                );
-              }
-              final chartData = <_DistributionDatum>[];
-              for (var i = 0; i < data.length; i++) {
-                final item = data[i];
-                chartData.add(
-                  _DistributionDatum(
-                    label: item.errorCode,
-                    value: item.totalFail.toDouble(),
-                    color: _barPalette[i % _barPalette.length],
-                  ),
-                );
-              }
-              return SfCircularChart(
-                backgroundColor: Colors.transparent,
-                legend: Legend(
-                  isVisible: true,
-                  position: LegendPosition.right,
-                  overflowMode: LegendItemOverflowMode.wrap,
-                  textStyle: const TextStyle(color: _kTextSecondary, fontSize: 11),
-                  itemPadding: 8,
-                ),
-                tooltipBehavior: TooltipBehavior(
-                  enable: true,
-                  color: const Color(0xFF0B1F39),
-                  header: '',
-                  textStyle: const TextStyle(color: Colors.white, fontSize: 11),
-                ),
-                series: <CircularSeries<_DistributionDatum, String>>[
-                  DoughnutSeries<_DistributionDatum, String>(
-                    dataSource: chartData,
-                    xValueMapper: (datum, _) => datum.label,
-                    yValueMapper: (datum, _) => datum.value,
-                    pointColorMapper: (datum, _) => datum.color,
-                    radius: '78%',
-                    innerRadius: '55%',
-                    explode: true,
-                    explodeOffset: '4%',
-                    dataLabelSettings: const DataLabelSettings(
-                      isVisible: true,
-                      textStyle: TextStyle(color: Colors.white, fontSize: 10),
-                      labelPosition: ChartDataLabelPosition.outside,
-                    ),
-                  ),
-                ],
-              );
-            }),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
