@@ -1513,27 +1513,27 @@ class _EmployeeStatisticsChart extends StatelessWidget {
     })
       ..sort((a, b) => b.total.compareTo(a.total));
 
-    final displayed = rows.take(6).toList();
-    final maxTotal = displayed.fold<int>(0, (maxValue, item) {
+    final maxTotal = rows.fold<int>(0, (maxValue, item) {
       return math.max(maxValue, item.total);
     });
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ...displayed.map(
-          (item) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: _EmployeeStatBar(
-              data: item,
-              maxTotal: maxTotal == 0 ? 1 : maxTotal,
-            ),
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      physics: const BouncingScrollPhysics(),
+      itemCount: rows.length,
+      itemBuilder: (context, index) {
+        final item = rows[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: _EmployeeStatBar(
+            data: item,
+            maxTotal: maxTotal == 0 ? 1 : maxTotal,
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
+
 
 class _EmployeeStatBar extends StatefulWidget {
   const _EmployeeStatBar({required this.data, required this.maxTotal});
