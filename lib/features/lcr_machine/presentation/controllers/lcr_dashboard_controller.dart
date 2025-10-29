@@ -55,6 +55,7 @@ class LcrDashboardController extends GetxController {
   final Rx<DateTimeRange> selectedDateRange =
       Rx<DateTimeRange>(_defaultDateRange());
   Timer? _midnightReset;
+  Timer? _autoRefreshTimer;
 
   final RxList<LcrRecord> trackingRecords = <LcrRecord>[].obs;
   final Rxn<LcrDashboardViewState> dashboardView = Rxn<LcrDashboardViewState>();
@@ -72,11 +73,13 @@ class LcrDashboardController extends GetxController {
     _applyDefaultShift();
     _scheduleMidnightReset();
     loadInitial();
+    _startAutoRefresh();
   }
 
   @override
   void onClose() {
     _midnightReset?.cancel();
+    _autoRefreshTimer?.cancel();
     super.onClose();
   }
 
@@ -194,6 +197,15 @@ class LcrDashboardController extends GetxController {
     _midnightReset = Timer(duration, () {
       _applyDefaultShift();
       _scheduleMidnightReset();
+    });
+  }
+
+  void _startAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!isLoading.value) {
+        loadTrackingData();
+      }
     });
   }
 
