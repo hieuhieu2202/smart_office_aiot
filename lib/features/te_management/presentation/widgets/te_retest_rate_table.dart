@@ -1,0 +1,1614 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../../domain/entities/te_retest_rate.dart';
+
+const double _kIndexBaseWidth = 58;
+const double _kIndexMinWidth = 46;
+const double _kModelBaseWidth = 220;
+const double _kModelMinWidth = 160;
+const double _kGroupBaseWidth = 360;
+const double _kGroupMinWidth = 240;
+const double _kCellBaseWidth = 108;
+const double _kCellMinWidth = 72;
+const double _kHeaderTopHeight = 40;
+const double _kHeaderBottomHeight = 32;
+const double _kRowHeight = 54;
+
+const Color _kHeaderColor = Color(0xFF0D3B5B);
+const Color _kHeaderAccent = Color(0xFF082A44);
+const LinearGradient _kTableBackgroundGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFF063356), Color(0xFF03172C)],
+);
+const Color _kRowEvenColor = Color(0xFF0A3654);
+const Color _kRowOddColor = Color(0xFF072C47);
+const Color _kSpanBackground = Color(0xFF0E3F61);
+const Color _kBorderColor = Color(0x553AD2FF);
+const List<BoxShadow> _kTableShadows = [
+  const BoxShadow(
+    color: Color(0x2229C6FF),
+    blurRadius: 34,
+    spreadRadius: 2,
+    offset: const Offset(0, 26),
+  ),
+];
+const BorderSide _kGridBorder = BorderSide(color: Color(0x335FE0FF), width: 1.05);
+const LinearGradient _kCompactCardGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFF0C314F), Color(0xFF061A2C)],
+);
+const Color _kCompactCardBorder = Color(0x2239D2FF);
+const Color _kCompactCardShadow = Color(0x1A33D6FF);
+const Color _kCompactGroupBar = Color(0x3322D3EE);
+const Color _kCompactChipBackground = Color(0xFF0D2941);
+const Color _kCompactChipBorder = Color(0x3322D3EE);
+
+class TERetestRateTable extends StatefulWidget {
+  const TERetestRateTable({
+    super.key,
+    required this.detail,
+    required this.formattedDates,
+    this.onCellTap,
+    this.onGroupTap,
+    required this.highlightCells,
+  });
+
+  final TERetestDetailEntity detail;
+  final List<String> formattedDates;
+  final ValueChanged<TERetestCellDetail>? onCellTap;
+  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final Set<String> highlightCells;
+
+  @override
+  State<TERetestRateTable> createState() => _TERetestRateTableState();
+}
+
+class _TERetestRateTableState extends State<TERetestRateTable> {
+  late final ScrollController _horizontalHeaderController;
+  late final ScrollController _horizontalBodyController;
+  late final ScrollController _verticalBodyController;
+  late final VoidCallback _headerScrollListener;
+  late final VoidCallback _bodyScrollListener;
+  bool _isSyncingHorizontal = false;
+
+  int get _totalColumns => widget.formattedDates.length * 2;
+
+  _TableMetrics _resolveMetrics(double availableWidth) {
+    final columns = math.max(_totalColumns, 1);
+    final width = availableWidth > 0 ? availableWidth : 1.0;
+
+    final double effectiveMinTotal =
+        _kIndexMinWidth + _kModelMinWidth + _kGroupMinWidth + (columns * _kCellMinWidth);
+
+    final double baseTotal =
+        _kIndexBaseWidth + _kModelBaseWidth + _kGroupBaseWidth + (columns * _kCellBaseWidth);
+
+    double indexWidth;
+    double modelWidth;
+    double groupWidth;
+    double cellWidth;
+
+    if (width <= effectiveMinTotal) {
+      final scale = width / effectiveMinTotal;
+      indexWidth = _kIndexMinWidth * scale;
+      modelWidth = _kModelMinWidth * scale;
+      groupWidth = _kGroupMinWidth * scale;
+      cellWidth = _kCellMinWidth * scale;
+    } else if (width >= baseTotal) {
+      indexWidth = _kIndexBaseWidth;
+      modelWidth = _kModelBaseWidth;
+      groupWidth = _kGroupBaseWidth;
+      final remaining = width - (_kIndexBaseWidth + _kModelBaseWidth + _kGroupBaseWidth);
+      cellWidth = remaining / columns;
+    } else {
+      final ratio = (width - effectiveMinTotal) / (baseTotal - effectiveMinTotal);
+      indexWidth =
+          _kIndexMinWidth + (_kIndexBaseWidth - _kIndexMinWidth) * ratio;
+      modelWidth =
+          _kModelMinWidth + (_kModelBaseWidth - _kModelMinWidth) * ratio;
+      groupWidth =
+          _kGroupMinWidth + (_kGroupBaseWidth - _kGroupMinWidth) * ratio;
+      cellWidth =
+          _kCellMinWidth + (_kCellBaseWidth - _kCellMinWidth) * ratio;
+    }
+
+    final fixedWidth = indexWidth + modelWidth + groupWidth;
+    final remainingWidth = (width - fixedWidth).clamp(0.0, double.infinity);
+    cellWidth = columns > 0 ? remainingWidth / columns : 0;
+
+    final totalWidth = width;
+
+    return _TableMetrics(
+      indexWidth: indexWidth,
+      modelWidth: modelWidth,
+      groupWidth: groupWidth,
+      cellWidth: cellWidth,
+      totalWidth: totalWidth,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _horizontalHeaderController = ScrollController();
+    _horizontalBodyController = ScrollController();
+    _verticalBodyController = ScrollController();
+
+    _headerScrollListener = () => _syncHorizontal(fromHeader: true);
+    _bodyScrollListener = () => _syncHorizontal(fromHeader: false);
+
+    _horizontalHeaderController.addListener(_headerScrollListener);
+    _horizontalBodyController.addListener(_bodyScrollListener);
+  }
+
+  @override
+  void dispose() {
+    _horizontalHeaderController.removeListener(_headerScrollListener);
+    _horizontalBodyController.removeListener(_bodyScrollListener);
+    _horizontalHeaderController.dispose();
+    _horizontalBodyController.dispose();
+    _verticalBodyController.dispose();
+    super.dispose();
+  }
+
+  void _syncHorizontal({required bool fromHeader}) {
+    if (_isSyncingHorizontal) return;
+    if (!_horizontalHeaderController.hasClients ||
+        !_horizontalBodyController.hasClients) {
+      return;
+    }
+
+    final source = fromHeader
+        ? _horizontalHeaderController
+        : _horizontalBodyController;
+    final target = fromHeader
+        ? _horizontalBodyController
+        : _horizontalHeaderController;
+
+    final offset = source.offset;
+    final minExtent = target.position.minScrollExtent;
+    final maxExtent = target.position.maxScrollExtent;
+    final clampedOffset = offset.clamp(minExtent, maxExtent).toDouble();
+
+    if ((target.offset - clampedOffset).abs() < 0.5) {
+      return;
+    }
+
+    _isSyncingHorizontal = true;
+    target.jumpTo(clampedOffset);
+    _isSyncingHorizontal = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTextStyle.merge(
+      style: const TextStyle(fontFamily: 'Arial'),
+      child: Builder(
+        builder: (context) {
+          if (!widget.detail.hasData || widget.formattedDates.isEmpty) {
+            return const Center(
+              child: Text(
+                'No data available',
+                style: TextStyle(color: Colors.white70),
+              ),
+            );
+          }
+
+          const headerHeight = _kHeaderTopHeight + _kHeaderBottomHeight;
+          final totalGroupRows = widget.detail.rows.fold<int>(
+            0,
+            (sum, row) => sum + math.max(row.groupNames.length, 1),
+          );
+          final naturalHeight =
+              headerHeight + (totalGroupRows * _kRowHeight.toDouble());
+          final fallbackTotalWidth = _kIndexBaseWidth +
+              _kModelBaseWidth +
+              _kGroupBaseWidth +
+              (_totalColumns * _kCellBaseWidth);
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final hasBoundedWidth =
+                  constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
+              final hasBoundedHeight =
+                  constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+
+              final availableWidth = hasBoundedWidth
+                  ? constraints.maxWidth
+                  : math.max(fallbackTotalWidth.toDouble(), constraints.minWidth);
+              final height = hasBoundedHeight
+                  ? constraints.maxHeight
+                  : math.max(naturalHeight, constraints.minHeight.toDouble());
+
+              final isCompact = availableWidth < 900;
+
+              if (isCompact) {
+                return SizedBox(
+                  width: availableWidth,
+                  height: height,
+                  child: _CompactRetestRateView(
+                    detail: widget.detail,
+                    formattedDates: widget.formattedDates,
+                    rawDates: widget.detail.dates,
+                    onCellTap: widget.onCellTap,
+                    onGroupTap: widget.onGroupTap,
+                    highlightCells: widget.highlightCells,
+                  ),
+                );
+              }
+
+              final width = math.max(availableWidth, fallbackTotalWidth.toDouble());
+              final metrics = _resolveMetrics(width);
+              final tableWidth = metrics.totalWidth > 0 ? metrics.totalWidth : width;
+
+              return SizedBox(
+                width: width,
+                height: height,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: _kTableBackgroundGradient,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: _kBorderColor),
+                    boxShadow: _kTableShadows,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          height: headerHeight,
+                          child: Scrollbar(
+                            controller: _horizontalHeaderController,
+                            thumbVisibility: false,
+                            child: SingleChildScrollView(
+                              controller: _horizontalHeaderController,
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: tableWidth,
+                                height: headerHeight,
+                                child: _HeaderRow(
+                                  formattedDates: widget.formattedDates,
+                                  metrics: metrics,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Divider(height: 1, color: Colors.transparent),
+                        Expanded(
+                          child: Scrollbar(
+                            controller: _horizontalBodyController,
+                            thumbVisibility: false,
+                            child: SingleChildScrollView(
+                              controller: _horizontalBodyController,
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: tableWidth,
+                                child: Scrollbar(
+                                  controller: _verticalBodyController,
+                                  thumbVisibility: true,
+                                  child: ListView.builder(
+                                    controller: _verticalBodyController,
+                                    padding: EdgeInsets.zero,
+                                    physics: const ClampingScrollPhysics(),
+                                    itemCount: widget.detail.rows.length,
+                                    itemBuilder: (context, index) {
+                                      final row = widget.detail.rows[index];
+                                      return _ModelBlock(
+                                        index: index + 1,
+                                        row: row,
+                                        formattedDates: widget.formattedDates,
+                                        rawDates: widget.detail.dates,
+                                        totalColumns: _totalColumns,
+                                        isFirstBlock: index == 0,
+                                        onCellTap: widget.onCellTap,
+                                        onGroupTap: widget.onGroupTap,
+                                        metrics: metrics,
+                                        highlightCells: widget.highlightCells,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CompactRetestRateView extends StatelessWidget {
+  const _CompactRetestRateView({
+    required this.detail,
+    required this.formattedDates,
+    required this.rawDates,
+    required this.onCellTap,
+    required this.onGroupTap,
+    required this.highlightCells,
+  });
+
+  final TERetestDetailEntity detail;
+  final List<String> formattedDates;
+  final List<String> rawDates;
+  final ValueChanged<TERetestCellDetail>? onCellTap;
+  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final Set<String> highlightCells;
+
+  int get _totalColumns => formattedDates.length * 2;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!detail.hasData || formattedDates.isEmpty) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: _kTableBackgroundGradient,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _kBorderColor),
+          boxShadow: _kTableShadows,
+        ),
+        child: const Center(
+          child: Text(
+            'No data available',
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: _kTableBackgroundGradient,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _kBorderColor),
+        boxShadow: _kTableShadows,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+          physics: const ClampingScrollPhysics(),
+          itemCount: detail.rows.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 18),
+          itemBuilder: (context, index) {
+            final row = detail.rows[index];
+            return _CompactModelCard(
+              index: index + 1,
+              row: row,
+              formattedDates: formattedDates,
+              rawDates: rawDates,
+              totalColumns: _totalColumns,
+              onCellTap: onCellTap,
+              onGroupTap: onGroupTap,
+              highlightCells: highlightCells,
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactModelCard extends StatelessWidget {
+  const _CompactModelCard({
+    required this.index,
+    required this.row,
+    required this.formattedDates,
+    required this.rawDates,
+    required this.totalColumns,
+    required this.onCellTap,
+    required this.onGroupTap,
+    required this.highlightCells,
+  });
+
+  final int index;
+  final TERetestDetailRowEntity row;
+  final List<String> formattedDates;
+  final List<String> rawDates;
+  final int totalColumns;
+  final ValueChanged<TERetestCellDetail>? onCellTap;
+  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final Set<String> highlightCells;
+
+  List<TERetestCellDetail> _buildCells(String groupName) {
+    final rr = row.retestRate[groupName] ?? const <double?>[];
+    final input = row.input[groupName] ?? const <int?>[];
+    final firstFail = row.firstFail[groupName] ?? const <int?>[];
+    final retestFail = row.retestFail[groupName] ?? const <int?>[];
+    final pass = row.pass[groupName] ?? const <int?>[];
+
+    return List.generate(totalColumns, (i) {
+      final dateIndex = i ~/ 2;
+      final isDay = i.isEven;
+      final safeIndex = dateIndex < formattedDates.length
+          ? dateIndex
+          : (formattedDates.isEmpty ? 0 : formattedDates.length - 1);
+      final rawDate = safeIndex < rawDates.length ? rawDates[safeIndex] : '';
+
+      return TERetestCellDetail(
+        modelName: row.modelName,
+        groupName: groupName,
+        dateLabel: formattedDates[safeIndex],
+        dateKey: rawDate,
+        shiftLabel: isDay ? 'Day' : 'Night',
+        isDayShift: isDay,
+        retestRate: i < rr.length ? rr[i] : null,
+        input: i < input.length ? input[i] : null,
+        firstFail: i < firstFail.length ? firstFail[i] : null,
+        retestFail: i < retestFail.length ? retestFail[i] : null,
+        pass: i < pass.length ? pass[i] : null,
+      );
+    });
+  }
+
+  List<TERetestCellDetail> _buildPlaceholderCells() {
+    return List.generate(totalColumns, (i) {
+      final dateIndex = i ~/ 2;
+      final safeIndex = dateIndex < formattedDates.length
+          ? dateIndex
+          : (formattedDates.isEmpty ? 0 : formattedDates.length - 1);
+      final rawDate = safeIndex < rawDates.length ? rawDates[safeIndex] : '';
+      final label = formattedDates.isEmpty ? '-' : formattedDates[safeIndex];
+      final isDay = i.isEven;
+
+      return TERetestCellDetail(
+        modelName: row.modelName,
+        groupName: '-',
+        dateLabel: label,
+        dateKey: rawDate,
+        shiftLabel: isDay ? 'Day' : 'Night',
+        isDayShift: isDay,
+        retestRate: null,
+        input: null,
+        firstFail: null,
+        retestFail: null,
+        pass: null,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: _kCompactCardGradient,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kCompactCardBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: _kCompactCardShadow,
+            blurRadius: 28,
+            offset: Offset(0, 18),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _CompactIndexBadge(index: index),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  row.modelName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (row.groupNames.isEmpty)
+            _CompactGroupSection(
+              modelName: row.modelName,
+              groupName: '-',
+              cells: _buildPlaceholderCells(),
+              onCellTap: onCellTap,
+              onGroupTap: onGroupTap,
+              highlightCells: highlightCells,
+              isPlaceholder: true,
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var g = 0; g < row.groupNames.length; g++)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: g == row.groupNames.length - 1 ? 0 : 16),
+                    child: _CompactGroupSection(
+                      modelName: row.modelName,
+                      groupName: row.groupNames[g],
+                      cells: _buildCells(row.groupNames[g]),
+                      onCellTap: onCellTap,
+                      onGroupTap: onGroupTap,
+                      highlightCells: highlightCells,
+                      isPlaceholder: false,
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactGroupSection extends StatelessWidget {
+  const _CompactGroupSection({
+    required this.modelName,
+    required this.groupName,
+    required this.cells,
+    required this.onCellTap,
+    required this.onGroupTap,
+    required this.highlightCells,
+    required this.isPlaceholder,
+  });
+
+  final String modelName;
+  final String groupName;
+  final List<TERetestCellDetail> cells;
+  final ValueChanged<TERetestCellDetail>? onCellTap;
+  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final Set<String> highlightCells;
+  final bool isPlaceholder;
+
+  @override
+  Widget build(BuildContext context) {
+    final groupTap = onGroupTap == null || isPlaceholder
+        ? null
+        : () => onGroupTap!(
+              TERetestGroupDetail(
+                modelName: modelName,
+                groupName: groupName,
+                cells: List.unmodifiable(cells),
+              ),
+            );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: groupTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _kCompactGroupBar,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    groupName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                if (groupTap != null)
+                  const Icon(Icons.area_chart_rounded,
+                      color: Color(0xFF91E6FF), size: 18),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (cells.isEmpty)
+          const Text(
+            'No shift data',
+            style: TextStyle(color: Colors.white70),
+          )
+        else ...[
+          for (var i = 0; i < cells.length; i += 2)
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: i >= cells.length - 2 ? 0 : 12,
+              ),
+              child: _CompactDayNightRow(
+                pair: _DayNightPair(
+                  day: cells[i],
+                  night: i + 1 < cells.length ? cells[i + 1] : null,
+                  dayColumnIndex: i,
+                  nightColumnIndex: i + 1,
+                ),
+                highlightCells: highlightCells,
+                onCellTap: onCellTap,
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DayNightPair {
+  const _DayNightPair({
+    required this.day,
+    required this.night,
+    required this.dayColumnIndex,
+    required this.nightColumnIndex,
+  });
+
+  final TERetestCellDetail day;
+  final TERetestCellDetail? night;
+  final int dayColumnIndex;
+  final int nightColumnIndex;
+}
+
+class _CompactDayNightRow extends StatelessWidget {
+  const _CompactDayNightRow({
+    required this.pair,
+    required this.highlightCells,
+    required this.onCellTap,
+  });
+
+  final _DayNightPair pair;
+  final Set<String> highlightCells;
+  final ValueChanged<TERetestCellDetail>? onCellTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final day = pair.day;
+    final night = pair.night;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C304C),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            day.dateLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFFCFF1FF),
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _CompactShiftTile(
+                  label: 'Day',
+                  detail: day,
+                  highlighted: highlightCells.contains(
+                    buildRetestCellKey(day.modelName, day.groupName, pair.dayColumnIndex),
+                  ),
+                  onTap: onCellTap,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: night == null
+                    ? _CompactShiftTile.placeholder(label: 'Night')
+                    : _CompactShiftTile(
+                        label: 'Night',
+                        detail: night,
+                        highlighted: highlightCells.contains(
+                          buildRetestCellKey(
+                            night.modelName,
+                            night.groupName,
+                            pair.nightColumnIndex,
+                          ),
+                        ),
+                        onTap: onCellTap,
+                      ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactShiftTile extends StatelessWidget {
+  const _CompactShiftTile({
+    required this.label,
+    required this.detail,
+    required this.highlighted,
+    required this.onTap,
+  }) : _isPlaceholder = false;
+
+  const _CompactShiftTile.placeholder({required this.label})
+      : detail = null,
+        highlighted = false,
+        onTap = null,
+        _isPlaceholder = true;
+
+  final String label;
+  final TERetestCellDetail? detail;
+  final bool highlighted;
+  final ValueChanged<TERetestCellDetail>? onTap;
+  final bool _isPlaceholder;
+
+  @override
+  Widget build(BuildContext context) {
+    final rate = detail?.retestRate;
+    final rateText = rate == null ? 'N/A' : '${rate.toStringAsFixed(2)}%';
+    final rateColor = rate == null
+        ? Colors.white54
+        : (rate >= 5
+            ? const Color(0xFFFF7A90)
+            : (rate >= 3
+                ? const Color(0xFFFFCE6C)
+                : const Color(0xFF4FF0B1)));
+
+    final tile = AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _isPlaceholder ? const Color(0xFF0A263F) : _kCompactChipBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: highlighted ? const Color(0xFF33E8FF) : _kCompactChipBorder,
+          width: highlighted ? 1.6 : 1.0,
+        ),
+        boxShadow: highlighted
+            ? const [
+                BoxShadow(
+                  color: Color(0x3333E8FF),
+                  blurRadius: 18,
+                  spreadRadius: 2,
+                  offset: Offset(0, 8),
+                ),
+              ]
+            : const [],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF134062),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFFBDEBFF),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            rateText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: rateColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (_isPlaceholder || detail == null || onTap == null) {
+      return tile;
+    }
+
+    return GestureDetector(
+      onTap: () => onTap!(detail!),
+      child: tile,
+    );
+  }
+}
+
+class _CompactIndexBadge extends StatelessWidget {
+  const _CompactIndexBadge({required this.index});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF21C3FF), Color(0xFF1172FF)],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x3322D3EE),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '$index',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _TableMetrics {
+  const _TableMetrics({
+    required this.indexWidth,
+    required this.modelWidth,
+    required this.groupWidth,
+    required this.cellWidth,
+    required this.totalWidth,
+  });
+
+  final double indexWidth;
+  final double modelWidth;
+  final double groupWidth;
+  final double cellWidth;
+  final double totalWidth;
+}
+
+class _HeaderRow extends StatelessWidget {
+  const _HeaderRow({
+    required this.formattedDates,
+    required this.metrics,
+  });
+
+  final List<String> formattedDates;
+  final _TableMetrics metrics;
+
+  double get _fullHeight => _kHeaderTopHeight + _kHeaderBottomHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [_kHeaderColor, _kHeaderAccent],
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _HeaderBlock(
+            width: metrics.indexWidth,
+            showLeftBorder: true,
+            child: const _HeaderLabel('#'),
+          ),
+          _HeaderBlock(
+            width: metrics.modelWidth,
+            child: const _HeaderLabel('MODEL NAME'),
+          ),
+          _HeaderBlock(
+            width: metrics.groupWidth,
+            child: const _HeaderLabel('GROUP NAME'),
+          ),
+          for (var dateIndex = 0; dateIndex < formattedDates.length; dateIndex++)
+            SizedBox(
+              width: metrics.cellWidth * 2,
+              height: _fullHeight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    height: _kHeaderTopHeight,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        left: dateIndex == 0 ? _kGridBorder : BorderSide.none,
+                        right: _kGridBorder,
+                        top: _kGridBorder,
+                        bottom: _kGridBorder,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      formattedDates[dateIndex],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFFCBE8FF),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.45,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: _kHeaderBottomHeight,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _HeaderShiftCell(
+                          label: 'Day',
+                          showLeftBorder: dateIndex == 0,
+                          showTopBorder: true,
+                        ),
+                        const _HeaderShiftCell(
+                          label: 'Night',
+                          showLeftBorder: true,
+                          showTopBorder: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderBlock extends StatelessWidget {
+  const _HeaderBlock({
+    required this.width,
+    required this.child,
+    this.showLeftBorder = false,
+  });
+
+  final double width;
+  final Widget child;
+  final bool showLeftBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: _kHeaderTopHeight + _kHeaderBottomHeight,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            left: showLeftBorder ? _kGridBorder : BorderSide.none,
+            right: _kGridBorder,
+            top: _kGridBorder,
+            bottom: _kGridBorder,
+          ),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _HeaderLabel extends StatelessWidget {
+  const _HeaderLabel(
+    this.text, {
+    this.alignment = Alignment.center,
+  });
+
+  final String text;
+  final Alignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: alignment == Alignment.center ? 8 : 16,
+      ),
+      child: Align(
+        alignment: alignment,
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFFD6F0FF),
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.45,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderShiftCell extends StatelessWidget {
+  const _HeaderShiftCell({
+    required this.label,
+    this.showLeftBorder = false,
+    this.showRightBorder = true,
+    this.showTopBorder = false,
+  });
+
+  final String label;
+  final bool showLeftBorder;
+  final bool showRightBorder;
+  final bool showTopBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            left: showLeftBorder ? _kGridBorder : BorderSide.none,
+            right: showRightBorder ? _kGridBorder : BorderSide.none,
+            top: showTopBorder ? _kGridBorder : BorderSide.none,
+            bottom: _kGridBorder,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF9EDBFF),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.25,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class _ModelBlock extends StatelessWidget {
+  const _ModelBlock({
+    required this.index,
+    required this.row,
+    required this.formattedDates,
+    required this.rawDates,
+    required this.totalColumns,
+    required this.isFirstBlock,
+    required this.onCellTap,
+    required this.onGroupTap,
+    required this.metrics,
+    required this.highlightCells,
+  });
+
+  final int index;
+  final TERetestDetailRowEntity row;
+  final List<String> formattedDates;
+  final List<String> rawDates;
+  final int totalColumns;
+  final bool isFirstBlock;
+  final ValueChanged<TERetestCellDetail>? onCellTap;
+  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final _TableMetrics metrics;
+  final Set<String> highlightCells;
+
+  @override
+  Widget build(BuildContext context) {
+    final groupCount = row.groupNames.length;
+    final blockHeight = (groupCount == 0 ? 1 : groupCount) * _kRowHeight;
+    final dataWidth = metrics.groupWidth + (totalColumns * metrics.cellWidth);
+
+    final groupRows = <Widget>[];
+
+    for (var g = 0; g < groupCount; g++) {
+      final groupName = row.groupNames[g];
+      final rr = row.retestRate[groupName] ?? const <double?>[];
+      final input = row.input[groupName] ?? const <int?>[];
+      final firstFail = row.firstFail[groupName] ?? const <int?>[];
+      final retestFail = row.retestFail[groupName] ?? const <int?>[];
+      final pass = row.pass[groupName] ?? const <int?>[];
+
+      final cells = List<TERetestCellDetail>.generate(
+        totalColumns,
+        (i) {
+          final dateIndex = i ~/ 2;
+          final isDay = i.isEven;
+          final rawDate =
+              dateIndex < rawDates.length ? rawDates[dateIndex] : '';
+          return TERetestCellDetail(
+            modelName: row.modelName,
+            groupName: groupName,
+            dateLabel: formattedDates[dateIndex],
+            dateKey: rawDate,
+            shiftLabel: isDay ? 'Day' : 'Night',
+            isDayShift: isDay,
+            retestRate: i < rr.length ? rr[i] : null,
+            input: i < input.length ? input[i] : null,
+            firstFail: i < firstFail.length ? firstFail[i] : null,
+            retestFail: i < retestFail.length ? retestFail[i] : null,
+            pass: i < pass.length ? pass[i] : null,
+          );
+        },
+      );
+
+      final background = g.isEven ? _kRowEvenColor : _kRowOddColor;
+      final isRowFirst = isFirstBlock && g == 0;
+
+      groupRows.add(
+        SizedBox(
+          height: _kRowHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _GroupCell(
+                width: metrics.groupWidth,
+                label: groupName,
+                background: background,
+                onTap: onGroupTap == null
+                    ? null
+                    : () => onGroupTap!(
+                          TERetestGroupDetail(
+                            modelName: row.modelName,
+                            groupName: groupName,
+                            cells: List.unmodifiable(cells),
+                          ),
+                        ),
+                isFirstRow: isRowFirst,
+              ),
+              for (var i = 0; i < cells.length; i++)
+                SizedBox(
+                  width: metrics.cellWidth,
+                  child: _RetestValueCell(
+                    detail: cells[i],
+                    background: background,
+                    onTap: onCellTap,
+                    isFirstRow: isRowFirst,
+                    showRightBorder: i < cells.length - 1,
+                    highlighted: highlightCells.contains(
+                      buildRetestCellKey(row.modelName, groupName, i),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (groupRows.isEmpty) {
+      final placeholderCells = List<TERetestCellDetail>.generate(
+        totalColumns,
+        (i) {
+          final dateIndex = i ~/ 2;
+          final isDay = i.isEven;
+          final hasDates = formattedDates.isNotEmpty;
+          final safeIndex = hasDates
+              ? (dateIndex < formattedDates.length
+                  ? dateIndex
+                  : formattedDates.length - 1)
+              : 0;
+          final rawDate =
+              safeIndex < rawDates.length ? rawDates[safeIndex] : '';
+          final dateLabel = hasDates ? formattedDates[safeIndex] : '-';
+          return TERetestCellDetail(
+            modelName: row.modelName,
+            groupName: '-',
+            dateLabel: dateLabel,
+            dateKey: rawDate,
+            shiftLabel: isDay ? 'Day' : 'Night',
+            isDayShift: isDay,
+            retestRate: null,
+            input: null,
+            firstFail: null,
+            retestFail: null,
+            pass: null,
+          );
+        },
+      );
+
+      final background = _kRowEvenColor;
+      groupRows.add(
+        SizedBox(
+          height: _kRowHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _GroupCell(
+                width: metrics.groupWidth,
+                label: '-',
+                background: background,
+                isFirstRow: isFirstBlock,
+              ),
+              for (var i = 0; i < placeholderCells.length; i++)
+                SizedBox(
+                  width: metrics.cellWidth,
+                  child: _RetestValueCell(
+                    detail: placeholderCells[i],
+                    background: background,
+                    onTap: onCellTap,
+                    isFirstRow: isFirstBlock,
+                    showRightBorder: i < placeholderCells.length - 1,
+                    highlighted: false,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: metrics.totalWidth,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SpanCell(
+            width: metrics.indexWidth,
+            height: blockHeight,
+            label: index.toString(),
+            alignment: Alignment.center,
+            isFirst: isFirstBlock,
+          ),
+          _SpanCell(
+            width: metrics.modelWidth,
+            height: blockHeight,
+            label: row.modelName,
+            alignment: Alignment.centerLeft,
+            isFirst: isFirstBlock,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            textStyle: const TextStyle(
+              color: Color(0xFFE8F6FF),
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              letterSpacing: 0.3,
+            ),
+          ),
+          SizedBox(
+            width: dataWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: groupRows,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpanCell extends StatelessWidget {
+  const _SpanCell({
+    required this.width,
+    required this.height,
+    required this.label,
+    required this.alignment,
+    required this.isFirst,
+    this.padding = const EdgeInsets.symmetric(horizontal: 12),
+    this.textStyle,
+  });
+
+  final double width;
+  final double height;
+  final String label;
+  final Alignment alignment;
+  final bool isFirst;
+  final EdgeInsets padding;
+  final TextStyle? textStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = textStyle ??
+        const TextStyle(
+          color: Color(0xFFBFE6FF),
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        );
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.alphaBlend(const Color(0x183DD0FF), _kSpanBackground),
+              _kSpanBackground,
+            ],
+          ),
+          border: Border(
+            top: isFirst ? _kGridBorder : BorderSide.none,
+            right: _kGridBorder,
+            bottom: _kGridBorder,
+          ),
+        ),
+        child: Padding(
+          padding: padding,
+          child: Align(
+            alignment: alignment,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: style,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GroupCell extends StatelessWidget {
+  const _GroupCell({
+    required this.width,
+    required this.label,
+    required this.background,
+    this.onTap,
+    required this.isFirstRow,
+  });
+
+  final double width;
+  final String label;
+  final Color background;
+  final VoidCallback? onTap;
+  final bool isFirstRow;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFFE2F4FF),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.25,
+            ),
+          ),
+        ),
+        if (onTap != null) ...[
+          const SizedBox(width: 6),
+          const Icon(Icons.area_chart, size: 16, color: Color(0xFF7DEAFF)),
+        ],
+      ],
+    );
+
+    final decoration = BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color.alphaBlend(const Color(0x142CD7FF), background),
+          background,
+        ],
+      ),
+      border: Border(
+        left: _kGridBorder,
+        right: _kGridBorder,
+        top: isFirstRow ? _kGridBorder : BorderSide.none,
+        bottom: _kGridBorder,
+      ),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x1514C4FF),
+          blurRadius: 12,
+          offset: Offset(0, 6),
+        ),
+      ],
+    );
+
+    final child = SizedBox(
+      width: width,
+      child: Container(
+        height: _kRowHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: decoration,
+        alignment: Alignment.center,
+        child: content,
+      ),
+    );
+
+    if (onTap == null) {
+      return child;
+    }
+
+    return InkWell(
+      onTap: onTap,
+      splashColor: Colors.white10,
+      borderRadius: BorderRadius.zero,
+      child: child,
+    );
+  }
+}
+
+class _RetestValueCell extends StatelessWidget {
+  const _RetestValueCell({
+    required this.detail,
+    required this.background,
+    this.onTap,
+    required this.isFirstRow,
+    required this.showRightBorder,
+    required this.highlighted,
+  });
+
+  final TERetestCellDetail detail;
+  final Color background;
+  final ValueChanged<TERetestCellDetail>? onTap;
+  final bool isFirstRow;
+  final bool showRightBorder;
+  final bool highlighted;
+
+  static const Color _dangerColor = Color(0xFFFF8BA3);
+  static const Color _warningColor = Color(0xFFF7D77E);
+  static const Color _normalColor = Color(0xFF6EF2CE);
+
+  @override
+  Widget build(BuildContext context) {
+    final value = detail.retestRate;
+    Color fillColor = Color.alphaBlend(const Color(0x143DD0FF), background);
+    Color textColor = const Color(0xFFE4F5FF);
+    if (value != null) {
+      if (value >= 5) {
+        fillColor = Color.alphaBlend(const Color(0x44FF6B81), background);
+        textColor = _dangerColor;
+      } else if (value >= 3) {
+        fillColor = Color.alphaBlend(const Color(0x44F9D262), background);
+        textColor = _warningColor;
+      } else {
+        fillColor = Color.alphaBlend(const Color(0x4437F4C5), background);
+        textColor = _normalColor;
+      }
+    } else {
+      textColor = Colors.white60;
+      fillColor = Color.alphaBlend(const Color(0x0F2C5A80), background);
+    }
+
+    final tooltip = _buildTooltip(detail);
+
+    final animatedColor = highlighted
+        ? Color.lerp(fillColor, const Color(0xFF3BD5FF), 0.45) ?? fillColor
+        : fillColor;
+    final effectiveTextColor = highlighted
+        ? Color.lerp(textColor, Colors.white, 0.35) ?? textColor
+        : textColor;
+
+    Widget cell = AnimatedContainer(
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+      height: _kRowHeight,
+      decoration: BoxDecoration(
+        color: animatedColor,
+        border: Border(
+          right: showRightBorder ? _kGridBorder : BorderSide.none,
+          top: isFirstRow ? _kGridBorder : BorderSide.none,
+          bottom: _kGridBorder,
+        ),
+        boxShadow: highlighted
+            ? const [
+                BoxShadow(
+                  color: Color(0x5528D8FF),
+                  blurRadius: 18,
+                  spreadRadius: 1.2,
+                ),
+              ]
+            : null,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      alignment: Alignment.center,
+      child: Text(
+        value == null ? 'N/A' : '${value.toStringAsFixed(2)}%',
+        style: TextStyle(
+          color: effectiveTextColor,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.15,
+        ),
+      ),
+    );
+
+    cell = Tooltip(
+      message: tooltip,
+      textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF123A5C), Color(0xFF0A2038)],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: cell,
+    );
+
+    if (onTap != null) {
+      cell = GestureDetector(onTap: () => onTap!(detail), child: cell);
+    }
+
+    return cell;
+  }
+
+  String _buildTooltip(TERetestCellDetail detail) {
+    final buffer = StringBuffer()
+      ..writeln('${detail.dateLabel} (${detail.shiftLabel})')
+      ..writeln(
+          'Retest Rate: ${detail.retestRate == null ? 'N/A' : '${detail.retestRate!.toStringAsFixed(2)}%'}')
+      ..writeln('WIP Qty: ${detail.input ?? 0}')
+      ..writeln('First Fail: ${detail.firstFail ?? 0}')
+      ..writeln('Retest Fail: ${detail.retestFail ?? 0}')
+      ..writeln('Pass Qty: ${detail.pass ?? 0}');
+    return buffer.toString();
+  }
+}
+
+class TERetestCellDetail {
+  const TERetestCellDetail({
+    required this.modelName,
+    required this.groupName,
+    required this.dateLabel,
+    required this.dateKey,
+    required this.shiftLabel,
+    required this.isDayShift,
+    required this.retestRate,
+    required this.input,
+    required this.firstFail,
+    required this.retestFail,
+    required this.pass,
+  });
+
+  final String modelName;
+  final String groupName;
+  final String dateLabel;
+  final String dateKey;
+  final String shiftLabel;
+  final bool isDayShift;
+  final double? retestRate;
+  final int? input;
+  final int? firstFail;
+  final int? retestFail;
+  final int? pass;
+}
+
+class TERetestGroupDetail {
+  const TERetestGroupDetail({
+    required this.modelName,
+    required this.groupName,
+    required this.cells,
+  });
+
+  final String modelName;
+  final String groupName;
+  final List<TERetestCellDetail> cells;
+}
