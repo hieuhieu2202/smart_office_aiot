@@ -16,9 +16,9 @@ class LcrChartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: height,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: const Color(0xFF041C3B).withOpacity(0.85),
+        color: const Color(0xFF061B28),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white12, width: 1.2),
         boxShadow: const [
