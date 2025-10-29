@@ -1613,6 +1613,7 @@ class _EmployeeStatBarState extends State<_EmployeeStatBar> {
         behavior: HitTestBehavior.opaque,
         onTap: _toggleTooltip,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
               width: 96,
@@ -1630,122 +1631,87 @@ class _EmployeeStatBarState extends State<_EmployeeStatBar> {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final total = widget.data.total;
                   final maxTotal = widget.maxTotal == 0 ? 1 : widget.maxTotal;
-                  final totalFactor =
-                      (total / maxTotal).clamp(0.0, 1.0).toDouble();
-                  final totalWidth = constraints.maxWidth * totalFactor;
-                  final double passWidth;
-                  final double failWidth;
-                  if (total == 0 || totalWidth <= 0) {
-                    passWidth = 0;
-                    failWidth = 0;
-                  } else {
-                    passWidth = totalWidth * (widget.data.pass / total);
-                    failWidth = totalWidth - passWidth;
-                  }
 
-                  return Stack(
-                    alignment: Alignment.centerLeft,
-                    children: [
-                      Container(
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: Colors.white10,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      if (totalWidth > 0)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: SizedBox(
-                              height: 24,
-                              width: totalWidth,
-                              child: Stack(
+                  Widget buildBar({
+                    required String label,
+                    required int value,
+                    Gradient? gradient,
+                    Color? color,
+                  }) {
+                    final widthFactor =
+                        (value / maxTotal).clamp(0.0, 1.0).toDouble();
+                    final barWidth = constraints.maxWidth * widthFactor;
+
+                    return SizedBox(
+                      height: 22,
+                      child: Stack(
+                        children: [
+                          Container(
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Colors.white10,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          if (barWidth > 0)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: barWidth,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  gradient: gradient,
+                                ),
+                              ),
+                            ),
+                          Positioned.fill(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  if (failWidth > 0)
-                                    Positioned(
-                                      left: 0,
-                                      child: Container(
-                                        width: failWidth,
-                                        height: 24,
-                                        color:
-                                            _EmployeeStatisticsChart._failColor,
-                                      ),
+                                  Text(
+                                    value.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
                                     ),
-                                  if (passWidth > 0)
-                                    Positioned(
-                                      left: failWidth,
-                                      child: Container(
-                                        width: passWidth,
-                                        height: 24,
-                                        decoration: const BoxDecoration(
-                                          gradient: _EmployeeStatisticsChart
-                                              ._barGradient,
-                                        ),
-                                      ),
-                                    ),
-                                  Positioned.fill(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12),
-                                      child: Row(
-                                        children: [
-                                          if (widget.data.fail > 0)
-                                            SizedBox(
-                                              width:
-                                                  failWidth.clamp(0.0, totalWidth),
-                                              child: Align(
-                                                alignment: Alignment.centerLeft,
-                                                child: FittedBox(
-                                                  fit: BoxFit.scaleDown,
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  child: Text(
-                                                    widget.data.fail.toString(),
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          if (widget.data.pass > 0)
-                                            Expanded(
-                                              child: Align(
-                                                alignment: widget.data.fail > 0
-                                                    ? Alignment.centerRight
-                                                    : Alignment.centerLeft,
-                                                child: FittedBox(
-                                                  fit: BoxFit.scaleDown,
-                                                  alignment:
-                                                      widget.data.fail > 0
-                                                          ? Alignment.centerRight
-                                                          : Alignment.centerLeft,
-                                                  child: Text(
-                                                    widget.data.pass.toString(),
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
+                                  ),
+                                  Text(
+                                    '($label)',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                        ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      buildBar(
+                        label: 'PASS',
+                        value: widget.data.pass,
+                        gradient: _EmployeeStatisticsChart._barGradient,
+                      ),
+                      const SizedBox(height: 8),
+                      buildBar(
+                        label: 'FAIL',
+                        value: widget.data.fail,
+                        color: _EmployeeStatisticsChart._failColor,
+                      ),
                     ],
                   );
                 },
