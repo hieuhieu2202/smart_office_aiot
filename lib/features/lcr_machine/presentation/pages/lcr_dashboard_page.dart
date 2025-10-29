@@ -840,6 +840,16 @@ class _DashboardTab extends StatelessWidget {
             );
           }
 
+          final machineHeight =
+              _machinePerformanceHeight(data.machineGauges.length);
+          final primaryRowHeight = math.max(
+            machineHeight,
+            math.max(
+              _factoryDistributionHeight(data.factorySlices.length),
+              300.0,
+            ),
+          );
+
           return SizedBox(
             width: constraints.maxWidth,
             height: constraints.maxHeight,
@@ -860,9 +870,7 @@ class _DashboardTab extends StatelessWidget {
                           flex: 2,
                           child: LcrChartCard(
                             title: 'FACTORY DISTRIBUTION',
-                            height: _factoryDistributionHeight(
-                              data.factorySlices.length,
-                            ),
+                            height: primaryRowHeight,
                             child: _FactoryDistributionList(
                               data.factorySlices,
                             ),
@@ -873,9 +881,7 @@ class _DashboardTab extends StatelessWidget {
                           flex: 6,
                           child: LcrChartCard(
                             title: 'MACHINE PERFORMANCE',
-                            height: _machinePerformanceHeight(
-                              data.machineGauges.length,
-                            ),
+                            height: primaryRowHeight,
                             child: _MachinesGrid(data.machineGauges),
                           ),
                         ),
@@ -884,7 +890,7 @@ class _DashboardTab extends StatelessWidget {
                           flex: 2,
                           child: LcrChartCard(
                             title: 'EMPLOYEE STATISTICS',
-                            height: 300,
+                            height: primaryRowHeight,
                             child: _EmployeeStatisticsChart(
                               data.employeeSeries,
                             ),
@@ -989,14 +995,29 @@ class _FactoryDistributionList extends StatelessWidget {
 
   final List<LcrPieSlice> slices;
 
-  static const _gradients = <List<Color>>[
-    const [Color(0xFF6DD5FA), Color(0xFF2980B9)],
-    const [Color(0xFFFFD26F), Color(0xFFFB8D34)],
-    const [Color(0xFFFF758C), Color(0xFFFED6E3)],
-    const [Color(0xFFA18CD1), Color(0xFFFBC2EB)],
-    const [Color(0xFF84FAB0), Color(0xFF00C6FB)],
-    const [Color(0xFFFFC3A0), Color(0xFFFFAFBD)],
+  static const Map<String, List<Color>> _namedGradients = {
+    'F17': [Color(0xFF6DD5FA), Color(0xFF2980B9)],
+    'F16': [Color(0xFFFFD26F), Color(0xFFFB8D34)],
+    'B03': [Color(0xFFFF758C), Color(0xFFFED6E3)],
+  };
+
+  static const List<List<Color>> _fallbackGradients = <List<Color>>[
+    [Color(0xFF6DD5FA), Color(0xFF2980B9)],
+    [Color(0xFFFFD26F), Color(0xFFFB8D34)],
+    [Color(0xFFFF758C), Color(0xFFFED6E3)],
+    [Color(0xFFA18CD1), Color(0xFFFBC2EB)],
+    [Color(0xFF84FAB0), Color(0xFF00C6FB)],
+    [Color(0xFFFFC3A0), Color(0xFFFFAFBD)],
   ];
+
+  List<Color> _gradientFor(String label, int index) {
+    final key = label.trim().toUpperCase();
+    final mapped = _namedGradients[key];
+    if (mapped != null) {
+      return mapped;
+    }
+    return _fallbackGradients[index % _fallbackGradients.length];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1019,7 +1040,7 @@ class _FactoryDistributionList extends StatelessWidget {
               Text(
                 'TOTAL',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.cyanAccent.withOpacity(0.85),
+                      color: Colors.cyanAccent.withOpacity(0.9),
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
                     ) ??
@@ -1030,35 +1051,7 @@ class _FactoryDistributionList extends StatelessWidget {
                     ),
               ),
               const SizedBox(height: 6),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF56CCF2), Color(0xFF2F80ED)],
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x442980B9),
-                      blurRadius: 20,
-                      offset: Offset(0, 8),
-                    )
-                  ],
-                ),
-                child: Text(
-                  total.toString(),
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ) ??
-                      const TextStyle(
-                        color: Colors.white,
-                        fontSize: 36,
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-              ),
+              _PulsingTotalBadge(total: total),
             ],
           ),
         ),
@@ -1066,7 +1059,7 @@ class _FactoryDistributionList extends StatelessWidget {
         ...List.generate(sorted.length, (index) {
           final slice = sorted[index];
           final percent = total == 0 ? 0.0 : slice.value / total;
-          final gradient = _gradients[index % _gradients.length];
+          final gradient = _gradientFor(slice.label, index);
           return Padding(
             padding: EdgeInsets.only(bottom: index == sorted.length - 1 ? 0 : 16),
             child: _FactoryDistributionTile(
@@ -1141,6 +1134,93 @@ class _FactoryDistributionTile extends StatelessWidget {
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
       ],
+    );
+  }
+}
+
+class _PulsingTotalBadge extends StatefulWidget {
+  const _PulsingTotalBadge({required this.total});
+
+  final int total;
+
+  @override
+  State<_PulsingTotalBadge> createState() => _PulsingTotalBadgeState();
+}
+
+class _PulsingTotalBadgeState extends State<_PulsingTotalBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.78, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    _scale = Tween<double>(begin: 0.97, end: 1.03).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 28,
+          letterSpacing: 1.1,
+        ) ??
+        const TextStyle(
+          color: Colors.white,
+          fontSize: 28,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.1,
+        );
+
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF56CCF2), Color(0xFF2F80ED)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x332980B9),
+            blurRadius: 24,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Text(widget.total.toString(), style: textStyle),
+    );
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacity.value,
+          child: Transform.scale(
+            scale: _scale.value,
+            child: child,
+          ),
+        );
+      },
+      child: badge,
     );
   }
 }
