@@ -1031,46 +1031,91 @@ class _FactoryDistributionList extends StatelessWidget {
       ..sort((a, b) => b.value.compareTo(a.value));
     final total = sorted.fold<int>(0, (prev, element) => prev + element.value);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Center(
-          child: Column(
-            children: [
-              Text(
-                'TOTAL',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.cyanAccent.withOpacity(0.9),
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.4,
-                    ) ??
-                    const TextStyle(
-                      color: Colors.cyanAccent,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.4,
-                    ),
-              ),
-              const SizedBox(height: 6),
-              _PulsingTotalBadge(total: total),
-            ],
-          ),
-        ),
-        const SizedBox(height: 22),
-        ...List.generate(sorted.length, (index) {
-          final slice = sorted[index];
-          final percent = total == 0 ? 0.0 : slice.value / total;
-          final gradient = _gradientFor(slice.label, index);
-          return Padding(
-            padding: EdgeInsets.only(bottom: index == sorted.length - 1 ? 0 : 16),
-            child: _FactoryDistributionTile(
-              label: slice.label,
-              value: slice.value,
-              percent: percent,
-              gradient: gradient,
+    Widget _buildHeader() {
+      return Center(
+        child: Column(
+          children: [
+            Text(
+              'TOTAL',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.cyanAccent.withOpacity(0.9),
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.4,
+                  ) ??
+                  const TextStyle(
+                    color: Colors.cyanAccent,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.4,
+                  ),
             ),
+            const SizedBox(height: 6),
+            _PulsingTotalBadge(total: total),
+          ],
+        ),
+      );
+    }
+
+    Widget buildTile(int index) {
+      final slice = sorted[index];
+      final percent = total == 0 ? 0.0 : slice.value / total;
+      final gradient = _gradientFor(slice.label, index);
+      return _FactoryDistributionTile(
+        label: slice.label,
+        value: slice.value,
+        percent: percent,
+        gradient: gradient,
+      );
+    }
+
+    const headerEstimate = 130.0;
+    const tileEstimate = 82.0;
+    final estimatedHeight =
+        headerEstimate + (sorted.length * tileEstimate); // conservative
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : double.infinity;
+
+        if (estimatedHeight <= maxHeight) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 22),
+              ...List.generate(sorted.length, (index) {
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: index == sorted.length - 1 ? 0 : 16,
+                  ),
+                  child: buildTile(index),
+                );
+              }),
+            ],
           );
-        }),
-      ],
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 22),
+            Expanded(
+              child: Scrollbar(
+                thumbVisibility: true,
+                child: ListView.separated(
+                  padding: EdgeInsets.zero,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: sorted.length,
+                  itemBuilder: (context, index) => buildTile(index),
+                  separatorBuilder: (context, index) => const SizedBox(height: 16),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
