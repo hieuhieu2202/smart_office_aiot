@@ -22,8 +22,8 @@ const Color _kTableBackground = Color(0xFF020A18);
 const Color _kRowEvenColor = Color(0xFF07162C);
 const Color _kRowOddColor = Color(0xFF051020);
 const Color _kSpanBackground = Color(0xFF0C223D);
-const Color _kBorderColor = Color(0x3349A9FF);
-const BorderSide _kGridBorder = BorderSide(color: _kBorderColor, width: 1);
+const Color _kBorderColor = Color(0x5538D6FF);
+const BorderSide _kGridBorder = BorderSide(color: _kBorderColor, width: 0.9);
 
 class TERetestRateTable extends StatefulWidget {
   const TERetestRateTable({
@@ -758,21 +758,25 @@ class _GroupCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final content = Row(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Flexible(
           child: Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white70,
+              color: Colors.white,
               fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
             ),
           ),
         ),
         if (onTap != null) ...[
           const SizedBox(width: 6),
-          const Icon(Icons.area_chart, size: 16, color: Colors.white54),
+          const Icon(Icons.area_chart, size: 16, color: Colors.white70),
         ],
       ],
     );
@@ -793,7 +797,7 @@ class _GroupCell extends StatelessWidget {
         height: _kRowHeight,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: decoration,
-        alignment: Alignment.centerLeft,
+        alignment: Alignment.center,
         child: content,
       ),
     );

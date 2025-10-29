@@ -77,6 +77,12 @@ class TERetestRateController extends GetxController {
     endDate.value = defaultEnd;
   }
 
+  @override
+  void onReady() {
+    super.onReady();
+    initialize();
+  }
+
   Future<void> initialize() async {
     await fetchReport(showLoading: true);
     if (availableModels.isEmpty) {

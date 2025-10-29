@@ -61,9 +61,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
       ),
       tag: _controllerTag,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _controller.initialize();
-    });
   }
 
   @override
