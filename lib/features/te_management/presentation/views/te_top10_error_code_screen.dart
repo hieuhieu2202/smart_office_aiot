@@ -224,10 +224,10 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       curve: Curves.easeOutCubic,
       top: 0,
       bottom: 0,
-      left: _isFilterPanelOpen ? 0 : -panelWidth - 48,
+      right: _isFilterPanelOpen ? 0 : -panelWidth - 48,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.only(left: 16, top: 16, bottom: 16),
+          padding: const EdgeInsets.only(right: 16, top: 16, bottom: 16),
           child: Obx(() {
             final start = _controller.startDateTime.value;
             final end = _controller.endDateTime.value;
@@ -604,24 +604,35 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           final cardWidth =
               (maxWidth - ((crossAxisCount - 1) * spacing)) / crossAxisCount;
 
-          return Wrap(
-            spacing: spacing,
-            runSpacing: spacing,
-            children: List.generate(data.length, (index) {
-              final item = data[index];
-              final isSelected = selected == item;
-              final barColor = _barPalette[index % _barPalette.length];
-              return SizedBox(
-                width: cardWidth,
-                child: _buildErrorCard(
-                  item: item,
-                  barColor: barColor,
-                  index: index,
-                  isSelected: isSelected,
-                  compact: true,
+          return Scrollbar(
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(right: 4),
+              physics: const ClampingScrollPhysics(),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  children: List.generate(data.length, (index) {
+                    final item = data[index];
+                    final isSelected = selected == item;
+                    final barColor =
+                        _barPalette[index % _barPalette.length];
+                    return SizedBox(
+                      width: cardWidth,
+                      child: _buildErrorCard(
+                        item: item,
+                        barColor: barColor,
+                        index: index,
+                        isSelected: isSelected,
+                        compact: true,
+                      ),
+                    );
+                  }),
                 ),
-              );
-            }),
+              ),
+            ),
           );
         },
       );
