@@ -19,10 +19,12 @@ import '../widgets/te_retest_rate_table.dart';
 const LinearGradient _kBackgroundGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFF031C31), Color(0xFF010B17)],
+  colors: [Color(0xFF04213F), Color(0xFF010A18)],
 );
 const Color _kSurfaceColor = Color(0xFF0A2340);
 const Color _kAccentColor = Color(0xFF22D3EE);
+const Color _kAppBarTitleColor = Color(0xFF8FE9FF);
+const Color _kAppBarIconColor = Color(0xFFB6F4FF);
 
 class TERetestRateScreen extends StatefulWidget {
   const TERetestRateScreen({
@@ -84,27 +86,33 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
         style: const TextStyle(fontFamily: 'Arial'),
         child: Scaffold(
           backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: const BackButton(color: Colors.white),
-          title: Text(
-            widget.title ?? 'TE Retest Rate Report',
-            style: const TextStyle(color: Colors.white, fontFamily: 'Arial'),
-          ),
-          centerTitle: true,
-          actions: [
-            Obx(
-              () => IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.white70),
-                tooltip: 'Refresh',
-                onPressed: _controller.isLoading.value
-                    ? null
-                    : () => _controller.fetchReport(showLoading: true),
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: _kAppBarIconColor),
+            leading: const BackButton(color: _kAppBarIconColor),
+            title: Text(
+              widget.title ?? 'TE Retest Rate Report',
+              style: const TextStyle(
+                color: _kAppBarTitleColor,
+                fontFamily: 'Arial',
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
               ),
             ),
-          ],
-        ),
+            centerTitle: true,
+            actions: [
+              Obx(
+                () => IconButton(
+                  icon: const Icon(Icons.refresh, color: _kAppBarIconColor),
+                  tooltip: 'Refresh',
+                  onPressed: _controller.isLoading.value
+                      ? null
+                      : () => _controller.fetchReport(showLoading: true),
+                ),
+              ),
+            ],
+          ),
           body: ResponsiveBuilder(
           builder: (context, sizing) {
             final horizontalPadding = sizing.isDesktop ? 24.0 : 16.0;
@@ -2306,12 +2314,13 @@ class _FilterTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ],
