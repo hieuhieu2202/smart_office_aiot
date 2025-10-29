@@ -1430,7 +1430,7 @@ class _OutputChartState extends State<_OutputChart> {
                       enabled: true,
                       handleBuiltInTouches: false,
                       touchTooltipData: BarTouchTooltipData(
-                        tooltipBackgroundColor: Colors.transparent,
+                        tooltipBgColor: Colors.transparent,
                         tooltipPadding: EdgeInsets.zero,
                         tooltipMargin: 0,
                         getTooltipItem: (_, __, ___, ____) => null,
