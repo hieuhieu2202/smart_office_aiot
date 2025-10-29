@@ -70,20 +70,26 @@ class LcrDashboardViewState {
   final List<LcrMachineGauge> machineGauges;
   final List<LcrPieSlice> errorSlices;
 
-  factory LcrDashboardViewState.fromRecords(List<LcrRecord> records) {
-    final overview = LcrOverview.fromRecords(records);
+  factory LcrDashboardViewState.fromRecords(
+    List<LcrRecord> records, {
+    List<LcrRecord> analysisRecords = const <LcrRecord>[],
+  }) {
+    final sourceForOverview =
+        analysisRecords.isNotEmpty ? analysisRecords : records;
+    final overview = LcrOverview.fromRecords(sourceForOverview);
 
     final Map<String, List<LcrRecord>> byFactory = <String, List<LcrRecord>>{};
     final Map<String, List<LcrRecord>> byDepartment = <String, List<LcrRecord>>{};
     final Map<String, List<LcrRecord>> byType = <String, List<LcrRecord>>{};
-    final Map<String, List<LcrRecord>> byEmployee = <String, List<LcrRecord>>{};
     final Map<int, List<LcrRecord>> byMachine = <int, List<LcrRecord>>{};
     final Map<String, List<LcrRecord>> byError = <String, List<LcrRecord>>{};
     const startHour = 7;
     const endHour = 18;
     const shiftStartMinutes = startHour * 60 + 30;
     const shiftEndMinutes = (endHour + 1) * 60 + 30;
-    final Map<int, _SlotTotals> bySlot = <int, _SlotTotals>{};
+    final Map<int, _PassFailTotals> bySlot = <int, _PassFailTotals>{};
+    final Map<String, _PassFailTotals> byEmployeeTotals =
+        <String, _PassFailTotals>{};
 
     int _resolveQuantity(int? primary, int? secondary) {
       if (primary != null && primary > 0) return primary;
@@ -104,10 +110,6 @@ class LcrDashboardViewState {
           : record.materialType!);
       byType.putIfAbsent(typeKey, () => <LcrRecord>[]).add(record);
 
-      final employeeKey =
-          ((record.employeeId ?? '').isEmpty ? 'UNKNOWN' : record.employeeId!);
-      byEmployee.putIfAbsent(employeeKey, () => <LcrRecord>[]).add(record);
-
       byMachine.putIfAbsent(record.machineNo, () => <LcrRecord>[]).add(record);
 
       final errorKey =
@@ -118,12 +120,32 @@ class LcrDashboardViewState {
       if (totalMinutes >= shiftStartMinutes && totalMinutes < shiftEndMinutes) {
         final slotIndex = (totalMinutes - shiftStartMinutes) ~/ 60;
         final slotHour = startHour + slotIndex;
-        final bucket = bySlot.putIfAbsent(slotHour, () => _SlotTotals());
+        final bucket = bySlot.putIfAbsent(slotHour, () => _PassFailTotals());
         if (record.status) {
           bucket.pass += _resolveQuantity(record.qty, record.extQty);
         } else {
           bucket.fail += _resolveQuantity(record.extQty, record.qty);
         }
+      }
+    }
+
+    int _resolveQuantityOrZero(int? primary, int? secondary) {
+      if (primary != null && primary > 0) return primary;
+      if (secondary != null && secondary > 0) return secondary;
+      return 0;
+    }
+
+    final Iterable<LcrRecord> employeeSource =
+        analysisRecords.isNotEmpty ? analysisRecords : records;
+    for (final record in employeeSource) {
+      final employeeKey =
+          ((record.employeeId ?? '').isEmpty ? 'UNKNOWN' : record.employeeId!);
+      final bucket =
+          byEmployeeTotals.putIfAbsent(employeeKey, () => _PassFailTotals());
+      if (record.status) {
+        bucket.pass += _resolveQuantityOrZero(record.qty, record.extQty);
+      } else {
+        bucket.fail += _resolveQuantityOrZero(record.extQty, record.qty);
       }
     }
 
@@ -152,10 +174,23 @@ class LcrDashboardViewState {
       return LcrStackedSeries(categories: categories, pass: pass, fail: fail);
     }
 
+    LcrStackedSeries _buildStackedFromTotals(
+        Map<String, _PassFailTotals> map) {
+      final categories = map.keys.toList()..sort();
+      final pass = <int>[];
+      final fail = <int>[];
+      for (final cat in categories) {
+        final totals = map[cat];
+        pass.add(totals?.pass ?? 0);
+        fail.add(totals?.fail ?? 0);
+      }
+      return LcrStackedSeries(categories: categories, pass: pass, fail: fail);
+    }
+
     final factorySlices = _buildPie(byFactory);
     final departmentSeries = _buildStacked(byDepartment);
     final typeSeries = _buildStacked(byType);
-    final employeeSeries = _buildStacked(byEmployee);
+    final employeeSeries = _buildStackedFromTotals(byEmployeeTotals);
     final errorSlices = _buildPie(byError, includeZero: true);
 
     final outputPass = <int>[];
@@ -233,8 +268,8 @@ class LcrDashboardViewState {
   }
 }
 
-class _SlotTotals {
-  _SlotTotals({this.pass = 0, this.fail = 0});
+class _PassFailTotals {
+  _PassFailTotals({this.pass = 0, this.fail = 0});
 
   int pass;
   int fail;
