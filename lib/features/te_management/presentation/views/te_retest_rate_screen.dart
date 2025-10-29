@@ -1058,7 +1058,7 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
             backgroundColor: _kSurfaceColor,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
             content: const Text(
-              'Không có dữ liệu cho nhóm này. Vui lòng kiểm tra lại đường truyền và thử lại.',
+              'Không có dữ liệu cho nhóm này để hiển thị.',
               style: TextStyle(color: Colors.white, fontFamily: 'Arial'),
             ),
             actions: [
@@ -1537,8 +1537,7 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                 if (data == null || !data.hasData) {
                   return const Expanded(
                     child: _ErrorDetailMessage(
-                      message:
-                          'Không có dữ liệu chi tiết cho ô này. Vui lòng kiểm tra lại đường truyền và thử lại.',
+                      message: 'Không có dữ liệu chi tiết cho ô này.',
                     ),
                   );
                 }
@@ -1550,8 +1549,7 @@ class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
                 if (errorClusters.isEmpty) {
                   return const Expanded(
                     child: _ErrorDetailMessage(
-                      message:
-                          'Không có dữ liệu mã lỗi cho ô này. Vui lòng kiểm tra lại đường truyền và thử lại.',
+                      message: 'Không có dữ liệu mã lỗi cho ô này.',
                     ),
                   );
                 }
