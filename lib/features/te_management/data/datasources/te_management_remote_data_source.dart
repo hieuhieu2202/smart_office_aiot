@@ -7,6 +7,7 @@ import '../../../../service/auth/auth_config.dart';
 import '../../domain/entities/te_report.dart';
 import '../models/te_report_models.dart';
 import '../models/te_retest_rate_models.dart';
+import '../models/te_top_error_models.dart';
 
 class TEManagementRemoteDataSource {
   static const String _baseUrl =
@@ -227,5 +228,120 @@ class TEManagementRemoteDataSource {
 
     final dynamic decoded = json.decode(response.body);
     return TERetestDetailModel.fromJson(decoded);
+  }
+
+  Future<List<TETopErrorModel>> fetchTopErrorCodes({
+    required String modelSerial,
+    required String range,
+    String type = 'System',
+  }) async {
+    final uri = _buildUri('Top10ErrorCode', {
+      'customer': modelSerial,
+      'range': range,
+      'type': type,
+    });
+    final response = await _performGet(uri);
+    if (response.statusCode == 204 || response.body.trim().isEmpty) {
+      return const [];
+    }
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load TE top error codes (${response.statusCode})',
+      );
+    }
+
+    final List<dynamic> decoded = _decodeJsonList(response.body);
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .map((item) => TETopErrorModel.fromJson(item))
+        .toList();
+  }
+
+  Future<List<TETopErrorTrendPointModel>> fetchTopErrorTrendByErrorCode({
+    required String modelSerial,
+    required String range,
+    required String errorCode,
+    String type = 'System',
+  }) async {
+    final uri = _buildUri('Top10ErrorCodeByWeek_byErrorCode', {
+      'customer': modelSerial,
+      'range': range,
+      'error': errorCode,
+      'type': type,
+    });
+    final response = await _performGet(uri);
+    if (response.statusCode == 204 || response.body.trim().isEmpty) {
+      return const [];
+    }
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load top error trend (${response.statusCode})',
+      );
+    }
+
+    final List<dynamic> decoded = _decodeJsonList(response.body);
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .map((item) => TETopErrorTrendPointModel.fromJson(item))
+        .toList();
+  }
+
+  Future<List<TETopErrorTrendPointModel>>
+      fetchTopErrorTrendByModelStation({
+    required String range,
+    required String errorCode,
+    required String model,
+    required String station,
+  }) async {
+    final uri = _buildUri('Top10ErrorCodeByWeek_byModelStation', {
+      'range': range,
+      'error': errorCode,
+      'model': model,
+      'station': station,
+    });
+    final response = await _performGet(uri);
+    if (response.statusCode == 204 || response.body.trim().isEmpty) {
+      return const [];
+    }
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load top error detail trend (${response.statusCode})',
+      );
+    }
+
+    final List<dynamic> decoded = _decodeJsonList(response.body);
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .map((item) => TETopErrorTrendPointModel.fromJson(item))
+        .toList();
+  }
+
+  List<dynamic> _decodeJsonList(String body) {
+    dynamic decoded;
+    try {
+      decoded = json.decode(body);
+    } catch (_) {
+      final trimmed = body.trim();
+      if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+        try {
+          decoded = json.decode(json.decode(body) as String);
+        } catch (_) {
+          return const [];
+        }
+      } else {
+        return const [];
+      }
+    }
+    if (decoded is String) {
+      try {
+        decoded = json.decode(decoded) as dynamic;
+      } catch (_) {
+        return const [];
+      }
+    }
+    if (decoded is List) {
+      return decoded;
+    }
+    return const [];
   }
 }
