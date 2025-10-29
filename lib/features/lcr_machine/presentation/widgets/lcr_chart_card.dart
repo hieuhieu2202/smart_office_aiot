@@ -188,10 +188,7 @@ class EmployeeStatisticsChart extends StatelessWidget {
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
-              tooltipDecoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(8),
-              ),
+              tooltipBackgroundColor: Colors.black.withOpacity(0.8),
               tooltipPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
                 vertical: 10,
