@@ -841,14 +841,16 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                                           fontSize: 12,
                                         ),
                                       ),
-                                      series: <ChartSeries<
-                                          TETopErrorTrendPointEntity, String>>[
-                                        ColumnSeries<
-                                            TETopErrorTrendPointEntity, String>(
+                                      series: <CartesianSeries<dynamic, dynamic>>[
+                                        ColumnSeries<dynamic, dynamic>(
                                           name: 'First Fail',
                                           dataSource: trendData,
-                                          xValueMapper: (item, _) => item.label,
-                                          yValueMapper: (item, _) => item.firstFail,
+                                          xValueMapper: (item, _) =>
+                                              (item as TETopErrorTrendPointEntity)
+                                                  .label,
+                                          yValueMapper: (item, _) =>
+                                              (item as TETopErrorTrendPointEntity)
+                                                  .firstFail,
                                           color: _kErrorColor,
                                           borderRadius:
                                               const BorderRadius.vertical(
@@ -862,12 +864,15 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                                             ),
                                           ),
                                         ),
-                                        ColumnSeries<
-                                            TETopErrorTrendPointEntity, String>(
+                                        ColumnSeries<dynamic, dynamic>(
                                           name: 'Repair Fail',
                                           dataSource: trendData,
-                                          xValueMapper: (item, _) => item.label,
-                                          yValueMapper: (item, _) => item.repairFail,
+                                          xValueMapper: (item, _) =>
+                                              (item as TETopErrorTrendPointEntity)
+                                                  .label,
+                                          yValueMapper: (item, _) =>
+                                              (item as TETopErrorTrendPointEntity)
+                                                  .repairFail,
                                           color: _kRepairColor,
                                           borderRadius:
                                               const BorderRadius.vertical(
@@ -881,12 +886,15 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                                             ),
                                           ),
                                         ),
-                                        LineSeries<
-                                            TETopErrorTrendPointEntity, String>(
+                                        LineSeries<dynamic, dynamic>(
                                           name: 'Total',
                                           dataSource: trendData,
-                                          xValueMapper: (item, _) => item.label,
-                                          yValueMapper: (item, _) => item.total,
+                                          xValueMapper: (item, _) =>
+                                              (item as TETopErrorTrendPointEntity)
+                                                  .label,
+                                          yValueMapper: (item, _) =>
+                                              (item as TETopErrorTrendPointEntity)
+                                                  .total,
                                           color: _kAccentColor,
                                           markerSettings: const MarkerSettings(
                                             isVisible: true,
