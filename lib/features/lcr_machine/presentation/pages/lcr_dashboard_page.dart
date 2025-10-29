@@ -1475,6 +1475,7 @@ class _StackedBarChart extends StatelessWidget {
           dataSource: data,
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
           yValueMapper: (item, _) => (item as _StackedBarItem).fail,
+          gradient: _EmployeeStatisticsChart._failGradient,
           color: _EmployeeStatisticsChart._failColor,
           dataLabelSettings: const DataLabelSettings(isVisible: false),
         ),
@@ -1494,7 +1495,13 @@ class _EmployeeStatisticsChart extends StatelessWidget {
     end: Alignment.centerRight,
   );
 
-  static const _failColor = Color(0xFF8B5CF6);
+  static const _failGradient = LinearGradient(
+    colors: [Color(0xFFFF77A9), Color(0xFFFF3D7F)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
+  static const _failColor = Color(0xFFFF3D7F);
 
   @override
   Widget build(BuildContext context) {
@@ -1710,6 +1717,7 @@ class _EmployeeStatBarState extends State<_EmployeeStatBar> {
                       buildBar(
                         label: 'FAIL',
                         value: widget.data.fail,
+                        gradient: _EmployeeStatisticsChart._failGradient,
                         color: _EmployeeStatisticsChart._failColor,
                       ),
                     ],
