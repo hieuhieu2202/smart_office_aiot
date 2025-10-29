@@ -149,78 +149,55 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                     }
                   },
                 ),
-                const SizedBox(width: 12),
-                Obx(() {
-                  final list = ['ALL', ...controller.factories.map((e) => e.name)];
-                  return _DropdownFilter(
-                    label: 'FACTORY',
-                    value: controller.selectedFactory.value,
-                    items: list,
-                    onChanged: (value) {
-                      if (value != null) {
-                        controller.updateFactory(value);
-                      }
-                    },
-                  );
-                }),
-                const SizedBox(width: 12),
-                Obx(() {
-                  final list = ['ALL', ...controller.departments.map((e) => e.name)];
-                  return _DropdownFilter(
-                    label: 'DEPARTMENT',
-                    value: controller.selectedDepartment.value,
-                    items: list,
-                    onChanged: (value) {
-                      if (value != null) {
-                        controller.updateDepartment(value);
-                      }
-                    },
-                  );
-                }),
-                const SizedBox(width: 12),
-                Obx(() {
-                  final machineItems = <String>['ALL',
-                    ...controller.machines.map((e) => e.toString()),
-                  ];
-                  return _DropdownFilter(
-                    label: 'MACHINE',
-                    value: controller.selectedMachine.value,
-                    items: machineItems,
-                    onChanged: (value) {
-                      if (value != null) {
-                        controller.updateMachine(value);
-                      }
-                    },
-                  );
-                }),
-                const SizedBox(width: 12),
-                Obx(() {
-                  return _DropdownFilter(
-                    label: 'STATUS',
-                    value: controller.selectedStatus.value,
-                    items: const ['ALL', 'PASS', 'FAIL'],
-                    onChanged: (value) {
-                      if (value != null) {
-                        controller.updateStatus(value);
-                      }
-                    },
-                  );
-                }),
                 const SizedBox(width: 16),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyanAccent,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.cyanAccent,
+                      foregroundColor: Colors.black,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () => controller.loadTrackingData(),
+                    icon: const Icon(Icons.search, size: 22),
+                    label: const Text(
+                      'QUERY',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
                     ),
                   ),
-                  onPressed: () => controller.loadTrackingData(),
-                  icon: const Icon(Icons.search),
-                  label: const Text(
-                    'QUERY',
-                    style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.cyanAccent,
+                      side: const BorderSide(color: Colors.cyanAccent),
+                      backgroundColor: const Color(0xFF03132D),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () {
+                      _showFilterSheet(context);
+                    },
+                    icon: const Icon(Icons.tune, size: 22),
+                    label: const Text(
+                      'FILTER',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -532,6 +509,293 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
         );
       },
     );
+  }
+
+  Future<void> _showFilterSheet(BuildContext context) async {
+    final result = await showModalBottomSheet<_FilterSelection>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        var tempFactory = controller.selectedFactory.value;
+        var tempDepartment = controller.selectedDepartment.value;
+        var tempMachine = controller.selectedMachine.value;
+        var tempStatus = controller.selectedStatus.value;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final media = MediaQuery.of(context);
+            final width = media.size.width;
+            final widthFactor = width >= 1200
+                ? 0.35
+                : width >= 900
+                    ? 0.45
+                    : width >= 600
+                        ? 0.6
+                        : 1.0;
+
+            final factoryOptions = _factoryOptions();
+            final departmentOptions = _departmentOptionsFor(tempFactory);
+            if (!departmentOptions.contains(tempDepartment)) {
+              tempDepartment = 'ALL';
+            }
+            final machineOptions =
+                _machineOptionsFor(tempFactory, tempDepartment);
+            if (!machineOptions.contains(tempMachine)) {
+              tempMachine = 'ALL';
+            }
+            const statusOptions = ['ALL', 'PASS', 'FAIL'];
+
+            final borderRadius = widthFactor == 1.0
+                ? const BorderRadius.vertical(top: Radius.circular(24))
+                : const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    bottomLeft: Radius.circular(24),
+                  );
+
+            return SafeArea(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: FractionallySizedBox(
+                  widthFactor: widthFactor,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: widthFactor == 1.0 ? 0 : 24,
+                      right: widthFactor == 1.0 ? 0 : 24,
+                      top: 24,
+                      bottom: media.viewInsets.bottom + 24,
+                    ),
+                    child: Material(
+                      color: const Color(0xFF04122B),
+                      borderRadius: borderRadius,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 24,
+                        ),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Filter',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  IconButton(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    icon: const Icon(Icons.close, color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Refine your query',
+                                style: TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              _FilterSheetDropdown(
+                                label: 'Factory',
+                                value: tempFactory,
+                                items: factoryOptions,
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  setState(() {
+                                    tempFactory = value;
+                                    tempDepartment = 'ALL';
+                                    tempMachine = 'ALL';
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 20),
+                              _FilterSheetDropdown(
+                                label: 'Department',
+                                value: tempDepartment,
+                                items: departmentOptions,
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  setState(() {
+                                    tempDepartment = value;
+                                    tempMachine = 'ALL';
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 20),
+                              _FilterSheetDropdown(
+                                label: 'Machine',
+                                value: tempMachine,
+                                items: machineOptions,
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  setState(() {
+                                    tempMachine = value;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 20),
+                              _FilterSheetDropdown(
+                                label: 'Status',
+                                value: tempStatus,
+                                items: statusOptions,
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  setState(() {
+                                    tempStatus = value;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 28),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.white70,
+                                        side: const BorderSide(color: Colors.white24),
+                                        backgroundColor: const Color(0xFF0B1F3D),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          tempFactory = 'ALL';
+                                          tempDepartment = 'ALL';
+                                          tempMachine = 'ALL';
+                                          tempStatus = 'ALL';
+                                        });
+                                      },
+                                      child: const Text(
+                                        'Reset',
+                                        style: TextStyle(fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.cyanAccent,
+                                        foregroundColor: Colors.black,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pop(
+                                          _FilterSelection(
+                                            factory: tempFactory,
+                                            department: tempDepartment,
+                                            machine: tempMachine,
+                                            status: tempStatus,
+                                          ),
+                                        );
+                                      },
+                                      child: const Text(
+                                        'Apply',
+                                        style: TextStyle(fontWeight: FontWeight.w700),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      controller.updateFactory(result.factory);
+      controller.updateDepartment(result.department);
+      controller.updateMachine(result.machine);
+      controller.updateStatus(result.status);
+      await controller.loadTrackingData();
+    }
+  }
+
+  List<String> _factoryOptions() {
+    final options = ['ALL'];
+    for (final factory in controller.factories) {
+      options.add(factory.name);
+    }
+    return options;
+  }
+
+  List<String> _departmentOptionsFor(String factory) {
+    final names = <String>{};
+    if (factory == 'ALL') {
+      for (final item in controller.factories) {
+        for (final dept in item.departments) {
+          names.add(dept.name);
+        }
+      }
+    } else {
+      for (final item in controller.factories) {
+        if (item.name == factory) {
+          for (final dept in item.departments) {
+            names.add(dept.name);
+          }
+          break;
+        }
+      }
+    }
+    final list = names.toList()..sort();
+    return ['ALL', ...list];
+  }
+
+  List<String> _machineOptionsFor(String factory, String department) {
+    final machines = <int>{};
+    final departments = <LcrDepartment>[];
+
+    if (factory == 'ALL') {
+      for (final item in controller.factories) {
+        departments.addAll(item.departments);
+      }
+    } else {
+      for (final item in controller.factories) {
+        if (item.name == factory) {
+          departments.addAll(item.departments);
+          break;
+        }
+      }
+    }
+
+    if (department != 'ALL') {
+      departments.retainWhere((element) => element.name == department);
+    }
+
+    for (final dept in departments) {
+      machines.addAll(dept.machines);
+    }
+
+    final sorted = machines.toList()..sort();
+    final machineStrings = sorted.map((e) => e.toString()).toList();
+    return ['ALL', ...machineStrings];
   }
 
   String _formatRangeLabel(DateTimeRange range) {
@@ -1726,8 +1990,22 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _DropdownFilter extends StatelessWidget {
-  const _DropdownFilter({
+class _FilterSelection {
+  const _FilterSelection({
+    required this.factory,
+    required this.department,
+    required this.machine,
+    required this.status,
+  });
+
+  final String factory;
+  final String department;
+  final String machine;
+  final String status;
+}
+
+class _FilterSheetDropdown extends StatelessWidget {
+  const _FilterSheetDropdown({
     required this.label,
     required this.value,
     required this.items,
@@ -1747,31 +2025,32 @@ class _DropdownFilter extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: Colors.white60,
+            color: Colors.white70,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: const Color(0xFF03132D),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.white24),
           ),
           child: DropdownButton<String>(
             value: value,
+            isExpanded: true,
             dropdownColor: const Color(0xFF03132D),
             underline: const SizedBox.shrink(),
             iconEnabledColor: Colors.cyanAccent,
+            style: const TextStyle(color: Colors.white),
             items: items
-                .map((item) => DropdownMenuItem<String>(
-                      value: item,
-                      child: Text(
-                        item,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ))
+                .map(
+                  (item) => DropdownMenuItem<String>(
+                    value: item,
+                    child: Text(item),
+                  ),
+                )
                 .toList(),
             onChanged: onChanged,
           ),
