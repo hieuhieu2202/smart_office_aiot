@@ -445,7 +445,6 @@ class _TERetestRateScreenState extends State<TERetestRateScreen> {
                     menuMaxHeight: 280,
                     iconEnabledColor: _kAccentColor,
                     style: const TextStyle(color: Colors.white),
-                    itemHeight: 44,
                     items: items
                         .map(
                           (item) => DropdownMenuItem<int>(
