@@ -223,17 +223,47 @@ class EmployeeStatisticsChart extends StatelessWidget {
     return entries.asMap().entries.map((entry) {
       final index = entry.key;
       final stat = entry.value;
+
+      final rods = <BarChartRodStackItem>[];
+      if (stat.fail > 0) {
+        rods.add(
+          BarChartRodStackItem(
+            0,
+            stat.fail,
+            _failColor,
+            BorderRadius.only(
+              topLeft: const Radius.circular(4),
+              bottomLeft: const Radius.circular(4),
+              topRight: stat.pass > 0 ? Radius.zero : const Radius.circular(4),
+              bottomRight: stat.pass > 0 ? Radius.zero : const Radius.circular(4),
+            ),
+          ),
+        );
+      }
+      if (stat.pass > 0) {
+        rods.add(
+          BarChartRodStackItem(
+            stat.fail,
+            stat.total,
+            _passColor,
+            BorderRadius.only(
+              topRight: const Radius.circular(4),
+              bottomRight: const Radius.circular(4),
+              topLeft: stat.fail > 0 ? Radius.zero : const Radius.circular(4),
+              bottomLeft: stat.fail > 0 ? Radius.zero : const Radius.circular(4),
+            ),
+          ),
+        );
+      }
+
       return BarChartGroupData(
         x: index,
         barRods: [
           BarChartRodData(
             toY: stat.total,
-            rodStackItems: [
-              BarChartRodStackItem(0, stat.fail, _failColor),
-              BarChartRodStackItem(stat.fail, stat.total, _passColor),
-            ],
-            borderRadius: BorderRadius.circular(4),
+            rodStackItems: rods,
             width: 24,
+            borderRadius: BorderRadius.zero,
             backDrawRodData: BackgroundBarChartRodData(
               show: true,
               toY: maxValue,
