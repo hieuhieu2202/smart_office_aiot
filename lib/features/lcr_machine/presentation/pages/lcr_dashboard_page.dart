@@ -120,89 +120,40 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                     ),
               ),
               const Spacer(),
+              SizedBox(
+                height: 44,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.cyanAccent,
+                    side: const BorderSide(color: Colors.cyanAccent),
+                    backgroundColor: const Color(0xFF03132D),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: () {
+                    _showFilterSheet(context);
+                  },
+                  icon: const Icon(Icons.tune, size: 20),
+                  label: const Text(
+                    'FILTER',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
               IconButton(
                 onPressed: () => controller.resetToCurrentShiftAndReload(),
                 icon: const Icon(Icons.refresh, color: Colors.white70),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _FilterChip(
-                  label: 'DATE RANGE',
-                  value: Obx(() {
-                    final range = controller.selectedDateRange.value;
-                    return Text(
-                      _formatRangeLabel(range),
-                      style: const TextStyle(color: Colors.white),
-                    );
-                  }),
-                  onPressed: () async {
-                    final current = controller.selectedDateRange.value;
-                    final picked =
-                        await _pickDashboardDateTimeRange(context, current);
-                    if (picked != null) {
-                      await controller.updateDateRange(picked);
-                    }
-                  },
-                ),
-                const SizedBox(width: 16),
-                SizedBox(
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.cyanAccent,
-                      foregroundColor: Colors.black,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    onPressed: () => controller.loadTrackingData(),
-                    icon: const Icon(Icons.search, size: 22),
-                    label: const Text(
-                      'QUERY',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.cyanAccent,
-                      side: const BorderSide(color: Colors.cyanAccent),
-                      backgroundColor: const Color(0xFF03132D),
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    onPressed: () {
-                      _showFilterSheet(context);
-                    },
-                    icon: const Icon(Icons.tune, size: 22),
-                    label: const Text(
-                      'FILTER',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -521,6 +472,8 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
         var tempDepartment = controller.selectedDepartment.value;
         var tempMachine = controller.selectedMachine.value;
         var tempStatus = controller.selectedStatus.value;
+        var tempRange = controller.selectedDateRange.value;
+        final initialRange = controller.selectedDateRange.value;
 
         return StatefulBuilder(
           builder: (context, setState) {
@@ -604,6 +557,29 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                                 ),
                               ),
                               const SizedBox(height: 24),
+                              const Text(
+                                'Date Range',
+                                style: TextStyle(
+                                  color: Colors.white60,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              _FilterDateRangeTile(
+                                rangeLabel: _formatRangeLabel(tempRange),
+                                onPressed: () async {
+                                  final picked = await _pickDashboardDateTimeRange(
+                                    context,
+                                    tempRange,
+                                  );
+                                  if (picked != null) {
+                                    setState(() {
+                                      tempRange = picked;
+                                    });
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 24),
                               _FilterSheetDropdown(
                                 label: 'Factory',
                                 value: tempFactory,
@@ -676,6 +652,10 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                                           tempDepartment = 'ALL';
                                           tempMachine = 'ALL';
                                           tempStatus = 'ALL';
+                                          tempRange = DateTimeRange(
+                                            start: initialRange.start,
+                                            end: initialRange.end,
+                                          );
                                         });
                                       },
                                       child: const Text(
@@ -704,11 +684,12 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                                             department: tempDepartment,
                                             machine: tempMachine,
                                             status: tempStatus,
+                                            dateRange: tempRange,
                                           ),
                                         );
                                       },
                                       child: const Text(
-                                        'Apply',
+                                        'QUERY',
                                         style: TextStyle(fontWeight: FontWeight.w700),
                                       ),
                                     ),
@@ -734,7 +715,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
       controller.updateDepartment(result.department);
       controller.updateMachine(result.machine);
       controller.updateStatus(result.status);
-      await controller.loadTrackingData();
+      await controller.updateDateRange(result.dateRange);
     }
   }
 
@@ -1950,42 +1931,43 @@ class _OutputItem {
   int get total => pass + fail;
 }
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.value,
+class _FilterDateRangeTile extends StatelessWidget {
+  const _FilterDateRangeTile({
+    required this.rangeLabel,
     required this.onPressed,
   });
 
-  final String label;
-  final Widget value;
+  final String rangeLabel;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white60,
-            fontWeight: FontWeight.w600,
-          ),
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0B1F3D),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.cyanAccent.withOpacity(0.6)),
         ),
-        const SizedBox(height: 4),
-        TextButton.icon(
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.cyanAccent,
-            side: const BorderSide(color: Colors.cyanAccent),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          onPressed: onPressed,
-          icon: const Icon(Icons.calendar_month),
-          label: value,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                rangeLabel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const Icon(Icons.calendar_month, color: Colors.cyanAccent),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -1996,12 +1978,14 @@ class _FilterSelection {
     required this.department,
     required this.machine,
     required this.status,
+    required this.dateRange,
   });
 
   final String factory;
   final String department;
   final String machine;
   final String status;
+  final DateTimeRange dateRange;
 }
 
 class _FilterSheetDropdown extends StatelessWidget {
