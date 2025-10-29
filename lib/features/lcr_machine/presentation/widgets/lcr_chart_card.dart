@@ -193,33 +193,19 @@ class EmployeeStatisticsChart extends StatelessWidget {
                 vertical: 10,
               ),
               tooltipMargin: 12,
-              tooltipBuilder: (context, group, groupIndex, rod, rodIndex) {
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 final stat = topEntries[groupIndex];
-                return Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  child: DefaultTextStyle(
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(stat.name),
-                        Text('PASS: ${stat.pass.toStringAsFixed(0)}'),
-                        Text('FAIL: ${stat.fail.toStringAsFixed(0)}'),
-                        Text('TOTAL: ${stat.total.toStringAsFixed(0)}'),
-                      ],
-                    ),
+                final content = StringBuffer()
+                  ..writeln(stat.name)
+                  ..writeln('PASS: ${stat.pass.toStringAsFixed(0)}')
+                  ..writeln('FAIL: ${stat.fail.toStringAsFixed(0)}')
+                  ..write('TOTAL: ${stat.total.toStringAsFixed(0)}');
+                return BarTooltipItem(
+                  content.toString(),
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
                   ),
                 );
               },
