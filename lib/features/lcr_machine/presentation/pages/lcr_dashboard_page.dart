@@ -479,13 +479,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
           builder: (context, setState) {
             final media = MediaQuery.of(context);
             final width = media.size.width;
-            final widthFactor = width >= 1200
-                ? 0.35
-                : width >= 900
-                    ? 0.45
-                    : width >= 600
-                        ? 0.6
-                        : 1.0;
+            final useSideSheet = width >= 600;
 
             final factoryOptions = _factoryOptions();
             final departmentOptions = _departmentOptionsFor(tempFactory);
@@ -499,38 +493,40 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
             }
             const statusOptions = ['ALL', 'PASS', 'FAIL'];
 
-            final borderRadius = widthFactor == 1.0
-                ? const BorderRadius.vertical(top: Radius.circular(24))
-                : const BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    bottomLeft: Radius.circular(24),
-                  );
+            final borderRadius = useSideSheet
+                ? BorderRadius.circular(24)
+                : const BorderRadius.vertical(top: Radius.circular(24));
 
             return SafeArea(
               child: Align(
-                alignment: Alignment.centerRight,
-                child: FractionallySizedBox(
-                  widthFactor: widthFactor,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: widthFactor == 1.0 ? 0 : 24,
-                      right: widthFactor == 1.0 ? 0 : 24,
-                      top: 24,
-                      bottom: media.viewInsets.bottom + 24,
-                    ),
-                    child: Material(
-                      color: const Color(0xFF04122B),
-                      borderRadius: borderRadius,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 24,
-                        ),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                alignment:
+                    useSideSheet ? Alignment.topRight : Alignment.bottomCenter,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: useSideSheet ? 96 : 0,
+                    right: useSideSheet ? 24 : 0,
+                    left: useSideSheet ? 0 : 0,
+                    bottom: media.viewInsets.bottom + (useSideSheet ? 24 : 0),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: useSideSheet
+                        ? const BoxConstraints(minWidth: 380, maxWidth: 440)
+                        : const BoxConstraints(),
+                    child: FractionallySizedBox(
+                      widthFactor: useSideSheet ? null : 1.0,
+                      child: Material(
+                        color: const Color(0xFF04122B),
+                        borderRadius: borderRadius,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 28,
+                            vertical: 28,
+                          ),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                               Row(
                                 children: [
                                   const Text(
