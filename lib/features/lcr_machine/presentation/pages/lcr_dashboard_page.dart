@@ -92,35 +92,52 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 640;
+
+          Widget buildNavigationRow() {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      Get.back<void>();
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                  splashRadius: 22,
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.memory, color: Colors.cyanAccent, size: 28),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    'LCR MACHINE',
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 2,
+                        ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          final actions = Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              IconButton(
-                onPressed: () {
-                  if (Navigator.of(context).canPop()) {
-                    Navigator.of(context).pop();
-                  } else {
-                    Get.back<void>();
-                  }
-                },
-                icon: const Icon(Icons.arrow_back_ios_new,
-                    color: Colors.white70, size: 20),
-                splashRadius: 22,
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.memory, color: Colors.cyanAccent, size: 28),
-              const SizedBox(width: 12),
-              Text(
-                'LCR MACHINE',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 2,
-                    ),
-              ),
-              const Spacer(),
               SizedBox(
                 height: 44,
                 child: OutlinedButton.icon(
@@ -128,8 +145,10 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                     foregroundColor: Colors.cyanAccent,
                     side: const BorderSide(color: Colors.cyanAccent),
                     backgroundColor: const Color(0xFF03132D),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 8,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -147,15 +166,33 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
               IconButton(
                 onPressed: () => controller.resetToCurrentShiftAndReload(),
                 icon: const Icon(Icons.refresh, color: Colors.white70),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-        ],
+          );
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isCompact) ...[
+                buildNavigationRow(),
+                const SizedBox(height: 12),
+                actions,
+              ] else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: buildNavigationRow()),
+                    const SizedBox(width: 12),
+                    actions,
+                  ],
+                ),
+              const SizedBox(height: 12),
+            ],
+          );
+        },
       ),
     );
   }
@@ -819,6 +856,163 @@ class _DashboardTab extends StatelessWidget {
     return 420.0;
   }
 
+  Widget _buildPrimaryCharts({
+    required LcrDashboardViewState data,
+    required bool isMobile,
+    required bool isTablet,
+    required double primaryRowHeight,
+  }) {
+    final factoryCard = LcrChartCard(
+      title: 'FACTORY DISTRIBUTION',
+      height: primaryRowHeight,
+      child: _FactoryDistributionList(data.factorySlices),
+    );
+
+    final machineCard = LcrChartCard(
+      title: 'MACHINE PERFORMANCE',
+      height: primaryRowHeight,
+      child: _MachinesGrid(data.machineGauges),
+    );
+
+    final employeeCard = LcrChartCard(
+      title: 'EMPLOYEE STATISTICS',
+      height: primaryRowHeight,
+      child: _EmployeeStatisticsChart(data.employeeSeries),
+    );
+
+    if (!isMobile && !isTablet) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 2, child: factoryCard),
+          const SizedBox(width: 24),
+          Expanded(flex: 6, child: machineCard),
+          const SizedBox(width: 24),
+          Expanded(flex: 2, child: employeeCard),
+        ],
+      );
+    }
+
+    if (isTablet) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          machineCard,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: factoryCard),
+              const SizedBox(width: 16),
+              Expanded(child: employeeCard),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        machineCard,
+        const SizedBox(height: 16),
+        factoryCard,
+        const SizedBox(height: 16),
+        employeeCard,
+      ],
+    );
+  }
+
+  Widget _buildSecondaryCharts({
+    required LcrDashboardViewState data,
+    required bool isMobile,
+    required bool isTablet,
+  }) {
+    final departmentCard = LcrChartCard(
+      title: 'DEPARTMENT ANALYSIS',
+      height: 340,
+      child: _StackedBarChart(data.departmentSeries),
+    );
+
+    final outputCard = LcrChartCard(
+      title: 'YIELD RATE & OUTPUT',
+      height: 360,
+      backgroundGradient: const LinearGradient(
+        colors: [
+          Color(0xFF062349),
+          Color(0xFF041127),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
+      child: _OutputChart(data.outputTrend),
+    );
+
+    final typeCard = LcrChartCard(
+      title: 'TYPE ANALYSIS',
+      height: 340,
+      child: _StackedBarChart(
+        data.typeSeries,
+        xLabelStyle: const TextStyle(
+          color: Color(0xFFE8F4FF),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+          shadows: [
+            Shadow(
+              color: Color(0x88000000),
+              offset: Offset(0, 1),
+              blurRadius: 2,
+            ),
+          ],
+        ),
+        xLabelIntersectAction: AxisLabelIntersectAction.wrap,
+        maximumLabelWidth: 90,
+      ),
+    );
+
+    if (!isMobile && !isTablet) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 2, child: departmentCard),
+          const SizedBox(width: 24),
+          Expanded(flex: 5, child: outputCard),
+          const SizedBox(width: 24),
+          Expanded(flex: 3, child: typeCard),
+        ],
+      );
+    }
+
+    if (isTablet) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          outputCard,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: departmentCard),
+              const SizedBox(width: 16),
+              Expanded(child: typeCard),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        outputCard,
+        const SizedBox(height: 16),
+        departmentCard,
+        const SizedBox(height: 16),
+        typeCard,
+      ],
+    );
+  }
+
   Future<void> _showStatusOverview(BuildContext context, bool showPass) async {
     final overview = controller.dashboardView.value?.overview;
     final expectedCount = overview == null
@@ -932,12 +1126,23 @@ class _DashboardTab extends StatelessWidget {
             math.max(machineHeight, factoryHeight),
           );
 
+          final maxWidth = constraints.maxWidth;
+          final isMobile = maxWidth < 720;
+          final isTablet = !isMobile && maxWidth < 1100;
+          final horizontalPadding = isMobile ? 16.0 : 24.0;
+          final verticalPadding = isMobile ? 16.0 : 24.0;
+          final resolvedPrimaryHeight =
+              isMobile ? math.min(primaryRowHeight, 360.0) : primaryRowHeight;
+
           return SizedBox(
-            width: constraints.maxWidth,
+            width: maxWidth,
             height: constraints.maxHeight,
             child: SingleChildScrollView(
               primary: false,
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
+              ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
@@ -948,99 +1153,18 @@ class _DashboardTab extends StatelessWidget {
                       onPassOverview: () => _showStatusOverview(context, true),
                       onFailOverview: () => _showStatusOverview(context, false),
                     ),
-                    const SizedBox(height: 24),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: LcrChartCard(
-                            title: 'FACTORY DISTRIBUTION',
-                            height: primaryRowHeight,
-                            child: _FactoryDistributionList(
-                              data.factorySlices,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          flex: 6,
-                          child: LcrChartCard(
-                            title: 'MACHINE PERFORMANCE',
-                            height: primaryRowHeight,
-                            child: _MachinesGrid(data.machineGauges),
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          flex: 2,
-                          child: LcrChartCard(
-                            title: 'EMPLOYEE STATISTICS',
-                            height: primaryRowHeight,
-                            child: _EmployeeStatisticsChart(
-                              data.employeeSeries,
-                            ),
-                          ),
-                        ),
-                      ],
+                    SizedBox(height: isMobile ? 16 : 24),
+                    _buildPrimaryCharts(
+                      data: data,
+                      isMobile: isMobile,
+                      isTablet: isTablet,
+                      primaryRowHeight: resolvedPrimaryHeight,
                     ),
-                    const SizedBox(height: 24),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: LcrChartCard(
-                            title: 'DEPARTMENT ANALYSIS',
-                            height: 340,
-                            child: _StackedBarChart(data.departmentSeries),
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          flex: 5,
-                          child: LcrChartCard(
-                            title: 'YIELD RATE & OUTPUT',
-                            height: 360,
-                            backgroundGradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF062349),
-                                Color(0xFF041127),
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                            padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
-                            child: _OutputChart(data.outputTrend),
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          flex: 3,
-                          child: LcrChartCard(
-                            title: 'TYPE ANALYSIS',
-                            height: 340,
-                            child: _StackedBarChart(
-                              data.typeSeries,
-                              xLabelStyle: const TextStyle(
-                                color: Color(0xFFE8F4FF),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.4,
-                                shadows: [
-                                  Shadow(
-                                    color: Color(0x88000000),
-                                    offset: Offset(0, 1),
-                                    blurRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              xLabelIntersectAction: AxisLabelIntersectAction.wrap,
-                              maximumLabelWidth: 90,
-                            ),
-                          ),
-                        ),
-                      ],
+                    SizedBox(height: isMobile ? 16 : 24),
+                    _buildSecondaryCharts(
+                      data: data,
+                      isMobile: isMobile,
+                      isTablet: isTablet,
                     ),
                   ],
                 ),
@@ -1066,48 +1190,73 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: LcrSummaryTile(
-            title: 'INPUT',
-            value: overview.total.toString(),
-            suffix: 'PCS',
-            color: Colors.blueAccent,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: LcrSummaryTile(
-            title: 'PASS',
-            value: overview.pass.toString(),
-            suffix: 'PCS',
-            color: Colors.greenAccent,
-            actionLabel: 'Overview',
-            onActionTap: onPassOverview,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: LcrSummaryTile(
-            title: 'FAIL',
-            value: overview.fail.toString(),
-            suffix: 'PCS',
-            color: Colors.redAccent,
-            actionLabel: 'Overview',
-            onActionTap: onFailOverview,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: LcrSummaryTile(
-            title: 'Y.R',
-            value: overview.yieldRate.toStringAsFixed(2),
-            suffix: '%',
-            color: Colors.amberAccent,
-          ),
-        ),
-      ],
+    final tiles = <Widget>[
+      LcrSummaryTile(
+        title: 'INPUT',
+        value: overview.total.toString(),
+        suffix: 'PCS',
+        color: Colors.blueAccent,
+      ),
+      LcrSummaryTile(
+        title: 'PASS',
+        value: overview.pass.toString(),
+        suffix: 'PCS',
+        color: Colors.greenAccent,
+        actionLabel: 'Overview',
+        onActionTap: onPassOverview,
+      ),
+      LcrSummaryTile(
+        title: 'FAIL',
+        value: overview.fail.toString(),
+        suffix: 'PCS',
+        color: Colors.redAccent,
+        actionLabel: 'Overview',
+        onActionTap: onFailOverview,
+      ),
+      LcrSummaryTile(
+        title: 'Y.R',
+        value: overview.yieldRate.toStringAsFixed(2),
+        suffix: '%',
+        color: Colors.amberAccent,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+
+        if (width >= 900) {
+          return Row(
+            children: [
+              for (var i = 0; i < tiles.length; i++) ...[
+                Expanded(child: tiles[i]),
+                if (i != tiles.length - 1) const SizedBox(width: 16),
+              ],
+            ],
+          );
+        }
+
+        if (width >= 600) {
+          final itemWidth = (width - 16) / 2;
+          return Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: tiles
+                .map((tile) => SizedBox(width: itemWidth, child: tile))
+                .toList(),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < tiles.length; i++) ...[
+              tiles[i],
+              if (i != tiles.length - 1) const SizedBox(height: 12),
+            ],
+          ],
+        );
+      },
     );
   }
 }
