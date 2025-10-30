@@ -132,9 +132,9 @@ class LcrDashboardViewState {
             : _resolveQuantity(record.extQty, record.qty);
         final bucket = bySlot.putIfAbsent(slotIndex, () => _SlotTotals());
         if (record.status) {
-          bucket.pass += resolvedQty;
+          bucket.pass += 1;
         } else {
-          bucket.fail += resolvedQty;
+          bucket.fail += 1;
         }
 
         final assignment = (record.workSection > 0 &&
