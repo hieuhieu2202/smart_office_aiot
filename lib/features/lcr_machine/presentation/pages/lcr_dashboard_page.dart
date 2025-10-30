@@ -819,7 +819,11 @@ class _DashboardTab extends StatelessWidget {
   }
 
   void _showStatusOverview(BuildContext context, bool showPass) {
-    final records = controller.trackingRecords
+    final source = controller.analysisRecords.isEmpty
+        ? controller.trackingRecords
+        : controller.analysisRecords;
+
+    final records = source
         .where((record) => showPass ? record.isPass : !record.isPass)
         .toList()
       ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
