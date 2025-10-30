@@ -179,22 +179,55 @@ class LcrRecordModel extends LcrRecord {
   }
 
   static dynamic _read(Map<String, dynamic> json, String key) {
+    final normalizedKey = _normalizeKey(key);
+
     if (json.containsKey(key)) {
       final value = json[key];
-      if (value != null && !(value is String && value.trim().isEmpty)) {
+      if (_hasContent(value)) {
         return value;
       }
     }
-    final lowerKey = key.toLowerCase();
+
     for (final entry in json.entries) {
-      if (entry.key.toLowerCase() == lowerKey) {
+      final candidate = entry.key;
+      if (_keysMatch(candidate, key, normalizedKey)) {
         final value = entry.value;
-        if (value != null && !(value is String && value.trim().isEmpty)) {
+        if (_hasContent(value)) {
           return value;
         }
       }
     }
     return null;
+  }
+
+  static bool _keysMatch(String candidate, String original, String normalized) {
+    if (candidate == original) return true;
+    if (candidate.toLowerCase() == original.toLowerCase()) return true;
+    return _normalizeKey(candidate) == normalized;
+  }
+
+  static bool _hasContent(dynamic value) {
+    if (value == null) return false;
+    if (value is String) {
+      return value.trim().isNotEmpty;
+    }
+    return true;
+  }
+
+  static String _normalizeKey(String key) {
+    final buffer = StringBuffer();
+    for (final rune in key.runes) {
+      final char = String.fromCharCode(rune);
+      final lower = char.toLowerCase();
+      if (lower.isEmpty) continue;
+      final code = lower.codeUnitAt(0);
+      final isAlpha = code >= 97 && code <= 122;
+      final isDigit = code >= 48 && code <= 57;
+      if (isAlpha || isDigit) {
+        buffer.write(lower);
+      }
+    }
+    return buffer.toString();
   }
 
   static String? _string(
@@ -229,7 +262,14 @@ class LcrRecordModel extends LcrRecord {
     if (value == null) return null;
     if (value is int) return value;
     if (value is double) return value.toInt();
-    if (value is String) return int.tryParse(value.trim());
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return null;
+      final parsedInt = int.tryParse(trimmed);
+      if (parsedInt != null) return parsedInt;
+      final parsedDouble = double.tryParse(trimmed);
+      if (parsedDouble != null) return parsedDouble.toInt();
+    }
     return null;
   }
 
