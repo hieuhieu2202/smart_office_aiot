@@ -1003,6 +1003,13 @@ class _DashboardTab extends StatelessWidget {
                           child: LcrChartCard(
                             title: 'YIELD RATE & OUTPUT',
                             height: 280,
+                            backgroundAsset: 'assets/images/background_dark.png',
+                            overlayColor: const Color(0xAA041229),
+                            overlayGradient: const [
+                              Color(0xCC041B3A),
+                              Color(0xF0010818),
+                            ],
+                            padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
                             child: _OutputChart(data.outputTrend),
                           ),
                         ),
@@ -3031,23 +3038,22 @@ class _OutputChart extends StatelessWidget {
       yMax = (step * 6).toDouble();
     }
 
-    final annotations = <CartesianChartAnnotation>[];
-    if (data.isNotEmpty) {
-      annotations.add(
+    final annotations = <CartesianChartAnnotation>[
+      if (data.isNotEmpty)
         CartesianChartAnnotation(
           widget: DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.greenAccent.withOpacity(0.08),
+              color: Colors.greenAccent.withOpacity(0.16),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+              border: Border.all(color: Colors.greenAccent.withOpacity(0.6)),
             ),
             child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               child: Text(
                 'Target (98%)',
                 style: TextStyle(
                   color: Colors.greenAccent,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   fontSize: 11,
                 ),
               ),
@@ -3057,13 +3063,16 @@ class _OutputChart extends StatelessWidget {
           x: data.last.category,
           y: 98,
           yAxisName: 'yrAxis',
+          horizontalAlignment: ChartAlignment.far,
+          verticalAlignment: ChartAlignment.near,
         ),
-      );
-    }
+    ];
 
     return SfCartesianChart(
+      margin: const EdgeInsets.fromLTRB(12, 18, 12, 12),
+      backgroundColor: Colors.transparent,
       plotAreaBorderWidth: 0,
-      plotAreaBackgroundColor: const Color(0x1A2B3A5A),
+      plotAreaBackgroundColor: Colors.transparent,
       tooltipBehavior: TooltipBehavior(
         enable: true,
         activationMode: ActivationMode.singleTap,
@@ -3099,12 +3108,25 @@ class _OutputChart extends StatelessWidget {
       ),
       legend: const Legend(isVisible: false),
       primaryXAxis: CategoryAxis(
-        labelStyle: const TextStyle(color: Colors.white70),
+        labelStyle: const TextStyle(
+          color: Color(0xFFE8F4FF),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+          shadows: [
+            Shadow(
+              color: Color(0x99000000),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
         majorGridLines: const MajorGridLines(width: 0),
         majorTickLines: const MajorTickLines(size: 0),
-        axisLine: AxisLine(color: Colors.white24.withOpacity(0.35)),
+        axisLine: AxisLine(color: Colors.white.withOpacity(0.25), width: 0.8),
         labelAlignment: LabelAlignment.center,
         labelIntersectAction: AxisLabelIntersectAction.multipleRows,
+        labelPadding: 4,
       ),
       primaryYAxis: NumericAxis(
         minimum: 0,
@@ -3128,9 +3150,9 @@ class _OutputChart extends StatelessWidget {
             PlotBand(
               start: 98,
               end: 98,
-              borderWidth: 1,
+              borderWidth: 1.2,
               borderColor: Colors.greenAccent.withOpacity(0.7),
-              dashArray: const <double>[4, 6],
+              dashArray: const <double>[6, 6],
               shouldRenderAboveSeries: true,
             ),
           ],
@@ -3143,9 +3165,9 @@ class _OutputChart extends StatelessWidget {
           dataSource: data,
           xValueMapper: (item, _) => (item as _OutputItem).category,
           yValueMapper: (item, _) => (item as _OutputItem).total,
-          width: 0.6,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(12)),
+          width: 0.58,
+          spacing: 0.22,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
           gradient: const LinearGradient(
             colors: [Color(0xFF21D4FD), Color(0xFF2152FF)],
             begin: Alignment.bottomCenter,
@@ -3154,19 +3176,22 @@ class _OutputChart extends StatelessWidget {
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
             labelAlignment: ChartDataLabelAlignment.outer,
-            textStyle: const TextStyle(
-              color: Colors.cyanAccent,
-              fontWeight: FontWeight.w700,
-            ),
             builder: (dynamic item, dynamic point, dynamic series, int pointIndex,
                 int seriesIndex) {
               final entry = item as _OutputItem;
               return Text(
                 '${entry.total}',
                 style: const TextStyle(
-                  color: Colors.cyanAccent,
+                  color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
+                  shadows: [
+                    Shadow(
+                      color: Color(0xAA000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
               );
             },
@@ -3179,24 +3204,19 @@ class _OutputChart extends StatelessWidget {
           yValueMapper: (item, _) => (item as _OutputItem).yr,
           yAxisName: 'yrAxis',
           color: Colors.amberAccent,
-          width: 2,
+          width: 3,
           enableTooltip: false,
           markerSettings: const MarkerSettings(
-            isVisible: false,
+            isVisible: true,
             shape: DataMarkerType.circle,
             borderColor: Colors.black,
-            borderWidth: 1.5,
+            borderWidth: 2,
             height: 10,
             width: 10,
           ),
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
             labelAlignment: ChartDataLabelAlignment.top,
-            textStyle: const TextStyle(
-              color: Colors.amberAccent,
-              fontWeight: FontWeight.w700,
-              fontSize: 10,
-            ),
             builder: (dynamic item, dynamic point, dynamic series,
                 int pointIndex, int seriesIndex) {
               final entry = item as _OutputItem;
@@ -3204,24 +3224,19 @@ class _OutputChart extends StatelessWidget {
               final formatted = value == value.roundToDouble()
                   ? value.toInt().toString()
                   : value.toStringAsFixed(1);
-              return DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xAA041026),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 3,
-                  ),
-                  child: Text(
-                    '$formatted%',
-                    style: const TextStyle(
-                      color: Colors.amberAccent,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
+              return Text(
+                '$formatted%',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  shadows: [
+                    Shadow(
+                      color: Color(0xAA000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
                     ),
-                  ),
+                  ],
                 ),
               );
             },
