@@ -1422,159 +1422,201 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
                 child: records.isEmpty
-                    ? Center(
-                        child: Text(
-                          emptyMessage,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: Colors.white60,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      )
-                    : Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: Colors.white12),
-                            color: Colors.white.withOpacity(0.03),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: Column(
-                              children: [
-                                _StickyTableHeader(
-                                  horizontalController:
-                                      _horizontalHeaderController,
-                                  minWidth: tableMinWidth,
-                                  columns: _tableColumns,
-                                  headingTextStyle: headingTextStyle,
-                                ),
-                                const Divider(
-                                  height: 1,
-                                  thickness: 1,
-                                  color: Colors.white12,
-                                ),
-                                Expanded(
-                                  child: Scrollbar(
-                                    controller: _verticalController,
-                                    thumbVisibility: true,
-                                    child: SingleChildScrollView(
-                                      controller: _verticalController,
-                                      primary: false,
-                                      child: SingleChildScrollView(
-                                        controller: _horizontalBodyController,
-                                        scrollDirection: Axis.horizontal,
-                                        child: ConstrainedBox(
-                                          constraints: BoxConstraints(
-                                            minWidth: tableMinWidth,
-                                          ),
-                                          child: DataTable(
-                                            headingRowHeight: 0,
-                                            dataRowMinHeight: 44,
-                                            dataRowMaxHeight: 60,
-                                            headingRowColor:
-                                                MaterialStateProperty.all(
-                                              Colors.white
-                                                  .withOpacity(0.05),
-                                            ),
-                                            headingTextStyle:
-                                                headingTextStyle,
-                                            dataTextStyle: dataTextStyle,
-                                            columnSpacing: _kColumnSpacing,
-                                            horizontalMargin: _kHorizontalMargin,
-                                            columns: _tableColumns,
-                                            rows: records
-                                                .asMap()
-                                                .entries
-                                                .map((entry) {
-                                    final index = entry.key + 1;
-                                    final record = entry.value;
-                                    final rowTint = record.isPass
-                                        ? Colors.white.withOpacity(0.01)
-                                        : const Color(0xFFFF77A9)
-                                            .withOpacity(0.08);
+                  ? _buildEmptyState(theme, emptyMessage)
+                  : _buildRecordsTable(
+                      records: records,
+                      tableMinWidth: tableMinWidth,
+                      dateTimeFormatter: dateTimeFormatter,
+                      headingTextStyle: headingTextStyle,
+                      dataTextStyle: dataTextStyle,
+                      infoTextStyle: infoTextStyle,
+                      warningTextStyle: warningTextStyle,
+                      successTextStyle: successTextStyle,
+                    ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
-                                    return DataRow(
-                                      color: MaterialStateProperty.all(rowTint),
-                                      cells: [
-                                        DataCell(_TableText(index.toString())),
-                                        DataCell(
-                                          _TableText(
-                                            dateTimeFormatter
-                                                .format(record.dateTime),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          _TableText(
-                                            record.serialNumber ?? '-',
-                                            style: infoTextStyle,
-                                          ),
-                                        ),
-                                        DataCell(
-                                          _TableText(record.customerPn ?? '-'),
-                                        ),
-                                        DataCell(
-                                          _TableText(record.dateCode ?? '-'),
-                                        ),
-                                        DataCell(
-                                          _TableText(record.lotCode ?? '-'),
-                                        ),
-                                        DataCell(
-                                          _TableText(
-                                            record.qty?.toString() ?? '-',
-                                          ),
-                                        ),
-                                        DataCell(
-                                          _TableText(
-                                            record.extQty?.toString() ?? '-',
-                                          ),
-                                        ),
-                                        DataCell(
-                                          _TableText(
-                                            record.description ?? '-',
-                                            maxLines: 2,
-                                          ),
-                                        ),
-                                        DataCell(
-                                          _TableText(_stringValue(record.materialType)),
-                                        ),
-                                        DataCell(
-                                          _TableText(
-                                            record.lowSpec ?? '-',
-                                            style: infoTextStyle,
-                                          ),
-                                        ),
-                                        DataCell(
-                                          _TableText(
-                                            record.highSpec ?? '-',
-                                            style: warningTextStyle,
-                                          ),
-                                        ),
-                                        DataCell(
-                                          _TableText(
-                                            record.measureValue ?? '-',
-                                            style: successTextStyle,
-                                          ),
-                                        ),
-                                        DataCell(
-                                          _TableText(_stringValue(record.employeeId)),
-                                        ),
-                                        DataCell(
-                                          _TableText(_stringValue(record.factory)),
-                                        ),
-                                        DataCell(
-                                          _TableText(_stringValue(record.department)),
-                                        ),
-                                        DataCell(
-                                          _TableText(_machineValue(record.machineNo)),
-                                        ),
-                                      ],
-                                    );
-                                  }).toList(),
+
+  Widget _buildEmptyState(ThemeData theme, String message) {
+    final style = theme.textTheme.titleMedium?.copyWith(
+          color: Colors.white60,
+          fontWeight: FontWeight.w600,
+        ) ??
+        const TextStyle(
+          color: Colors.white60,
+          fontWeight: FontWeight.w600,
+        );
+
+    return Center(
+      child: Text(
+        message,
+        style: style,
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildRecordsTable({
+    required List<LcrRecord> records,
+    required double tableMinWidth,
+    required DateFormat dateTimeFormatter,
+    required TextStyle headingTextStyle,
+    required TextStyle dataTextStyle,
+    required TextStyle infoTextStyle,
+    required TextStyle warningTextStyle,
+    required TextStyle successTextStyle,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white12),
+        color: Colors.white.withOpacity(0.03),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          children: [
+            _StickyTableHeader(
+              horizontalController: _horizontalHeaderController,
+              minWidth: tableMinWidth,
+              columns: _tableColumns,
+              headingTextStyle: headingTextStyle,
+            ),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: Colors.white12,
+            ),
+            Expanded(
+              child: Scrollbar(
+                controller: _verticalController,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  controller: _verticalController,
+                  primary: false,
+                  child: SingleChildScrollView(
+                    controller: _horizontalBodyController,
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: tableMinWidth,
+                      ),
+                      child: DataTable(
+                        headingRowHeight: 0,
+                        dataRowMinHeight: 44,
+                        dataRowMaxHeight: 60,
+                        headingRowColor: MaterialStateProperty.all(
+                          Colors.white.withOpacity(0.05),
+                        ),
+                        headingTextStyle: headingTextStyle,
+                        dataTextStyle: dataTextStyle,
+                        columnSpacing: _kColumnSpacing,
+                        horizontalMargin: _kHorizontalMargin,
+                        columns: _tableColumns,
+                        rows: records.asMap().entries.map((entry) {
+                          final index = entry.key + 1;
+                          final record = entry.value;
+                          final rowTint = record.isPass
+                              ? Colors.white.withOpacity(0.01)
+                              : const Color(0xFFFF77A9).withOpacity(0.08);
+
+                          return DataRow(
+                            color: MaterialStateProperty.all(rowTint),
+                            cells: <DataCell>[
+                              DataCell(
+                                _TableText(index.toString()),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  dateTimeFormatter.format(record.dateTime),
                                 ),
                               ),
-                            ),
-                          ),
-                        ),
+                              DataCell(
+                                _TableText(
+                                  record.serialNumber ?? '-',
+                                  style: infoTextStyle,
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(record.customerPn ?? '-'),
+                              ),
+                              DataCell(
+                                _TableText(record.dateCode ?? '-'),
+                              ),
+                              DataCell(
+                                _TableText(record.lotCode ?? '-'),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.qty?.toString() ?? '-',
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.extQty?.toString() ?? '-',
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.description ?? '-',
+                                  maxLines: 2,
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  _stringValue(record.materialType),
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.lowSpec ?? '-',
+                                  style: infoTextStyle,
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.highSpec ?? '-',
+                                  style: warningTextStyle,
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.measureValue ?? '-',
+                                  style: successTextStyle,
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  _stringValue(record.employeeId),
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  _stringValue(record.factory),
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  _stringValue(record.department),
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  _machineValue(record.machineNo),
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
