@@ -1,11 +1,13 @@
 import 'dart:developer' as developer;
 import '../../domain/entities/lcr_entities.dart';
 
+
 class LcrPieSlice {
   const LcrPieSlice({required this.label, required this.value});
   final String label;
   final int value;
 }
+
 
 class LcrStackedSeries {
   const LcrStackedSeries({
@@ -17,6 +19,7 @@ class LcrStackedSeries {
   final List<int> pass;
   final List<int> fail;
 }
+
 
 class LcrOutputTrend {
   const LcrOutputTrend({
@@ -30,6 +33,7 @@ class LcrOutputTrend {
   final List<int> fail;
   final List<double> yieldRate;
 }
+
 
 class LcrMachineGauge {
   const LcrMachineGauge({
@@ -45,6 +49,7 @@ class LcrMachineGauge {
 
   double get yieldRate => total == 0 ? 0 : pass / total * 100;
 }
+
 
 class LcrDashboardViewState {
   const LcrDashboardViewState({
@@ -77,18 +82,10 @@ class LcrDashboardViewState {
     final Map<int, List<LcrRecord>> byMachine = {};
     final Map<String, List<LcrRecord>> byError = {};
 
-    // 🔹 Ca bắt đầu 07:30, kết thúc 19:30 → 12 ca
-    const startHour = 7;
-    const startMinute = 30;
-    const slotCount = 12;
+    const slotCount = 12; // 12 ca từ 07:30–19:30
     final Map<int, _SlotTotals> bySlot = {};
     final Map<int, List<String>> slotLogs = {};
 
-    int _resolveQuantity(int? primary, int? secondary) {
-      if (primary != null && primary > 0) return primary;
-      if (secondary != null && secondary > 0) return secondary;
-      return 1;
-    }
 
     for (final record in records) {
       final factoryKey = record.factory.isEmpty ? 'UNKNOWN' : record.factory;
@@ -113,15 +110,16 @@ class LcrDashboardViewState {
       (record.description ?? '').isEmpty ? 'NO ERROR' : record.description!;
       byError.putIfAbsent(errorKey, () => []).add(record);
 
-      // ✅ Quy tắc chia ca chuẩn web
+
       final dt = record.dateTime;
-      int slotIndex = dt.hour - startHour;
-      if (dt.minute >= 30) slotIndex += 1;
+      int section = dt.minute > 0 ? dt.hour + 1 : dt.hour;
+      if (section >= 24) section = 0;
+
+
+      final startSection = 8;
+      final slotIndex = section - startSection;
       if (slotIndex < 0 || slotIndex >= slotCount) continue;
 
-      final resolvedQty = record.status
-          ? _resolveQuantity(record.qty, record.extQty)
-          : _resolveQuantity(record.extQty, record.qty);
       final bucket = bySlot.putIfAbsent(slotIndex, () => _SlotTotals());
       if (record.status) {
         bucket.pass += 1;
@@ -129,18 +127,16 @@ class LcrDashboardViewState {
         bucket.fail += 1;
       }
 
-      // logging cho từng record
       final statusLabel = record.status ? 'PASS' : 'FAIL';
-      final serial =
-      (record.serialNumber?.isNotEmpty ?? false) ? record.serialNumber! : '-';
+      final serial = (record.serialNumber?.isNotEmpty ?? false)
+          ? record.serialNumber!
+          : '-';
       final logLine =
-          'serial=$serial machine=${record.machineNo} status=$statusLabel qty=$resolvedQty '
-          '(qty=${record.qty ?? '-'}, extQty=${record.extQty ?? '-'}) '
-          'time=${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} (${dt.toIso8601String()})';
+          'serial=$serial machine=${record.machineNo} status=$statusLabel time=${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} (${dt.toIso8601String()})';
       slotLogs.putIfAbsent(slotIndex, () => []).add(logLine);
     }
 
-    // ✅ Xử lý biểu đồ các nhóm
+    // 🔹 Nhóm dạng Pie & Stacked
     List<LcrPieSlice> _buildPie(Map<String, List<LcrRecord>> map,
         {bool includeZero = false}) {
       return map.entries
@@ -169,46 +165,38 @@ class LcrDashboardViewState {
     final employeeSeries = _buildStacked(byEmployee);
     final errorSlices = _buildPie(byError, includeZero: true);
 
-    // ✅ Biểu đồ Output
+    // Biểu đồ Output
     final outputPass = <int>[];
     final outputFail = <int>[];
     final outputYr = <double>[];
     final categoriesLabel = <String>[];
 
-    for (var slotIndex = 0; slotIndex < slotCount; slotIndex++) {
-      final bucket = bySlot[slotIndex];
-      final passCount = bucket?.pass ?? 0;
-      final failCount = bucket?.fail ?? 0;
-      outputPass.add(passCount);
-      outputFail.add(failCount);
-      final total = passCount + failCount;
-      final yr = total == 0 ? 0 : passCount / total * 100;
-      outputYr.add(double.parse(yr.toStringAsFixed(2)));
-
-      // tạo label giờ
-      final start =
-      DateTime(0, 1, 1, startHour, startMinute).add(Duration(hours: slotIndex));
-      final end = start.add(const Duration(hours: 1));
-      final startLabel =
-          '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
-      final endLabel =
-          '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+    for (var i = 0; i < slotCount; i++) {
+      final section = (8 + i) % 24;
+      final startHour = (section + 23) % 24;
+      final endHour = section % 24;
+      final startLabel = '${startHour.toString().padLeft(2, '0')}:30';
+      final endLabel = '${endHour.toString().padLeft(2, '0')}:30';
       categoriesLabel.add('$startLabel - $endLabel');
 
-      // log output
-      final lines = slotLogs[slotIndex];
+      final bucket = bySlot[i];
+      final passCount = bucket?.pass ?? 0;
+      final failCount = bucket?.fail ?? 0;
+      final total = passCount + failCount;
+      final yr = total == 0 ? 0 : (passCount / total * 100);
+      outputPass.add(passCount);
+      outputFail.add(failCount);
+      outputYr.add(double.parse(yr.toStringAsFixed(2)));
+
+      // Log chi tiết từng slot
+      final lines = slotLogs[i];
       final buffer = StringBuffer()
         ..write(
-            'slot=$slotIndex [$startLabel - $endLabel] pass=$passCount fail=$failCount total=$total');
-      if (lines == null || lines.isEmpty) {
-        buffer.write(' (no records)');
-      } else {
-        for (final entry in lines) {
-          buffer.write('\n  - ');
-          buffer.write(entry);
-        }
+            'slot=$i [$startLabel - $endLabel] pass=$passCount fail=$failCount total=$total');
+      if (lines != null && lines.isNotEmpty) {
+        for (final line in lines) buffer.write('\n  - $line');
       }
-      developer.log(buffer.toString(), name: 'LCR_OUTPUT_BUCKET');
+      developer.log(buffer.toString(), name: 'LCR_OUTPUT_SLOT');
     }
 
     final outputTrend = LcrOutputTrend(
@@ -218,31 +206,31 @@ class LcrDashboardViewState {
       yieldRate: outputYr,
     );
 
-    // ✅ Gauge máy
+    // ✅ Gauge theo máy
     final machineGauges = byMachine.entries.map((entry) {
       var passTotal = 0;
       var failTotal = 0;
       for (final record in entry.value) {
         if (record.status) {
-          passTotal += _resolveQuantity(record.qty, record.extQty);
+          passTotal += record.qty ?? 1;
         } else {
-          failTotal += _resolveQuantity(record.extQty, record.qty);
+          failTotal += record.extQty ?? 1;
         }
       }
-      final combined = passTotal + failTotal;
+      final total = passTotal + failTotal;
       return LcrMachineGauge(
         machineNo: entry.key,
-        total: combined,
+        total: total,
         pass: passTotal,
         fail: failTotal,
       );
     }).toList();
 
-    // Bổ sung máy trống nếu thiếu
     const expectedMachineCount = 4;
     for (var m = 1; m <= expectedMachineCount; m++) {
       if (!machineGauges.any((g) => g.machineNo == m)) {
-        machineGauges.add(LcrMachineGauge(machineNo: m, total: 0, pass: 0, fail: 0));
+        machineGauges.add(
+            const LcrMachineGauge(machineNo: 0, total: 0, pass: 0, fail: 0));
       }
     }
     machineGauges.sort((a, b) => a.machineNo.compareTo(b.machineNo));
