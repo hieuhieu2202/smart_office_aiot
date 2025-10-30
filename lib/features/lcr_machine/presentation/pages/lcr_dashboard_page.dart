@@ -1121,6 +1121,7 @@ class _StatusOverviewDialog extends StatefulWidget {
 
 class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
   late final ScrollController _verticalController;
+  late final TextEditingController _searchController;
   static const String _kAllFilter = 'ALL';
   static const String _kMissingValue = '-';
 
@@ -1136,17 +1137,20 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
   String _selectedFactory = _kAllFilter;
   String _selectedDepartment = _kAllFilter;
   String _selectedMachine = _kAllFilter;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _verticalController = ScrollController();
+    _searchController = TextEditingController();
     _initializeFilters();
   }
 
   @override
   void dispose() {
     _verticalController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -1177,6 +1181,9 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     final recordChipLabel = hasActiveFilters
         ? '${records.length} / $totalRecords records'
         : '${records.length} records';
+    final emptyMessage = hasActiveFilters
+        ? 'No records match the current filters.'
+        : 'No records available for this status.';
     final infoTextStyle = theme.textTheme.bodySmall?.copyWith(
           color: const Color(0xFF20E0FF),
           fontWeight: FontWeight.w700,
@@ -1268,46 +1275,98 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _FilterDropdown(
-                    label: 'TYPE',
-                    value: _selectedType,
-                    options: _typeOptions,
-                    onChanged: (value) => _onFilterChanged(type: value),
-                    width: 200,
-                  ),
-                  _FilterDropdown(
-                    label: 'EMPLOYEE ID',
-                    value: _selectedEmployee,
-                    options: _employeeOptions,
-                    onChanged: (value) => _onFilterChanged(employee: value),
-                    width: 180,
-                  ),
-                  _FilterDropdown(
-                    label: 'FACTORY',
-                    value: _selectedFactory,
-                    options: _factoryOptions,
-                    onChanged: (value) => _onFilterChanged(factory: value),
-                    width: 160,
-                  ),
-                  _FilterDropdown(
-                    label: 'DEPARTMENT',
-                    value: _selectedDepartment,
-                    options: _departmentOptions,
-                    onChanged: (value) => _onFilterChanged(department: value),
-                    width: 180,
-                  ),
-                  _FilterDropdown(
-                    label: 'MACHINE NO.',
-                    value: _selectedMachine,
-                    options: _machineOptions,
-                    onChanged: (value) => _onFilterChanged(machine: value),
-                    width: 150,
-                  ),
-                ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final filterControls = <Widget>[
+                    _FilterDropdown(
+                      label: 'TYPE',
+                      value: _selectedType,
+                      options: _typeOptions,
+                      onChanged: (value) => _onFilterChanged(type: value),
+                      width: 200,
+                    ),
+                    _FilterDropdown(
+                      label: 'EMPLOYEE ID',
+                      value: _selectedEmployee,
+                      options: _employeeOptions,
+                      onChanged: (value) => _onFilterChanged(employee: value),
+                      width: 180,
+                    ),
+                    _FilterDropdown(
+                      label: 'FACTORY',
+                      value: _selectedFactory,
+                      options: _factoryOptions,
+                      onChanged: (value) => _onFilterChanged(factory: value),
+                      width: 160,
+                    ),
+                    _FilterDropdown(
+                      label: 'DEPARTMENT',
+                      value: _selectedDepartment,
+                      options: _departmentOptions,
+                      onChanged: (value) => _onFilterChanged(department: value),
+                      width: 180,
+                    ),
+                    _FilterDropdown(
+                      label: 'MACHINE NO.',
+                      value: _selectedMachine,
+                      options: _machineOptions,
+                      onChanged: (value) => _onFilterChanged(machine: value),
+                      width: 150,
+                    ),
+                  ];
+
+                  final searchField = _SearchField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                  );
+
+                  final isWide = constraints.maxWidth >= 1080;
+                  final searchWidth = math.max(
+                    220.0,
+                    math.min(320.0, constraints.maxWidth * 0.35),
+                  );
+
+                  if (isWide) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: filterControls,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        SizedBox(
+                          width: searchWidth,
+                          child: searchField,
+                        ),
+                      ],
+                    );
+                  }
+
+                  final compactSearchWidth = math.min(360.0, constraints.maxWidth);
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: filterControls,
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: SizedBox(
+                          width: compactSearchWidth,
+                          child: searchField,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
             Expanded(
@@ -1316,7 +1375,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                 child: records.isEmpty
                     ? Center(
                         child: Text(
-                          'No records available for this status.',
+                          emptyMessage,
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: Colors.white60,
                             fontWeight: FontWeight.w600,
@@ -1484,7 +1543,8 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
       _selectedEmployee != _kAllFilter ||
       _selectedFactory != _kAllFilter ||
       _selectedDepartment != _kAllFilter ||
-      _selectedMachine != _kAllFilter;
+      _selectedMachine != _kAllFilter ||
+      _searchQuery.isNotEmpty;
 
   void _initializeFilters() {
     final records = widget.records;
@@ -1500,6 +1560,10 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     _selectedFactory = _kAllFilter;
     _selectedDepartment = _kAllFilter;
     _selectedMachine = _kAllFilter;
+    _searchQuery = '';
+    if (_searchController.text.isNotEmpty) {
+      _searchController.clear();
+    }
     _filteredRecords = List<LcrRecord>.from(records);
   }
 
@@ -1520,7 +1584,17 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     });
   }
 
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value.trim();
+      _filteredRecords = _applyFilters();
+    });
+  }
+
   List<LcrRecord> _applyFilters() {
+    final query = _searchQuery.toLowerCase();
+    final hasQuery = query.isNotEmpty;
+
     return widget.records.where((record) {
       if (_selectedType != _kAllFilter &&
           _stringValue(record.materialType) != _selectedType) {
@@ -1542,8 +1616,70 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
           _machineValue(record.machineNo) != _selectedMachine) {
         return false;
       }
+      if (hasQuery && !_matchesSearch(record, query)) {
+        return false;
+      }
       return true;
     }).toList();
+  }
+
+  bool _matchesSearch(LcrRecord record, String query) {
+    bool matchString(String? value) =>
+        value != null && value.toLowerCase().contains(query);
+    bool matchInt(int? value) =>
+        value != null && value != 0 && value.toString().contains(query);
+
+    if (matchString(record.serialNumber)) return true;
+    if (matchString(record.customerPn)) return true;
+    if (matchString(record.dateCode)) return true;
+    if (matchString(record.lotCode)) return true;
+    if (matchString(record.description)) return true;
+    if (matchString(record.materialType)) return true;
+    if (_stringValue(record.materialType).toLowerCase().contains(query)) {
+      return true;
+    }
+    if (matchString(record.lowSpec)) return true;
+    if (matchString(record.highSpec)) return true;
+    if (matchString(record.measureValue)) return true;
+    if (matchString(record.employeeId)) return true;
+    if (_stringValue(record.employeeId).toLowerCase().contains(query)) {
+      return true;
+    }
+    if (matchString(record.vendor)) return true;
+    if (matchString(record.vendorNo)) return true;
+    if (matchString(record.location)) return true;
+    if (matchInt(record.qty)) return true;
+    if (matchInt(record.extQty)) return true;
+    if (record.workDate.isNotEmpty &&
+        record.workDate.toLowerCase().contains(query)) {
+      return true;
+    }
+    if (record.className.isNotEmpty &&
+        record.className.toLowerCase().contains(query)) {
+      return true;
+    }
+    if (record.classDate.isNotEmpty &&
+        record.classDate.toLowerCase().contains(query)) {
+      return true;
+    }
+    if (record.recordId.isNotEmpty &&
+        record.recordId.toLowerCase().contains(query)) {
+      return true;
+    }
+    final factoryValue = record.factory.toLowerCase();
+    if (factoryValue.contains(query)) return true;
+    if (matchString(record.department)) return true;
+    if (_stringValue(record.department).toLowerCase().contains(query)) {
+      return true;
+    }
+    final machineValue = _machineValue(record.machineNo).toLowerCase();
+    if (machineValue.contains(query)) return true;
+    final statusLabel = record.isPass ? 'pass' : 'fail';
+    if (statusLabel.contains(query)) return true;
+    final dateString = record.dateTime.toIso8601String().toLowerCase();
+    if (dateString.contains(query)) return true;
+    if (matchInt(record.workSection)) return true;
+    return false;
   }
 
   List<String> _buildStringOptions(Iterable<String?> values) {
@@ -1642,6 +1778,68 @@ class _TableText extends StatelessWidget {
       maxLines: maxLines,
       overflow: TextOverflow.ellipsis,
       softWrap: maxLines > 1,
+    );
+  }
+}
+
+class _SearchField extends StatelessWidget {
+  const _SearchField({
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hintStyle = theme.textTheme.bodySmall?.copyWith(
+          color: Colors.white54,
+          fontWeight: FontWeight.w500,
+        ) ??
+        const TextStyle(
+          color: Colors.white54,
+          fontWeight: FontWeight.w500,
+        );
+    final textStyle = theme.textTheme.bodyMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ) ??
+        const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        );
+
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      style: textStyle,
+      cursorColor: const Color(0xFF20E0FF),
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        isDense: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.05),
+        hintText: 'Search records',
+        hintStyle: hintStyle,
+        prefixIcon:
+            const Icon(Icons.search, color: Colors.white54, size: 20),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF20E0FF)),
+        ),
+      ),
     );
   }
 }
