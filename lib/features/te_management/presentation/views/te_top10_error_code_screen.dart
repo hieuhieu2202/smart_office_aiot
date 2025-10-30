@@ -635,13 +635,13 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                                         width: 0.8,
                                       ),
                                     ),
-                                    columns: const [
-                                      DataColumn(label: _NeonTableHeader('TOP')),
-                                      DataColumn(label: _NeonTableHeader('ERROR CODE')),
-                                      DataColumn(label: _NeonTableHeader('F_FAIL'), numeric: true),
-                                      DataColumn(label: _NeonTableHeader('R_FAIL'), numeric: true),
-                                      DataColumn(label: _NeonTableHeader('Σ / SHARE')),
-                                      DataColumn(label: _NeonTableHeader('TOP DETAIL')),
+                                    columns: [
+                                      const DataColumn(label: _NeonTableHeader('TOP')),
+                                      const DataColumn(label: _NeonTableHeader('ERROR CODE')),
+                                      const DataColumn(label: _NeonTableHeader('F_FAIL'), numeric: true),
+                                      const DataColumn(label: _NeonTableHeader('R_FAIL'), numeric: true),
+                                      const DataColumn(label: _NeonTableHeader('Σ / SHARE')),
+                                      const DataColumn(label: _NeonTableHeader('TOP DETAIL')),
                                     ],
                                     rows: _buildErrorTableRows(
                                       errors: errors,
@@ -889,28 +889,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       ),
     );
   }
-
-class _NeonTableHeader extends StatelessWidget {
-  const _NeonTableHeader(this.text, {super.key});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: _kAccentColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
-        ),
-      ),
-    );
-  }
-}
 
   Widget _buildDistributionPanel() {
     return Obx(() {
@@ -1401,6 +1379,28 @@ class _InfoBadge extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NeonTableHeader extends StatelessWidget {
+  const _NeonTableHeader(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: _kAccentColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+        ),
       ),
     );
   }
