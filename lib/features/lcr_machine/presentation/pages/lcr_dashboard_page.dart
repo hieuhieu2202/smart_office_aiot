@@ -1003,12 +1003,14 @@ class _DashboardTab extends StatelessWidget {
                           child: LcrChartCard(
                             title: 'YIELD RATE & OUTPUT',
                             height: 280,
-                            backgroundAsset: 'assets/images/background_dark.png',
-                            overlayColor: const Color(0xAA041229),
-                            overlayGradient: const [
-                              Color(0xCC041B3A),
-                              Color(0xF0010818),
-                            ],
+                            backgroundGradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF062349),
+                                Color(0xFF041127),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
                             padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
                             child: _OutputChart(data.outputTrend),
                           ),
