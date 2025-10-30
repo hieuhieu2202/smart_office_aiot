@@ -1144,7 +1144,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
       math.max(media.size.width * 0.92, media.size.width - 48),
       1800.0,
     );
-    final tableMinWidth = math.max(width * 0.92, width - 64);
+    final tableMinWidth = math.max(width * 0.9, width - 96);
     final height = math.min(media.size.height * 0.8, 640.0);
     final dateTimeFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
     final infoTextStyle = theme.textTheme.bodySmall?.copyWith(
@@ -1283,26 +1283,26 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                     color: Colors.white.withOpacity(0.9),
                                     fontWeight: FontWeight.w600,
                                   ),
-                                  columnSpacing: 14,
-                                  horizontalMargin: 14,
+                                  columnSpacing: 6,
+                                  horizontalMargin: 8,
                                   columns: const [
-                                    DataColumn(label: Text('#')),
-                                    DataColumn(label: Text('DATE TIME')),
-                                    DataColumn(label: Text('SERIAL NO.')),
-                                    DataColumn(label: Text('CUSTOMER P/N')),
-                                    DataColumn(label: Text('DATE CODE')),
-                                    DataColumn(label: Text('LOT CODE')),
-                                    DataColumn(label: Text('QTY')),
-                                    DataColumn(label: Text('EXT QTY')),
-                                    DataColumn(label: Text('DESCRIPTION')),
-                                    DataColumn(label: Text('MATERIAL TYPE')),
-                                    DataColumn(label: Text('LOW SPEC')),
-                                    DataColumn(label: Text('HIGH SPEC')),
-                                    DataColumn(label: Text('MEASURE VALUE')),
-                                    DataColumn(label: Text('EMPLOYEE ID')),
-                                    DataColumn(label: Text('FACTORY')),
-                                    DataColumn(label: Text('DEPARTMENT')),
-                                    DataColumn(label: Text('MACHINE NO.')),
+                                    DataColumn(label: _TableHeader('#')),
+                                    DataColumn(label: _TableHeader('DATE TIME')),
+                                    DataColumn(label: _TableHeader('SERIAL NO.')),
+                                    DataColumn(label: _TableHeader('CUSTOMER P/N')),
+                                    DataColumn(label: _TableHeader('DATE CODE')),
+                                    DataColumn(label: _TableHeader('LOT CODE')),
+                                    DataColumn(label: _TableHeader('QTY')),
+                                    DataColumn(label: _TableHeader('EXT QTY')),
+                                    DataColumn(label: _TableHeader('DESCRIPTION', maxLines: 2)),
+                                    DataColumn(label: _TableHeader('MATERIAL TYPE')),
+                                    DataColumn(label: _TableHeader('LOW SPEC')),
+                                    DataColumn(label: _TableHeader('HIGH SPEC')),
+                                    DataColumn(label: _TableHeader('MEASURE VALUE')),
+                                    DataColumn(label: _TableHeader('EMPLOYEE ID')),
+                                    DataColumn(label: _TableHeader('FACTORY')),
+                                    DataColumn(label: _TableHeader('DEPARTMENT')),
+                                    DataColumn(label: _TableHeader('MACHINE NO.')),
                                   ],
                                   rows: records
                                       .asMap()
@@ -1318,60 +1318,80 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                     return DataRow(
                                       color: MaterialStateProperty.all(rowTint),
                                       cells: [
-                                        DataCell(Text(index.toString())),
+                                        DataCell(_TableText(index.toString())),
                                         DataCell(
-                                          Text(
+                                          _TableText(
                                             dateTimeFormatter
                                                 .format(record.dateTime),
                                           ),
                                         ),
                                         DataCell(
-                                          Text(
+                                          _TableText(
                                             record.serialNumber ?? '-',
                                             style: infoTextStyle,
                                           ),
                                         ),
                                         DataCell(
-                                          Text(record.customerPn ?? '-'),
+                                          _TableText(record.customerPn ?? '-'),
                                         ),
-                                        DataCell(Text(record.dateCode ?? '-')),
-                                        DataCell(Text(record.lotCode ?? '-')),
                                         DataCell(
-                                            Text(record.qty?.toString() ?? '-')),
+                                          _TableText(record.dateCode ?? '-'),
+                                        ),
                                         DataCell(
-                                            Text(record.extQty?.toString() ?? '-')),
-                                        DataCell(Text(record.description ?? '-')),
-                                        DataCell(Text(record.materialType ?? '-')),
+                                          _TableText(record.lotCode ?? '-'),
+                                        ),
                                         DataCell(
-                                          Text(
+                                          _TableText(
+                                            record.qty?.toString() ?? '-',
+                                          ),
+                                        ),
+                                        DataCell(
+                                          _TableText(
+                                            record.extQty?.toString() ?? '-',
+                                          ),
+                                        ),
+                                        DataCell(
+                                          _TableText(
+                                            record.description ?? '-',
+                                            maxLines: 2,
+                                          ),
+                                        ),
+                                        DataCell(
+                                          _TableText(record.materialType ?? '-'),
+                                        ),
+                                        DataCell(
+                                          _TableText(
                                             record.lowSpec ?? '-',
                                             style: infoTextStyle,
                                           ),
                                         ),
                                         DataCell(
-                                          Text(
+                                          _TableText(
                                             record.highSpec ?? '-',
                                             style: warningTextStyle,
                                           ),
                                         ),
                                         DataCell(
-                                          Text(
+                                          _TableText(
                                             record.measureValue ?? '-',
                                             style: successTextStyle,
                                           ),
                                         ),
-                                        DataCell(Text(record.employeeId ?? '-')),
                                         DataCell(
-                                          Text(
+                                          _TableText(record.employeeId ?? '-'),
+                                        ),
+                                        DataCell(
+                                          _TableText(
                                             record.factory.isEmpty
                                                 ? '-'
                                                 : record.factory,
                                           ),
                                         ),
                                         DataCell(
-                                            Text(record.department ?? '-')),
+                                          _TableText(record.department ?? '-'),
+                                        ),
                                         DataCell(
-                                          Text(
+                                          _TableText(
                                             record.machineNo == 0
                                                 ? '-'
                                                 : record.machineNo.toString(),
@@ -1390,6 +1410,50 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader(this.label, {this.maxLines = 1});
+
+  final String label;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 56),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+        softWrap: maxLines > 1,
+      ),
+    );
+  }
+}
+
+class _TableText extends StatelessWidget {
+  const _TableText(
+    this.value, {
+    this.style,
+    this.maxLines = 1,
+  });
+
+  final String value;
+  final TextStyle? style;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      value,
+      style: style,
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+      softWrap: maxLines > 1,
     );
   }
 }
