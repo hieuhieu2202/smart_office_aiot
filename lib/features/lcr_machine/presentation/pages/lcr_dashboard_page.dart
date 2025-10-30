@@ -2115,6 +2115,7 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
     'F17': [Color(0xFF6DD5FA), Color(0xFF2980B9)],
     'F16': [Color(0xFFFFD26F), Color(0xFFFB8D34)],
     'B03': [Color(0xFFFF758C), Color(0xFFFED6E3)],
+    'F06': [Color(0xFFFFB88C), Color(0xFFDE6262)],
   };
 
   static const List<List<Color>> _fallbackGradients = <List<Color>>[
@@ -2272,6 +2273,7 @@ class _FactoryDistributionTile extends StatelessWidget {
       showDuration: const Duration(milliseconds: 3500),
       verticalOffset: 18,
       preferBelow: false,
+      triggerMode: TooltipTriggerMode.tap,
       richMessage: TextSpan(
         text: label,
         style: const TextStyle(
