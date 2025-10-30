@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import '../../domain/entities/lcr_entities.dart';
 
 class LcrPieSlice {
@@ -83,7 +85,9 @@ class LcrDashboardViewState {
     const endHour = 18;
     const shiftStartMinutes = startHour * 60 + 30;
     const shiftEndMinutes = (endHour + 1) * 60 + 30;
+    const slotCount = endHour - startHour + 1;
     final Map<int, _SlotTotals> bySlot = <int, _SlotTotals>{};
+    final Map<int, List<String>> slotLogs = <int, List<String>>{};
 
     int _resolveQuantity(int? primary, int? secondary) {
       if (primary != null && primary > 0) return primary;
@@ -115,15 +119,44 @@ class LcrDashboardViewState {
       byError.putIfAbsent(errorKey, () => <LcrRecord>[]).add(record);
 
       final totalMinutes = record.dateTime.hour * 60 + record.dateTime.minute;
-      if (totalMinutes >= shiftStartMinutes && totalMinutes < shiftEndMinutes) {
-        final slotIndex = (totalMinutes - shiftStartMinutes) ~/ 60;
-        final slotHour = startHour + slotIndex;
-        final bucket = bySlot.putIfAbsent(slotHour, () => _SlotTotals());
+      int? slotIndex;
+      if (record.workSection > 0 && record.workSection <= slotCount) {
+        slotIndex = record.workSection - 1;
+      } else if (totalMinutes >= shiftStartMinutes &&
+          totalMinutes < shiftEndMinutes) {
+        slotIndex = (totalMinutes - shiftStartMinutes) ~/ 60;
+      }
+      if (slotIndex != null) {
+        final resolvedQty = record.status
+            ? _resolveQuantity(record.qty, record.extQty)
+            : _resolveQuantity(record.extQty, record.qty);
+        final bucket = bySlot.putIfAbsent(slotIndex, () => _SlotTotals());
         if (record.status) {
-          bucket.pass += _resolveQuantity(record.qty, record.extQty);
+          bucket.pass += 1;
         } else {
-          bucket.fail += _resolveQuantity(record.extQty, record.qty);
+          bucket.fail += 1;
         }
+
+        final assignment = (record.workSection > 0 &&
+                record.workSection <= slotCount)
+            ? 'workSection=${record.workSection}'
+            : 'time=${record.dateTime.hour.toString().padLeft(2, '0')}:${record.dateTime.minute.toString().padLeft(2, '0')} (${record.dateTime.toIso8601String()})';
+        final statusLabel = record.status ? 'PASS' : 'FAIL';
+        final serial =
+            (record.serialNumber?.isNotEmpty ?? false) ? record.serialNumber! : '-';
+        final logLine =
+            'serial=$serial machine=${record.machineNo} status=$statusLabel qty=$resolvedQty'
+            ' (qty=${record.qty ?? '-'}, extQty=${record.extQty ?? '-'}) source=$assignment';
+        slotLogs.putIfAbsent(slotIndex, () => <String>[]).add(logLine);
+      } else {
+        final serial =
+            (record.serialNumber?.isNotEmpty ?? false) ? record.serialNumber! : '-';
+        final timeLabel =
+            '${record.dateTime.hour.toString().padLeft(2, '0')}:${record.dateTime.minute.toString().padLeft(2, '0')}';
+        developer.log(
+          'Skipped record serial=$serial machine=${record.machineNo} status=${record.status ? 'PASS' : 'FAIL'} outside shift window at $timeLabel (section=${record.workSection})',
+          name: 'LCR_OUTPUT_BUCKET',
+        );
       }
     }
 
@@ -163,8 +196,9 @@ class LcrDashboardViewState {
     final outputYr = <double>[];
     final categoriesLabel = <String>[];
 
-    for (var hour = startHour; hour <= endHour; hour++) {
-      final bucket = bySlot[hour];
+    for (var slotIndex = 0; slotIndex < slotCount; slotIndex++) {
+      final bucket = bySlot[slotIndex];
+      final hour = startHour + slotIndex;
       final passCount = bucket?.pass ?? 0;
       final failCount = bucket?.fail ?? 0;
       outputPass.add(passCount);
@@ -175,6 +209,20 @@ class LcrDashboardViewState {
       final startLabel = '${hour.toString().padLeft(2, '0')}:30';
       final endLabel = '${(hour + 1).toString().padLeft(2, '0')}:30';
       categoriesLabel.add('$startLabel - $endLabel');
+
+      final lines = slotLogs[slotIndex];
+      final buffer = StringBuffer()
+        ..write(
+            'slot=$slotIndex [$startLabel - $endLabel] pass=$passCount fail=$failCount total=$total');
+      if (lines == null || lines.isEmpty) {
+        buffer.write(' (no records)');
+      } else {
+        for (final entry in lines) {
+          buffer.write('\n  - ');
+          buffer.write(entry);
+        }
+      }
+      developer.log(buffer.toString(), name: 'LCR_OUTPUT_BUCKET');
     }
 
     final outputTrend = LcrOutputTrend(

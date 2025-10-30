@@ -800,23 +800,23 @@ class _DashboardTab extends StatelessWidget {
   final LcrDashboardController controller;
 
   double _factoryDistributionHeight(int itemCount) {
-    const baseHeight = 190.0;
-    const perTile = 68.0;
+    const baseHeight = 160.0;
+    const perTile = 60.0;
     final computed = baseHeight + (itemCount * perTile);
-    return math.max(320.0, computed);
+    return computed.clamp(260.0, 360.0).toDouble();
   }
 
   double _machinePerformanceHeight(int itemCount) {
     if (itemCount <= 0) {
-      return 300.0;
+      return 260.0;
     }
     if (itemCount <= 4) {
-      return 300.0;
+      return 260.0;
     }
     if (itemCount <= 8) {
-      return 360.0;
+      return 320.0;
     }
-    return 480.0;
+    return 420.0;
   }
 
   Future<void> _showStatusOverview(BuildContext context, bool showPass) async {
@@ -925,12 +925,11 @@ class _DashboardTab extends StatelessWidget {
 
           final machineHeight =
               _machinePerformanceHeight(data.machineGauges.length);
+          final factoryHeight =
+              _factoryDistributionHeight(data.factorySlices.length);
           final primaryRowHeight = math.max(
-            machineHeight,
-            math.max(
-              _factoryDistributionHeight(data.factorySlices.length),
-              300.0,
-            ),
+            260.0,
+            math.max(machineHeight, factoryHeight),
           );
 
           return SizedBox(
@@ -993,7 +992,7 @@ class _DashboardTab extends StatelessWidget {
                           flex: 2,
                           child: LcrChartCard(
                             title: 'DEPARTMENT ANALYSIS',
-                            height: 280,
+                            height: 340,
                             child: _StackedBarChart(data.departmentSeries),
                           ),
                         ),
@@ -1002,7 +1001,16 @@ class _DashboardTab extends StatelessWidget {
                           flex: 5,
                           child: LcrChartCard(
                             title: 'YIELD RATE & OUTPUT',
-                            height: 280,
+                            height: 360,
+                            backgroundGradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF062349),
+                                Color(0xFF041127),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
                             child: _OutputChart(data.outputTrend),
                           ),
                         ),
@@ -1011,7 +1019,7 @@ class _DashboardTab extends StatelessWidget {
                           flex: 3,
                           child: LcrChartCard(
                             title: 'TYPE ANALYSIS',
-                            height: 280,
+                            height: 340,
                             child: _StackedBarChart(
                               data.typeSeries,
                               xLabelStyle: const TextStyle(
@@ -2545,6 +2553,7 @@ class _StackedBarChart extends StatelessWidget {
             title: bar.category,
             pass: bar.pass,
             fail: bar.fail,
+            yieldRate: bar.yieldRate,
           );
         },
       ),
@@ -2760,6 +2769,7 @@ class _EmployeeStatBarState extends State<_EmployeeStatBar> {
                   title: widget.data.name,
                   pass: widget.data.pass,
                   fail: widget.data.fail,
+                  yieldRate: widget.data.yieldRate,
                 ),
               ),
             ),
@@ -2916,11 +2926,13 @@ class _BarTooltip extends StatelessWidget {
     required this.title,
     required this.pass,
     required this.fail,
+    required this.yieldRate,
   });
 
   final String title;
   final num pass;
   final num fail;
+  final double yieldRate;
 
   @override
   Widget build(BuildContext context) {
@@ -2945,17 +2957,38 @@ class _BarTooltip extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            _TooltipEntry(label: 'PASS', value: pass, color: Colors.cyanAccent),
+            _TooltipEntry(
+              label: 'PASS',
+              value: pass.toString(),
+              color: Colors.cyanAccent,
+            ),
             const SizedBox(height: 4),
             _TooltipEntry(
               label: 'FAIL',
-              value: fail,
+              value: fail.toString(),
               color: _EmployeeStatisticsChart._failColor,
+            ),
+            const SizedBox(height: 4),
+            _TooltipEntry(
+              label: 'YIELD RATE',
+              value: _formatYieldRate(yieldRate),
+              color: Colors.amberAccent,
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatYieldRate(double value) {
+    if (value.isNaN || value.isInfinite) {
+      return '0%';
+    }
+    final rounded = value.roundToDouble();
+    final text = rounded == value
+        ? rounded.toInt().toString()
+        : value.toStringAsFixed(1);
+    return '$text%';
   }
 }
 
@@ -2967,7 +3000,7 @@ class _TooltipEntry extends StatelessWidget {
   });
 
   final String label;
-  final num value;
+  final String value;
   final Color color;
 
   @override
@@ -2989,7 +3022,7 @@ class _TooltipEntry extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         const SizedBox(width: 6),
-        Text(value.toString()),
+        Text(value),
       ],
     );
   }
@@ -3031,23 +3064,22 @@ class _OutputChart extends StatelessWidget {
       yMax = (step * 6).toDouble();
     }
 
-    final annotations = <CartesianChartAnnotation>[];
-    if (data.isNotEmpty) {
-      annotations.add(
+    final annotations = <CartesianChartAnnotation>[
+      if (data.isNotEmpty)
         CartesianChartAnnotation(
           widget: DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.greenAccent.withOpacity(0.08),
+              color: Colors.greenAccent.withOpacity(0.16),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+              border: Border.all(color: Colors.greenAccent.withOpacity(0.6)),
             ),
             child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               child: Text(
                 'Target (98%)',
                 style: TextStyle(
                   color: Colors.greenAccent,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   fontSize: 11,
                 ),
               ),
@@ -3057,13 +3089,16 @@ class _OutputChart extends StatelessWidget {
           x: data.last.category,
           y: 98,
           yAxisName: 'yrAxis',
+          horizontalAlignment: ChartAlignment.far,
+          verticalAlignment: ChartAlignment.near,
         ),
-      );
-    }
+    ];
 
     return SfCartesianChart(
+      margin: const EdgeInsets.fromLTRB(12, 18, 12, 12),
+      backgroundColor: Colors.transparent,
       plotAreaBorderWidth: 0,
-      plotAreaBackgroundColor: const Color(0x1A2B3A5A),
+      plotAreaBackgroundColor: Colors.transparent,
       tooltipBehavior: TooltipBehavior(
         enable: true,
         activationMode: ActivationMode.singleTap,
@@ -3071,14 +3106,14 @@ class _OutputChart extends StatelessWidget {
         header: '',
         builder: (dynamic item, dynamic point, dynamic series, int pointIndex,
             int seriesIndex) {
-          if (item is! _OutputItem ||
-              series is! ColumnSeries<dynamic, dynamic>) {
+          if (item is! _OutputItem) {
             return const SizedBox.shrink();
           }
           return _BarTooltip(
             title: item.category,
             pass: item.pass,
             fail: item.fail,
+            yieldRate: item.yr,
           );
         },
       ),
@@ -3099,18 +3134,31 @@ class _OutputChart extends StatelessWidget {
       ),
       legend: const Legend(isVisible: false),
       primaryXAxis: CategoryAxis(
-        labelStyle: const TextStyle(color: Colors.white70),
+        labelStyle: const TextStyle(
+          color: Color(0xFFE8F4FF),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+          shadows: [
+            Shadow(
+              color: Color(0x99000000),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
         majorGridLines: const MajorGridLines(width: 0),
         majorTickLines: const MajorTickLines(size: 0),
-        axisLine: AxisLine(color: Colors.white24.withOpacity(0.35)),
+        axisLine: AxisLine(color: Colors.white.withOpacity(0.25), width: 0.8),
         labelAlignment: LabelAlignment.center,
+        labelIntersectAction: AxisLabelIntersectAction.multipleRows,
       ),
       primaryYAxis: NumericAxis(
         minimum: 0,
         maximum: yMax,
         interval: interval,
-        labelStyle: const TextStyle(color: Colors.white70),
-        majorGridLines: MajorGridLines(color: Colors.white10.withOpacity(0.2)),
+        isVisible: false,
+        majorGridLines: const MajorGridLines(width: 0),
         majorTickLines: const MajorTickLines(size: 0),
         axisLine: const AxisLine(width: 0),
       ),
@@ -3119,21 +3167,10 @@ class _OutputChart extends StatelessWidget {
           name: 'yrAxis',
           minimum: 0,
           maximum: 100,
-          labelStyle: const TextStyle(color: Colors.amberAccent),
+          isVisible: false,
           axisLine: const AxisLine(width: 0),
           majorGridLines: const MajorGridLines(width: 0),
           majorTickLines: const MajorTickLines(size: 0),
-          labelFormat: '{value}%',
-          plotBands: <PlotBand>[
-            PlotBand(
-              start: 98,
-              end: 98,
-              borderWidth: 1,
-              borderColor: Colors.greenAccent.withOpacity(0.7),
-              dashArray: const <double>[4, 6],
-              shouldRenderAboveSeries: true,
-            ),
-          ],
         ),
       ],
       annotations: annotations,
@@ -3143,9 +3180,9 @@ class _OutputChart extends StatelessWidget {
           dataSource: data,
           xValueMapper: (item, _) => (item as _OutputItem).category,
           yValueMapper: (item, _) => (item as _OutputItem).total,
-          width: 0.6,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(12)),
+          width: 0.58,
+          spacing: 0.22,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
           gradient: const LinearGradient(
             colors: [Color(0xFF21D4FD), Color(0xFF2152FF)],
             begin: Alignment.bottomCenter,
@@ -3154,23 +3191,37 @@ class _OutputChart extends StatelessWidget {
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
             labelAlignment: ChartDataLabelAlignment.outer,
-            textStyle: const TextStyle(
-              color: Colors.cyanAccent,
-              fontWeight: FontWeight.w700,
-            ),
             builder: (dynamic item, dynamic point, dynamic series, int pointIndex,
                 int seriesIndex) {
               final entry = item as _OutputItem;
               return Text(
                 '${entry.total}',
                 style: const TextStyle(
-                  color: Colors.cyanAccent,
+                  color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
+                  shadows: [
+                    Shadow(
+                      color: Color(0xAA000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
               );
             },
           ),
+        ),
+        LineSeries<dynamic, dynamic>(
+          name: 'TARGET',
+          dataSource: data,
+          xValueMapper: (item, _) => (item as _OutputItem).category,
+          yValueMapper: (_, __) => 98,
+          yAxisName: 'yrAxis',
+          color: Colors.greenAccent,
+          width: 2,
+          dashArray: const <double>[6, 6],
+          markerSettings: const MarkerSettings(isVisible: false),
         ),
         SplineSeries<dynamic, dynamic>(
           name: 'YIELD RATE',
@@ -3179,24 +3230,22 @@ class _OutputChart extends StatelessWidget {
           yValueMapper: (item, _) => (item as _OutputItem).yr,
           yAxisName: 'yrAxis',
           color: Colors.amberAccent,
-          width: 2,
-          enableTooltip: false,
+          width: 3,
+          splineType: SplineType.monotonic,
+          enableTooltip: true,
           markerSettings: const MarkerSettings(
-            isVisible: false,
+            isVisible: true,
             shape: DataMarkerType.circle,
             borderColor: Colors.black,
-            borderWidth: 1.5,
+            borderWidth: 2,
             height: 10,
             width: 10,
           ),
+          emptyPointSettings:
+              const EmptyPointSettings(mode: EmptyPointMode.zero),
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
             labelAlignment: ChartDataLabelAlignment.top,
-            textStyle: const TextStyle(
-              color: Colors.amberAccent,
-              fontWeight: FontWeight.w700,
-              fontSize: 10,
-            ),
             builder: (dynamic item, dynamic point, dynamic series,
                 int pointIndex, int seriesIndex) {
               final entry = item as _OutputItem;
@@ -3204,24 +3253,19 @@ class _OutputChart extends StatelessWidget {
               final formatted = value == value.roundToDouble()
                   ? value.toInt().toString()
                   : value.toStringAsFixed(1);
-              return DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xAA041026),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 3,
-                  ),
-                  child: Text(
-                    '$formatted%',
-                    style: const TextStyle(
-                      color: Colors.amberAccent,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
+              return Text(
+                '$formatted%',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  shadows: [
+                    Shadow(
+                      color: Color(0xAA000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
                     ),
-                  ),
+                  ],
                 ),
               );
             },
@@ -3425,6 +3469,14 @@ class _StackedBarItem {
   final String category;
   final int pass;
   final int fail;
+
+  double get yieldRate {
+    final total = pass + fail;
+    if (total == 0) {
+      return 0;
+    }
+    return pass / total * 100;
+  }
 }
 
 class _OutputItem {
