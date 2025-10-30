@@ -28,6 +28,7 @@ const Color _kTextSecondary = Color(0xFF9FB9D9);
 const Color _kErrorColor = Color(0xFFFF7A7A);
 const Color _kRepairColor = Color(0xFFA78BFA);
 const Color _kSurfaceMuted = Color(0xFF0C2A4A);
+const Color _kTableGridColor = Color(0xFF123760);
 
 class TETop10ErrorCodeScreen extends StatefulWidget {
   const TETop10ErrorCodeScreen({
@@ -528,14 +529,60 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         _tableScrollController.jumpTo(0);
       }
 
-      final tableBody = rows.isEmpty
-          ? const Center(
+      const columns = [
+        _NeonTableColumn(
+          label: 'TOP',
+          flex: 8,
+          alignment: Alignment.center,
+          textAlign: TextAlign.center,
+        ),
+        _NeonTableColumn(label: 'ERROR CODE', flex: 18),
+        _NeonTableColumn(
+          label: 'F_FAIL',
+          flex: 10,
+          alignment: Alignment.center,
+          textAlign: TextAlign.center,
+        ),
+        _NeonTableColumn(
+          label: 'R_FAIL',
+          flex: 10,
+          alignment: Alignment.center,
+          textAlign: TextAlign.center,
+        ),
+        _NeonTableColumn(label: 'MODEL NAME (Top 3)', flex: 20),
+        _NeonTableColumn(label: 'GROUP_NAME', flex: 16),
+        _NeonTableColumn(
+          label: 'FIRST FAIL',
+          flex: 9,
+          alignment: Alignment.center,
+          textAlign: TextAlign.center,
+        ),
+        _NeonTableColumn(
+          label: 'REPAIR FAIL',
+          flex: 9,
+          alignment: Alignment.center,
+          textAlign: TextAlign.center,
+        ),
+      ];
+
+      final gridColor = _kTableGridColor.withOpacity(0.8);
+
+      Widget buildTableBody() {
+        if (rows.isEmpty) {
+          return const Expanded(
+            child: Center(
               child: Text(
                 'No data available for the selected filters.',
                 style: TextStyle(color: _kTextSecondary),
               ),
-            )
-          : RawScrollbar(
+            ),
+          );
+        }
+
+        return Expanded(
+          child: DecoratedBox(
+            decoration: BoxDecoration(color: const Color(0x1A0F253F)),
+            child: RawScrollbar(
               controller: _tableScrollController,
               thumbVisibility: rows.length > 6,
               radius: const Radius.circular(12),
@@ -548,7 +595,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 physics: const ClampingScrollPhysics(),
                 itemBuilder: (context, index) {
                   final data = rows[index];
-                  final barColor = _barPalette[(data.rank - 1) % _barPalette.length];
+                  final barColor =
+                      _barPalette[(data.rank - 1) % _barPalette.length];
                   final isSelected = selectedError == data.error &&
                       (selectedDetail == null
                           ? data.showMeta
@@ -558,28 +606,34 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     barColor: barColor,
                     isSelected: isSelected,
                     isStriped: index.isEven,
+                    isFirst: index == 0,
+                    isLast: index == rows.length - 1,
+                    columns: columns,
+                    gridColor: gridColor,
                   );
                 },
               ),
-            );
+            ),
+          ),
+        );
+      }
 
-      final headerRow = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      final tableShell = Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _kPanelBorderColor.withOpacity(0.6)),
-          color: _kSurfaceMuted.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: gridColor),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0x2A2B81FF), Color(0x1820D0FF)],
+          ),
         ),
-        child: Row(
-          children: const [
-            _NeonTableHeaderCell(label: 'TOP', flex: 8, alignment: Alignment.center),
-            _NeonTableHeaderCell(label: 'ERROR CODE', flex: 18),
-            _NeonTableHeaderCell(label: 'F_FAIL', flex: 10, alignment: Alignment.center),
-            _NeonTableHeaderCell(label: 'R_FAIL', flex: 10, alignment: Alignment.center),
-            _NeonTableHeaderCell(label: 'MODEL NAME (Top 3)', flex: 20),
-            _NeonTableHeaderCell(label: 'GROUP_NAME', flex: 16),
-            _NeonTableHeaderCell(label: 'FIRST FAIL', flex: 9, alignment: Alignment.center),
-            _NeonTableHeaderCell(label: 'REPAIR FAIL', flex: 9, alignment: Alignment.center),
+        clipBehavior: Clip.hardEdge,
+        child: Column(
+          children: [
+            _buildTableHeaderRow(columns: columns, gridColor: gridColor),
+            Container(height: 1, color: gridColor.withOpacity(0.7)),
+            buildTableBody(),
           ],
         ),
       );
@@ -630,9 +684,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          headerRow,
-          const SizedBox(height: 12),
-          Expanded(child: tableBody),
+          Expanded(child: tableShell),
         ],
       );
 
@@ -666,18 +718,62 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     return SizedBox(height: height, child: panel);
   }
 
+  Widget _buildTableHeaderRow({
+    required List<_NeonTableColumn> columns,
+    required Color gridColor,
+  }) {
+    return Container(
+      color: const Color(0x1F0F2B4D),
+      child: Row(
+        children: [
+          for (var i = 0; i < columns.length; i++)
+            Expanded(
+              flex: columns[i].flex,
+              child: Container(
+                padding: columns[i].headerPadding,
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: i == columns.length - 1
+                        ? BorderSide.none
+                        : BorderSide(color: gridColor, width: 1),
+                  ),
+                ),
+                child: Align(
+                  alignment: columns[i].alignment,
+                  child: Text(
+                    columns[i].label,
+                    textAlign: columns[i].textAlign,
+                    style: const TextStyle(
+                      color: _kAccentColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTableDataRow({
     required _ErrorTableRowData data,
     required Color barColor,
     required bool isSelected,
     required bool isStriped,
+    required bool isFirst,
+    required bool isLast,
+    required List<_NeonTableColumn> columns,
+    required Color gridColor,
   }) {
     final detail = data.detail;
     final hasDetail = detail != null;
-    final backgroundColor = isSelected
-        ? barColor.withOpacity(0.2)
+    final baseRowColor = isSelected
+        ? barColor.withOpacity(0.18)
         : isStriped
-            ? _kSurfaceMuted.withOpacity(0.18)
+            ? _kSurfaceMuted.withOpacity(0.12)
             : Colors.transparent;
 
     return InkWell(
@@ -690,83 +786,142 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         }
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isSelected
-                ? barColor.withOpacity(0.7)
-                : _kPanelBorderColor.withOpacity(0.35),
-            width: 0.8,
+          color: baseRowColor,
+          border: Border(
+            top: isFirst
+                ? BorderSide(color: gridColor.withOpacity(0.8), width: 1)
+                : BorderSide.none,
+            bottom: BorderSide(
+              color: gridColor.withOpacity(isLast ? 0.95 : 0.6),
+              width: 1,
+            ),
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: barColor.withOpacity(0.35),
+                    color: barColor.withOpacity(0.4),
                     blurRadius: 18,
-                    offset: const Offset(0, 8),
+                    offset: const Offset(0, 10),
                   ),
                 ]
               : null,
         ),
-        child: Row(
+        child: Stack(
           children: [
-            _buildTableDataCell(
-              '#${data.rank}',
-              flex: 8,
-              alignment: Alignment.center,
-              color: barColor,
-              fontWeight: FontWeight.w700,
-              invisible: !data.showMeta,
-            ),
-            _buildTableDataCell(
-              data.error.errorCode,
-              flex: 18,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.4,
-              invisible: !data.showMeta,
-            ),
-            _buildTableDataCell(
-              data.error.firstFail.toString(),
-              flex: 10,
-              alignment: Alignment.center,
-              fontWeight: FontWeight.w700,
-              invisible: !data.showMeta,
-            ),
-            _buildTableDataCell(
-              data.error.repairFail.toString(),
-              flex: 10,
-              alignment: Alignment.center,
-              fontWeight: FontWeight.w700,
-              invisible: !data.showMeta,
-            ),
-            _buildTableDataCell(
-              hasDetail ? detail!.modelName : '—',
-              flex: 20,
-              muted: !hasDetail,
-              maxLines: 2,
-            ),
-            _buildTableDataCell(
-              hasDetail ? detail!.groupName : '—',
-              flex: 16,
-              muted: !hasDetail,
-              maxLines: 2,
-            ),
-            _buildTableDataCell(
-              hasDetail ? detail!.firstFail.toString() : '—',
-              flex: 9,
-              alignment: Alignment.center,
-              fontWeight: FontWeight.w600,
-              muted: !hasDetail,
-            ),
-            _buildTableDataCell(
-              hasDetail ? detail!.repairFail.toString() : '—',
-              flex: 9,
-              alignment: Alignment.center,
-              fontWeight: FontWeight.w600,
-              muted: !hasDetail,
+            if (isSelected)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          barColor.withOpacity(0.22),
+                          barColor.withOpacity(0.05),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  _buildTableDataCell(
+                    '#${data.rank}',
+                    flex: columns[0].flex,
+                    alignment: columns[0].alignment,
+                    textAlign: columns[0].textAlign,
+                    color: barColor,
+                    fontWeight: FontWeight.w700,
+                    invisible: !data.showMeta,
+                    drawRightBorder: true,
+                    padding: columns[0].cellPadding,
+                    borderColor: gridColor,
+                  ),
+                  _buildTableDataCell(
+                    data.error.errorCode,
+                    flex: columns[1].flex,
+                    alignment: columns[1].alignment,
+                    textAlign: columns[1].textAlign,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4,
+                    invisible: !data.showMeta,
+                    drawRightBorder: true,
+                    padding: columns[1].cellPadding,
+                    borderColor: gridColor,
+                  ),
+                  _buildTableDataCell(
+                    data.error.firstFail.toString(),
+                    flex: columns[2].flex,
+                    alignment: columns[2].alignment,
+                    textAlign: columns[2].textAlign,
+                    fontWeight: FontWeight.w700,
+                    invisible: !data.showMeta,
+                    drawRightBorder: true,
+                    padding: columns[2].cellPadding,
+                    borderColor: gridColor,
+                  ),
+                  _buildTableDataCell(
+                    data.error.repairFail.toString(),
+                    flex: columns[3].flex,
+                    alignment: columns[3].alignment,
+                    textAlign: columns[3].textAlign,
+                    fontWeight: FontWeight.w700,
+                    invisible: !data.showMeta,
+                    drawRightBorder: true,
+                    padding: columns[3].cellPadding,
+                    borderColor: gridColor,
+                  ),
+                  _buildTableDataCell(
+                    hasDetail ? detail!.modelName : '—',
+                    flex: columns[4].flex,
+                    alignment: columns[4].alignment,
+                    textAlign: columns[4].textAlign,
+                    muted: !hasDetail,
+                    maxLines: 2,
+                    drawRightBorder: true,
+                    padding: columns[4].cellPadding,
+                    borderColor: gridColor,
+                  ),
+                  _buildTableDataCell(
+                    hasDetail ? detail!.groupName : '—',
+                    flex: columns[5].flex,
+                    alignment: columns[5].alignment,
+                    textAlign: columns[5].textAlign,
+                    muted: !hasDetail,
+                    maxLines: 2,
+                    drawRightBorder: true,
+                    padding: columns[5].cellPadding,
+                    borderColor: gridColor,
+                  ),
+                  _buildTableDataCell(
+                    hasDetail ? detail!.firstFail.toString() : '—',
+                    flex: columns[6].flex,
+                    alignment: columns[6].alignment,
+                    textAlign: columns[6].textAlign,
+                    fontWeight: FontWeight.w600,
+                    muted: !hasDetail,
+                    drawRightBorder: true,
+                    padding: columns[6].cellPadding,
+                    borderColor: gridColor,
+                  ),
+                  _buildTableDataCell(
+                    hasDetail ? detail!.repairFail.toString() : '—',
+                    flex: columns[7].flex,
+                    alignment: columns[7].alignment,
+                    textAlign: columns[7].textAlign,
+                    fontWeight: FontWeight.w600,
+                    muted: !hasDetail,
+                    drawRightBorder: false,
+                    padding: columns[7].cellPadding,
+                    borderColor: gridColor,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -778,6 +933,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     String text, {
     required int flex,
     Alignment alignment = Alignment.centerLeft,
+    TextAlign textAlign = TextAlign.left,
     Color color = _kTextPrimary,
     FontWeight fontWeight = FontWeight.w500,
     double fontSize = 12,
@@ -785,6 +941,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     bool muted = false,
     bool invisible = false,
     int maxLines = 1,
+    bool drawRightBorder = true,
+    EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    Color? borderColor,
   }) {
     final style = TextStyle(
       color: muted ? _kTextSecondary.withOpacity(0.75) : color,
@@ -798,12 +957,22 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       maxLines: maxLines,
       overflow: TextOverflow.ellipsis,
       style: style,
+      textAlign: textAlign,
     );
+
+    final dividerColor = (borderColor ?? _kTableGridColor).withOpacity(0.6);
 
     return Expanded(
       flex: flex,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          border: Border(
+            right: drawRightBorder
+                ? BorderSide(color: dividerColor, width: 1)
+                : BorderSide.none,
+          ),
+        ),
         child: Align(
           alignment: alignment,
           child: invisible ? Opacity(opacity: 0.0, child: label) : label,
@@ -1305,36 +1474,22 @@ class _InfoBadge extends StatelessWidget {
   }
 }
 
-class _NeonTableHeaderCell extends StatelessWidget {
-  const _NeonTableHeaderCell({
+class _NeonTableColumn {
+  const _NeonTableColumn({
     required this.label,
     required this.flex,
     this.alignment = Alignment.centerLeft,
-    super.key,
+    this.textAlign = TextAlign.left,
+    this.headerPadding = const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    this.cellPadding = const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
   });
 
   final String label;
   final int flex;
   final Alignment alignment;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Align(
-        alignment: alignment,
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: _kAccentColor,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-          ),
-        ),
-      ),
-    );
-  }
+  final TextAlign textAlign;
+  final EdgeInsets headerPadding;
+  final EdgeInsets cellPadding;
 }
 
 class _ErrorTableRowData {
