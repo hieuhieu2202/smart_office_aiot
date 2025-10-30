@@ -398,7 +398,7 @@ class LcrRecordModel extends LcrRecord {
     if (value is int) return value == 1;
     if (value is num) return value != 0;
     if (value is String) {
-      final lower = value.toLowerCase();
+      final lower = value.trim().toLowerCase();
       if (lower == 'true' || lower == '1' || lower == 'pass') return true;
       if (lower == 'false' || lower == '0' || lower == 'fail') return false;
     }

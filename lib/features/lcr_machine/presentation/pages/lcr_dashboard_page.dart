@@ -819,6 +819,27 @@ class _DashboardTab extends StatelessWidget {
   }
 
   Future<void> _showStatusOverview(BuildContext context, bool showPass) async {
+    final overview = controller.dashboardView.value?.overview;
+    final expectedCount = overview == null
+        ? null
+        : showPass
+            ? overview.pass
+            : overview.fail;
+
+    if (expectedCount != null && expectedCount <= 0) {
+      final snackBar = SnackBar(
+        backgroundColor: Colors.blueGrey.shade900,
+        content: Text(
+          'No ${showPass ? 'pass' : 'fail'} records available for the current filters.',
+          style: const TextStyle(color: Colors.white),
+        ),
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      }
+      return;
+    }
+
     List<LcrRecord> records = const <LcrRecord>[];
 
     if (controller.analysisRecords.isNotEmpty) {
