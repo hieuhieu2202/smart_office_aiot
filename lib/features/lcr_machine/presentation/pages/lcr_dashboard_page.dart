@@ -2553,6 +2553,7 @@ class _StackedBarChart extends StatelessWidget {
             title: bar.category,
             pass: bar.pass,
             fail: bar.fail,
+            yieldRate: bar.yieldRate,
           );
         },
       ),
@@ -2768,6 +2769,7 @@ class _EmployeeStatBarState extends State<_EmployeeStatBar> {
                   title: widget.data.name,
                   pass: widget.data.pass,
                   fail: widget.data.fail,
+                  yieldRate: widget.data.yieldRate,
                 ),
               ),
             ),
@@ -3467,6 +3469,14 @@ class _StackedBarItem {
   final String category;
   final int pass;
   final int fail;
+
+  double get yieldRate {
+    final total = pass + fail;
+    if (total == 0) {
+      return 0;
+    }
+    return pass / total * 100;
+  }
 }
 
 class _OutputItem {
