@@ -3146,16 +3146,6 @@ class _OutputChart extends StatelessWidget {
           axisLine: const AxisLine(width: 0),
           majorGridLines: const MajorGridLines(width: 0),
           majorTickLines: const MajorTickLines(size: 0),
-          plotBands: <PlotBand>[
-            PlotBand(
-              start: 98,
-              end: 98,
-              borderWidth: 1.2,
-              borderColor: Colors.greenAccent.withOpacity(0.7),
-              dashArray: const <double>[6, 6],
-              shouldRenderAboveSeries: true,
-            ),
-          ],
         ),
       ],
       annotations: annotations,
@@ -3197,6 +3187,17 @@ class _OutputChart extends StatelessWidget {
             },
           ),
         ),
+        LineSeries<dynamic, dynamic>(
+          name: 'TARGET',
+          dataSource: data,
+          xValueMapper: (item, _) => (item as _OutputItem).category,
+          yValueMapper: (_, __) => 98,
+          yAxisName: 'yrAxis',
+          color: Colors.greenAccent,
+          width: 2,
+          dashArray: const <double>[6, 6],
+          markerSettings: const MarkerSettings(isVisible: false),
+        ),
         SplineSeries<dynamic, dynamic>(
           name: 'YIELD RATE',
           dataSource: data,
@@ -3205,6 +3206,7 @@ class _OutputChart extends StatelessWidget {
           yAxisName: 'yrAxis',
           color: Colors.amberAccent,
           width: 3,
+          splineType: SplineType.monotonic,
           enableTooltip: false,
           markerSettings: const MarkerSettings(
             isVisible: true,
@@ -3214,6 +3216,8 @@ class _OutputChart extends StatelessWidget {
             height: 10,
             width: 10,
           ),
+          emptyPointSettings:
+              const EmptyPointSettings(mode: EmptyPointMode.zero),
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
             labelAlignment: ChartDataLabelAlignment.top,
