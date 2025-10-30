@@ -1283,8 +1283,8 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                     color: Colors.white.withOpacity(0.9),
                                     fontWeight: FontWeight.w600,
                                   ),
-                                  columnSpacing: 18,
-                                  horizontalMargin: 20,
+                                  columnSpacing: 14,
+                                  horizontalMargin: 14,
                                   columns: const [
                                     DataColumn(label: Text('#')),
                                     DataColumn(label: Text('DATE TIME')),
