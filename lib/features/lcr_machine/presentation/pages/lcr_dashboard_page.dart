@@ -842,31 +842,26 @@ class _DashboardTab extends StatelessWidget {
 
     List<LcrRecord> records = const <LcrRecord>[];
 
-    if (controller.analysisRecords.isNotEmpty) {
-      records = controller.analysisRecords
-          .where((record) => showPass ? record.isPass : !record.isPass)
+    try {
+      final fetched = await controller.loadStatusRecords(pass: showPass);
+      final filtered = fetched
+          .where((record) => record.isPass == showPass)
           .toList();
-    }
-
-    if (records.isEmpty) {
-      try {
-        final fetched = await controller.loadStatusRecords(pass: showPass);
-        records = fetched
-            .where((record) => showPass ? record.isPass : !record.isPass)
-            .toList();
-      } catch (error) {
-        if (context.mounted) {
-          final snackBar = SnackBar(
-            backgroundColor: Colors.redAccent.shade200,
-            content: Text(
-              'Unable to load ${showPass ? 'pass' : 'fail'} records. Please try again.',
-              style: const TextStyle(color: Colors.white),
-            ),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
-        }
-        return;
+      records = filtered.isEmpty && fetched.isNotEmpty
+          ? List<LcrRecord>.from(fetched)
+          : filtered;
+    } catch (error) {
+      if (context.mounted) {
+        final snackBar = SnackBar(
+          backgroundColor: Colors.redAccent.shade200,
+          content: Text(
+            'Unable to load ${showPass ? 'pass' : 'fail'} records. Please try again.',
+            style: const TextStyle(color: Colors.white),
+          ),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
+      return;
     }
 
     if (records.isEmpty) {
@@ -883,7 +878,8 @@ class _DashboardTab extends StatelessWidget {
       return;
     }
 
-    records.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    final sorted = List<LcrRecord>.from(records)
+      ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
     if (!context.mounted) {
       return;
@@ -899,7 +895,7 @@ class _DashboardTab extends StatelessWidget {
       builder: (_) => _StatusOverviewDialog(
         title: showPass ? 'PASS OVERVIEW' : 'FAIL OVERVIEW',
         highlightColor: accentColor,
-        records: records,
+        records: sorted,
       ),
     );
   }
