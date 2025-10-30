@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import '../../domain/entities/lcr_entities.dart';
 
 class LcrPieSlice {
@@ -85,6 +87,7 @@ class LcrDashboardViewState {
     const shiftEndMinutes = (endHour + 1) * 60 + 30;
     const slotCount = endHour - startHour + 1;
     final Map<int, _SlotTotals> bySlot = <int, _SlotTotals>{};
+    final Map<int, List<String>> slotLogs = <int, List<String>>{};
 
     int _resolveQuantity(int? primary, int? secondary) {
       if (primary != null && primary > 0) return primary;
@@ -124,12 +127,36 @@ class LcrDashboardViewState {
         slotIndex = (totalMinutes - shiftStartMinutes) ~/ 60;
       }
       if (slotIndex != null) {
+        final resolvedQty = record.status
+            ? _resolveQuantity(record.qty, record.extQty)
+            : _resolveQuantity(record.extQty, record.qty);
         final bucket = bySlot.putIfAbsent(slotIndex, () => _SlotTotals());
         if (record.status) {
-          bucket.pass += _resolveQuantity(record.qty, record.extQty);
+          bucket.pass += resolvedQty;
         } else {
-          bucket.fail += _resolveQuantity(record.extQty, record.qty);
+          bucket.fail += resolvedQty;
         }
+
+        final assignment = (record.workSection > 0 &&
+                record.workSection <= slotCount)
+            ? 'workSection=${record.workSection}'
+            : 'time=${record.dateTime.hour.toString().padLeft(2, '0')}:${record.dateTime.minute.toString().padLeft(2, '0')} (${record.dateTime.toIso8601String()})';
+        final statusLabel = record.status ? 'PASS' : 'FAIL';
+        final serial =
+            (record.serialNumber?.isNotEmpty ?? false) ? record.serialNumber! : '-';
+        final logLine =
+            'serial=$serial machine=${record.machineNo} status=$statusLabel qty=$resolvedQty'
+            ' (qty=${record.qty ?? '-'}, extQty=${record.extQty ?? '-'}) source=$assignment';
+        slotLogs.putIfAbsent(slotIndex, () => <String>[]).add(logLine);
+      } else {
+        final serial =
+            (record.serialNumber?.isNotEmpty ?? false) ? record.serialNumber! : '-';
+        final timeLabel =
+            '${record.dateTime.hour.toString().padLeft(2, '0')}:${record.dateTime.minute.toString().padLeft(2, '0')}';
+        developer.log(
+          'Skipped record serial=$serial machine=${record.machineNo} status=${record.status ? 'PASS' : 'FAIL'} outside shift window at $timeLabel (section=${record.workSection})',
+          name: 'LCR_OUTPUT_BUCKET',
+        );
       }
     }
 
@@ -182,6 +209,20 @@ class LcrDashboardViewState {
       final startLabel = '${hour.toString().padLeft(2, '0')}:30';
       final endLabel = '${(hour + 1).toString().padLeft(2, '0')}:30';
       categoriesLabel.add('$startLabel - $endLabel');
+
+      final lines = slotLogs[slotIndex];
+      final buffer = StringBuffer()
+        ..write(
+            'slot=$slotIndex [$startLabel - $endLabel] pass=$passCount fail=$failCount total=$total');
+      if (lines == null || lines.isEmpty) {
+        buffer.write(' (no records)');
+      } else {
+        for (final entry in lines) {
+          buffer.write('\n  - ');
+          buffer.write(entry);
+        }
+      }
+      developer.log(buffer.toString(), name: 'LCR_OUTPUT_BUCKET');
     }
 
     final outputTrend = LcrOutputTrend(
