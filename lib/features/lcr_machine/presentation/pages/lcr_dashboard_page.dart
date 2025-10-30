@@ -848,10 +848,18 @@ class _DashboardTab extends StatelessWidget {
       }
     }
 
-    if (records.isEmpty && controller.trackingRecords.isNotEmpty) {
-      records = controller.trackingRecords
-          .where((record) => showPass ? record.isPass : !record.isPass)
-          .toList();
+    if (records.isEmpty) {
+      if (context.mounted) {
+        final snackBar = SnackBar(
+          backgroundColor: Colors.blueGrey.shade900,
+          content: Text(
+            'No ${showPass ? 'pass' : 'fail'} records available for the current filters.',
+            style: const TextStyle(color: Colors.white),
+          ),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      }
+      return;
     }
 
     records.sort((a, b) => b.dateTime.compareTo(a.dateTime));
