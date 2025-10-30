@@ -1,4 +1,6 @@
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -73,7 +75,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   );
   bool _isFilterPanelOpen = false;
   static const Duration _kFilterAnimationDuration = Duration(milliseconds: 280);
-  final ScrollController _wideErrorScrollController = ScrollController();
 
   @override
   void initState() {
@@ -102,7 +103,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     if (Get.isRegistered<TETopErrorCodeController>(tag: _controllerTag)) {
       Get.delete<TETopErrorCodeController>(tag: _controllerTag);
     }
-    _wideErrorScrollController.dispose();
     super.dispose();
   }
 
@@ -598,27 +598,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     required bool isWide,
   }) {
     if (isWide) {
-      return Scrollbar(
-        controller: _wideErrorScrollController,
-        thumbVisibility: data.length > 6,
-        child: ListView.separated(
-          controller: _wideErrorScrollController,
-          padding: const EdgeInsets.only(right: 6, bottom: 8),
-          itemCount: data.length,
-          itemBuilder: (context, index) {
-            final item = data[index];
-            final isSelected = selected == item;
-            final barColor = _barPalette[index % _barPalette.length];
-            return _buildErrorCard(
-              item: item,
-              barColor: barColor,
-              index: index,
-              isSelected: isSelected,
-              compact: true,
-            );
-          },
-          separatorBuilder: (context, index) => const SizedBox(height: 10),
-        ),
+      return _buildWideErrorTable(
+        data: data,
+        selected: selected,
       );
     }
 
@@ -641,6 +623,305 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       },
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemCount: data.length,
+    );
+  }
+
+  Widget _buildWideErrorTable({
+    required List<TETopErrorEntity> data,
+    required TETopErrorEntity? selected,
+  }) {
+    final selectedDetail = _controller.selectedDetail.value;
+
+    if (data.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildWideErrorHeader(),
+          const Expanded(
+            child: Center(
+              child: Text(
+                'No data available',
+                style: TextStyle(color: _kTextSecondary, fontSize: 12),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final hasHeight = constraints.maxHeight.isFinite;
+        final double availableHeight = hasHeight ? constraints.maxHeight : 0;
+        const double preferredRowExtent = 68;
+        final bool enableScroll = hasHeight
+            ? availableHeight < (preferredRowExtent * data.length)
+            : false;
+        final ScrollPhysics physics = enableScroll
+            ? const ClampingScrollPhysics()
+            : const NeverScrollableScrollPhysics();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildWideErrorHeader(),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.separated(
+                physics: physics,
+                shrinkWrap: !hasHeight,
+                padding: const EdgeInsets.only(bottom: 8, right: 4),
+                itemCount: data.length,
+                itemBuilder: (context, index) {
+                  final item = data[index];
+                  final isSelected = selected == item;
+                  final barColor = _barPalette[index % _barPalette.length];
+                  return _buildWideErrorRow(
+                    item: item,
+                    index: index,
+                    barColor: barColor,
+                    isSelected: isSelected,
+                    selectedDetail: selectedDetail,
+                  );
+                },
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildWideErrorHeader() {
+    Widget buildLabel(String text, {TextAlign align = TextAlign.left}) {
+      return Text(
+        text,
+        textAlign: align,
+        style: const TextStyle(
+          color: _kTextSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: _kSurfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _kPanelBorderColor.withOpacity(0.7)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 36, child: Text('Top', style: TextStyle(color: _kTextSecondary, fontSize: 12, fontWeight: FontWeight.w600))),
+          Expanded(flex: 4, child: buildLabel('Error Code')),
+          SizedBox(width: 68, child: buildLabel('First', align: TextAlign.right)),
+          const SizedBox(width: 12),
+          SizedBox(width: 68, child: buildLabel('Repair', align: TextAlign.right)),
+          const SizedBox(width: 12),
+          SizedBox(width: 72, child: buildLabel('Total', align: TextAlign.right)),
+          const SizedBox(width: 16),
+          Expanded(flex: 5, child: buildLabel('Top Models / Stations')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWideErrorRow({
+    required TETopErrorEntity item,
+    required int index,
+    required Color barColor,
+    required bool isSelected,
+    required TETopErrorDetailEntity? selectedDetail,
+  }) {
+    final total = item.totalFail == 0 ? 1.0 : item.totalFail.toDouble();
+    final firstRatio = item.firstFail / total;
+    final repairRatio = item.repairFail / total;
+    final chips = item.details.take(2).toList();
+
+    return GestureDetector(
+      onTap: () async {
+        await _controller.selectError(item);
+        if (selectedDetail != null && !chips.contains(selectedDetail)) {
+          _controller.clearDetailSelection();
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? barColor : _kPanelBorderColor.withOpacity(0.4),
+            width: isSelected ? 1.4 : 1,
+          ),
+          color: isSelected
+              ? _kPanelColor.withOpacity(0.96)
+              : _kPanelColor.withOpacity(0.78),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: 36,
+                  child: Text(
+                    '#${index + 1}',
+                    style: TextStyle(
+                      color: barColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Text(
+                    item.errorCode,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _kTextPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 68,
+                  child: Text(
+                    '${item.firstFail}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(color: _kTextPrimary, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 68,
+                  child: Text(
+                    '${item.repairFail}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(color: _kTextPrimary, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 72,
+                  child: Text(
+                    '${item.totalFail}',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: barColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 5,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: chips.isEmpty
+                        ? const Text(
+                            '—',
+                            style: TextStyle(
+                              color: _kTextSecondary,
+                              fontSize: 11,
+                            ),
+                          )
+                        : Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: chips.map((detail) {
+                              final isChipSelected = selectedDetail == detail;
+                              return GestureDetector(
+                                onTap: () async {
+                                  await _controller.selectError(item);
+                                  await _controller.selectDetail(detail);
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 160),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isChipSelected
+                                        ? barColor.withOpacity(0.24)
+                                        : _kSurfaceMuted.withOpacity(0.9),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isChipSelected
+                                          ? barColor
+                                          : _kPanelBorderColor.withOpacity(0.5),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '${detail.modelName} · ${detail.groupName}',
+                                    style: TextStyle(
+                                      color: isChipSelected
+                                          ? barColor
+                                          : _kTextSecondary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              height: 6,
+              decoration: BoxDecoration(
+                color: _kSurfaceMuted,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final firstWidth = width * firstRatio;
+                  final repairWidth = width * repairRatio;
+                  return Stack(
+                    children: [
+                      Positioned(
+                        left: 0,
+                        width: math.max(firstWidth, 0),
+                        top: 0,
+                        bottom: 0,
+                        child:
+                            Container(color: _kErrorColor.withOpacity(0.9)),
+                      ),
+                      Positioned(
+                        left: firstWidth,
+                        width: math.max(repairWidth, 0),
+                        top: 0,
+                        bottom: 0,
+                        child:
+                            Container(color: _kRepairColor.withOpacity(0.9)),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
