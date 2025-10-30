@@ -3126,7 +3126,6 @@ class _OutputChart extends StatelessWidget {
         axisLine: AxisLine(color: Colors.white.withOpacity(0.25), width: 0.8),
         labelAlignment: LabelAlignment.center,
         labelIntersectAction: AxisLabelIntersectAction.multipleRows,
-        labelPadding: 4,
       ),
       primaryYAxis: NumericAxis(
         minimum: 0,
