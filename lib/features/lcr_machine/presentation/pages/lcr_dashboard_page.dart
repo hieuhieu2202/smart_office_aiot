@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -1120,11 +1121,27 @@ class _StatusOverviewDialog extends StatefulWidget {
 
 class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
   late final ScrollController _verticalController;
+  static const String _kAllFilter = 'ALL';
+  static const String _kMissingValue = '-';
+
+  late List<LcrRecord> _filteredRecords;
+  List<String> _typeOptions = const <String>[];
+  List<String> _employeeOptions = const <String>[];
+  List<String> _factoryOptions = const <String>[];
+  List<String> _departmentOptions = const <String>[];
+  List<String> _machineOptions = const <String>[];
+
+  String _selectedType = _kAllFilter;
+  String _selectedEmployee = _kAllFilter;
+  String _selectedFactory = _kAllFilter;
+  String _selectedDepartment = _kAllFilter;
+  String _selectedMachine = _kAllFilter;
 
   @override
   void initState() {
     super.initState();
     _verticalController = ScrollController();
+    _initializeFilters();
   }
 
   @override
@@ -1134,9 +1151,18 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
   }
 
   @override
+  void didUpdateWidget(covariant _StatusOverviewDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.records, widget.records)) {
+      setState(_initializeFilters);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final title = widget.title;
-    final records = widget.records;
+    final totalRecords = widget.records.length;
+    final records = _filteredRecords;
     final highlightColor = widget.highlightColor;
     final theme = Theme.of(context);
     final media = MediaQuery.of(context);
@@ -1147,6 +1173,10 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     final tableMinWidth = math.max(width * 0.9, width - 96);
     final height = math.min(media.size.height * 0.8, 640.0);
     final dateTimeFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
+    final hasActiveFilters = _hasActiveFilters;
+    final recordChipLabel = hasActiveFilters
+        ? '${records.length} / $totalRecords records'
+        : '${records.length} records';
     final infoTextStyle = theme.textTheme.bodySmall?.copyWith(
           color: const Color(0xFF20E0FF),
           fontWeight: FontWeight.w700,
@@ -1216,7 +1246,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
-                      '${records.length} records',
+                      recordChipLabel,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: highlightColor,
                         fontWeight: FontWeight.w700,
@@ -1235,6 +1265,50 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Divider(color: Colors.white12, height: 1),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _FilterDropdown(
+                    label: 'TYPE',
+                    value: _selectedType,
+                    options: _typeOptions,
+                    onChanged: (value) => _onFilterChanged(type: value),
+                    width: 200,
+                  ),
+                  _FilterDropdown(
+                    label: 'EMPLOYEE ID',
+                    value: _selectedEmployee,
+                    options: _employeeOptions,
+                    onChanged: (value) => _onFilterChanged(employee: value),
+                    width: 180,
+                  ),
+                  _FilterDropdown(
+                    label: 'FACTORY',
+                    value: _selectedFactory,
+                    options: _factoryOptions,
+                    onChanged: (value) => _onFilterChanged(factory: value),
+                    width: 160,
+                  ),
+                  _FilterDropdown(
+                    label: 'DEPARTMENT',
+                    value: _selectedDepartment,
+                    options: _departmentOptions,
+                    onChanged: (value) => _onFilterChanged(department: value),
+                    width: 180,
+                  ),
+                  _FilterDropdown(
+                    label: 'MACHINE NO.',
+                    value: _selectedMachine,
+                    options: _machineOptions,
+                    onChanged: (value) => _onFilterChanged(machine: value),
+                    width: 150,
+                  ),
+                ],
+              ),
             ),
             Expanded(
               child: Padding(
@@ -1357,7 +1431,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                           ),
                                         ),
                                         DataCell(
-                                          _TableText(record.materialType ?? '-'),
+                                          _TableText(_stringValue(record.materialType)),
                                         ),
                                         DataCell(
                                           _TableText(
@@ -1378,24 +1452,16 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                           ),
                                         ),
                                         DataCell(
-                                          _TableText(record.employeeId ?? '-'),
+                                          _TableText(_stringValue(record.employeeId)),
                                         ),
                                         DataCell(
-                                          _TableText(
-                                            record.factory.isEmpty
-                                                ? '-'
-                                                : record.factory,
-                                          ),
+                                          _TableText(_stringValue(record.factory)),
                                         ),
                                         DataCell(
-                                          _TableText(record.department ?? '-'),
+                                          _TableText(_stringValue(record.department)),
                                         ),
                                         DataCell(
-                                          _TableText(
-                                            record.machineNo == 0
-                                                ? '-'
-                                                : record.machineNo.toString(),
-                                          ),
+                                          _TableText(_machineValue(record.machineNo)),
                                         ),
                                       ],
                                     );
@@ -1411,6 +1477,128 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
         ),
       ),
     );
+  }
+
+  bool get _hasActiveFilters =>
+      _selectedType != _kAllFilter ||
+      _selectedEmployee != _kAllFilter ||
+      _selectedFactory != _kAllFilter ||
+      _selectedDepartment != _kAllFilter ||
+      _selectedMachine != _kAllFilter;
+
+  void _initializeFilters() {
+    final records = widget.records;
+    _typeOptions = _buildStringOptions(records.map((record) => record.materialType));
+    _employeeOptions =
+        _buildStringOptions(records.map((record) => record.employeeId));
+    _factoryOptions = _buildStringOptions(records.map((record) => record.factory));
+    _departmentOptions =
+        _buildStringOptions(records.map((record) => record.department));
+    _machineOptions = _buildMachineOptions(records.map((record) => record.machineNo));
+    _selectedType = _kAllFilter;
+    _selectedEmployee = _kAllFilter;
+    _selectedFactory = _kAllFilter;
+    _selectedDepartment = _kAllFilter;
+    _selectedMachine = _kAllFilter;
+    _filteredRecords = List<LcrRecord>.from(records);
+  }
+
+  void _onFilterChanged({
+    String? type,
+    String? employee,
+    String? factory,
+    String? department,
+    String? machine,
+  }) {
+    setState(() {
+      if (type != null) _selectedType = type;
+      if (employee != null) _selectedEmployee = employee;
+      if (factory != null) _selectedFactory = factory;
+      if (department != null) _selectedDepartment = department;
+      if (machine != null) _selectedMachine = machine;
+      _filteredRecords = _applyFilters();
+    });
+  }
+
+  List<LcrRecord> _applyFilters() {
+    return widget.records.where((record) {
+      if (_selectedType != _kAllFilter &&
+          _stringValue(record.materialType) != _selectedType) {
+        return false;
+      }
+      if (_selectedEmployee != _kAllFilter &&
+          _stringValue(record.employeeId) != _selectedEmployee) {
+        return false;
+      }
+      if (_selectedFactory != _kAllFilter &&
+          _stringValue(record.factory) != _selectedFactory) {
+        return false;
+      }
+      if (_selectedDepartment != _kAllFilter &&
+          _stringValue(record.department) != _selectedDepartment) {
+        return false;
+      }
+      if (_selectedMachine != _kAllFilter &&
+          _machineValue(record.machineNo) != _selectedMachine) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  List<String> _buildStringOptions(Iterable<String?> values) {
+    final unique = <String, String>{};
+    var includeMissing = false;
+    for (final raw in values) {
+      final trimmed = raw?.trim();
+      if (trimmed == null || trimmed.isEmpty) {
+        includeMissing = true;
+        continue;
+      }
+      final key = trimmed.toLowerCase();
+      unique.putIfAbsent(key, () => trimmed);
+    }
+    final options = <String>[_kAllFilter];
+    if (includeMissing) {
+      options.add(_kMissingValue);
+    }
+    final sortedKeys = SplayTreeSet<String>()..addAll(unique.keys);
+    for (final key in sortedKeys) {
+      options.add(unique[key]!);
+    }
+    return options;
+  }
+
+  List<String> _buildMachineOptions(Iterable<int> values) {
+    final sorted = SplayTreeSet<int>();
+    var includeMissing = false;
+    for (final machine in values) {
+      if (machine == 0) {
+        includeMissing = true;
+      } else {
+        sorted.add(machine);
+      }
+    }
+    final options = <String>[_kAllFilter];
+    if (includeMissing) {
+      options.add(_kMissingValue);
+    }
+    for (final machine in sorted) {
+      options.add(machine.toString());
+    }
+    return options;
+  }
+
+  String _stringValue(String? raw) {
+    final trimmed = raw?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return _kMissingValue;
+    }
+    return trimmed;
+  }
+
+  String _machineValue(int machine) {
+    return machine == 0 ? _kMissingValue : machine.toString();
   }
 }
 
@@ -1454,6 +1642,88 @@ class _TableText extends StatelessWidget {
       maxLines: maxLines,
       overflow: TextOverflow.ellipsis,
       softWrap: maxLines > 1,
+    );
+  }
+}
+
+class _FilterDropdown extends StatelessWidget {
+  const _FilterDropdown({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    this.width = 180,
+  });
+
+  final String label;
+  final String value;
+  final List<String> options;
+  final ValueChanged<String?> onChanged;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+          color: Colors.white70,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ) ??
+        const TextStyle(
+          color: Colors.white70,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        );
+    final valueStyle = theme.textTheme.bodySmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+        ) ??
+        const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+        );
+
+    return SizedBox(
+      width: width,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: labelStyle),
+          const SizedBox(height: 6),
+          Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: value,
+                icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
+                dropdownColor: const Color(0xFF04122F),
+                isExpanded: true,
+                style: valueStyle,
+                onChanged: (newValue) {
+                  if (newValue == null) return;
+                  onChanged(newValue);
+                },
+                items: options
+                    .map(
+                      (option) => DropdownMenuItem<String>(
+                        value: option,
+                        child: Text(option, overflow: TextOverflow.ellipsis),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
