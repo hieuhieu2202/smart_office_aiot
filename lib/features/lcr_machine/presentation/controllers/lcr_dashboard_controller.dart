@@ -129,6 +129,13 @@ class LcrDashboardController extends GetxController {
     }
   }
 
+  Future<List<LcrRecord>> loadStatusRecords({required bool pass}) async {
+    final baseRequest = _buildRequest();
+    final override = baseRequest.copyWith(status: pass ? 'PASS' : 'FAIL');
+    final list = await _getAnalysisData(override);
+    return list;
+  }
+
   Future<void> searchSerial(String query) async {
     if (query.trim().isEmpty) {
       serialSearchResults.clear();

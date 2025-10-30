@@ -818,15 +818,47 @@ class _DashboardTab extends StatelessWidget {
     return 480.0;
   }
 
-  void _showStatusOverview(BuildContext context, bool showPass) {
-    final source = controller.analysisRecords.isEmpty
-        ? controller.trackingRecords
-        : controller.analysisRecords;
+  Future<void> _showStatusOverview(BuildContext context, bool showPass) async {
+    List<LcrRecord> records = const <LcrRecord>[];
 
-    final records = source
-        .where((record) => showPass ? record.isPass : !record.isPass)
-        .toList()
-      ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    if (controller.analysisRecords.isNotEmpty) {
+      records = controller.analysisRecords
+          .where((record) => showPass ? record.isPass : !record.isPass)
+          .toList();
+    }
+
+    if (records.isEmpty) {
+      try {
+        final fetched = await controller.loadStatusRecords(pass: showPass);
+        records = fetched
+            .where((record) => showPass ? record.isPass : !record.isPass)
+            .toList();
+      } catch (error) {
+        if (context.mounted) {
+          final snackBar = SnackBar(
+            backgroundColor: Colors.redAccent.shade200,
+            content: Text(
+              'Unable to load ${showPass ? 'pass' : 'fail'} records. Please try again.',
+              style: const TextStyle(color: Colors.white),
+            ),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+        }
+        return;
+      }
+    }
+
+    if (records.isEmpty && controller.trackingRecords.isNotEmpty) {
+      records = controller.trackingRecords
+          .where((record) => showPass ? record.isPass : !record.isPass)
+          .toList();
+    }
+
+    records.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+    if (!context.mounted) {
+      return;
+    }
 
     final accentColor = showPass
         ? const Color(0xFF2DE5FF)
