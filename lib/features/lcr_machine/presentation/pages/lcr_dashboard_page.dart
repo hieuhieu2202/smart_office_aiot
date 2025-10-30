@@ -1121,9 +1121,34 @@ class _StatusOverviewDialog extends StatefulWidget {
 
 class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
   late final ScrollController _verticalController;
+  late final ScrollController _horizontalHeaderController;
+  late final ScrollController _horizontalBodyController;
   late final TextEditingController _searchController;
   static const String _kAllFilter = 'ALL';
   static const String _kMissingValue = '-';
+  static const double _kHeaderHeight = 48;
+  static const double _kColumnSpacing = 6;
+  static const double _kHorizontalMargin = 8;
+
+  static const List<DataColumn> _tableColumns = <DataColumn>[
+    DataColumn(label: _TableHeader('#')),
+    DataColumn(label: _TableHeader('DATE TIME')),
+    DataColumn(label: _TableHeader('SERIAL NO.')),
+    DataColumn(label: _TableHeader('CUSTOMER P/N')),
+    DataColumn(label: _TableHeader('DATE CODE')),
+    DataColumn(label: _TableHeader('LOT CODE')),
+    DataColumn(label: _TableHeader('QTY')),
+    DataColumn(label: _TableHeader('EXT QTY')),
+    DataColumn(label: _TableHeader('DESCRIPTION', maxLines: 2)),
+    DataColumn(label: _TableHeader('MATERIAL TYPE')),
+    DataColumn(label: _TableHeader('LOW SPEC')),
+    DataColumn(label: _TableHeader('HIGH SPEC')),
+    DataColumn(label: _TableHeader('MEASURE VALUE')),
+    DataColumn(label: _TableHeader('EMPLOYEE ID')),
+    DataColumn(label: _TableHeader('FACTORY')),
+    DataColumn(label: _TableHeader('DEPARTMENT')),
+    DataColumn(label: _TableHeader('MACHINE NO.')),
+  ];
 
   late List<LcrRecord> _filteredRecords;
   List<String> _typeOptions = const <String>[];
@@ -1143,6 +1168,9 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
   void initState() {
     super.initState();
     _verticalController = ScrollController();
+    _horizontalHeaderController = ScrollController();
+    _horizontalBodyController = ScrollController();
+    _horizontalBodyController.addListener(_syncHorizontalControllers);
     _searchController = TextEditingController();
     _initializeFilters();
   }
@@ -1150,6 +1178,9 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
   @override
   void dispose() {
     _verticalController.dispose();
+    _horizontalBodyController.removeListener(_syncHorizontalControllers);
+    _horizontalHeaderController.dispose();
+    _horizontalBodyController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -1184,6 +1215,24 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     final emptyMessage = hasActiveFilters
         ? 'No records match the current filters.'
         : 'No records available for this status.';
+    final headingTextStyle = theme.textTheme.labelSmall?.copyWith(
+          color: Colors.white70,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+        ) ??
+        const TextStyle(
+          color: Colors.white70,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+        );
+    final dataTextStyle = theme.textTheme.bodySmall?.copyWith(
+          color: Colors.white.withOpacity(0.9),
+          fontWeight: FontWeight.w600,
+        ) ??
+        const TextStyle(
+          color: Color(0xE6FFFFFF),
+          fontWeight: FontWeight.w600,
+        );
     final infoTextStyle = theme.textTheme.bodySmall?.copyWith(
           color: const Color(0xFF20E0FF),
           fontWeight: FontWeight.w700,
@@ -1388,59 +1437,55 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                             border: Border.all(color: Colors.white12),
                             color: Colors.white.withOpacity(0.03),
                           ),
-                          child: Scrollbar(
-                            controller: _verticalController,
-                            thumbVisibility: true,
-                            child: SingleChildScrollView(
-                              controller: _verticalController,
-                              primary: false,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Column(
+                              children: [
+                                _StickyTableHeader(
+                                  horizontalController:
+                                      _horizontalHeaderController,
                                   minWidth: tableMinWidth,
+                                  columns: _tableColumns,
+                                  headingTextStyle: headingTextStyle,
                                 ),
-                                child: DataTable(
-                                  headingRowHeight: 48,
-                                  dataRowMinHeight: 44,
-                                  dataRowMaxHeight: 60,
-                                  headingRowColor: MaterialStateProperty.all(
-                                    Colors.white.withOpacity(0.05),
-                                  ),
-                                  headingTextStyle:
-                                      theme.textTheme.labelSmall?.copyWith(
-                                    color: Colors.white70,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.6,
-                                  ),
-                                  dataTextStyle:
-                                      theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  columnSpacing: 6,
-                                  horizontalMargin: 8,
-                                  columns: const [
-                                    DataColumn(label: _TableHeader('#')),
-                                    DataColumn(label: _TableHeader('DATE TIME')),
-                                    DataColumn(label: _TableHeader('SERIAL NO.')),
-                                    DataColumn(label: _TableHeader('CUSTOMER P/N')),
-                                    DataColumn(label: _TableHeader('DATE CODE')),
-                                    DataColumn(label: _TableHeader('LOT CODE')),
-                                    DataColumn(label: _TableHeader('QTY')),
-                                    DataColumn(label: _TableHeader('EXT QTY')),
-                                    DataColumn(label: _TableHeader('DESCRIPTION', maxLines: 2)),
-                                    DataColumn(label: _TableHeader('MATERIAL TYPE')),
-                                    DataColumn(label: _TableHeader('LOW SPEC')),
-                                    DataColumn(label: _TableHeader('HIGH SPEC')),
-                                    DataColumn(label: _TableHeader('MEASURE VALUE')),
-                                    DataColumn(label: _TableHeader('EMPLOYEE ID')),
-                                    DataColumn(label: _TableHeader('FACTORY')),
-                                    DataColumn(label: _TableHeader('DEPARTMENT')),
-                                    DataColumn(label: _TableHeader('MACHINE NO.')),
-                                  ],
-                                  rows: records
-                                      .asMap()
-                                      .entries
-                                      .map((entry) {
+                                const Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color: Colors.white12,
+                                ),
+                                Expanded(
+                                  child: Scrollbar(
+                                    controller: _verticalController,
+                                    thumbVisibility: true,
+                                    child: SingleChildScrollView(
+                                      controller: _verticalController,
+                                      primary: false,
+                                      child: SingleChildScrollView(
+                                        controller: _horizontalBodyController,
+                                        scrollDirection: Axis.horizontal,
+                                        child: ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                            minWidth: tableMinWidth,
+                                          ),
+                                          child: DataTable(
+                                            headingRowHeight: 0,
+                                            dataRowMinHeight: 44,
+                                            dataRowMaxHeight: 60,
+                                            headingRowColor:
+                                                MaterialStateProperty.all(
+                                              Colors.white
+                                                  .withOpacity(0.05),
+                                            ),
+                                            headingTextStyle:
+                                                headingTextStyle,
+                                            dataTextStyle: dataTextStyle,
+                                            columnSpacing: _kColumnSpacing,
+                                            horizontalMargin: _kHorizontalMargin,
+                                            columns: _tableColumns,
+                                            rows: records
+                                                .asMap()
+                                                .entries
+                                                .map((entry) {
                                     final index = entry.key + 1;
                                     final record = entry.value;
                                     final rowTint = record.isPass
@@ -1565,6 +1610,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
       _searchController.clear();
     }
     _filteredRecords = List<LcrRecord>.from(records);
+    _resetScrollPositions();
   }
 
   void _onFilterChanged({
@@ -1582,6 +1628,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
       if (machine != null) _selectedMachine = machine;
       _filteredRecords = _applyFilters();
     });
+    _resetScrollPositions();
   }
 
   void _onSearchChanged(String value) {
@@ -1589,6 +1636,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
       _searchQuery = value.trim();
       _filteredRecords = _applyFilters();
     });
+    _resetScrollPositions();
   }
 
   List<LcrRecord> _applyFilters() {
@@ -1735,6 +1783,74 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
 
   String _machineValue(int machine) {
     return machine == 0 ? _kMissingValue : machine.toString();
+  }
+
+  void _syncHorizontalControllers() {
+    if (!_horizontalHeaderController.hasClients) {
+      return;
+    }
+    final offset = _horizontalBodyController.offset;
+    if (_horizontalHeaderController.offset == offset) {
+      return;
+    }
+    _horizontalHeaderController.jumpTo(offset);
+  }
+
+  void _resetScrollPositions() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_verticalController.hasClients) {
+        _verticalController.jumpTo(0);
+      }
+      if (_horizontalBodyController.hasClients) {
+        _horizontalBodyController.jumpTo(0);
+      }
+      if (_horizontalHeaderController.hasClients) {
+        _horizontalHeaderController.jumpTo(0);
+      }
+    });
+  }
+}
+
+class _StickyTableHeader extends StatelessWidget {
+  const _StickyTableHeader({
+    required this.horizontalController,
+    required this.minWidth,
+    required this.columns,
+    required this.headingTextStyle,
+  });
+
+  final ScrollController horizontalController;
+  final double minWidth;
+  final List<DataColumn> columns;
+  final TextStyle headingTextStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _StatusOverviewDialogState._kHeaderHeight,
+      child: SingleChildScrollView(
+        controller: horizontalController,
+        physics: const NeverScrollableScrollPhysics(),
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: minWidth),
+          child: DataTable(
+            headingRowHeight: _StatusOverviewDialogState._kHeaderHeight,
+            dataRowMinHeight: 0,
+            dataRowMaxHeight: 0,
+            headingRowColor: MaterialStateProperty.all(
+              Colors.white.withOpacity(0.05),
+            ),
+            headingTextStyle: headingTextStyle,
+            columnSpacing: _StatusOverviewDialogState._kColumnSpacing,
+            horizontalMargin: _StatusOverviewDialogState._kHorizontalMargin,
+            columns: columns,
+            rows: const <DataRow>[],
+          ),
+        ),
+      ),
+    );
   }
 }
 
