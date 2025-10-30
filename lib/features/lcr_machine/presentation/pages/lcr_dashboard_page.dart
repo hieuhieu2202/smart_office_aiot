@@ -2924,11 +2924,13 @@ class _BarTooltip extends StatelessWidget {
     required this.title,
     required this.pass,
     required this.fail,
+    required this.yieldRate,
   });
 
   final String title;
   final num pass;
   final num fail;
+  final double yieldRate;
 
   @override
   Widget build(BuildContext context) {
@@ -2953,17 +2955,38 @@ class _BarTooltip extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            _TooltipEntry(label: 'PASS', value: pass, color: Colors.cyanAccent),
+            _TooltipEntry(
+              label: 'PASS',
+              value: pass.toString(),
+              color: Colors.cyanAccent,
+            ),
             const SizedBox(height: 4),
             _TooltipEntry(
               label: 'FAIL',
-              value: fail,
+              value: fail.toString(),
               color: _EmployeeStatisticsChart._failColor,
+            ),
+            const SizedBox(height: 4),
+            _TooltipEntry(
+              label: 'YIELD RATE',
+              value: _formatYieldRate(yieldRate),
+              color: Colors.amberAccent,
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatYieldRate(double value) {
+    if (value.isNaN || value.isInfinite) {
+      return '0%';
+    }
+    final rounded = value.roundToDouble();
+    final text = rounded == value
+        ? rounded.toInt().toString()
+        : value.toStringAsFixed(1);
+    return '$text%';
   }
 }
 
@@ -2975,7 +2998,7 @@ class _TooltipEntry extends StatelessWidget {
   });
 
   final String label;
-  final num value;
+  final String value;
   final Color color;
 
   @override
@@ -2997,7 +3020,7 @@ class _TooltipEntry extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         const SizedBox(width: 6),
-        Text(value.toString()),
+        Text(value),
       ],
     );
   }
@@ -3081,14 +3104,14 @@ class _OutputChart extends StatelessWidget {
         header: '',
         builder: (dynamic item, dynamic point, dynamic series, int pointIndex,
             int seriesIndex) {
-          if (item is! _OutputItem ||
-              series is! ColumnSeries<dynamic, dynamic>) {
+          if (item is! _OutputItem) {
             return const SizedBox.shrink();
           }
           return _BarTooltip(
             title: item.category,
             pass: item.pass,
             fail: item.fail,
+            yieldRate: item.yr,
           );
         },
       ),
@@ -3207,7 +3230,7 @@ class _OutputChart extends StatelessWidget {
           color: Colors.amberAccent,
           width: 3,
           splineType: SplineType.monotonic,
-          enableTooltip: false,
+          enableTooltip: true,
           markerSettings: const MarkerSettings(
             isVisible: true,
             shape: DataMarkerType.circle,
