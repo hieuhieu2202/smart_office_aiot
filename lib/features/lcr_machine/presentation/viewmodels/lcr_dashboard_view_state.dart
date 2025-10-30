@@ -1,10 +1,8 @@
 import 'dart:developer' as developer;
-
 import '../../domain/entities/lcr_entities.dart';
 
 class LcrPieSlice {
   const LcrPieSlice({required this.label, required this.value});
-
   final String label;
   final int value;
 }
@@ -15,7 +13,6 @@ class LcrStackedSeries {
     required this.pass,
     required this.fail,
   });
-
   final List<String> categories;
   final List<int> pass;
   final List<int> fail;
@@ -28,7 +25,6 @@ class LcrOutputTrend {
     required this.fail,
     required this.yieldRate,
   });
-
   final List<String> categories;
   final List<int> pass;
   final List<int> fail;
@@ -42,7 +38,6 @@ class LcrMachineGauge {
     required this.pass,
     required this.fail,
   });
-
   final int machineNo;
   final int total;
   final int pass;
@@ -75,19 +70,19 @@ class LcrDashboardViewState {
   factory LcrDashboardViewState.fromRecords(List<LcrRecord> records) {
     final overview = LcrOverview.fromRecords(records);
 
-    final Map<String, List<LcrRecord>> byFactory = <String, List<LcrRecord>>{};
-    final Map<String, List<LcrRecord>> byDepartment = <String, List<LcrRecord>>{};
-    final Map<String, List<LcrRecord>> byType = <String, List<LcrRecord>>{};
-    final Map<String, List<LcrRecord>> byEmployee = <String, List<LcrRecord>>{};
-    final Map<int, List<LcrRecord>> byMachine = <int, List<LcrRecord>>{};
-    final Map<String, List<LcrRecord>> byError = <String, List<LcrRecord>>{};
+    final Map<String, List<LcrRecord>> byFactory = {};
+    final Map<String, List<LcrRecord>> byDepartment = {};
+    final Map<String, List<LcrRecord>> byType = {};
+    final Map<String, List<LcrRecord>> byEmployee = {};
+    final Map<int, List<LcrRecord>> byMachine = {};
+    final Map<String, List<LcrRecord>> byError = {};
+
+    // 🔹 Ca bắt đầu 07:30, kết thúc 19:30 → 12 ca
     const startHour = 7;
-    const endHour = 18;
-    const shiftStartMinutes = startHour * 60 + 30;
-    const shiftEndMinutes = (endHour + 1) * 60 + 30;
-    const slotCount = endHour - startHour + 1;
-    final Map<int, _SlotTotals> bySlot = <int, _SlotTotals>{};
-    final Map<int, List<String>> slotLogs = <int, List<String>>{};
+    const startMinute = 30;
+    const slotCount = 12;
+    final Map<int, _SlotTotals> bySlot = {};
+    final Map<int, List<String>> slotLogs = {};
 
     int _resolveQuantity(int? primary, int? secondary) {
       if (primary != null && primary > 0) return primary;
@@ -96,78 +91,61 @@ class LcrDashboardViewState {
     }
 
     for (final record in records) {
-      final factoryKey = (record.factory.isEmpty ? 'UNKNOWN' : record.factory);
-      byFactory.putIfAbsent(factoryKey, () => <LcrRecord>[]).add(record);
+      final factoryKey = record.factory.isEmpty ? 'UNKNOWN' : record.factory;
+      byFactory.putIfAbsent(factoryKey, () => []).add(record);
 
       final departmentKey =
-          ((record.department ?? '').isEmpty ? 'UNKNOWN' : record.department!);
-      byDepartment.putIfAbsent(departmentKey, () => <LcrRecord>[]).add(record);
+      (record.department ?? '').isEmpty ? 'UNKNOWN' : record.department!;
+      byDepartment.putIfAbsent(departmentKey, () => []).add(record);
 
-      final typeKey = ((record.materialType ?? '').isEmpty
+      final typeKey = (record.materialType ?? '').isEmpty
           ? (record.description ?? 'UNKNOWN')
-          : record.materialType!);
-      byType.putIfAbsent(typeKey, () => <LcrRecord>[]).add(record);
+          : record.materialType!;
+      byType.putIfAbsent(typeKey, () => []).add(record);
 
       final employeeKey =
-          ((record.employeeId ?? '').isEmpty ? 'UNKNOWN' : record.employeeId!);
-      byEmployee.putIfAbsent(employeeKey, () => <LcrRecord>[]).add(record);
+      (record.employeeId ?? '').isEmpty ? 'UNKNOWN' : record.employeeId!;
+      byEmployee.putIfAbsent(employeeKey, () => []).add(record);
 
-      byMachine.putIfAbsent(record.machineNo, () => <LcrRecord>[]).add(record);
+      byMachine.putIfAbsent(record.machineNo, () => []).add(record);
 
       final errorKey =
-          ((record.description ?? '').isEmpty ? 'NO ERROR' : record.description!);
-      byError.putIfAbsent(errorKey, () => <LcrRecord>[]).add(record);
+      (record.description ?? '').isEmpty ? 'NO ERROR' : record.description!;
+      byError.putIfAbsent(errorKey, () => []).add(record);
 
-      final totalMinutes = record.dateTime.hour * 60 + record.dateTime.minute;
-      int? slotIndex;
-      if (record.workSection > 0 && record.workSection <= slotCount) {
-        slotIndex = record.workSection - 1;
-      } else if (totalMinutes >= shiftStartMinutes &&
-          totalMinutes < shiftEndMinutes) {
-        slotIndex = (totalMinutes - shiftStartMinutes) ~/ 60;
-      }
-      if (slotIndex != null) {
-        final resolvedQty = record.status
-            ? _resolveQuantity(record.qty, record.extQty)
-            : _resolveQuantity(record.extQty, record.qty);
-        final bucket = bySlot.putIfAbsent(slotIndex, () => _SlotTotals());
-        if (record.status) {
-          bucket.pass += 1;
-        } else {
-          bucket.fail += 1;
-        }
+      // ✅ Quy tắc chia ca chuẩn web
+      final dt = record.dateTime;
+      int slotIndex = dt.hour - startHour;
+      if (dt.minute >= 30) slotIndex += 1;
+      if (slotIndex < 0 || slotIndex >= slotCount) continue;
 
-        final assignment = (record.workSection > 0 &&
-                record.workSection <= slotCount)
-            ? 'workSection=${record.workSection}'
-            : 'time=${record.dateTime.hour.toString().padLeft(2, '0')}:${record.dateTime.minute.toString().padLeft(2, '0')} (${record.dateTime.toIso8601String()})';
-        final statusLabel = record.status ? 'PASS' : 'FAIL';
-        final serial =
-            (record.serialNumber?.isNotEmpty ?? false) ? record.serialNumber! : '-';
-        final logLine =
-            'serial=$serial machine=${record.machineNo} status=$statusLabel qty=$resolvedQty'
-            ' (qty=${record.qty ?? '-'}, extQty=${record.extQty ?? '-'}) source=$assignment';
-        slotLogs.putIfAbsent(slotIndex, () => <String>[]).add(logLine);
+      final resolvedQty = record.status
+          ? _resolveQuantity(record.qty, record.extQty)
+          : _resolveQuantity(record.extQty, record.qty);
+      final bucket = bySlot.putIfAbsent(slotIndex, () => _SlotTotals());
+      if (record.status) {
+        bucket.pass += 1;
       } else {
-        final serial =
-            (record.serialNumber?.isNotEmpty ?? false) ? record.serialNumber! : '-';
-        final timeLabel =
-            '${record.dateTime.hour.toString().padLeft(2, '0')}:${record.dateTime.minute.toString().padLeft(2, '0')}';
-        developer.log(
-          'Skipped record serial=$serial machine=${record.machineNo} status=${record.status ? 'PASS' : 'FAIL'} outside shift window at $timeLabel (section=${record.workSection})',
-          name: 'LCR_OUTPUT_BUCKET',
-        );
+        bucket.fail += 1;
       }
+
+      // logging cho từng record
+      final statusLabel = record.status ? 'PASS' : 'FAIL';
+      final serial =
+      (record.serialNumber?.isNotEmpty ?? false) ? record.serialNumber! : '-';
+      final logLine =
+          'serial=$serial machine=${record.machineNo} status=$statusLabel qty=$resolvedQty '
+          '(qty=${record.qty ?? '-'}, extQty=${record.extQty ?? '-'}) '
+          'time=${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} (${dt.toIso8601String()})';
+      slotLogs.putIfAbsent(slotIndex, () => []).add(logLine);
     }
 
+    // ✅ Xử lý biểu đồ các nhóm
     List<LcrPieSlice> _buildPie(Map<String, List<LcrRecord>> map,
         {bool includeZero = false}) {
       return map.entries
-          .map((entry) => LcrPieSlice(
-                label: entry.key,
-                value: entry.value.length,
-              ))
-          .where((slice) => includeZero || slice.value > 0)
+          .map((e) => LcrPieSlice(label: e.key, value: e.value.length))
+          .where((s) => includeZero || s.value > 0)
           .toList()
         ..sort((a, b) => b.value.compareTo(a.value));
     }
@@ -191,6 +169,7 @@ class LcrDashboardViewState {
     final employeeSeries = _buildStacked(byEmployee);
     final errorSlices = _buildPie(byError, includeZero: true);
 
+    // ✅ Biểu đồ Output
     final outputPass = <int>[];
     final outputFail = <int>[];
     final outputYr = <double>[];
@@ -198,7 +177,6 @@ class LcrDashboardViewState {
 
     for (var slotIndex = 0; slotIndex < slotCount; slotIndex++) {
       final bucket = bySlot[slotIndex];
-      final hour = startHour + slotIndex;
       final passCount = bucket?.pass ?? 0;
       final failCount = bucket?.fail ?? 0;
       outputPass.add(passCount);
@@ -206,10 +184,18 @@ class LcrDashboardViewState {
       final total = passCount + failCount;
       final yr = total == 0 ? 0 : passCount / total * 100;
       outputYr.add(double.parse(yr.toStringAsFixed(2)));
-      final startLabel = '${hour.toString().padLeft(2, '0')}:30';
-      final endLabel = '${(hour + 1).toString().padLeft(2, '0')}:30';
+
+      // tạo label giờ
+      final start =
+      DateTime(0, 1, 1, startHour, startMinute).add(Duration(hours: slotIndex));
+      final end = start.add(const Duration(hours: 1));
+      final startLabel =
+          '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+      final endLabel =
+          '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
       categoriesLabel.add('$startLabel - $endLabel');
 
+      // log output
       final lines = slotLogs[slotIndex];
       final buffer = StringBuffer()
         ..write(
@@ -232,6 +218,7 @@ class LcrDashboardViewState {
       yieldRate: outputYr,
     );
 
+    // ✅ Gauge máy
     final machineGauges = byMachine.entries.map((entry) {
       var passTotal = 0;
       var failTotal = 0;
@@ -251,21 +238,13 @@ class LcrDashboardViewState {
       );
     }).toList();
 
+    // Bổ sung máy trống nếu thiếu
     const expectedMachineCount = 4;
-    for (var machine = 1; machine <= expectedMachineCount; machine++) {
-      final hasMachine = machineGauges.any((gauge) => gauge.machineNo == machine);
-      if (!hasMachine) {
-        machineGauges.add(
-          LcrMachineGauge(
-            machineNo: machine,
-            total: 0,
-            pass: 0,
-            fail: 0,
-          ),
-        );
+    for (var m = 1; m <= expectedMachineCount; m++) {
+      if (!machineGauges.any((g) => g.machineNo == m)) {
+        machineGauges.add(LcrMachineGauge(machineNo: m, total: 0, pass: 0, fail: 0));
       }
     }
-
     machineGauges.sort((a, b) => a.machineNo.compareTo(b.machineNo));
 
     return LcrDashboardViewState(
@@ -283,7 +262,6 @@ class LcrDashboardViewState {
 
 class _SlotTotals {
   _SlotTotals({this.pass = 0, this.fail = 0});
-
   int pass;
   int fail;
 }
