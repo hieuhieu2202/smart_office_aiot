@@ -89,6 +89,8 @@ class LcrDashboardViewState {
     final Map<int, _SlotTotals> bySlot = {};
     final Map<int, List<String>> slotLogs = {};
     final Map<DateTime, _SlotTotals> byDay = {};
+    DateTime? earliestRecord;
+    DateTime? latestRecord;
 
 
     for (final record in records) {
@@ -116,6 +118,22 @@ class LcrDashboardViewState {
 
 
       final dt = record.dateTime;
+
+      if (earliestRecord == null || dt.isBefore(earliestRecord!)) {
+        earliestRecord = dt;
+      }
+      if (latestRecord == null || dt.isAfter(latestRecord!)) {
+        latestRecord = dt;
+      }
+
+      final dayKey = DateTime(dt.year, dt.month, dt.day);
+      final dayBucket = byDay.putIfAbsent(dayKey, () => _SlotTotals());
+      if (record.status) {
+        dayBucket.pass += 1;
+      } else {
+        dayBucket.fail += 1;
+      }
+
       int section = dt.minute > 0 ? dt.hour + 1 : dt.hour;
       if (section >= 24) section = 0;
 
@@ -129,14 +147,6 @@ class LcrDashboardViewState {
         bucket.pass += 1;
       } else {
         bucket.fail += 1;
-      }
-
-      final dayKey = DateTime(dt.year, dt.month, dt.day);
-      final dayBucket = byDay.putIfAbsent(dayKey, () => _SlotTotals());
-      if (record.status) {
-        dayBucket.pass += 1;
-      } else {
-        dayBucket.fail += 1;
       }
 
       final statusLabel = record.status ? 'PASS' : 'FAIL';
@@ -183,7 +193,28 @@ class LcrDashboardViewState {
     final outputYr = <double>[];
     final categoriesLabel = <String>[];
 
-    if (byDay.length > 1) {
+    final bool shouldGroupByDay;
+    if (earliestRecord == null || latestRecord == null) {
+      shouldGroupByDay = false;
+    } else {
+      final startDate = DateTime(
+        earliestRecord!.year,
+        earliestRecord!.month,
+        earliestRecord!.day,
+      );
+      final endDate = DateTime(
+        latestRecord!.year,
+        latestRecord!.month,
+        latestRecord!.day,
+      );
+      final sameDate = startDate == endDate;
+      final duration = latestRecord!.difference(earliestRecord!);
+      final durationHours = duration.inMilliseconds / Duration.millisecondsPerHour;
+      final fillByWorkSections = sameDate || durationHours <= 12.01;
+      shouldGroupByDay = !fillByWorkSections;
+    }
+
+    if (shouldGroupByDay && byDay.isNotEmpty) {
       final formatter = DateFormat('yyyy-MM-dd');
       final sortedDays = byDay.keys.toList()..sort();
       for (final day in sortedDays) {
