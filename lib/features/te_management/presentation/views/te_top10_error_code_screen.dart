@@ -1,6 +1,4 @@
 
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -75,6 +73,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   );
   bool _isFilterPanelOpen = false;
   static const Duration _kFilterAnimationDuration = Duration(milliseconds: 280);
+  final ScrollController _wideErrorScrollController = ScrollController();
 
   @override
   void initState() {
@@ -103,6 +102,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     if (Get.isRegistered<TETopErrorCodeController>(tag: _controllerTag)) {
       Get.delete<TETopErrorCodeController>(tag: _controllerTag);
     }
+    _wideErrorScrollController.dispose();
     super.dispose();
   }
 
@@ -598,52 +598,27 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     required bool isWide,
   }) {
     if (isWide) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final maxWidth = constraints.maxWidth;
-          const double spacing = 12.0;
-          const double minCardWidth = 340.0;
-          final itemCount = data.length;
-          final rawCount =
-              (maxWidth / (minCardWidth + spacing)).floor().clamp(1, 4);
-          final crossAxisCount = itemCount == 0
-              ? 1
-              : math.min(rawCount, itemCount);
-          final totalSpacing = spacing * (crossAxisCount - 1);
-          final cardWidth =
-              (maxWidth - totalSpacing) / crossAxisCount;
-
-          return Scrollbar(
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(right: 4),
-              physics: const ClampingScrollPhysics(),
-              child: SizedBox(
-                width: maxWidth,
-                child: Wrap(
-                  spacing: spacing,
-                  runSpacing: spacing,
-                  children: List.generate(itemCount, (index) {
-                    final item = data[index];
-                    final isSelected = selected == item;
-                    final barColor =
-                        _barPalette[index % _barPalette.length];
-                    return SizedBox(
-                      width: cardWidth,
-                      child: _buildErrorCard(
-                        item: item,
-                        barColor: barColor,
-                        index: index,
-                        isSelected: isSelected,
-                        compact: true,
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ),
-          );
-        },
+      return Scrollbar(
+        controller: _wideErrorScrollController,
+        thumbVisibility: data.length > 6,
+        child: ListView.separated(
+          controller: _wideErrorScrollController,
+          padding: const EdgeInsets.only(right: 6, bottom: 8),
+          itemCount: data.length,
+          itemBuilder: (context, index) {
+            final item = data[index];
+            final isSelected = selected == item;
+            final barColor = _barPalette[index % _barPalette.length];
+            return _buildErrorCard(
+              item: item,
+              barColor: barColor,
+              index: index,
+              isSelected: isSelected,
+              compact: true,
+            );
+          },
+          separatorBuilder: (context, index) => const SizedBox(height: 10),
+        ),
       );
     }
 
@@ -686,11 +661,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         padding: EdgeInsets.symmetric(
-          horizontal: compact ? 16 : 20,
-          vertical: compact ? 14 : 18,
+          horizontal: compact ? 14 : 20,
+          vertical: compact ? 12 : 18,
         ),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(compact ? 14 : 18),
+          borderRadius: BorderRadius.circular(compact ? 12 : 18),
           gradient: isSelected
               ? LinearGradient(
                   colors: [
@@ -723,13 +698,13 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: barColor.withOpacity(0.22),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '#${index + 1}',
                     style: TextStyle(
                       color: barColor,
-                      fontSize: compact ? 13 : 14,
+                      fontSize: compact ? 12 : 14,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -745,7 +720,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: _kTextPrimary,
-                          fontSize: compact ? 17 : 18,
+                          fontSize: compact ? 16 : 18,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.4,
                         ),
@@ -772,7 +747,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             ),
             SizedBox(height: compact ? 10 : 12),
             Container(
-              height: compact ? 8 : 10,
+              height: compact ? 6 : 10,
               decoration: BoxDecoration(
                 color: _kSurfaceMuted,
                 borderRadius: BorderRadius.circular(12),
@@ -853,7 +828,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     required bool compact,
   }) {
     final selectedDetail = _controller.selectedDetail.value;
-    final visibleDetails = item.details.take(3).toList();
+    final visibleDetails = item.details.take(compact ? 2 : 3).toList();
     return Wrap(
       spacing: compact ? 6 : 8,
       runSpacing: compact ? 6 : 8,
@@ -885,36 +860,45 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               children: [
                 Text(
                   detail.modelName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: _kTextPrimary,
-                    fontSize: compact ? 11.5 : 12.5,
+                    fontSize: compact ? 11 : 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Text(
-                  detail.groupName,
-                  style: TextStyle(
-                    color: _kTextSecondary,
-                    fontSize: compact ? 10.5 : 11.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Row(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    Expanded(
+                      child: Text(
+                        detail.groupName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _kTextSecondary,
+                          fontSize: compact ? 10 : 11,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Text(
-                      'F:${detail.firstFail}',
+                      'F ${detail.firstFail}',
                       style: TextStyle(
                         color: _kErrorColor,
-                        fontSize: compact ? 10.5 : 11,
+                        fontSize: compact ? 10 : 11,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'R:${detail.repairFail}',
+                      'R ${detail.repairFail}',
                       style: TextStyle(
                         color: _kRepairColor,
-                        fontSize: compact ? 10.5 : 11,
+                        fontSize: compact ? 10 : 11,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -1605,13 +1589,13 @@ class _StatTile extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: compact ? 12 : 14,
-          vertical: compact ? 10 : 12,
+          horizontal: compact ? 10 : 14,
+          vertical: compact ? 8 : 12,
         ),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.14),
+          color: color.withOpacity(0.12),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.28)),
+          border: Border.all(color: color.withOpacity(0.24)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1620,7 +1604,7 @@ class _StatTile extends StatelessWidget {
               title,
               style: TextStyle(
                 color: color,
-                fontSize: compact ? 11 : 12,
+                fontSize: compact ? 10.5 : 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.3,
               ),
@@ -1634,24 +1618,24 @@ class _StatTile extends StatelessWidget {
                   style: TextStyle(
                     color: _kTextPrimary,
                     fontWeight: FontWeight.w700,
-                    fontSize: compact ? 17 : 18,
+                    fontSize: compact ? 15.5 : 18,
                   ),
                 ),
                 const SizedBox(width: 6),
                 Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: compact ? 6 : 8,
-                    vertical: 4,
+                    vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.18),
+                    color: Colors.black.withOpacity(0.16),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '$percentage%',
                     style: TextStyle(
                       color: color,
-                      fontSize: compact ? 11 : 12,
+                      fontSize: compact ? 10.5 : 12,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
