@@ -800,23 +800,23 @@ class _DashboardTab extends StatelessWidget {
   final LcrDashboardController controller;
 
   double _factoryDistributionHeight(int itemCount) {
-    const baseHeight = 190.0;
-    const perTile = 68.0;
+    const baseHeight = 160.0;
+    const perTile = 60.0;
     final computed = baseHeight + (itemCount * perTile);
-    return math.max(320.0, computed);
+    return computed.clamp(260.0, 360.0).toDouble();
   }
 
   double _machinePerformanceHeight(int itemCount) {
     if (itemCount <= 0) {
-      return 300.0;
+      return 260.0;
     }
     if (itemCount <= 4) {
-      return 300.0;
+      return 260.0;
     }
     if (itemCount <= 8) {
-      return 360.0;
+      return 320.0;
     }
-    return 480.0;
+    return 420.0;
   }
 
   Future<void> _showStatusOverview(BuildContext context, bool showPass) async {
@@ -925,12 +925,11 @@ class _DashboardTab extends StatelessWidget {
 
           final machineHeight =
               _machinePerformanceHeight(data.machineGauges.length);
+          final factoryHeight =
+              _factoryDistributionHeight(data.factorySlices.length);
           final primaryRowHeight = math.max(
-            machineHeight,
-            math.max(
-              _factoryDistributionHeight(data.factorySlices.length),
-              300.0,
-            ),
+            260.0,
+            math.max(machineHeight, factoryHeight),
           );
 
           return SizedBox(
@@ -993,7 +992,7 @@ class _DashboardTab extends StatelessWidget {
                           flex: 2,
                           child: LcrChartCard(
                             title: 'DEPARTMENT ANALYSIS',
-                            height: 280,
+                            height: 340,
                             child: _StackedBarChart(data.departmentSeries),
                           ),
                         ),
@@ -1002,7 +1001,7 @@ class _DashboardTab extends StatelessWidget {
                           flex: 5,
                           child: LcrChartCard(
                             title: 'YIELD RATE & OUTPUT',
-                            height: 280,
+                            height: 360,
                             backgroundGradient: const LinearGradient(
                               colors: [
                                 Color(0xFF062349),
@@ -1020,7 +1019,7 @@ class _DashboardTab extends StatelessWidget {
                           flex: 3,
                           child: LcrChartCard(
                             title: 'TYPE ANALYSIS',
-                            height: 280,
+                            height: 340,
                             child: _StackedBarChart(
                               data.typeSeries,
                               xLabelStyle: const TextStyle(
