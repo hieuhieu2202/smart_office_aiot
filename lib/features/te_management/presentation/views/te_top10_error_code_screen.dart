@@ -75,6 +75,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   );
   bool _isFilterPanelOpen = false;
   static const Duration _kFilterAnimationDuration = Duration(milliseconds: 280);
+  final ScrollController _tableScrollController = ScrollController();
 
   @override
   void initState() {
@@ -103,6 +104,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     if (Get.isRegistered<TETopErrorCodeController>(tag: _controllerTag)) {
       Get.delete<TETopErrorCodeController>(tag: _controllerTag);
     }
+    _tableScrollController.dispose();
     super.dispose();
   }
 
@@ -488,12 +490,151 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     });
   }
 
+
   Widget _buildTopErrorTablePanel({required bool isWide, bool expand = false}) {
-    final table = Obx(() {
+    final panel = Obx(() {
       final errors = _controller.errors;
       final selectedError = _controller.selectedError.value;
       final selectedDetail = _controller.selectedDetail.value;
-      final totalFailures = errors.fold<int>(0, (sum, item) => sum + item.totalFail);
+
+      final rows = <_ErrorTableRowData>[];
+      for (var i = 0; i < errors.length; i++) {
+        final error = errors[i];
+        final details = error.details.take(3).toList();
+        if (details.isEmpty) {
+          rows.add(
+            _ErrorTableRowData(
+              error: error,
+              detail: null,
+              rank: i + 1,
+              showMeta: true,
+            ),
+          );
+        } else {
+          for (var j = 0; j < details.length; j++) {
+            rows.add(
+              _ErrorTableRowData(
+                error: error,
+                detail: details[j],
+                rank: i + 1,
+                showMeta: j == 0,
+              ),
+            );
+          }
+        }
+      }
+
+      if (rows.isEmpty && _tableScrollController.hasClients) {
+        _tableScrollController.jumpTo(0);
+      }
+
+      final tableBody = rows.isEmpty
+          ? const Center(
+              child: Text(
+                'No data available for the selected filters.',
+                style: TextStyle(color: _kTextSecondary),
+              ),
+            )
+          : RawScrollbar(
+              controller: _tableScrollController,
+              thumbVisibility: rows.length > 6,
+              radius: const Radius.circular(12),
+              thickness: 6,
+              interactive: true,
+              child: ListView.builder(
+                controller: _tableScrollController,
+                padding: EdgeInsets.zero,
+                itemCount: rows.length,
+                physics: const ClampingScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final data = rows[index];
+                  final barColor = _barPalette[(data.rank - 1) % _barPalette.length];
+                  final isSelected = selectedError == data.error &&
+                      (selectedDetail == null
+                          ? data.showMeta
+                          : data.detail == selectedDetail);
+                  return _buildTableDataRow(
+                    data: data,
+                    barColor: barColor,
+                    isSelected: isSelected,
+                    isStriped: index.isEven,
+                  );
+                },
+              ),
+            );
+
+      final headerRow = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _kPanelBorderColor.withOpacity(0.6)),
+          color: _kSurfaceMuted.withOpacity(0.4),
+        ),
+        child: Row(
+          children: const [
+            _NeonTableHeaderCell(label: 'TOP', flex: 8, alignment: Alignment.center),
+            _NeonTableHeaderCell(label: 'ERROR CODE', flex: 18),
+            _NeonTableHeaderCell(label: 'F_FAIL', flex: 10, alignment: Alignment.center),
+            _NeonTableHeaderCell(label: 'R_FAIL', flex: 10, alignment: Alignment.center),
+            _NeonTableHeaderCell(label: 'MODEL NAME (Top 3)', flex: 20),
+            _NeonTableHeaderCell(label: 'GROUP_NAME', flex: 16),
+            _NeonTableHeaderCell(label: 'FIRST FAIL', flex: 9, alignment: Alignment.center),
+            _NeonTableHeaderCell(label: 'REPAIR FAIL', flex: 9, alignment: Alignment.center),
+          ],
+        ),
+      );
+
+      final content = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _kSurfaceMuted.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _kPanelBorderColor.withOpacity(0.8)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.table_chart_outlined, size: 18, color: _kAccentColor),
+                    SizedBox(width: 8),
+                    Text(
+                      'Top 10 Error Breakdown',
+                      style: TextStyle(
+                        color: _kTextPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  TERefreshLabel(
+                    lastUpdated: _controller.lastUpdated.value,
+                    isRefreshing: _controller.isLoading.value,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _controller.rangeLabel,
+                    style: const TextStyle(color: _kTextSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          headerRow,
+          const SizedBox(height: 12),
+          Expanded(child: tableBody),
+        ],
+      );
 
       return Container(
         decoration: BoxDecoration(
@@ -513,383 +654,163 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           ],
         ),
         padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _kSurfaceMuted.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: _kPanelBorderColor.withOpacity(0.8)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.table_chart_outlined, size: 18, color: _kAccentColor),
-                      SizedBox(width: 8),
-                      Text(
-                        'Top 10 Error Breakdown',
-                        style: TextStyle(
-                          color: _kTextPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    TERefreshLabel(
-                      lastUpdated: _controller.lastUpdated.value,
-                      isRefreshing: _controller.isLoading.value,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _controller.rangeLabel,
-                      style: const TextStyle(color: _kTextSecondary, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Select an error or detail chip to focus the neon charts.',
-              style: TextStyle(color: _kTextSecondary, fontSize: 12),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: errors.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No data available.',
-                        style: TextStyle(color: _kTextSecondary),
-                      ),
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: _kSurfaceMuted.withOpacity(0.45),
-                          border: Border.all(color: _kPanelBorderColor.withOpacity(0.6)),
-                        ),
-                        child: ScrollConfiguration(
-                          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-                          child: SingleChildScrollView(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(minWidth: 860),
-                                child: DataTableTheme(
-                                  data: DataTableThemeData(
-                                    headingRowColor: const MaterialStatePropertyAll(Color(0xFF0F2C55)),
-                                    headingTextStyle: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.4,
-                                      fontSize: 13,
-                                    ),
-                                    dataRowColor: const MaterialStatePropertyAll(Colors.transparent),
-                                    dataTextStyle: const TextStyle(
-                                      color: _kTextPrimary,
-                                      fontSize: 12,
-                                    ),
-                                    dividerThickness: 0.7,
-                                  ),
-                                  child: DataTable(
-                                    showCheckboxColumn: false,
-                                    headingRowHeight: 46,
-                                    dataRowMinHeight: 60,
-                                    dataRowMaxHeight: 88,
-                                    horizontalMargin: 16,
-                                    columnSpacing: 20,
-                                    border: TableBorder(
-                                      horizontalInside: BorderSide(
-                                        color: _kPanelBorderColor.withOpacity(0.4),
-                                        width: 0.7,
-                                      ),
-                                      verticalInside: BorderSide(
-                                        color: _kPanelBorderColor.withOpacity(0.4),
-                                        width: 0.7,
-                                      ),
-                                      top: BorderSide(
-                                        color: _kPanelBorderColor.withOpacity(0.6),
-                                        width: 0.8,
-                                      ),
-                                      bottom: BorderSide(
-                                        color: _kPanelBorderColor.withOpacity(0.6),
-                                        width: 0.8,
-                                      ),
-                                      left: BorderSide(
-                                        color: _kPanelBorderColor.withOpacity(0.6),
-                                        width: 0.8,
-                                      ),
-                                      right: BorderSide(
-                                        color: _kPanelBorderColor.withOpacity(0.6),
-                                        width: 0.8,
-                                      ),
-                                    ),
-                                    columns: [
-                                      const DataColumn(label: _NeonTableHeader('TOP')),
-                                      const DataColumn(label: _NeonTableHeader('ERROR CODE')),
-                                      const DataColumn(label: _NeonTableHeader('F_FAIL'), numeric: true),
-                                      const DataColumn(label: _NeonTableHeader('R_FAIL'), numeric: true),
-                                      const DataColumn(label: _NeonTableHeader('Σ / SHARE')),
-                                      const DataColumn(label: _NeonTableHeader('TOP DETAIL')),
-                                    ],
-                                    rows: _buildErrorTableRows(
-                                      errors: errors,
-                                      selectedError: selectedError,
-                                      selectedDetail: selectedDetail,
-                                      totalFailures: totalFailures,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-            ),
-          ],
-        ),
+        child: content,
       );
     });
 
     if (expand) {
-      return table;
+      return panel;
     }
 
     final height = isWide ? 360.0 : 460.0;
-    return SizedBox(height: height, child: table);
+    return SizedBox(height: height, child: panel);
   }
 
-  List<DataRow> _buildErrorTableRows({
-    required List<TETopErrorEntity> errors,
-    required TETopErrorEntity? selectedError,
-    required TETopErrorDetailEntity? selectedDetail,
-    required int totalFailures,
-  }) {
-    return List.generate(errors.length, (index) {
-      final item = errors[index];
-      final barColor = _barPalette[index % _barPalette.length];
-      final chips = item.details.take(3).toList();
-      final rowSelected = selectedError == item;
-      final highlightColor = rowSelected ? barColor.withOpacity(0.22) : Colors.transparent;
-
-      return DataRow(
-        color: MaterialStateProperty.resolveWith<Color?>(
-          (states) => highlightColor == Colors.transparent ? null : highlightColor,
-        ),
-        onSelectChanged: (_) async {
-          await _controller.selectError(item);
-          if (selectedDetail != null && !chips.contains(selectedDetail)) {
-            _controller.clearDetailSelection();
-          }
-        },
-        cells: [
-          DataCell(Text('#${index + 1}', style: TextStyle(color: barColor, fontWeight: FontWeight.w700))),
-          DataCell(Text(
-            item.errorCode,
-            style: const TextStyle(
-              color: _kTextPrimary,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
-            ),
-          )),
-          DataCell(Text('${item.firstFail}')),
-          DataCell(Text('${item.repairFail}')),
-          DataCell(_buildShareCell(
-            color: barColor,
-            first: item.firstFail,
-            repair: item.repairFail,
-            total: item.totalFail,
-            totalFailures: totalFailures,
-          )),
-          DataCell(_buildDetailChipWrap(
-            item: item,
-            barColor: barColor,
-            selectedDetail: selectedDetail,
-            chips: chips,
-          )),
-        ],
-      );
-    });
-  }
-
-  Widget _buildShareCell({
-    required Color color,
-    required int first,
-    required int repair,
-    required int total,
-    required int totalFailures,
-  }) {
-    final safeTotal = total == 0 ? 1.0 : total.toDouble();
-    final firstRatio = first / safeTotal;
-    final repairRatio = repair / safeTotal;
-    final share = totalFailures == 0 ? 0.0 : total / totalFailures;
-
-    return SizedBox(
-      width: 160,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            height: 8,
-            decoration: BoxDecoration(
-              color: _kSurfaceMuted,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                final firstWidth = width * firstRatio;
-                final repairWidth = width * repairRatio;
-                return Stack(
-                  children: [
-                    Positioned(
-                      left: 0,
-                      width: math.max(firstWidth, 0),
-                      top: 0,
-                      bottom: 0,
-                      child: Container(color: _kErrorColor.withOpacity(0.9)),
-                    ),
-                    Positioned(
-                      left: firstWidth,
-                      width: math.max(repairWidth, 0),
-                      top: 0,
-                      bottom: 0,
-                      child: Container(color: _kRepairColor.withOpacity(0.9)),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Σ $total',
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-              Text(
-                '${(share * 100).toStringAsFixed(1)}%',
-                style: const TextStyle(color: _kTextSecondary, fontSize: 11),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailChipWrap({
-    required TETopErrorEntity item,
+  Widget _buildTableDataRow({
+    required _ErrorTableRowData data,
     required Color barColor,
-    required TETopErrorDetailEntity? selectedDetail,
-    required List<TETopErrorDetailEntity> chips,
+    required bool isSelected,
+    required bool isStriped,
   }) {
-    if (chips.isEmpty) {
-      return const Text(
-        'No breakdown',
-        style: TextStyle(color: _kTextSecondary, fontSize: 11),
-      );
-    }
+    final detail = data.detail;
+    final hasDetail = detail != null;
+    final backgroundColor = isSelected
+        ? barColor.withOpacity(0.2)
+        : isStriped
+            ? _kSurfaceMuted.withOpacity(0.18)
+            : Colors.transparent;
 
-    return SizedBox(
-      width: 220,
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: chips.map((detail) {
-          final isSelected = selectedDetail == detail;
-          final label = '${detail.modelName} · ${detail.groupName}';
-          final total = detail.firstFail + detail.repairFail;
-          return GestureDetector(
-            onTap: () async {
-              await _controller.selectError(item);
-              await _controller.selectDetail(detail);
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: isSelected
-                    ? LinearGradient(
-                        colors: [
-                          barColor.withOpacity(0.28),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: isSelected
-                    ? _kPanelColor.withOpacity(0.9)
-                    : _kSurfaceMuted.withOpacity(0.82),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isSelected
-                      ? barColor
-                      : _kPanelBorderColor.withOpacity(0.6),
-                  width: isSelected ? 1.2 : 1,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: barColor.withOpacity(0.35),
-                          blurRadius: 14,
-                          offset: const Offset(0, 6),
-                        ),
-                      ]
-                    : const [],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: isSelected ? barColor : _kTextSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+    return InkWell(
+      onTap: () async {
+        await _controller.selectError(data.error);
+        if (detail != null) {
+          await _controller.selectDetail(detail);
+        } else {
+          _controller.clearDetailSelection();
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isSelected
+                ? barColor.withOpacity(0.7)
+                : _kPanelBorderColor.withOpacity(0.35),
+            width: 0.8,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: barColor.withOpacity(0.35),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'F ${detail.firstFail} · R ${detail.repairFail} · Σ $total',
-                    style: const TextStyle(
-                      color: _kTextSecondary,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
+                ]
+              : null,
+        ),
+        child: Row(
+          children: [
+            _buildTableDataCell(
+              '#${data.rank}',
+              flex: 8,
+              alignment: Alignment.center,
+              color: barColor,
+              fontWeight: FontWeight.w700,
+              invisible: !data.showMeta,
             ),
-          );
-        }).toList(),
+            _buildTableDataCell(
+              data.error.errorCode,
+              flex: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.4,
+              invisible: !data.showMeta,
+            ),
+            _buildTableDataCell(
+              data.error.firstFail.toString(),
+              flex: 10,
+              alignment: Alignment.center,
+              fontWeight: FontWeight.w700,
+              invisible: !data.showMeta,
+            ),
+            _buildTableDataCell(
+              data.error.repairFail.toString(),
+              flex: 10,
+              alignment: Alignment.center,
+              fontWeight: FontWeight.w700,
+              invisible: !data.showMeta,
+            ),
+            _buildTableDataCell(
+              hasDetail ? detail!.modelName : '—',
+              flex: 20,
+              muted: !hasDetail,
+              maxLines: 2,
+            ),
+            _buildTableDataCell(
+              hasDetail ? detail!.groupName : '—',
+              flex: 16,
+              muted: !hasDetail,
+              maxLines: 2,
+            ),
+            _buildTableDataCell(
+              hasDetail ? detail!.firstFail.toString() : '—',
+              flex: 9,
+              alignment: Alignment.center,
+              fontWeight: FontWeight.w600,
+              muted: !hasDetail,
+            ),
+            _buildTableDataCell(
+              hasDetail ? detail!.repairFail.toString() : '—',
+              flex: 9,
+              alignment: Alignment.center,
+              fontWeight: FontWeight.w600,
+              muted: !hasDetail,
+            ),
+          ],
+        ),
       ),
     );
   }
 
+  Widget _buildTableDataCell(
+    String text, {
+    required int flex,
+    Alignment alignment = Alignment.centerLeft,
+    Color color = _kTextPrimary,
+    FontWeight fontWeight = FontWeight.w500,
+    double fontSize = 12,
+    double letterSpacing = 0.2,
+    bool muted = false,
+    bool invisible = false,
+    int maxLines = 1,
+  }) {
+    final style = TextStyle(
+      color: muted ? _kTextSecondary.withOpacity(0.75) : color,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      letterSpacing: letterSpacing,
+    );
+
+    final label = Text(
+      text,
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
+
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Align(
+          alignment: alignment,
+          child: invisible ? Opacity(opacity: 0.0, child: label) : label,
+        ),
+      ),
+    );
+  }
   Widget _buildDistributionPanel() {
     return Obx(() {
       final errors = _controller.errors;
@@ -1384,26 +1305,50 @@ class _InfoBadge extends StatelessWidget {
   }
 }
 
-class _NeonTableHeader extends StatelessWidget {
-  const _NeonTableHeader(this.text, {super.key});
+class _NeonTableHeaderCell extends StatelessWidget {
+  const _NeonTableHeaderCell({
+    required this.label,
+    required this.flex,
+    this.alignment = Alignment.centerLeft,
+    super.key,
+  });
 
-  final String text;
+  final String label;
+  final int flex;
+  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: _kAccentColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
+    return Expanded(
+      flex: flex,
+      child: Align(
+        alignment: alignment,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: _kAccentColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.6,
+          ),
         ),
       ),
     );
   }
+}
+
+class _ErrorTableRowData {
+  const _ErrorTableRowData({
+    required this.error,
+    required this.rank,
+    required this.showMeta,
+    this.detail,
+  });
+
+  final TETopErrorEntity error;
+  final TETopErrorDetailEntity? detail;
+  final int rank;
+  final bool showMeta;
 }
 
 class _RangeButton extends StatelessWidget {
