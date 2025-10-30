@@ -1189,22 +1189,22 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                         ),
                       )
                     : Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.white12),
-                          color: Colors.white.withOpacity(0.03),
-                        ),
-                        child: Scrollbar(
-                          controller: _verticalController,
-                          thumbVisibility: true,
-                          child: SingleChildScrollView(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: Colors.white12),
+                            color: Colors.white.withOpacity(0.03),
+                          ),
+                          child: Scrollbar(
                             controller: _verticalController,
-                            primary: false,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minWidth: tableMinWidth,
-                              ),
-                              child: DataTable(
+                            thumbVisibility: true,
+                            child: SingleChildScrollView(
+                              controller: _verticalController,
+                              primary: false,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: tableMinWidth,
+                                ),
+                                child: DataTable(
                                   headingRowHeight: 48,
                                   dataRowMinHeight: 44,
                                   dataRowMaxHeight: 60,
@@ -1258,36 +1258,48 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                                       color: MaterialStateProperty.all(rowTint),
                                       cells: [
                                         DataCell(Text(index.toString())),
-                                        DataCell(Text(
-                                            dateTimeFormatter
-                                                .format(record.dateTime))),
-                                        DataCell(Text(
-                                          record.serialNumber ?? '-',
-                                          style: infoTextStyle,
-                                        )),
                                         DataCell(
-                                            Text(record.customerPn ?? '-')),
+                                          Text(
+                                            dateTimeFormatter
+                                                .format(record.dateTime),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            record.serialNumber ?? '-',
+                                            style: infoTextStyle,
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(record.customerPn ?? '-'),
+                                        ),
                                         DataCell(Text(record.dateCode ?? '-')),
                                         DataCell(Text(record.lotCode ?? '-')),
-                                        DataCell(Text(record.qty?.toString() ?? '-')),
+                                        DataCell(
+                                            Text(record.qty?.toString() ?? '-')),
                                         DataCell(
                                             Text(record.extQty?.toString() ?? '-')),
                                         DataCell(Text(record.description ?? '-')),
                                         DataCell(Text(record.materialType ?? '-')),
-                                        DataCell(Text(
-                                          record.lowSpec ?? '-',
-                                          style: infoTextStyle,
-                                        )),
-                                        DataCell(Text(
-                                          record.highSpec ?? '-',
-                                          style: warningTextStyle,
-                                        )),
-                                        DataCell(Text(
-                                          record.measureValue ?? '-',
-                                          style: successTextStyle,
-                                        )),
                                         DataCell(
-                                            Text(record.employeeId ?? '-')),
+                                          Text(
+                                            record.lowSpec ?? '-',
+                                            style: infoTextStyle,
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            record.highSpec ?? '-',
+                                            style: warningTextStyle,
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            record.measureValue ?? '-',
+                                            style: successTextStyle,
+                                          ),
+                                        ),
+                                        DataCell(Text(record.employeeId ?? '-')),
                                         DataCell(
                                           Text(
                                             record.factory.isEmpty
@@ -1312,7 +1324,6 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                             ),
                           ),
                         ),
-                      ),
               ),
             ),
           ],
