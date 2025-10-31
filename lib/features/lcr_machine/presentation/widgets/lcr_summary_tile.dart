@@ -26,7 +26,8 @@ class LcrSummaryTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: const BoxConstraints(minHeight: 108),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -40,9 +41,9 @@ class LcrSummaryTile extends StatelessWidget {
           border: Border.all(color: Colors.white24, width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: color.withOpacity(0.28),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
@@ -59,6 +60,7 @@ class LcrSummaryTile extends StatelessWidget {
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: Colors.white70,
                       fontWeight: FontWeight.w600,
+                      fontSize: 14,
                     ),
                   ),
                 ),
@@ -67,7 +69,7 @@ class LcrSummaryTile extends StatelessWidget {
                     onTap: onActionTap,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
+                        horizontal: 8,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
@@ -106,20 +108,33 @@ class LcrSummaryTile extends StatelessWidget {
                 children: [
                   Text(
                     value,
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                          fontSize: 40,
+                        ) ??
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                          fontSize: 40,
+                        ),
                   ),
                   if (suffix != null) ...[
                     const SizedBox(width: 4),
                     Text(
                       suffix!,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w600,
-                      ),
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                          ) ??
+                          const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                          ),
                     ),
                   ],
                 ],

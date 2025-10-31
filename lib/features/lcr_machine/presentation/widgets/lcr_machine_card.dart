@@ -52,10 +52,10 @@ class _LcrMachineCardState extends State<LcrMachineCard>
     final double failRatio =
     (data.fail / total).clamp(0.0, 1.0).toDouble();
 
-    const gaugeDesignSize = 260.0;
+    const gaugeDesignSize = 320.0;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
         color: const Color(0xFF03132D).withOpacity(0.85),
         borderRadius: BorderRadius.circular(16),
@@ -68,8 +68,9 @@ class _LcrMachineCardState extends State<LcrMachineCard>
             'MACHINE ${data.machineNo}',
             style: theme.textTheme.titleSmall?.copyWith(
               color: Colors.cyanAccent,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              fontSize: 16,
             ),
           ),
           const SizedBox(height: 10),
@@ -119,11 +120,18 @@ class _LcrMachineCardState extends State<LcrMachineCard>
                               children: [
                                 Text(
                                   data.pass.toString(),
-                                  style: theme.textTheme.displaySmall?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.2,
-                                  ),
+                                  style: theme.textTheme.displayMedium?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1.2,
+                                        fontSize: 58,
+                                      ) ??
+                                      const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1.2,
+                                        fontSize: 58,
+                                      ),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(

@@ -136,6 +136,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
           final actions = Wrap(
             spacing: 12,
             runSpacing: 12,
+            alignment: WrapAlignment.end,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               SizedBox(
@@ -176,19 +177,26 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (isCompact) ...[
-                buildNavigationRow(),
-                const SizedBox(height: 12),
-                actions,
-              ] else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(child: buildNavigationRow()),
-                    const SizedBox(width: 12),
-                    actions,
-                  ],
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: buildNavigationRow()),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth:
+                              isCompact ? constraints.maxWidth : double.infinity,
+                        ),
+                        child: actions,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
             ],
           );
@@ -849,15 +857,15 @@ class _DashboardTab extends StatelessWidget {
 
   double _machinePerformanceHeight(int itemCount) {
     if (itemCount <= 0) {
-      return 260.0;
+      return 300.0;
     }
     if (itemCount <= 4) {
-      return 260.0;
+      return 340.0;
     }
     if (itemCount <= 8) {
-      return 320.0;
+      return 400.0;
     }
-    return 420.0;
+    return 460.0;
   }
 
   Widget _buildPrimaryCharts({
