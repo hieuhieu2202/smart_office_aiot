@@ -16,12 +16,7 @@ class LcrRecordDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final entries = <_DetailEntry>[
-      _DetailEntry('ID', record.id.toString()),
       _DetailEntry('DATE TIME', _fmt(record.dateTime)),
-      _DetailEntry('WORK DATE', record.workDate),
-      _DetailEntry('WORK SECTION', record.workSection.toString()),
-      _DetailEntry('CLASS', record.className == 'D' ? 'DAY' : record.className),
-      _DetailEntry('CLASS DATE', record.classDate),
       _DetailEntry('SERIAL NUMBER', record.serialNumber ?? '-'),
       _DetailEntry('CUST P/N', record.customerPn ?? '-'),
       _DetailEntry('DATE CODE', record.dateCode ?? '-'),
@@ -42,25 +37,37 @@ class LcrRecordDetail extends StatelessWidget {
       _DetailEntry('FACTORY', record.factory),
       _DetailEntry('DEPARTMENT', record.department ?? '-'),
       _DetailEntry('MACHINE NO', record.machineNo.toString()),
+      _DetailEntry('WORK DATE', record.workDate),
+      _DetailEntry('WORK SECTION', record.workSection.toString()),
+      _DetailEntry('CLASS', record.className == 'D' ? 'DAY' : record.className),
+      _DetailEntry('CLASS DATE', record.classDate),
+      _DetailEntry('ID', record.id.toString()),
     ];
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF03132D).withOpacity(0.85),
+        color: const Color(0xFF03132D).withOpacity(0.88),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Colors.white12),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black45,
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final viewportWidth = constraints.maxWidth.isFinite
+          final viewportWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
               ? constraints.maxWidth
               : MediaQuery.of(context).size.width;
 
-          return _DetailGrid(
+          return _DetailTable(
             entries: entries,
             theme: theme,
-            maxWidth: viewportWidth,
+            viewportWidth: viewportWidth,
           );
         },
       ),
@@ -81,144 +88,156 @@ class _DetailEntry {
   final String value;
 }
 
-class _DetailGrid extends StatelessWidget {
-  const _DetailGrid({
+class _DetailTable extends StatelessWidget {
+  const _DetailTable({
     required this.entries,
     required this.theme,
-    required this.maxWidth,
+    required this.viewportWidth,
   });
 
   final List<_DetailEntry> entries;
   final ThemeData theme;
-  final double maxWidth;
+  final double viewportWidth;
 
   @override
   Widget build(BuildContext context) {
-    const crossAxisSpacing = 14.0;
-    const runSpacing = 12.0;
-    const baseAspectRatio = 2.25;
-    const minTileHeight = 96.0;
+    const double columnSpacing = 12;
+    final double minColumnWidth = math.max(120, viewportWidth / 3);
 
-    final double availableWidth = maxWidth.isFinite && maxWidth > 0
-        ? maxWidth
-        : MediaQuery.of(context).size.width;
+    final widths = <double>[];
+    for (final entry in entries) {
+      widths.add(_preferredColumnWidth(entry.label, minColumnWidth));
+    }
 
-    final int crossAxisCount = availableWidth >= 1160
-        ? 5
-        : availableWidth >= 940
-            ? 4
-            : 3;
+    final totalWidth = widths.fold<double>(0, (sum, width) => sum + width) +
+        columnSpacing * (entries.length - 1);
 
-    final spacingWidth = crossAxisSpacing * (crossAxisCount - 1);
-    final tileWidth = (availableWidth - spacingWidth) / crossAxisCount;
-    final idealTileHeight = tileWidth / baseAspectRatio;
-    final tileHeight = idealTileHeight < minTileHeight ? minTileHeight : idealTileHeight;
-    final bool compactTile = tileWidth < 150;
-    final int? valueMaxLines = compactTile ? 6 : null;
-    final labelFontSize = compactTile ? 11.0 : 12.5;
-    final valueFontSize = compactTile ? 13.0 : 15.0;
-    final verticalGap = compactTile ? 4.0 : 6.0;
+    final headerStyle = theme.textTheme.labelSmall?.copyWith(
+      color: Colors.cyanAccent,
+      fontWeight: FontWeight.w700,
+      fontSize: 12.5,
+      letterSpacing: 0.7,
+    );
 
-    return SizedBox(
-      width: availableWidth,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.zero,
-        physics: const BouncingScrollPhysics(),
-        child: Wrap(
-          spacing: crossAxisSpacing,
-          runSpacing: runSpacing,
+    final valueStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w600,
+      fontSize: 13.5,
+      letterSpacing: 0.3,
+      height: 1.3,
+    );
+
+    final table = Table(
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+      columnWidths: {
+        for (var i = 0; i < widths.length; i++) i: FixedColumnWidth(widths[i]),
+      },
+      border: TableBorder(
+        top: BorderSide(color: Colors.white.withOpacity(0.18)),
+        bottom: BorderSide(color: Colors.white.withOpacity(0.18)),
+        left: BorderSide(color: Colors.white.withOpacity(0.14)),
+        right: BorderSide(color: Colors.white.withOpacity(0.14)),
+        horizontalInside: BorderSide(color: Colors.white.withOpacity(0.14)),
+        verticalInside: BorderSide(color: Colors.white.withOpacity(0.14)),
+      ),
+      children: [
+        TableRow(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.06),
+          ),
           children: [
-            for (final entry in entries)
-              SizedBox(
-                width: tileWidth,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: tileHeight),
-                  child: _DetailTile(
-                    entry: entry,
-                    theme: theme,
-                    maxLines: valueMaxLines,
-                    labelFontSize: labelFontSize,
-                    valueFontSize: valueFontSize,
-                    verticalGap: verticalGap,
-                  ),
+            for (var i = 0; i < entries.length; i++)
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: columnSpacing,
+                  vertical: 14,
+                ),
+                child: Text(
+                  entries[i].label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: headerStyle,
                 ),
               ),
           ],
         ),
+        TableRow(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+          ),
+          children: [
+            for (var i = 0; i < entries.length; i++)
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: columnSpacing,
+                  vertical: 16,
+                ),
+                child: _ValueCell(
+                  entry: entries[i],
+                  style: valueStyle,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: math.max(viewportWidth, totalWidth),
+          child: table,
+        ),
       ),
     );
   }
+
+  double _preferredColumnWidth(String label, double minColumnWidth) {
+    switch (label) {
+      case 'DATE TIME':
+      case 'CLASS DATE':
+      case 'WORK DATE':
+        return math.max(minColumnWidth, 190);
+      case 'DESCRIPTION':
+        return math.max(minColumnWidth, 260);
+      case 'MEASURE VALUE':
+      case 'LOW SPEC':
+      case 'HIGH SPEC':
+        return math.max(minColumnWidth, 180);
+      case 'SERIAL NUMBER':
+      case 'ID RECORD':
+        return math.max(minColumnWidth, 200);
+      default:
+        return math.max(minColumnWidth, 150);
+    }
+  }
 }
 
-class _DetailTile extends StatelessWidget {
-  const _DetailTile({
+class _ValueCell extends StatelessWidget {
+  const _ValueCell({
     required this.entry,
-    required this.theme,
-    required this.maxLines,
-    required this.labelFontSize,
-    required this.valueFontSize,
-    required this.verticalGap,
+    required this.style,
   });
 
   final _DetailEntry entry;
-  final ThemeData theme;
-  final int? maxLines;
-  final double labelFontSize;
-  final double valueFontSize;
-  final double verticalGap;
+  final TextStyle? style;
 
   @override
   Widget build(BuildContext context) {
-    final isImportant = entry.label == 'STATUS' || entry.label == 'SERIAL NUMBER';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
-        color: isImportant
-            ? Colors.cyan.withOpacity(0.15)
-            : Colors.white.withOpacity(0.04),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              entry.label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: Colors.white70,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.6,
-                fontSize: labelFontSize,
-                height: 1.1,
-              ),
-            ),
-          ),
-          SizedBox(height: verticalGap),
-          Text(
-            entry.value,
-            maxLines: maxLines,
-            overflow: maxLines != null ? TextOverflow.ellipsis : TextOverflow.visible,
-            softWrap: true,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: isImportant
-                  ? (entry.label == 'STATUS' && entry.value == 'FAIL'
-                      ? Colors.redAccent
-                      : Colors.cyanAccent)
-                  : Colors.white,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.4,
-              fontSize: valueFontSize,
-              height: 1.25,
-            ),
-          ),
-        ],
+    final isStatus = entry.label == 'STATUS';
+    final statusColor = entry.value.toUpperCase() == 'FAIL'
+        ? Colors.redAccent
+        : Colors.cyanAccent;
+
+    return Text(
+      entry.value,
+      maxLines: 4,
+      overflow: TextOverflow.ellipsis,
+      softWrap: true,
+      style: (style ?? const TextStyle()).copyWith(
+        color: isStatus ? statusColor : style?.color,
       ),
     );
   }
