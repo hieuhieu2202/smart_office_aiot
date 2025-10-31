@@ -31,20 +31,20 @@ const Color _kTableGridColor = Color(0xFF123760);
 
 const TextStyle _kTableHeaderStyle = TextStyle(
   color: _kTextPrimary,
-  fontSize: 12,
+  fontSize: 10,
   fontWeight: FontWeight.w700,
   letterSpacing: 0.2,
 );
 
 const TextStyle _kTableValueStyle = TextStyle(
   color: _kTextPrimary,
-  fontSize: 13,
+  fontSize: 11,
   fontWeight: FontWeight.w600,
 );
 
 const TextStyle _kTableMutedStyle = TextStyle(
   color: _kTextSecondary,
-  fontSize: 12,
+  fontSize: 10,
   fontWeight: FontWeight.w500,
 );
 
@@ -1389,7 +1389,7 @@ class _TopErrorTableRow extends StatelessWidget {
                 children: [
                   Text(
                     error.errorCode,
-                    style: _kTableValueStyle.copyWith(fontSize: 15),
+                    style: _kTableValueStyle.copyWith(fontSize: 13),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 6),
@@ -1524,26 +1524,17 @@ class _SummaryStat extends StatelessWidget {
       children: [
         Text(
           value.toString(),
-          style: _kTableValueStyle.copyWith(fontSize: 16, color: _kTextPrimary),
+          style: _kTableValueStyle.copyWith(fontSize: 14, color: _kTextPrimary),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: accentColor.withOpacity(0.18),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: accentColor.withOpacity(0.6), width: 0.8),
+        Text(
+          label,
+          style: _kTableMutedStyle.copyWith(
+            color: accentColor,
+            fontWeight: FontWeight.w700,
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: accentColor,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
-            ),
-          ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -1567,7 +1558,10 @@ class _DetailValueTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final textStyle = isSelected
         ? _kTableValueStyle.copyWith(color: accentColor)
-        : _kTableValueStyle.copyWith(fontSize: 12, color: _kTextPrimary.withOpacity(0.9));
+        : _kTableValueStyle.copyWith(
+            fontSize: 10,
+            color: _kTextPrimary.withOpacity(0.9),
+          );
 
     return InkWell(
       onTap: onTap,
