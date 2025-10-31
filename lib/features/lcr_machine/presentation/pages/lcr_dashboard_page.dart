@@ -3610,25 +3610,31 @@ class _OutputChart extends StatelessWidget {
           yMax = (step * 6).toDouble();
         }
 
+        final EdgeInsets targetPadding = isMobile
+            ? const EdgeInsets.symmetric(horizontal: 6, vertical: 2)
+            : const EdgeInsets.symmetric(horizontal: 10, vertical: 4);
+        final TextStyle targetTextStyle = TextStyle(
+          color: Colors.greenAccent,
+          fontWeight: FontWeight.w700,
+          fontSize: isMobile ? 9 : 11,
+          height: 1.1,
+        );
+
         final annotations = <CartesianChartAnnotation>[
           if (data.isNotEmpty)
             CartesianChartAnnotation(
               widget: DecoratedBox(
                 decoration: BoxDecoration(
                   color: Colors.greenAccent.withOpacity(0.16),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(isMobile ? 10 : 12),
                   border:
                       Border.all(color: Colors.greenAccent.withOpacity(0.6)),
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Padding(
+                  padding: targetPadding,
                   child: Text(
                     'Target (98%)',
-                    style: TextStyle(
-                      color: Colors.greenAccent,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
-                    ),
+                    style: targetTextStyle,
                   ),
                 ),
               ),
