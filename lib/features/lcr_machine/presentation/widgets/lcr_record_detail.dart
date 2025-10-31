@@ -70,6 +70,9 @@ class LcrRecordDetail extends StatelessWidget {
               crossAxisSpacing: crossAxisSpacing,
               mainAxisSpacing: 12,
             ),
+            padding: EdgeInsets.zero,
+            primary: false,
+            shrinkWrap: true,
             physics: const BouncingScrollPhysics(),
             itemBuilder: (context, index) {
               final entry = entries[index];

@@ -3819,12 +3819,17 @@ class _AnalysisTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final resolvedHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : MediaQuery.of(context).size.height;
+
         return Padding(
           padding: const EdgeInsets.all(24),
           child: SizedBox(
             width: constraints.maxWidth,
-            height: constraints.maxHeight,
+            height: resolvedHeight,
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
                   flex: 3,
@@ -3875,6 +3880,8 @@ class _AnalysisTab extends StatelessWidget {
                             );
                           }
                           return ListView.separated(
+                            padding: EdgeInsets.zero,
+                            primary: false,
                             itemCount: results.length,
                             separatorBuilder: (_, __) => const SizedBox(height: 8),
                             itemBuilder: (context, index) {
