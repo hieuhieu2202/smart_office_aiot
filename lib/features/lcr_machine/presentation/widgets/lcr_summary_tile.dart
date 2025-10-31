@@ -26,7 +26,8 @@ class LcrSummaryTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        constraints: const BoxConstraints(minHeight: 92),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -40,9 +41,9 @@ class LcrSummaryTile extends StatelessWidget {
           border: Border.all(color: Colors.white24, width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: color.withOpacity(0.28),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
@@ -59,6 +60,7 @@ class LcrSummaryTile extends StatelessWidget {
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: Colors.white70,
                       fontWeight: FontWeight.w600,
+                      fontSize: 14,
                     ),
                   ),
                 ),
@@ -67,8 +69,8 @@ class LcrSummaryTile extends StatelessWidget {
                     onTap: onActionTap,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                        horizontal: 7,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.08),
@@ -81,15 +83,22 @@ class LcrSummaryTile extends StatelessWidget {
                           Text(
                             actionLabel!,
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.4,
-                            ),
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3,
+                                  fontSize: 11,
+                                ) ??
+                                const TextStyle(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3,
+                                  fontSize: 11,
+                                ),
                           ),
                           const SizedBox(width: 4),
                           const Icon(
                             Icons.table_rows_rounded,
-                            size: 14,
+                            size: 12,
                             color: Colors.white60,
                           ),
                         ],
@@ -106,20 +115,33 @@ class LcrSummaryTile extends StatelessWidget {
                 children: [
                   Text(
                     value,
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.05,
+                          fontSize: 34,
+                        ) ??
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.05,
+                          fontSize: 34,
+                        ),
                   ),
                   if (suffix != null) ...[
                     const SizedBox(width: 4),
                     Text(
                       suffix!,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w600,
-                      ),
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ) ??
+                          const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
                     ),
                   ],
                 ],
