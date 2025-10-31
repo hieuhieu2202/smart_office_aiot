@@ -1344,6 +1344,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               isVisible: true,
               position: LegendPosition.bottom,
               overflowMode: LegendItemOverflowMode.wrap,
+              toggleSeriesVisibility: false,
               textStyle: const TextStyle(
                 color: _kTextSecondary,
                 fontSize: 11,
@@ -1366,10 +1367,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               if (index == null || index < 0 || index >= seriesConfigs.length) {
                 return;
               }
-              args.isToggled = false;
               _controller.focusErrorTrend(seriesConfigs[index].error);
             },
-            onPointTap: (details) {
+            onPointTapped: (details) {
               final index = details.seriesIndex;
               if (index == null || index < 0 || index >= seriesConfigs.length) {
                 return;
