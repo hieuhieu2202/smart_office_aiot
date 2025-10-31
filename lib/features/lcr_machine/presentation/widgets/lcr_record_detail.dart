@@ -51,15 +51,15 @@ class LcrRecordDetail extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final availableWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : MediaQuery.of(context).size.width;
           final crossAxisCount = availableWidth < 540 ? 1 : 2;
           const crossAxisSpacing = 16.0;
           const runSpacing = 12.0;
           const baseAspectRatio = 3.4;
           const minTileHeight = 92.0;
 
-          final availableWidth = constraints.maxWidth.isFinite
-              ? constraints.maxWidth
-              : MediaQuery.of(context).size.width;
           final horizontalSpacing = crossAxisSpacing * (crossAxisCount - 1);
           final usableWidth = availableWidth - horizontalSpacing;
           final tileWidth = usableWidth > 0
