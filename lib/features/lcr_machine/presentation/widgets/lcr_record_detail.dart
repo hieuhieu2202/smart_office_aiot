@@ -114,10 +114,10 @@ class _DetailGrid extends StatelessWidget {
     final idealTileHeight = tileWidth / baseAspectRatio;
     final tileHeight = idealTileHeight < minTileHeight ? minTileHeight : idealTileHeight;
     final bool compactTile = tileWidth < 150;
-    final valueMaxLines = compactTile ? 3 : 4;
-    final labelFontSize = compactTile ? 10.5 : 12.0;
-    final valueFontSize = compactTile ? 13.0 : 15.5;
-    final verticalGap = compactTile ? 2.0 : 4.0;
+    final int? valueMaxLines = compactTile ? 6 : null;
+    final labelFontSize = compactTile ? 11.0 : 12.5;
+    final valueFontSize = compactTile ? 13.0 : 15.0;
+    final verticalGap = compactTile ? 4.0 : 6.0;
 
     return SizedBox(
       width: availableWidth,
@@ -129,9 +129,9 @@ class _DetailGrid extends StatelessWidget {
           runSpacing: runSpacing,
           children: [
             for (final entry in entries)
-              SizedBox(
+              ConstrainedBox(
+                constraints: BoxConstraints(minHeight: tileHeight),
                 width: tileWidth,
-                height: tileHeight,
                 child: _DetailTile(
                   entry: entry,
                   theme: theme,
@@ -160,7 +160,7 @@ class _DetailTile extends StatelessWidget {
 
   final _DetailEntry entry;
   final ThemeData theme;
-  final int maxLines;
+  final int? maxLines;
   final double labelFontSize;
   final double valueFontSize;
   final double verticalGap;
@@ -181,30 +181,39 @@ class _DetailTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            entry.label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: Colors.white60,
-              fontWeight: FontWeight.w600,
-              fontSize: labelFontSize,
-              height: 1.2,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              entry.label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: Colors.white70,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                fontSize: labelFontSize,
+                height: 1.1,
+              ),
             ),
           ),
           SizedBox(height: verticalGap),
           Text(
             entry.value,
             maxLines: maxLines,
-            overflow: TextOverflow.ellipsis,
+            overflow: maxLines != null ? TextOverflow.ellipsis : TextOverflow.visible,
+            softWrap: true,
             style: theme.textTheme.titleSmall?.copyWith(
               color: isImportant
                   ? (entry.label == 'STATUS' && entry.value == 'FAIL'
                       ? Colors.redAccent
                       : Colors.cyanAccent)
                   : Colors.white,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.4,
               fontSize: valueFontSize,
-              height: 1.2,
+              height: 1.25,
             ),
           ),
         ],
