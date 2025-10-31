@@ -1341,6 +1341,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       ),
     );
   }
+}
 
 class _TopErrorTableRow extends StatelessWidget {
   const _TopErrorTableRow({
