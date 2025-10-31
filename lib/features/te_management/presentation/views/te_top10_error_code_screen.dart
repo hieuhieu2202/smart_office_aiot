@@ -1015,8 +1015,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     return IgnorePointer(
       ignoring: isLoading,
       child: _Neon3DChartWrapper(
-        tiltX: 0.16,
-        tiltY: -0.18,
+        tiltX: 0,
+        tiltY: 0,
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         child: Stack(
           fit: StackFit.expand,
@@ -1067,24 +1067,32 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               },
               series: <CartesianSeries<dynamic, dynamic>>[
                 for (var i = 0; i < seriesConfigs.length; i++)
-                  LineSeries<TETopErrorTrendPointEntity, String>(
+                  ColumnSeries<TETopErrorTrendPointEntity, String>(
                     name: seriesConfigs[i].error.errorCode,
                     dataSource: seriesConfigs[i].points,
                     xValueMapper: (item, _) => item.label,
-                    yValueMapper: (item, _) => item.firstFail,
-                    color: seriesConfigs[i].color,
-                    width: 2.6,
+                    yValueMapper: (item, _) => item.total,
+                    width: 0.58,
+                    spacing: 0.22,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderColor: Colors.white.withOpacity(0.08),
+                    borderWidth: 0.6,
                     opacity: highlightedCode == null ||
                             highlightedCode == seriesConfigs[i].error.errorCode
                         ? 1.0
-                        : 0.32,
-                    markerSettings: const MarkerSettings(
+                        : 0.35,
+                    onCreateShader: (details) =>
+                        _build3DColumnShader(seriesConfigs[i].color, details.rect),
+                    dataLabelSettings: DataLabelSettings(
                       isVisible: true,
-                      shape: DataMarkerType.circle,
-                      width: 6,
-                      height: 6,
-                      borderColor: Colors.black,
-                      borderWidth: 1,
+                      labelAlignment: ChartDataLabelAlignment.outer,
+                      builder: (dynamic data, _, __, ___, ____) {
+                        final point = data as TETopErrorTrendPointEntity;
+                        return _BarValueChip(
+                          value: point.total,
+                          color: seriesConfigs[i].color,
+                        );
+                      },
                     ),
                   ),
               ],
@@ -1136,8 +1144,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
     return _Neon3DChartWrapper(
       key: const ValueKey('focused_trend_chart'),
-      tiltX: 0.14,
-      tiltY: -0.12,
+      tiltX: 0,
+      tiltY: 0,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: SfCartesianChart(
         backgroundColor: Colors.transparent,
@@ -1173,57 +1181,53 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           ),
         ),
         series: <CartesianSeries<dynamic, dynamic>>[
-          ColumnSeries<dynamic, dynamic>(
+          ColumnSeries<TETopErrorTrendPointEntity, String>(
             name: 'First Fail',
             dataSource: trendData,
-            xValueMapper: (item, _) =>
-                (item as TETopErrorTrendPointEntity).label,
-            yValueMapper: (item, _) =>
-                (item as TETopErrorTrendPointEntity).firstFail,
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFB7185), Color(0xFFF43F5E)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderColor: Colors.white.withOpacity(0.14),
+            xValueMapper: (item, _) => item.label,
+            yValueMapper: (item, _) => item.firstFail,
+            width: 0.42,
+            spacing: 0.18,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+            borderColor: Colors.white.withOpacity(0.1),
             borderWidth: 0.6,
-            dataLabelSettings: const DataLabelSettings(
+            onCreateShader: (details) =>
+                _build3DColumnShader(_kErrorColor, details.rect),
+            dataLabelSettings: DataLabelSettings(
               isVisible: true,
-              textStyle: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-              ),
+              labelAlignment: ChartDataLabelAlignment.outer,
+              builder: (dynamic data, _, __, ___, ____) {
+                final point = data as TETopErrorTrendPointEntity;
+                return _BarValueChip(value: point.firstFail, color: _kErrorColor);
+              },
             ),
           ),
-          ColumnSeries<dynamic, dynamic>(
+          ColumnSeries<TETopErrorTrendPointEntity, String>(
             name: 'Repair Fail',
             dataSource: trendData,
-            xValueMapper: (item, _) =>
-                (item as TETopErrorTrendPointEntity).label,
-            yValueMapper: (item, _) =>
-                (item as TETopErrorTrendPointEntity).repairFail,
-            gradient: const LinearGradient(
-              colors: [Color(0xFF38BDF8), Color(0xFF0EA5E9)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderColor: Colors.white.withOpacity(0.14),
+            xValueMapper: (item, _) => item.label,
+            yValueMapper: (item, _) => item.repairFail,
+            width: 0.42,
+            spacing: 0.18,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+            borderColor: Colors.white.withOpacity(0.1),
             borderWidth: 0.6,
-            dataLabelSettings: const DataLabelSettings(
+            onCreateShader: (details) =>
+                _build3DColumnShader(_kRepairColor, details.rect),
+            dataLabelSettings: DataLabelSettings(
               isVisible: true,
-              textStyle: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-              ),
+              labelAlignment: ChartDataLabelAlignment.outer,
+              builder: (dynamic data, _, __, ___, ____) {
+                final point = data as TETopErrorTrendPointEntity;
+                return _BarValueChip(value: point.repairFail, color: _kRepairColor);
+              },
             ),
           ),
-          LineSeries<dynamic, dynamic>(
+          LineSeries<TETopErrorTrendPointEntity, String>(
             name: 'Total',
             dataSource: trendData,
-            xValueMapper: (item, _) =>
-                (item as TETopErrorTrendPointEntity).label,
-            yValueMapper: (item, _) =>
-                (item as TETopErrorTrendPointEntity).total,
+            xValueMapper: (item, _) => item.label,
+            yValueMapper: (item, _) => item.total,
             color: _kAccentColor,
             width: 3.2,
             markerSettings: const MarkerSettings(
@@ -1794,6 +1798,66 @@ class _RangeButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BarValueChip extends StatelessWidget {
+  const _BarValueChip({required this.value, required this.color});
+
+  final double value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayValue = value % 1 == 0
+        ? value.toStringAsFixed(0)
+        : value.abs() >= 100
+            ? value.toStringAsFixed(0)
+            : value.toStringAsFixed(1);
+    final background = color.withOpacity(0.18);
+    final border = _adjustLightness(color, 0.22).withOpacity(0.55);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border, width: 0.7),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.18),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        displayValue,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+Shader _build3DColumnShader(Color baseColor, Rect rect) {
+  final highlight = _adjustLightness(baseColor, 0.38).withOpacity(0.95);
+  final top = _adjustLightness(baseColor, 0.22);
+  final mid = baseColor;
+  final bottom = _adjustLightness(baseColor, -0.25).withOpacity(0.95);
+  return Gradient.linear(
+    rect.topLeft,
+    rect.bottomRight,
+    [highlight, top, mid, bottom],
+    const [0.0, 0.32, 0.64, 1.0],
+  );
+}
+
+Color _adjustLightness(Color color, double delta) {
+  final hsl = HSLColor.fromColor(color);
+  final newLightness = (hsl.lightness + delta).clamp(0.0, 1.0);
+  return hsl.withLightness(newLightness).toColor();
 }
 
 class _Neon3DChartWrapper extends StatelessWidget {
