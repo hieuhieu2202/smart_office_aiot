@@ -1846,12 +1846,12 @@ Shader _build3DColumnShader(Color baseColor, Rect rect) {
   final top = _adjustLightness(baseColor, 0.22);
   final mid = baseColor;
   final bottom = _adjustLightness(baseColor, -0.25).withOpacity(0.95);
-  return Gradient.linear(
-    rect.topLeft,
-    rect.bottomRight,
-    [highlight, top, mid, bottom],
-    const [0.0, 0.32, 0.64, 1.0],
-  );
+  return LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [highlight, top, mid, bottom],
+    stops: const [0.0, 0.32, 0.64, 1.0],
+  ).createShader(rect);
 }
 
 Color _adjustLightness(Color color, double delta) {
