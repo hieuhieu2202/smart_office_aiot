@@ -49,18 +49,33 @@ class LcrRecordDetail extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white10),
       ),
-      child: GridView.builder(
-        itemCount: entries.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 3.4,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 12,
-        ),
-        physics: const BouncingScrollPhysics(),
-        itemBuilder: (context, index) {
-          final entry = entries[index];
-          return _DetailTile(entry: entry, theme: theme);
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const crossAxisCount = 2;
+          const crossAxisSpacing = 16.0;
+          const baseAspectRatio = 3.4;
+          const minTileHeight = 92.0;
+
+          final availableWidth = constraints.maxWidth;
+          final tileWidth = (availableWidth - crossAxisSpacing) / crossAxisCount;
+          final idealTileHeight = tileWidth / baseAspectRatio;
+          final tileHeight = idealTileHeight < minTileHeight ? minTileHeight : idealTileHeight;
+          final childAspectRatio = tileWidth / tileHeight;
+
+          return GridView.builder(
+            itemCount: entries.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              childAspectRatio: childAspectRatio,
+              crossAxisSpacing: crossAxisSpacing,
+              mainAxisSpacing: 12,
+            ),
+            physics: const BouncingScrollPhysics(),
+            itemBuilder: (context, index) {
+              final entry = entries[index];
+              return _DetailTile(entry: entry, theme: theme);
+            },
+          );
         },
       ),
     );
