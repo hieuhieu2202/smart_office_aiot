@@ -543,7 +543,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             itemBuilder: (context, index) {
               final error = errors[index];
               final accent = _barPalette[index % _barPalette.length];
-              return _ErrorTableRowGroup(
+              return _TopErrorTableRow(
                 rank: index + 1,
                 error: error,
                 accentColor: accent,
@@ -553,7 +553,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 onDetailTap: (detail) => _controller.selectDetail(detail),
               );
             },
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemCount: errors.length,
           ),
         );
@@ -622,9 +622,20 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             const SizedBox(height: 18),
             Container(
               decoration: BoxDecoration(
-                color: _kSurfaceMuted.withOpacity(0.55),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF123B6D), Color(0xFF091327)],
+                ),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _kTableGridColor),
+                border: Border.all(color: _kTableGridColor.withOpacity(0.9)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x3312203A),
+                    blurRadius: 14,
+                    offset: Offset(0, 6),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -1288,8 +1299,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   }
 }
 
-class _ErrorTableRowGroup extends StatelessWidget {
-  const _ErrorTableRowGroup({
+class _TopErrorTableRow extends StatelessWidget {
+  const _TopErrorTableRow({
     required this.rank,
     required this.error,
     required this.accentColor,
@@ -1309,35 +1320,146 @@ class _ErrorTableRowGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final detailList = error.details.take(3).toList();
-    final rows = detailList.isEmpty
-        ? <TETopErrorDetailEntity?>[null]
-        : detailList.cast<TETopErrorDetailEntity?>();
+    final details = error.details.take(3).toList();
     final isErrorSelected = selectedError?.errorCode == error.errorCode;
+    final hasSelectedDetail =
+        selectedDetail != null && details.contains(selectedDetail);
+
+    Widget buildDetailColumn(String Function(TETopErrorDetailEntity detail) mapper) {
+      if (details.isEmpty) {
+        return const Text('—', style: _kTableMutedStyle, textAlign: TextAlign.center);
+      }
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final detail in details)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: _DetailValueTile(
+                label: mapper(detail),
+                accentColor: accentColor,
+                isSelected: selectedDetail == detail,
+                onTap: () {
+                  onErrorTap();
+                  onDetailTap(detail);
+                },
+              ),
+            ),
+        ],
+      );
+    }
+
+    final decoration = BoxDecoration(
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: _kTableGridColor.withOpacity(0.9)),
+      color: Color.lerp(_kPanelColor, Colors.black, 0.1)!
+          .withOpacity(hasSelectedDetail ? 0.96 : (isErrorSelected ? 0.92 : 0.78)),
+      boxShadow: [
+        BoxShadow(
+          color: accentColor.withOpacity(hasSelectedDetail ? 0.32 : (isErrorSelected ? 0.25 : 0.12)),
+          blurRadius: hasSelectedDetail ? 24 : (isErrorSelected ? 22 : 14),
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
 
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _kTableGridColor),
-        color: _kPanelColor.withOpacity(0.6),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
+      decoration: decoration,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var i = 0; i < rows.length; i++)
-              _ErrorTableRow(
-                rank: rank,
-                error: error,
-                detail: rows[i],
-                accentColor: accentColor,
-                isFirst: i == 0,
-                isLast: i == rows.length - 1,
-                isErrorSelected: isErrorSelected,
-                isDetailSelected: rows[i] != null && rows[i] == selectedDetail,
-                onErrorTap: onErrorTap,
-                onDetailTap: onDetailTap,
+            _TableCell(
+              spec: _kTopErrorColumns[0],
+              showContent: true,
+              addRightBorder: true,
+              addBottomBorder: false,
+              onTap: onErrorTap,
+              child: _RankBadge(rank: rank, accentColor: accentColor),
+            ),
+            _TableCell(
+              spec: _kTopErrorColumns[1],
+              showContent: true,
+              addRightBorder: true,
+              addBottomBorder: false,
+              onTap: onErrorTap,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    error.errorCode,
+                    style: _kTableValueStyle.copyWith(fontSize: 15),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 4,
+                    width: 42,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      gradient: LinearGradient(
+                        colors: [accentColor.withOpacity(0.9), accentColor.withOpacity(0.35)],
+                      ),
+                    ),
+                  ),
+                ],
               ),
+            ),
+            _TableCell(
+              spec: _kTopErrorColumns[2],
+              showContent: true,
+              addRightBorder: true,
+              addBottomBorder: false,
+              onTap: onErrorTap,
+              child: _SummaryStat(
+                label: 'F_FAIL',
+                value: error.firstFail,
+                accentColor: _kErrorColor,
+              ),
+            ),
+            _TableCell(
+              spec: _kTopErrorColumns[3],
+              showContent: true,
+              addRightBorder: true,
+              addBottomBorder: false,
+              onTap: onErrorTap,
+              child: _SummaryStat(
+                label: 'R_FAIL',
+                value: error.repairFail,
+                accentColor: _kRepairColor,
+              ),
+            ),
+            _TableCell(
+              spec: _kTopErrorColumns[4],
+              showContent: true,
+              addRightBorder: true,
+              addBottomBorder: false,
+              onTap: details.isEmpty ? onErrorTap : null,
+              child: buildDetailColumn((detail) => detail.modelName),
+            ),
+            _TableCell(
+              spec: _kTopErrorColumns[5],
+              showContent: true,
+              addRightBorder: true,
+              addBottomBorder: false,
+              onTap: details.isEmpty ? onErrorTap : null,
+              child: buildDetailColumn((detail) => detail.groupName),
+            ),
+            _TableCell(
+              spec: _kTopErrorColumns[6],
+              showContent: true,
+              addRightBorder: true,
+              addBottomBorder: false,
+              child: buildDetailColumn((detail) => '${detail.firstFail}'),
+            ),
+            _TableCell(
+              spec: _kTopErrorColumns[7],
+              showContent: true,
+              addRightBorder: false,
+              addBottomBorder: false,
+              child: buildDetailColumn((detail) => '${detail.repairFail}'),
+            ),
           ],
         ),
       ),
@@ -1345,135 +1467,127 @@ class _ErrorTableRowGroup extends StatelessWidget {
   }
 }
 
-class _ErrorTableRow extends StatelessWidget {
-  const _ErrorTableRow({
-    required this.rank,
-    required this.error,
-    required this.detail,
-    required this.accentColor,
-    required this.isFirst,
-    required this.isLast,
-    required this.isErrorSelected,
-    required this.isDetailSelected,
-    required this.onErrorTap,
-    required this.onDetailTap,
-  });
+class _RankBadge extends StatelessWidget {
+  const _RankBadge({required this.rank, required this.accentColor});
 
   final int rank;
-  final TETopErrorEntity error;
-  final TETopErrorDetailEntity? detail;
   final Color accentColor;
-  final bool isFirst;
-  final bool isLast;
-  final bool isErrorSelected;
-  final bool isDetailSelected;
-  final VoidCallback onErrorTap;
-  final ValueChanged<TETopErrorDetailEntity> onDetailTap;
 
   @override
   Widget build(BuildContext context) {
-    final hasDetail = detail != null;
-    final rowColor = isDetailSelected
-        ? accentColor.withOpacity(0.16)
-        : (isErrorSelected ? _kSurfaceMuted.withOpacity(0.4) : Colors.transparent);
-
     return Container(
-      color: rowColor,
-      child: Row(
-        children: [
-          _TableCell(
-            spec: _kTopErrorColumns[0],
-            showContent: isFirst,
-            addRightBorder: true,
-            addBottomBorder: !isLast,
-            onTap: onErrorTap,
-            child: Text('$rank', style: _kTableValueStyle),
-          ),
-          _TableCell(
-            spec: _kTopErrorColumns[1],
-            showContent: isFirst,
-            addRightBorder: true,
-            addBottomBorder: !isLast,
-            onTap: onErrorTap,
-            child: Text(error.errorCode, style: _kTableValueStyle),
-          ),
-          _TableCell(
-            spec: _kTopErrorColumns[2],
-            showContent: isFirst,
-            addRightBorder: true,
-            addBottomBorder: !isLast,
-            onTap: onErrorTap,
-            child: Text('${error.firstFail}', style: _kTableValueStyle),
-          ),
-          _TableCell(
-            spec: _kTopErrorColumns[3],
-            showContent: isFirst,
-            addRightBorder: true,
-            addBottomBorder: !isLast,
-            onTap: onErrorTap,
-            child: Text('${error.repairFail}', style: _kTableValueStyle),
-          ),
-          _TableCell(
-            spec: _kTopErrorColumns[4],
-            showContent: true,
-            addRightBorder: true,
-            addBottomBorder: !isLast,
-            onTap: hasDetail
-                ? () {
-                    onErrorTap();
-                    onDetailTap(detail!);
-                  }
-                : onErrorTap,
-            child: hasDetail
-                ? Text(detail!.modelName, style: _kTableValueStyle)
-                : const Text('No detail data', style: _kTableMutedStyle),
-          ),
-          _TableCell(
-            spec: _kTopErrorColumns[5],
-            showContent: true,
-            addRightBorder: true,
-            addBottomBorder: !isLast,
-            onTap: hasDetail
-                ? () {
-                    onErrorTap();
-                    onDetailTap(detail!);
-                  }
-                : onErrorTap,
-            child: hasDetail
-                ? Text(detail!.groupName, style: _kTableValueStyle)
-                : const Text('-', style: _kTableMutedStyle),
-          ),
-          _TableCell(
-            spec: _kTopErrorColumns[6],
-            showContent: true,
-            addRightBorder: true,
-            addBottomBorder: !isLast,
-            onTap: hasDetail
-                ? () {
-                    onErrorTap();
-                    onDetailTap(detail!);
-                  }
-                : null,
-            child: hasDetail
-                ? Text('${detail!.firstFail}', style: _kTableValueStyle)
-                : const Text('-', style: _kTableMutedStyle),
-          ),
-          _TableCell(
-            spec: _kTopErrorColumns[7],
-            showContent: true,
-            addRightBorder: false,
-            addBottomBorder: !isLast,
-            onTap: hasDetail
-                ? () {
-                    onErrorTap();
-                    onDetailTap(detail!);
-                  }
-                : null,
-            child: hasDetail
-                ? Text('${detail!.repairFail}', style: _kTableValueStyle)
-                : const Text('-', style: _kTableMutedStyle),
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        gradient: LinearGradient(
+          colors: [accentColor.withOpacity(0.9), accentColor.withOpacity(0.45)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
+      ),
+      child: Text(
+        '#${rank.toString().padLeft(2, '0')}',
+        style: const TextStyle(
+          color: Colors.black,
+          fontWeight: FontWeight.w800,
+          fontSize: 14,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryStat extends StatelessWidget {
+  const _SummaryStat({
+    required this.label,
+    required this.value,
+    required this.accentColor,
+  });
+
+  final String label;
+  final int value;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          value.toString(),
+          style: _kTableValueStyle.copyWith(fontSize: 16, color: _kTextPrimary),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: accentColor.withOpacity(0.18),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accentColor.withOpacity(0.6), width: 0.8),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: accentColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DetailValueTile extends StatelessWidget {
+  const _DetailValueTile({
+    required this.label,
+    required this.accentColor,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color accentColor;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = isSelected
+        ? _kTableValueStyle.copyWith(color: accentColor)
+        : _kTableValueStyle.copyWith(fontSize: 12, color: _kTextPrimary.withOpacity(0.9));
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: isSelected ? accentColor.withOpacity(0.12) : Colors.transparent,
+          border: Border.all(
+            color: isSelected
+                ? accentColor.withOpacity(0.65)
+                : _kTableGridColor.withOpacity(0.65),
+            width: isSelected ? 1.2 : 0.7,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Text(label, style: textStyle, textAlign: TextAlign.center),
       ),
     );
   }
