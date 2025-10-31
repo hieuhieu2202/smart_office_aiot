@@ -56,29 +56,12 @@ class LcrRecordDetail extends StatelessWidget {
           final viewportWidth = constraints.maxWidth.isFinite
               ? constraints.maxWidth
               : MediaQuery.of(context).size.width;
-          const minContentWidth = 780.0;
-          final targetWidth = math.max(viewportWidth, minContentWidth);
-          final needsHorizontalScroll = targetWidth > viewportWidth + 0.5;
 
-          Widget grid = _DetailGrid(
+          return _DetailGrid(
             entries: entries,
             theme: theme,
-            maxWidth: targetWidth,
+            maxWidth: viewportWidth,
           );
-
-          if (needsHorizontalScroll) {
-            grid = SingleChildScrollView(
-              padding: EdgeInsets.zero,
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: targetWidth),
-                child: grid,
-              ),
-            );
-          }
-
-          return grid;
         },
       ),
     );
@@ -111,31 +94,33 @@ class _DetailGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const minTileWidth = 240.0;
-    const crossAxisSpacing = 16.0;
-    const runSpacing = 14.0;
-    const baseAspectRatio = 2.8;
-    const minTileHeight = 112.0;
+    const crossAxisSpacing = 14.0;
+    const runSpacing = 12.0;
+    const baseAspectRatio = 2.25;
+    const minTileHeight = 96.0;
 
-    int crossAxisCount = math.max(3, (maxWidth / (minTileWidth + crossAxisSpacing)).floor());
-    crossAxisCount = crossAxisCount.clamp(3, 5);
+    final double availableWidth = maxWidth.isFinite && maxWidth > 0
+        ? maxWidth
+        : MediaQuery.of(context).size.width;
 
-    double tileWidth;
-    while (true) {
-      final spacingWidth = crossAxisSpacing * (crossAxisCount - 1);
-      tileWidth = (maxWidth - spacingWidth) / crossAxisCount;
-      if (crossAxisCount <= 3 || tileWidth >= minTileWidth) {
-        break;
-      }
-      crossAxisCount -= 1;
-    }
+    final int crossAxisCount = availableWidth >= 1160
+        ? 5
+        : availableWidth >= 940
+            ? 4
+            : 3;
 
+    final spacingWidth = crossAxisSpacing * (crossAxisCount - 1);
+    final tileWidth = (availableWidth - spacingWidth) / crossAxisCount;
     final idealTileHeight = tileWidth / baseAspectRatio;
     final tileHeight = idealTileHeight < minTileHeight ? minTileHeight : idealTileHeight;
-    final valueMaxLines = tileWidth < 260 ? 4 : 6;
+    final bool compactTile = tileWidth < 150;
+    final valueMaxLines = compactTile ? 3 : 4;
+    final labelFontSize = compactTile ? 10.5 : 12.0;
+    final valueFontSize = compactTile ? 13.0 : 15.5;
+    final verticalGap = compactTile ? 2.0 : 4.0;
 
     return SizedBox(
-      width: maxWidth,
+      width: availableWidth,
       child: SingleChildScrollView(
         padding: EdgeInsets.zero,
         physics: const BouncingScrollPhysics(),
@@ -151,6 +136,9 @@ class _DetailGrid extends StatelessWidget {
                   entry: entry,
                   theme: theme,
                   maxLines: valueMaxLines,
+                  labelFontSize: labelFontSize,
+                  valueFontSize: valueFontSize,
+                  verticalGap: verticalGap,
                 ),
               ),
           ],
@@ -165,11 +153,17 @@ class _DetailTile extends StatelessWidget {
     required this.entry,
     required this.theme,
     required this.maxLines,
+    required this.labelFontSize,
+    required this.valueFontSize,
+    required this.verticalGap,
   });
 
   final _DetailEntry entry;
   final ThemeData theme;
   final int maxLines;
+  final double labelFontSize;
+  final double valueFontSize;
+  final double verticalGap;
 
   @override
   Widget build(BuildContext context) {
@@ -192,9 +186,11 @@ class _DetailTile extends StatelessWidget {
             style: theme.textTheme.labelSmall?.copyWith(
               color: Colors.white60,
               fontWeight: FontWeight.w600,
+              fontSize: labelFontSize,
+              height: 1.2,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: verticalGap),
           Text(
             entry.value,
             maxLines: maxLines,
@@ -207,6 +203,8 @@ class _DetailTile extends StatelessWidget {
                   : Colors.white,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
+              fontSize: valueFontSize,
+              height: 1.2,
             ),
           ),
         ],
