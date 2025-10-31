@@ -847,17 +847,47 @@ class _DashboardTab extends StatelessWidget {
     return math.max(240.0, computed);
   }
 
-  double _machinePerformanceHeight(int itemCount) {
+  double _machinePerformanceHeight({
+    required int itemCount,
+    required double maxWidth,
+    required bool isMobile,
+    required bool isTablet,
+  }) {
     if (itemCount <= 0) {
       return 260.0;
     }
-    if (itemCount <= 4) {
-      return 260.0;
-    }
-    if (itemCount <= 8) {
+
+    if (!isMobile && !isTablet) {
       return 320.0;
     }
-    return 420.0;
+
+    const double chartPadding = 36.0; // LcrChartCard vertical padding (18 top + 18 bottom)
+    const double headerHeight = 42.0; // title row + spacing before content
+    const double crossAxisSpacing = 16.0;
+    const double mainAxisSpacing = 16.0;
+    const int crossAxisCount = 2;
+    final int effectiveCount = math.max(4, itemCount);
+    final int rows = math.max(1, (effectiveCount / crossAxisCount).ceil());
+
+    final double layoutHorizontalPadding = isMobile ? 16.0 : 24.0;
+    final double cardHorizontalPadding = 40.0; // default padding inside LcrChartCard
+    final double availableWidth = math.max(
+      0,
+      maxWidth - (layoutHorizontalPadding * 2) - cardHorizontalPadding -
+          crossAxisSpacing * (crossAxisCount - 1),
+    );
+
+    if (availableWidth <= 0) {
+      return 320.0;
+    }
+
+    final double tileWidth = availableWidth / crossAxisCount;
+    final double aspectRatio = isMobile ? 1.0 : 1.15;
+    final double tileHeight = tileWidth / aspectRatio;
+    final double gridHeight =
+        (rows * tileHeight) + ((rows - 1) * mainAxisSpacing);
+
+    return chartPadding + headerHeight + gridHeight;
   }
 
   Widget _buildPrimaryCharts({
@@ -1129,18 +1159,22 @@ class _DashboardTab extends StatelessWidget {
             );
           }
 
-          final machineHeight =
-              _machinePerformanceHeight(data.machineGauges.length);
+          final maxWidth = constraints.maxWidth;
+          final isMobile = maxWidth < 720;
+          final isTablet = !isMobile && maxWidth < 1100;
+
+          final machineHeight = _machinePerformanceHeight(
+            itemCount: data.machineGauges.length,
+            maxWidth: maxWidth,
+            isMobile: isMobile,
+            isTablet: isTablet,
+          );
           final factoryHeight =
               _factoryDistributionHeight(data.factorySlices.length);
           final primaryRowHeight = math.max(
             260.0,
             math.max(machineHeight, factoryHeight),
           );
-
-          final maxWidth = constraints.maxWidth;
-          final isMobile = maxWidth < 720;
-          final isTablet = !isMobile && maxWidth < 1100;
           final horizontalPadding = isMobile ? 16.0 : 24.0;
           final verticalPadding = isMobile ? 16.0 : 24.0;
           final resolvedPrimaryHeight = (isMobile || isTablet)
@@ -3624,36 +3658,46 @@ class _MachinesGrid extends StatelessWidget {
     }
 
     // 💻📱 Tablet/Mobile: 2 hàng × 2 cột
-    int crossAxisCount = 2;
-    double aspectRatio;
-    double totalHeight;
+    final bool isTablet = screenWidth >= 700;
+    final double aspectRatio = isTablet ? 1.15 : 1.0;
 
-    if (screenWidth >= 700) {
-      // Tablet
-      aspectRatio = 1.15;
-      totalHeight = screenWidth * 0.95; // tự động fit đủ 2 hàng
-    } else {
-      // Mobile
-      aspectRatio = 1.0;
-      totalHeight = screenWidth * 1.1; // nhỏ hơn một chút cho vừa
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const int crossAxisCount = 2;
+        const double crossAxisSpacing = 16.0;
+        const double mainAxisSpacing = 16.0;
 
-    return SizedBox(
-      height: totalHeight,
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: aspectRatio,
-        ),
-        itemCount: cards.length,
-        itemBuilder: (context, index) {
-          return LcrMachineCard(data: cards[index]);
-        },
-      ),
+        final double availableWidth = math.max(
+          0.0,
+          constraints.maxWidth - crossAxisSpacing * (crossAxisCount - 1),
+        );
+        final double tileWidth =
+            crossAxisCount > 0 ? availableWidth / crossAxisCount : 0.0;
+        final double tileHeight = tileWidth > 0
+            ? tileWidth / aspectRatio
+            : constraints.maxWidth / aspectRatio;
+        final int rows = math.max(1, (cards.length / crossAxisCount).ceil());
+        final double totalHeight =
+            (rows * tileHeight) + ((rows - 1) * mainAxisSpacing);
+
+        return SizedBox(
+          height: totalHeight,
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: crossAxisSpacing,
+              mainAxisSpacing: mainAxisSpacing,
+              childAspectRatio: aspectRatio,
+            ),
+            itemCount: cards.length,
+            itemBuilder: (context, index) {
+              return LcrMachineCard(data: cards[index]);
+            },
+          ),
+        );
+      },
     );
   }
 }
