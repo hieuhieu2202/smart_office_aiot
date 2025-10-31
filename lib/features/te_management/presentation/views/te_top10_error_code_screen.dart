@@ -75,6 +75,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   );
   bool _isFilterPanelOpen = false;
   static const Duration _kFilterAnimationDuration = Duration(milliseconds: 280);
+  final ScrollController _tableScrollController = ScrollController();
 
   @override
   void initState() {
@@ -103,6 +104,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     if (Get.isRegistered<TETopErrorCodeController>(tag: _controllerTag)) {
       Get.delete<TETopErrorCodeController>(tag: _controllerTag);
     }
+    _tableScrollController.dispose();
     super.dispose();
   }
 
@@ -573,10 +575,12 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           child: DecoratedBox(
             decoration: const BoxDecoration(color: Color(0x1A0F253F)),
             child: Scrollbar(
+              controller: _tableScrollController,
               thumbVisibility: rows.length > 6,
               radius: const Radius.circular(12),
               thickness: 6,
               child: ListView.builder(
+                controller: _tableScrollController,
                 padding: EdgeInsets.zero,
                 itemCount: rows.length,
                 physics: const ClampingScrollPhysics(),
