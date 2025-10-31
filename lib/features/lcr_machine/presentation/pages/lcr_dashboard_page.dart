@@ -1077,62 +1077,63 @@ class _DashboardTab extends StatelessWidget {
       return;
     }
 
-    List<LcrRecord> records = const <LcrRecord>[];
-
-    try {
-      final fetched = await controller.loadStatusRecords(pass: showPass);
-      final filtered = fetched
-          .where((record) => record.isPass == showPass)
-          .toList();
-      records = filtered.isEmpty && fetched.isNotEmpty
-          ? List<LcrRecord>.from(fetched)
-          : filtered;
-    } catch (error) {
-      if (context.mounted) {
-        final snackBar = SnackBar(
-          backgroundColor: Colors.redAccent.shade200,
-          content: Text(
-            'Unable to load ${showPass ? 'pass' : 'fail'} records. Please try again.',
-            style: const TextStyle(color: Colors.white),
-          ),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      }
-      return;
-    }
-
-    if (records.isEmpty) {
-      if (context.mounted) {
-        final snackBar = SnackBar(
-          backgroundColor: Colors.blueGrey.shade900,
-          content: Text(
-            'No ${showPass ? 'pass' : 'fail'} records available for the current filters.',
-            style: const TextStyle(color: Colors.white),
-          ),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      }
-      return;
-    }
-
-    final sorted = List<LcrRecord>.from(records)
-      ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
-
-    if (!context.mounted) {
-      return;
-    }
-
     final accentColor = showPass
         ? const Color(0xFF2DE5FF)
         : const Color(0xFFFF77A9);
 
-    showDialog<void>(
+    final messenger = ScaffoldMessenger.of(context);
+
+    await showDialog<void>(
       context: context,
       barrierColor: Colors.black.withOpacity(0.65),
-      builder: (_) => _StatusOverviewDialog(
+      builder: (_) => _StatusOverviewLoader(
         title: showPass ? 'PASS OVERVIEW' : 'FAIL OVERVIEW',
         highlightColor: accentColor,
-        records: sorted,
+        loadRecords: () async {
+          final fetched = await controller.loadStatusRecords(pass: showPass);
+          final filtered = fetched
+              .where((record) => record.isPass == showPass)
+              .toList();
+          final records = filtered.isEmpty && fetched.isNotEmpty
+              ? List<LcrRecord>.from(fetched)
+              : filtered;
+
+          if (records.isEmpty) {
+            throw const _EmptyRecordsException();
+          }
+
+          final sorted = List<LcrRecord>.from(records)
+            ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+          return List<LcrRecord>.unmodifiable(sorted);
+        },
+        onEmpty: () {
+          if (!context.mounted) {
+            return;
+          }
+          messenger.showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.blueGrey.shade900,
+              content: Text(
+                'No ${showPass ? 'pass' : 'fail'} records available for the current filters.',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          );
+        },
+        onError: () {
+          if (!context.mounted) {
+            return;
+          }
+          messenger.showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.redAccent.shade200,
+              content: Text(
+                'Unable to load ${showPass ? 'pass' : 'fail'} records. Please try again.',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -1369,6 +1370,105 @@ class _SummaryRow extends StatelessWidget {
       },
     );
   }
+}
+
+
+
+class _StatusOverviewLoader extends StatefulWidget {
+  const _StatusOverviewLoader({
+    required this.title,
+    required this.highlightColor,
+    required this.loadRecords,
+    this.onEmpty,
+    this.onError,
+  });
+
+  final String title;
+  final Color highlightColor;
+  final Future<List<LcrRecord>> Function() loadRecords;
+  final VoidCallback? onEmpty;
+  final VoidCallback? onError;
+
+  @override
+  State<_StatusOverviewLoader> createState() => _StatusOverviewLoaderState();
+}
+
+class _StatusOverviewLoaderState extends State<_StatusOverviewLoader> {
+  List<LcrRecord>? _records;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadRecords());
+  }
+
+  Future<void> _loadRecords() async {
+    try {
+      final records = await widget.loadRecords();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _records = records;
+      });
+    } on _EmptyRecordsException {
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
+      widget.onEmpty?.call();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
+      widget.onError?.call();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final records = _records;
+
+    if (records == null) {
+      return Dialog(
+        backgroundColor: const Color(0xFF03132D).withOpacity(0.9),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: SizedBox(
+          width: 320,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: widget.highlightColor),
+                const SizedBox(height: 18),
+                Text(
+                  'Loading ${widget.title.toLowerCase()}...',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return _StatusOverviewDialog(
+      title: widget.title,
+      highlightColor: widget.highlightColor,
+      records: records,
+    );
+  }
+}
+
+class _EmptyRecordsException implements Exception {
+  const _EmptyRecordsException();
 }
 
 
