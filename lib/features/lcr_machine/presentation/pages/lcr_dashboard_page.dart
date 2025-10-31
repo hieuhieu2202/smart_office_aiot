@@ -838,13 +838,13 @@ class _DashboardTab extends StatelessWidget {
 
   double _factoryDistributionHeight(int itemCount) {
     if (itemCount <= 0) {
-      return 260.0;
+      return 240.0;
     }
 
-    const headerHeight = 170.0;
-    const perTile = 88.0;
+    const headerHeight = 150.0;
+    const perTile = 74.0;
     final computed = headerHeight + (itemCount * perTile);
-    return math.max(260.0, computed);
+    return math.max(240.0, computed);
   }
 
   double _machinePerformanceHeight(int itemCount) {
@@ -2396,17 +2396,17 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.cyanAccent.withOpacity(0.9),
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                    fontSize: 12,
+                    letterSpacing: 1.05,
+                    fontSize: 11,
                   ) ??
                   const TextStyle(
                     color: Colors.cyanAccent,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                    fontSize: 12,
+                    letterSpacing: 1.05,
+                    fontSize: 11,
                   ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             _PulsingTotalBadge(total: total),
           ],
         ),
@@ -2425,8 +2425,8 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
       );
     }
 
-    const headerEstimate = 140.0;
-    const tileEstimate = 72.0;
+    const headerEstimate = 120.0;
+    const tileEstimate = 62.0;
     final estimatedHeight =
         headerEstimate + (sorted.length * tileEstimate); // conservative
 
@@ -2441,11 +2441,11 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               ...List.generate(sorted.length, (index) {
                 return Padding(
                   padding: EdgeInsets.only(
-                    bottom: index == sorted.length - 1 ? 0 : 12,
+                    bottom: index == sorted.length - 1 ? 0 : 10,
                   ),
                   child: buildTile(index),
                 );
@@ -2458,7 +2458,7 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildHeader(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Expanded(
               child: Scrollbar(
                 controller: _scrollController,
@@ -2469,7 +2469,7 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
                   physics: const BouncingScrollPhysics(),
                   itemCount: sorted.length,
                   itemBuilder: (context, index) => buildTile(index),
-                  separatorBuilder: (context, index) => const SizedBox(height: 16),
+                  separatorBuilder: (context, index) => const SizedBox(height: 10),
                 ),
               ),
             ),
@@ -2509,7 +2509,7 @@ class _FactoryDistributionTile extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       waitDuration: const Duration(milliseconds: 120),
       showDuration: const Duration(milliseconds: 3500),
       verticalOffset: 18,
@@ -2519,7 +2519,7 @@ class _FactoryDistributionTile extends StatelessWidget {
         text: label,
         style: const TextStyle(
           fontWeight: FontWeight.w700,
-          fontSize: 12,
+          fontSize: 11,
           letterSpacing: 0.4,
           color: Colors.white,
         ),
@@ -2529,7 +2529,7 @@ class _FactoryDistributionTile extends StatelessWidget {
             text: '$value pcs',
             style: const TextStyle(
               fontWeight: FontWeight.w500,
-              fontSize: 11,
+              fontSize: 10,
               color: Colors.white70,
             ),
           ),
@@ -2538,7 +2538,7 @@ class _FactoryDistributionTile extends StatelessWidget {
             text: '$percentText%',
             style: const TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 11,
+              fontSize: 10,
               color: Colors.cyanAccent,
             ),
           ),
@@ -2550,14 +2550,14 @@ class _FactoryDistributionTile extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 10,
-                height: 10,
+                width: 9,
+                height: 9,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: gradient),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 5),
               Expanded(
                 child: Text(
                   label,
@@ -2565,7 +2565,7 @@ class _FactoryDistributionTile extends StatelessWidget {
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.3,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -2574,20 +2574,20 @@ class _FactoryDistributionTile extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
-                  fontSize: 13,
+                  fontSize: 12,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           _GradientProgressBar(
             value: percent.clamp(0.0, 1.0),
             gradient: gradient,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             '$value pcs',
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
+            style: const TextStyle(color: Colors.white70, fontSize: 10),
           ),
         ],
       ),
@@ -2636,30 +2636,30 @@ class _PulsingTotalBadgeState extends State<_PulsingTotalBadge>
     final textStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w800,
-          fontSize: 20,
-          letterSpacing: 0.9,
+          fontSize: 18,
+          letterSpacing: 0.8,
         ) ??
         const TextStyle(
           color: Colors.white,
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w800,
-          letterSpacing: 0.9,
+          letterSpacing: 0.8,
         );
 
     final badge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF56CCF2), Color(0xFF2F80ED)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(
             color: Color(0x332980B9),
-            blurRadius: 24,
-            offset: Offset(0, 10),
+            blurRadius: 18,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -2701,7 +2701,7 @@ class _GradientProgressBar extends StatelessWidget {
         return ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
-            height: 8,
+            height: 6,
             child: Stack(
               children: [
                 Positioned.fill(
