@@ -3820,11 +3820,8 @@ class _AnalysisTab extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 860;
-        final availableHeight = constraints.maxHeight.isFinite
-            ? constraints.maxHeight
-            : MediaQuery.of(context).size.height;
 
-        Widget buildSearchPane({double? listHeight}) {
+        Widget buildSearchPane() {
           Widget buildResultsList() {
             return Obx(() {
               final RxList<LcrRecord> reactiveList =
@@ -3846,7 +3843,7 @@ class _AnalysisTab extends StatelessWidget {
               return ListView.separated(
                 padding: EdgeInsets.zero,
                 primary: false,
-                shrinkWrap: listHeight != null,
+                shrinkWrap: false,
                 itemCount: results.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
@@ -3859,8 +3856,6 @@ class _AnalysisTab extends StatelessWidget {
               );
             });
           }
-
-          final list = buildResultsList();
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3889,10 +3884,7 @@ class _AnalysisTab extends StatelessWidget {
                 onChanged: controller.searchSerial,
               ),
               const SizedBox(height: 16),
-              if (listHeight != null)
-                SizedBox(height: listHeight, child: list)
-              else
-                Expanded(child: list),
+              Expanded(child: buildResultsList()),
             ],
           );
         }
@@ -3915,17 +3907,15 @@ class _AnalysisTab extends StatelessWidget {
           });
         }
 
-        final compactListHeight = math.min(availableHeight * 0.4, 360.0);
-
         return Padding(
           padding: const EdgeInsets.all(24),
           child: isCompact
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    buildSearchPane(listHeight: compactListHeight),
-                    const SizedBox(height: 24),
-                    Expanded(child: buildDetailPane()),
+                    Flexible(flex: 3, child: buildSearchPane()),
+                    const SizedBox(height: 16),
+                    Flexible(flex: 7, child: buildDetailPane()),
                   ],
                 )
               : Row(

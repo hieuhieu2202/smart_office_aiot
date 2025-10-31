@@ -56,7 +56,7 @@ class LcrRecordDetail extends StatelessWidget {
           final viewportWidth = constraints.maxWidth.isFinite
               ? constraints.maxWidth
               : MediaQuery.of(context).size.width;
-          const minContentWidth = 560.0;
+          const minContentWidth = 780.0;
           final targetWidth = math.max(viewportWidth, minContentWidth);
           final needsHorizontalScroll = targetWidth > viewportWidth + 0.5;
 
@@ -111,28 +111,28 @@ class _DetailGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const minTileWidth = 260.0;
+    const minTileWidth = 240.0;
     const crossAxisSpacing = 16.0;
-    const runSpacing = 12.0;
-    const baseAspectRatio = 3.4;
-    const minTileHeight = 96.0;
+    const runSpacing = 14.0;
+    const baseAspectRatio = 2.8;
+    const minTileHeight = 112.0;
 
-    int crossAxisCount = math.max(1, (maxWidth / (minTileWidth + crossAxisSpacing)).floor());
-    crossAxisCount = crossAxisCount.clamp(1, 4);
+    int crossAxisCount = math.max(3, (maxWidth / (minTileWidth + crossAxisSpacing)).floor());
+    crossAxisCount = crossAxisCount.clamp(3, 5);
 
     double tileWidth;
     while (true) {
       final spacingWidth = crossAxisSpacing * (crossAxisCount - 1);
       tileWidth = (maxWidth - spacingWidth) / crossAxisCount;
-      if (crossAxisCount <= 1 || tileWidth >= minTileWidth) {
+      if (crossAxisCount <= 3 || tileWidth >= minTileWidth) {
         break;
       }
       crossAxisCount -= 1;
     }
 
-    final idealTileHeight = tileWidth / (crossAxisCount == 1 ? baseAspectRatio * 0.7 : baseAspectRatio);
+    final idealTileHeight = tileWidth / baseAspectRatio;
     final tileHeight = idealTileHeight < minTileHeight ? minTileHeight : idealTileHeight;
-    final valueMaxLines = tileWidth < 280 ? 3 : 4;
+    final valueMaxLines = tileWidth < 260 ? 4 : 6;
 
     return SizedBox(
       width: maxWidth,
