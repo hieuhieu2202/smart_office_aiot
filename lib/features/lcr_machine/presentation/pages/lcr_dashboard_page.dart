@@ -3623,23 +3623,26 @@ class _OutputChart extends StatelessWidget {
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   child: Text(
-                'Target (98%)',
-                style: TextStyle(
-                  color: Colors.greenAccent,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
+                    'Target (98%)',
+                    style: TextStyle(
+                      color: Colors.greenAccent,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                    ),
+                  ),
                 ),
               ),
+              region: AnnotationRegion.plotArea,
+              coordinateUnit: isMobile
+                  ? CoordinateUnit.logicalPixel
+                  : CoordinateUnit.point,
+              x: isMobile ? maxWidth - 12 : data.last.category,
+              y: isMobile ? 12 : 98,
+              yAxisName: isMobile ? null : 'yrAxis',
+              horizontalAlignment: ChartAlignment.far,
+              verticalAlignment: ChartAlignment.near,
             ),
-          ),
-          coordinateUnit: CoordinateUnit.point,
-          x: data.last.category,
-          y: 98,
-          yAxisName: 'yrAxis',
-          horizontalAlignment: ChartAlignment.far,
-          verticalAlignment: ChartAlignment.near,
-        ),
-    ];
+        ];
 
     return SfCartesianChart(
       margin: shouldWrapSlots
