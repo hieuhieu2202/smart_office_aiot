@@ -48,114 +48,132 @@ class _LcrMachineCardState extends State<LcrMachineCard>
     final data = widget.data;
     final total = data.total == 0 ? 1 : data.total;
     final double passRatio =
-    (data.pass / total).clamp(0.0, 1.0).toDouble();
+        (data.pass / total).clamp(0.0, 1.0).toDouble();
     final double failRatio =
-    (data.fail / total).clamp(0.0, 1.0).toDouble();
+        (data.fail / total).clamp(0.0, 1.0).toDouble();
 
-    const gaugeDesignSize = 320.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final availableHeight =
+            constraints.maxHeight.isFinite ? constraints.maxHeight : null;
+        double gaugeDesignSize = 320;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF03132D).withOpacity(0.85),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          Text(
-            'MACHINE ${data.machineNo}',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: Colors.cyanAccent,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-              fontSize: 16,
-            ),
+        if (availableWidth.isFinite) {
+          final innerWidth = math.max(availableWidth - 36, 200.0);
+          gaugeDesignSize = math.min(innerWidth, 360.0);
+        }
+
+        if (availableHeight != null) {
+          gaugeDesignSize = math.min(gaugeDesignSize, availableHeight - 48);
+        }
+
+        gaugeDesignSize = gaugeDesignSize.clamp(220.0, 360.0);
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF03132D).withOpacity(0.85),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white12),
           ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.contain,
-                child: AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, _) {
-                    final glow = 0.45 + _pulse.value * 0.55;
-                    final orbitGlow = 0.35 + _pulse.value * 0.45;
-                    return Container(
-                      padding: EdgeInsets.all(8 + 8 * glow),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.cyanAccent
-                                .withOpacity(0.12 + _pulse.value * 0.18),
-                            blurRadius: 24 * glow,
-                            spreadRadius: 3 * glow,
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Text(
+                'MACHINE ${data.machineNo}',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: Colors.cyanAccent,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: AnimatedBuilder(
+                      animation: _pulseController,
+                      builder: (context, _) {
+                        final glow = 0.45 + _pulse.value * 0.55;
+                        final orbitGlow = 0.35 + _pulse.value * 0.45;
+                        return Container(
+                          padding: EdgeInsets.all(10 + 9 * glow),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.cyanAccent
+                                    .withOpacity(0.12 + _pulse.value * 0.18),
+                                blurRadius: 28 * glow,
+                                spreadRadius: 3.4 * glow,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: SizedBox.square(
-                        dimension: gaugeDesignSize,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            CustomPaint(
-                              painter: _MachineGaugePainter(
-                                passRatio: passRatio,
-                                failRatio: failRatio,
-                              ),
-                              child: const SizedBox.expand(),
-                            ),
-                            RotationTransition(
-                              turns: _rotationController,
-                              child: CustomPaint(
-                                painter: _OrbitPainter(glow: orbitGlow),
-                                child: const SizedBox.expand(),
-                              ),
-                            ),
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
+                          child: SizedBox.square(
+                            dimension: gaugeDesignSize,
+                            child: Stack(
+                              alignment: Alignment.center,
                               children: [
-                                Text(
-                                  data.pass.toString(),
-                                  style: theme.textTheme.displayMedium?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 1.2,
-                                        fontSize: 58,
-                                      ) ??
-                                      const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 1.2,
-                                        fontSize: 58,
-                                      ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'PCS PASS',
-                                  style: theme.textTheme.labelLarge?.copyWith(
-                                    color: Colors.cyanAccent.withOpacity(0.85),
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 2,
+                                CustomPaint(
+                                  painter: _MachineGaugePainter(
+                                    passRatio: passRatio,
+                                    failRatio: failRatio,
                                   ),
+                                  child: const SizedBox.expand(),
+                                ),
+                                RotationTransition(
+                                  turns: _rotationController,
+                                  child: CustomPaint(
+                                    painter: _OrbitPainter(glow: orbitGlow),
+                                    child: const SizedBox.expand(),
+                                  ),
+                                ),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      data.pass.toString(),
+                                      style: theme.textTheme.displayMedium?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 1.2,
+                                            fontSize: 58,
+                                          ) ??
+                                          const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 1.2,
+                                            fontSize: 58,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'PCS PASS',
+                                      style: theme.textTheme.labelLarge?.copyWith(
+                                        color: Colors.cyanAccent.withOpacity(0.85),
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 2,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 8),
+            ],
           ),
-          const SizedBox(height: 6),
-        ],
-      ),
+        );
+      },
     );
   }
 }

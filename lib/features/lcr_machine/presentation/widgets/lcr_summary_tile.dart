@@ -26,8 +26,8 @@ class LcrSummaryTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints: const BoxConstraints(minHeight: 108),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        constraints: const BoxConstraints(minHeight: 92),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -69,8 +69,8 @@ class LcrSummaryTile extends StatelessWidget {
                     onTap: onActionTap,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 7,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.08),
@@ -83,15 +83,22 @@ class LcrSummaryTile extends StatelessWidget {
                           Text(
                             actionLabel!,
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.4,
-                            ),
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3,
+                                  fontSize: 11,
+                                ) ??
+                                const TextStyle(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3,
+                                  fontSize: 11,
+                                ),
                           ),
                           const SizedBox(width: 4),
                           const Icon(
                             Icons.table_rows_rounded,
-                            size: 14,
+                            size: 12,
                             color: Colors.white60,
                           ),
                         ],
@@ -111,14 +118,14 @@ class LcrSummaryTile extends StatelessWidget {
                     style: theme.textTheme.headlineMedium?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: 1.1,
-                          fontSize: 40,
+                          letterSpacing: 1.05,
+                          fontSize: 34,
                         ) ??
                         const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: 1.1,
-                          fontSize: 40,
+                          letterSpacing: 1.05,
+                          fontSize: 34,
                         ),
                   ),
                   if (suffix != null) ...[
@@ -128,12 +135,12 @@ class LcrSummaryTile extends StatelessWidget {
                       style: theme.textTheme.titleMedium?.copyWith(
                             color: Colors.white70,
                             fontWeight: FontWeight.w600,
-                            fontSize: 18,
+                            fontSize: 16,
                           ) ??
                           const TextStyle(
                             color: Colors.white70,
                             fontWeight: FontWeight.w600,
-                            fontSize: 18,
+                            fontSize: 16,
                           ),
                     ),
                   ],

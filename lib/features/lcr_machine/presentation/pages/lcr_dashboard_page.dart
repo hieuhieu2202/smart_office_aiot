@@ -3617,17 +3617,59 @@ class _MachinesGrid extends StatelessWidget {
             ),
     ];
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < cards.length; i++)
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(right: i == cards.length - 1 ? 0 : 16),
-              child: LcrMachineCard(data: cards[i]),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mediaWidth = MediaQuery.sizeOf(context).width;
+        final maxWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : mediaWidth;
+        const spacing = 16.0;
+
+        int columns;
+        if (maxWidth >= 1280) {
+          columns = 4;
+        } else if (maxWidth >= 960) {
+          columns = 3;
+        } else if (maxWidth >= 640) {
+          columns = 2;
+        } else {
+          columns = 1;
+        }
+
+        double itemWidth;
+        if (!maxWidth.isFinite || maxWidth == 0) {
+          itemWidth = 320;
+        } else if (columns == 1) {
+          itemWidth = math.min(maxWidth, 420.0);
+        } else {
+          itemWidth = (maxWidth - spacing * (columns - 1)) / columns;
+        }
+
+        if (maxWidth.isFinite && maxWidth > 0) {
+          final minimumPerColumn = maxWidth / columns;
+          itemWidth = math.max(itemWidth, math.min(minimumPerColumn, 240.0));
+        } else {
+          itemWidth = math.max(itemWidth, 240.0);
+        }
+
+        final double maxPerColumn = columns == 1 ? 420.0 : 360.0;
+        itemWidth = math.min(itemWidth, maxPerColumn);
+
+        return Align(
+          alignment: columns == 1 ? Alignment.center : Alignment.centerLeft,
+          child: Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: [
+              for (final card in cards)
+                SizedBox(
+                  width: itemWidth,
+                  child: LcrMachineCard(data: card),
+                ),
+            ],
           ),
-      ],
+        );
+      },
     );
   }
 }
