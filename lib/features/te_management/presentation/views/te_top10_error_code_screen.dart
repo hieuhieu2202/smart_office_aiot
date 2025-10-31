@@ -1,6 +1,4 @@
 
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -440,31 +438,28 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       final isWide = sizing.screenSize.width >= 1100;
       if (isWide) {
         return LayoutBuilder(
-          builder: (context, constraints) {
+          builder: (context, _) {
             const gap = 20.0;
-            final chartHeight = math.max(
-              300.0,
-              math.min(constraints.maxHeight * 0.48, 420.0),
-            );
-            return Column(
+            return Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(
-                  height: chartHeight,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: _buildDistributionPanel()),
-                      const SizedBox(width: gap),
-                      Expanded(child: _buildTrendPanel()),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: gap),
                 Expanded(
+                  flex: 2,
                   child: _buildTopErrorTablePanel(
                     isWide: true,
                     expand: true,
+                  ),
+                ),
+                const SizedBox(width: gap),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: _buildTrendPanel()),
+                      const SizedBox(height: gap),
+                      Expanded(child: _buildDistributionPanel()),
+                    ],
                   ),
                 ),
               ],
