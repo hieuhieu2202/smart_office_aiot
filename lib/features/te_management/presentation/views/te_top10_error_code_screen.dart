@@ -75,7 +75,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   );
   bool _isFilterPanelOpen = false;
   static const Duration _kFilterAnimationDuration = Duration(milliseconds: 280);
-  final ScrollController _tableScrollController = ScrollController();
 
   @override
   void initState() {
@@ -104,7 +103,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     if (Get.isRegistered<TETopErrorCodeController>(tag: _controllerTag)) {
       Get.delete<TETopErrorCodeController>(tag: _controllerTag);
     }
-    _tableScrollController.dispose();
     super.dispose();
   }
 
@@ -506,10 +504,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         );
       }
 
-      if (rows.isEmpty && _tableScrollController.hasClients) {
-        _tableScrollController.jumpTo(0);
-      }
-
       const columns = [
         _NeonTableColumn(
           label: 'TOP',
@@ -577,15 +571,12 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
         return Expanded(
           child: DecoratedBox(
-            decoration: BoxDecoration(color: const Color(0x1A0F253F)),
-            child: RawScrollbar(
-              controller: _tableScrollController,
+            decoration: const BoxDecoration(color: Color(0x1A0F253F)),
+            child: Scrollbar(
               thumbVisibility: rows.length > 6,
               radius: const Radius.circular(12),
               thickness: 6,
-              interactive: true,
               child: ListView.builder(
-                controller: _tableScrollController,
                 padding: EdgeInsets.zero,
                 itemCount: rows.length,
                 physics: const ClampingScrollPhysics(),
