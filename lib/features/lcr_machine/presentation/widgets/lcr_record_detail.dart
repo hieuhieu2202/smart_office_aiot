@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/lcr_entities.dart';
@@ -51,41 +53,32 @@ class LcrRecordDetail extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final availableWidth = constraints.maxWidth.isFinite
+          final viewportWidth = constraints.maxWidth.isFinite
               ? constraints.maxWidth
               : MediaQuery.of(context).size.width;
-          final crossAxisCount = availableWidth < 540 ? 1 : 2;
-          const crossAxisSpacing = 16.0;
-          const runSpacing = 12.0;
-          const baseAspectRatio = 3.4;
-          const minTileHeight = 92.0;
+          const minContentWidth = 560.0;
+          final targetWidth = math.max(viewportWidth, minContentWidth);
+          final needsHorizontalScroll = targetWidth > viewportWidth + 0.5;
 
-          final horizontalSpacing = crossAxisSpacing * (crossAxisCount - 1);
-          final usableWidth = availableWidth - horizontalSpacing;
-          final tileWidth = usableWidth > 0
-              ? usableWidth / crossAxisCount
-              : availableWidth / crossAxisCount;
-          final idealTileHeight = crossAxisCount == 1
-              ? tileWidth / (baseAspectRatio * 0.75)
-              : tileWidth / baseAspectRatio;
-          final tileHeight = idealTileHeight < minTileHeight ? minTileHeight : idealTileHeight;
-
-          return SingleChildScrollView(
-            padding: EdgeInsets.zero,
-            physics: const BouncingScrollPhysics(),
-            child: Wrap(
-              spacing: crossAxisSpacing,
-              runSpacing: runSpacing,
-              children: [
-                for (final entry in entries)
-                  SizedBox(
-                    width: tileWidth,
-                    height: tileHeight,
-                    child: _DetailTile(entry: entry, theme: theme),
-                  ),
-              ],
-            ),
+          Widget grid = _DetailGrid(
+            entries: entries,
+            theme: theme,
+            maxWidth: targetWidth,
           );
+
+          if (needsHorizontalScroll) {
+            grid = SingleChildScrollView(
+              padding: EdgeInsets.zero,
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: targetWidth),
+                child: grid,
+              ),
+            );
+          }
+
+          return grid;
         },
       ),
     );
@@ -105,11 +98,78 @@ class _DetailEntry {
   final String value;
 }
 
+class _DetailGrid extends StatelessWidget {
+  const _DetailGrid({
+    required this.entries,
+    required this.theme,
+    required this.maxWidth,
+  });
+
+  final List<_DetailEntry> entries;
+  final ThemeData theme;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    const minTileWidth = 260.0;
+    const crossAxisSpacing = 16.0;
+    const runSpacing = 12.0;
+    const baseAspectRatio = 3.4;
+    const minTileHeight = 96.0;
+
+    int crossAxisCount = math.max(1, (maxWidth / (minTileWidth + crossAxisSpacing)).floor());
+    crossAxisCount = crossAxisCount.clamp(1, 4);
+
+    double tileWidth;
+    while (true) {
+      final spacingWidth = crossAxisSpacing * (crossAxisCount - 1);
+      tileWidth = (maxWidth - spacingWidth) / crossAxisCount;
+      if (crossAxisCount <= 1 || tileWidth >= minTileWidth) {
+        break;
+      }
+      crossAxisCount -= 1;
+    }
+
+    final idealTileHeight = tileWidth / (crossAxisCount == 1 ? baseAspectRatio * 0.7 : baseAspectRatio);
+    final tileHeight = idealTileHeight < minTileHeight ? minTileHeight : idealTileHeight;
+    final valueMaxLines = tileWidth < 280 ? 3 : 4;
+
+    return SizedBox(
+      width: maxWidth,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.zero,
+        physics: const BouncingScrollPhysics(),
+        child: Wrap(
+          spacing: crossAxisSpacing,
+          runSpacing: runSpacing,
+          children: [
+            for (final entry in entries)
+              SizedBox(
+                width: tileWidth,
+                height: tileHeight,
+                child: _DetailTile(
+                  entry: entry,
+                  theme: theme,
+                  maxLines: valueMaxLines,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DetailTile extends StatelessWidget {
-  const _DetailTile({required this.entry, required this.theme});
+  const _DetailTile({
+    required this.entry,
+    required this.theme,
+    required this.maxLines,
+  });
 
   final _DetailEntry entry;
   final ThemeData theme;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +197,7 @@ class _DetailTile extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             entry.value,
-            maxLines: 2,
+            maxLines: maxLines,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleSmall?.copyWith(
               color: isImportant
