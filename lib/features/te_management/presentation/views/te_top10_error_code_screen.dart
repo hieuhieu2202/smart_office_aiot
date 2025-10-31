@@ -1351,6 +1351,15 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               ),
             ),
             tooltipBehavior: tooltip,
+            selectionType: SelectionType.series,
+            selectionGesture: ActivationMode.singleTap,
+            onSelectionChanged: (args) {
+              final index = args.seriesIndex;
+              if (index == null || index < 0 || index >= seriesConfigs.length) {
+                return;
+              }
+              _controller.focusErrorTrend(seriesConfigs[index].error);
+            },
             primaryXAxis: CategoryAxis(
               labelStyle: const TextStyle(color: _kTextSecondary, fontSize: 11),
               axisLine: const AxisLine(color: Colors.white24),
@@ -1364,13 +1373,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             ),
             onLegendTapped: (args) {
               final index = args.seriesIndex;
-              if (index == null || index < 0 || index >= seriesConfigs.length) {
-                return;
-              }
-              _controller.focusErrorTrend(seriesConfigs[index].error);
-            },
-            onPointTapped: (details) {
-              final index = details.seriesIndex;
               if (index == null || index < 0 || index >= seriesConfigs.length) {
                 return;
               }
