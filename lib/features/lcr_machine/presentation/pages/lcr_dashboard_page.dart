@@ -3392,33 +3392,72 @@ class _OutputChart extends StatelessWidget {
       );
     });
 
-    final maxOutput = data.fold<int>(0, (prev, item) {
-      final value = item.total;
-      return value > prev ? value : prev;
-    });
-    final double yMax;
-    final double interval;
-    if (maxOutput == 0) {
-      yMax = 10;
-      interval = 2;
-    } else {
-      final step = (maxOutput / 5).ceil().clamp(1, 1000);
-      interval = step.toDouble();
-      yMax = (step * 6).toDouble();
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxWidth = constraints.maxWidth;
+        final bool isMobile = maxWidth < 640;
+        final bool isTablet = !isMobile && maxWidth < 1024;
+        final bool shouldWrapSlots = isMobile || isTablet;
+        final bool isUltraTight = maxWidth < 420;
 
-    final annotations = <CartesianChartAnnotation>[
-      if (data.isNotEmpty)
-        CartesianChartAnnotation(
-          widget: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.greenAccent.withOpacity(0.16),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.greenAccent.withOpacity(0.6)),
+        String _formatSlotLabel(String label) {
+          if (!label.contains(' - ')) {
+            return label;
+          }
+          final parts = label.split(' - ');
+          if (isUltraTight) {
+            return parts.first;
+          }
+          return '${parts.first}\n${parts.last}';
+        }
+
+        final TextStyle axisLabelStyle = TextStyle(
+          color: const Color(0xFFE8F4FF),
+          fontSize: isUltraTight
+              ? 9
+              : shouldWrapSlots
+                  ? 10
+                  : 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: shouldWrapSlots ? 0.1 : 0.2,
+          height: shouldWrapSlots ? 1.15 : 1.0,
+          shadows: const [
+            Shadow(
+              color: Color(0x99000000),
+              blurRadius: 6,
+              offset: Offset(0, 2),
             ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              child: Text(
+          ],
+        );
+
+        final maxOutput = data.fold<int>(0, (prev, item) {
+          final value = item.total;
+          return value > prev ? value : prev;
+        });
+        final double yMax;
+        final double interval;
+        if (maxOutput == 0) {
+          yMax = 10;
+          interval = 2;
+        } else {
+          final step = (maxOutput / 5).ceil().clamp(1, 1000);
+          interval = step.toDouble();
+          yMax = (step * 6).toDouble();
+        }
+
+        final annotations = <CartesianChartAnnotation>[
+          if (data.isNotEmpty)
+            CartesianChartAnnotation(
+              widget: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.greenAccent.withOpacity(0.16),
+                  borderRadius: BorderRadius.circular(12),
+                  border:
+                      Border.all(color: Colors.greenAccent.withOpacity(0.6)),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  child: Text(
                 'Target (98%)',
                 style: TextStyle(
                   color: Colors.greenAccent,
@@ -3477,24 +3516,18 @@ class _OutputChart extends StatelessWidget {
       ),
       legend: const Legend(isVisible: false),
       primaryXAxis: CategoryAxis(
-        labelStyle: const TextStyle(
-          color: Color(0xFFE8F4FF),
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.2,
-          shadows: [
-            Shadow(
-              color: Color(0x99000000),
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
+        labelStyle: axisLabelStyle,
         majorGridLines: const MajorGridLines(width: 0),
         majorTickLines: const MajorTickLines(size: 0),
         axisLine: AxisLine(color: Colors.white.withOpacity(0.25), width: 0.8),
         labelAlignment: LabelAlignment.center,
-        labelIntersectAction: AxisLabelIntersectAction.multipleRows,
+        labelIntersectAction: AxisLabelIntersectAction.none,
+        axisLabelFormatter: (AxisLabelRenderDetails details) {
+          final label = details.text;
+          final text = shouldWrapSlots ? _formatSlotLabel(label) : label;
+          return ChartAxisLabel(text, axisLabelStyle);
+        },
+        maximumLabelWidth: shouldWrapSlots ? 72 : null,
       ),
       primaryYAxis: NumericAxis(
         minimum: 0,
@@ -3615,6 +3648,8 @@ class _OutputChart extends StatelessWidget {
           ),
         ),
       ],
+    );
+      },
     );
   }
 }
