@@ -1441,11 +1441,11 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     final theme = Theme.of(context);
     final media = MediaQuery.of(context);
     final width = math.min(
-      math.max(media.size.width * 0.92, media.size.width - 48),
-      1800.0,
+      math.max(media.size.width * 0.96, media.size.width - 32),
+      1920.0,
     );
-    final tableMinWidth = math.max(width * 0.9, width - 96);
-    final height = math.min(media.size.height * 0.8, 640.0);
+    final tableMinWidth = math.max(width * 0.9, width - 56);
+    final height = math.min(media.size.height * 0.9, 820.0);
     final dateTimeFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
     final hasActiveFilters = _hasActiveFilters;
     final recordChipLabel = hasActiveFilters
@@ -1562,7 +1562,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
               child: Divider(color: Colors.white12, height: 1),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final filterControls = <Widget>[
@@ -1608,11 +1608,43 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                     onChanged: _onSearchChanged,
                   );
 
+                  final isUltraWide = constraints.maxWidth >= 1360;
                   final isWide = constraints.maxWidth >= 1080;
                   final searchWidth = math.max(
                     220.0,
                     math.min(320.0, constraints.maxWidth * 0.35),
                   );
+
+                  if (isUltraWide) {
+                    final primaryFilters = filterControls.take(3).toList();
+                    final secondaryFilters = filterControls.skip(3).toList();
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: primaryFilters,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: secondaryFilters,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        SizedBox(
+                          width: searchWidth,
+                          child: searchField,
+                        ),
+                      ],
+                    );
+                  }
 
                   if (isWide) {
                     return Row(
