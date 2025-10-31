@@ -1077,47 +1077,6 @@ class _DashboardTab extends StatelessWidget {
       return;
     }
 
-    List<LcrRecord> records = const <LcrRecord>[];
-
-    try {
-      final fetched = await controller.loadStatusRecords(pass: showPass);
-      final filtered = fetched
-          .where((record) => record.isPass == showPass)
-          .toList();
-      records = filtered.isEmpty && fetched.isNotEmpty
-          ? List<LcrRecord>.from(fetched)
-          : filtered;
-    } catch (error) {
-      if (context.mounted) {
-        final snackBar = SnackBar(
-          backgroundColor: Colors.redAccent.shade200,
-          content: Text(
-            'Unable to load ${showPass ? 'pass' : 'fail'} records. Please try again.',
-            style: const TextStyle(color: Colors.white),
-          ),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      }
-      return;
-    }
-
-    if (records.isEmpty) {
-      if (context.mounted) {
-        final snackBar = SnackBar(
-          backgroundColor: Colors.blueGrey.shade900,
-          content: Text(
-            'No ${showPass ? 'pass' : 'fail'} records available for the current filters.',
-            style: const TextStyle(color: Colors.white),
-          ),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      }
-      return;
-    }
-
-    final sorted = List<LcrRecord>.from(records)
-      ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
-
     if (!context.mounted) {
       return;
     }
@@ -1132,7 +1091,9 @@ class _DashboardTab extends StatelessWidget {
       builder: (_) => _StatusOverviewDialog(
         title: showPass ? 'PASS OVERVIEW' : 'FAIL OVERVIEW',
         highlightColor: accentColor,
-        records: sorted,
+        expectedCount: expectedCount,
+        showPass: showPass,
+        loadRecords: () => controller.loadStatusRecords(pass: showPass),
       ),
     );
   }
@@ -1376,13 +1337,17 @@ class _SummaryRow extends StatelessWidget {
 class _StatusOverviewDialog extends StatefulWidget {
   const _StatusOverviewDialog({
     required this.title,
-    required this.records,
     required this.highlightColor,
+    required this.loadRecords,
+    required this.showPass,
+    this.expectedCount,
   });
 
   final String title;
-  final List<LcrRecord> records;
   final Color highlightColor;
+  final Future<List<LcrRecord>> Function() loadRecords;
+  final bool showPass;
+  final int? expectedCount;
 
   @override
   State<_StatusOverviewDialog> createState() => _StatusOverviewDialogState();
@@ -1419,7 +1384,8 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     DataColumn(label: _TableHeader('MACHINE NO.')),
   ];
 
-  late List<LcrRecord> _filteredRecords;
+  List<LcrRecord> _allRecords = const <LcrRecord>[];
+  List<LcrRecord> _filteredRecords = const <LcrRecord>[];
   List<String> _typeOptions = const <String>[];
   List<String> _employeeOptions = const <String>[];
   List<String> _factoryOptions = const <String>[];
@@ -1432,6 +1398,8 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
   String _selectedDepartment = _kAllFilter;
   String _selectedMachine = _kAllFilter;
   String _searchQuery = '';
+  bool _isLoading = true;
+  String? _loadError;
 
   @override
   void initState() {
@@ -1441,7 +1409,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     _horizontalBodyController = ScrollController();
     _horizontalBodyController.addListener(_syncHorizontalControllers);
     _searchController = TextEditingController();
-    _initializeFilters();
+    _loadRecords();
   }
 
   @override
@@ -1455,17 +1423,9 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
   }
 
   @override
-  void didUpdateWidget(covariant _StatusOverviewDialog oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.records, widget.records)) {
-      setState(_initializeFilters);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final title = widget.title;
-    final totalRecords = widget.records.length;
+    final totalRecords = _allRecords.length;
     final records = _filteredRecords;
     final highlightColor = widget.highlightColor;
     final theme = Theme.of(context);
@@ -1478,9 +1438,13 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     final height = math.min(media.size.height * 0.9, 820.0);
     final dateTimeFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
     final hasActiveFilters = _hasActiveFilters;
-    final recordChipLabel = hasActiveFilters
-        ? '${records.length} / $totalRecords records'
-        : '${records.length} records';
+    final recordChipLabel = _isLoading
+        ? 'Loading records...'
+        : _loadError != null
+            ? 'Unable to load records'
+            : hasActiveFilters
+                ? '${records.length} / $totalRecords records'
+                : '${records.length} records';
     final emptyMessage = hasActiveFilters
         ? 'No records match the current filters.'
         : 'No records available for this status.';
@@ -1643,66 +1607,72 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isHorizontal = constraints.maxWidth >= 900;
-                    final gap = isHorizontal ? 20.0 : 0.0;
-                    final filterWidth = isHorizontal
-                        ? math.min(340.0, constraints.maxWidth * 0.28)
-                        : constraints.maxWidth;
-                    final tableAvailableWidth = isHorizontal
-                        ? math.max(0.0, constraints.maxWidth - filterWidth - gap)
-                        : constraints.maxWidth;
-                    final allowTwoColumns = isHorizontal
-                        ? filterWidth >= 260.0
-                        : constraints.maxWidth >= 560.0;
-                    final tableMinWidth = math.max(tableAvailableWidth, 720.0);
-                    final tableWidget = records.isEmpty
-                        ? _buildEmptyTableShell(theme, emptyMessage)
-                        : _buildRecordsTable(
-                            records: records,
-                            tableMinWidth: tableMinWidth,
-                            dateTimeFormatter: dateTimeFormatter,
-                            headingTextStyle: headingTextStyle,
-                            dataTextStyle: dataTextStyle,
-                            infoTextStyle: infoTextStyle,
-                            warningTextStyle: warningTextStyle,
-                            successTextStyle: successTextStyle,
-                          );
+                child: _isLoading
+                    ? _buildLoadingState(theme)
+                    : _loadError != null
+                        ? _buildErrorState(theme, _loadError!)
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isHorizontal = constraints.maxWidth >= 900;
+                              final gap = isHorizontal ? 20.0 : 0.0;
+                              final filterWidth = isHorizontal
+                                  ? math.min(340.0, constraints.maxWidth * 0.28)
+                                  : constraints.maxWidth;
+                              final tableAvailableWidth = isHorizontal
+                                  ? math.max(
+                                      0.0, constraints.maxWidth - filterWidth - gap)
+                                  : constraints.maxWidth;
+                              final allowTwoColumns = isHorizontal
+                                  ? filterWidth >= 260.0
+                                  : constraints.maxWidth >= 560.0;
+                              final tableMinWidth =
+                                  math.max(tableAvailableWidth, 720.0);
+                              final tableWidget = records.isEmpty
+                                  ? _buildEmptyTableShell(theme, emptyMessage)
+                                  : _buildRecordsTable(
+                                      records: records,
+                                      tableMinWidth: tableMinWidth,
+                                      dateTimeFormatter: dateTimeFormatter,
+                                      headingTextStyle: headingTextStyle,
+                                      dataTextStyle: dataTextStyle,
+                                      infoTextStyle: infoTextStyle,
+                                      warningTextStyle: warningTextStyle,
+                                      successTextStyle: successTextStyle,
+                                    );
 
-                    if (isHorizontal) {
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(
-                            width: filterWidth,
-                            child: _buildFilterPane(
-                              allowTwoColumns: allowTwoColumns,
-                              scrollable: true,
-                            ),
-                          ),
-                          SizedBox(width: gap),
-                          Expanded(child: tableWidget),
-                        ],
-                      );
-                    }
+                              if (isHorizontal) {
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    SizedBox(
+                                      width: filterWidth,
+                                      child: _buildFilterPane(
+                                        allowTwoColumns: allowTwoColumns,
+                                        scrollable: true,
+                                      ),
+                                    ),
+                                    SizedBox(width: gap),
+                                    Expanded(child: tableWidget),
+                                  ],
+                                );
+                              }
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Flexible(
-                          fit: FlexFit.loose,
-                          child: _buildFilterPane(
-                            allowTwoColumns: allowTwoColumns,
-                            scrollable: true,
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Flexible(
+                                    fit: FlexFit.loose,
+                                    child: _buildFilterPane(
+                                      allowTwoColumns: allowTwoColumns,
+                                      scrollable: true,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Expanded(child: tableWidget),
+                                ],
+                              );
+                            },
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Expanded(child: tableWidget),
-                      ],
-                    );
-                  },
-                ),
               ),
             ),
           ],
@@ -2008,6 +1978,100 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     );
   }
 
+  Future<void> _loadRecords() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+
+    try {
+      final fetched = await widget.loadRecords();
+      if (!mounted) return;
+      final filtered = fetched
+          .where((record) => record.isPass == widget.showPass)
+          .toList();
+      final records = filtered.isEmpty && fetched.isNotEmpty
+          ? List<LcrRecord>.from(fetched)
+          : filtered;
+      records.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+      setState(() {
+        _applyRecords(records);
+        _isLoading = false;
+        _loadError = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _applyRecords(const <LcrRecord>[]);
+        _isLoading = false;
+        _loadError = 'Unable to load records. Please try again.';
+      });
+    }
+  }
+
+  Widget _buildLoadingState(ThemeData theme) {
+    final expected = widget.expectedCount;
+    final subtitle = expected == null
+        ? 'Preparing records...'
+        : 'Preparing ${NumberFormat.decimalPattern().format(expected)} records...';
+
+    final textStyle = theme.textTheme.titleSmall?.copyWith(
+          color: Colors.white70,
+          fontWeight: FontWeight.w600,
+        ) ??
+        const TextStyle(
+          color: Colors.white70,
+          fontWeight: FontWeight.w600,
+        );
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(
+          height: 48,
+          width: 48,
+          child: CircularProgressIndicator(
+            strokeWidth: 3.2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(subtitle, style: textStyle, textAlign: TextAlign.center),
+      ],
+    );
+  }
+
+  Widget _buildErrorState(ThemeData theme, String message) {
+    final textStyle = theme.textTheme.titleSmall?.copyWith(
+          color: Colors.white70,
+          fontWeight: FontWeight.w600,
+        ) ??
+        const TextStyle(
+          color: Colors.white70,
+          fontWeight: FontWeight.w600,
+        );
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message, style: textStyle, textAlign: TextAlign.center),
+          const SizedBox(height: 20),
+          FilledButton.tonal(
+            onPressed: _loadRecords,
+            style: FilledButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.white.withOpacity(0.1),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+            ),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
   bool get _hasActiveFilters =>
       _selectedType != _kAllFilter ||
       _selectedEmployee != _kAllFilter ||
@@ -2016,15 +2080,16 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
       _selectedMachine != _kAllFilter ||
       _searchQuery.isNotEmpty;
 
-  void _initializeFilters() {
-    final records = widget.records;
+  void _applyRecords(List<LcrRecord> records) {
+    _allRecords = records;
     _typeOptions = _buildStringOptions(records.map((record) => record.materialType));
     _employeeOptions =
         _buildStringOptions(records.map((record) => record.employeeId));
     _factoryOptions = _buildStringOptions(records.map((record) => record.factory));
     _departmentOptions =
         _buildStringOptions(records.map((record) => record.department));
-    _machineOptions = _buildMachineOptions(records.map((record) => record.machineNo));
+    _machineOptions =
+        _buildMachineOptions(records.map((record) => record.machineNo));
     _selectedType = _kAllFilter;
     _selectedEmployee = _kAllFilter;
     _selectedFactory = _kAllFilter;
@@ -2068,7 +2133,7 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     final query = _searchQuery.toLowerCase();
     final hasQuery = query.isNotEmpty;
 
-    return widget.records.where((record) {
+    return _allRecords.where((record) {
       if (_selectedType != _kAllFilter &&
           _stringValue(record.materialType) != _selectedType) {
         return false;
