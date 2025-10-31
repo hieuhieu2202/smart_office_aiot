@@ -1370,11 +1370,28 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     required bool isLoading,
     required String? highlightedCode,
   }) {
-    if (errors.isEmpty) {
+    if (isLoading) {
       return const Center(
-        child: Text(
-          'No data available for selected range.',
-          style: TextStyle(color: _kTextSecondary),
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(_kAccentColor),
+        ),
+      );
+    }
+
+    if (errors.isEmpty || previews.isEmpty) {
+      final message = errors.isEmpty
+          ? 'No data available for selected range.'
+          : (previewErrors.isNotEmpty
+              ? previewErrors.values.first
+              : 'No trend data available for the selected period.');
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _kTextSecondary, fontSize: 13),
+          ),
         ),
       );
     }
@@ -1396,14 +1413,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     }
 
     if (seriesConfigs.isEmpty) {
-      if (isLoading) {
-        return const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(_kAccentColor),
-          ),
-        );
-      }
-
       final message = previewErrors.isNotEmpty
           ? previewErrors.values.first
           : 'Trend preview unavailable for the selected period.';
@@ -1426,79 +1435,83 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       textStyle: const TextStyle(color: Colors.white, fontSize: 11),
     );
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const Positioned.fill(child: CustomPaint(painter: _WeeklyGridPainter())),
-          SfCartesianChart(
-            backgroundColor: Colors.transparent,
-            margin: const EdgeInsets.only(top: 8, right: 12, left: 4, bottom: 8),
-            plotAreaBorderWidth: 0,
-            legend: Legend(
-              isVisible: true,
-              position: LegendPosition.bottom,
-              overflowMode: LegendItemOverflowMode.wrap,
-              toggleSeriesVisibility: false,
-              textStyle: const TextStyle(
-                color: _kTextSecondary,
-                fontSize: 11,
-              ),
-            ),
-            tooltipBehavior: tooltip,
-            selectionType: SelectionType.series,
-            selectionGesture: ActivationMode.singleTap,
-            onSelectionChanged: (args) {
-              final index = args.seriesIndex;
-              if (index == null || index < 0 || index >= seriesConfigs.length) {
-                return;
-              }
-              _controller.focusErrorTrend(seriesConfigs[index].error);
-            },
-            primaryXAxis: CategoryAxis(
-              labelStyle: const TextStyle(color: _kTextSecondary, fontSize: 11),
-              axisLine: const AxisLine(color: Colors.white24),
-              majorTickLines: const MajorTickLines(size: 0),
-              majorGridLines: const MajorGridLines(color: Colors.transparent),
-            ),
-            primaryYAxis: NumericAxis(
-              labelStyle: const TextStyle(color: _kTextSecondary, fontSize: 11),
-              axisLine: const AxisLine(color: Colors.transparent),
-              majorGridLines: const MajorGridLines(color: Colors.white10),
-            ),
-            onLegendTapped: (args) {
-              final index = args.seriesIndex;
-              if (index == null || index < 0 || index >= seriesConfigs.length) {
-                return;
-              }
-              _controller.focusErrorTrend(seriesConfigs[index].error);
-            },
-            series: <CartesianSeries<dynamic, dynamic>>[
-              for (var i = 0; i < seriesConfigs.length; i++)
-                LineSeries<TETopErrorTrendPointEntity, String>(
-                  name: seriesConfigs[i].error.errorCode,
-                  dataSource: seriesConfigs[i].points,
-                  xValueMapper: (item, _) => item.label,
-                  yValueMapper: (item, _) => item.firstFail,
-                  color: seriesConfigs[i].color,
-                  width: 2.5,
-                  opacity: highlightedCode == null ||
-                          highlightedCode == seriesConfigs[i].error.errorCode
-                      ? 1.0
-                      : 0.35,
-                  markerSettings: const MarkerSettings(
-                    isVisible: true,
-                    shape: DataMarkerType.circle,
-                    width: 6,
-                    height: 6,
-                    borderColor: Colors.black,
-                    borderWidth: 1,
-                  ),
+    return IgnorePointer(
+      ignoring: isLoading,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const Positioned.fill(child: CustomPaint(painter: _WeeklyGridPainter())),
+            SfCartesianChart(
+              key: const ValueKey('overview_trend_chart'),
+              backgroundColor: Colors.transparent,
+              margin: const EdgeInsets.only(top: 8, right: 12, left: 4, bottom: 8),
+              plotAreaBorderWidth: 0,
+              legend: Legend(
+                isVisible: true,
+                position: LegendPosition.bottom,
+                overflowMode: LegendItemOverflowMode.wrap,
+                toggleSeriesVisibility: false,
+                textStyle: const TextStyle(
+                  color: _kTextSecondary,
+                  fontSize: 11,
                 ),
-            ],
-          ),
-        ],
+              ),
+              tooltipBehavior: tooltip,
+              selectionType: SelectionType.series,
+              selectionGesture: ActivationMode.singleTap,
+              onSelectionChanged: (args) {
+                final index = args.seriesIndex;
+                if (index == null || index < 0 || index >= seriesConfigs.length) {
+                  return;
+                }
+                _controller.focusErrorTrend(seriesConfigs[index].error);
+              },
+              primaryXAxis: CategoryAxis(
+                labelStyle: const TextStyle(color: _kTextSecondary, fontSize: 11),
+                axisLine: const AxisLine(color: Colors.white24),
+                majorTickLines: const MajorTickLines(size: 0),
+                majorGridLines: const MajorGridLines(color: Colors.transparent),
+              ),
+              primaryYAxis: NumericAxis(
+                labelStyle: const TextStyle(color: _kTextSecondary, fontSize: 11),
+                axisLine: const AxisLine(color: Colors.transparent),
+                majorGridLines: const MajorGridLines(color: Colors.white10),
+              ),
+              onLegendTapped: (args) {
+                final index = args.seriesIndex;
+                if (index == null || index < 0 || index >= seriesConfigs.length) {
+                  return;
+                }
+                _controller.focusErrorTrend(seriesConfigs[index].error);
+              },
+              series: <CartesianSeries<dynamic, dynamic>>[
+                for (var i = 0; i < seriesConfigs.length; i++)
+                  LineSeries<TETopErrorTrendPointEntity, String>(
+                    name: seriesConfigs[i].error.errorCode,
+                    dataSource: seriesConfigs[i].points,
+                    xValueMapper: (item, _) => item.label,
+                    yValueMapper: (item, _) => item.firstFail,
+                    color: seriesConfigs[i].color,
+                    width: 2.5,
+                    opacity: highlightedCode == null ||
+                            highlightedCode == seriesConfigs[i].error.errorCode
+                        ? 1.0
+                        : 0.35,
+                    markerSettings: const MarkerSettings(
+                      isVisible: true,
+                      shape: DataMarkerType.circle,
+                      width: 6,
+                      height: 6,
+                      borderColor: Colors.black,
+                      borderWidth: 1,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
