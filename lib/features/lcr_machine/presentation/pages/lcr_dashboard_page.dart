@@ -94,7 +94,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 640;
+          final isCompact = constraints.maxWidth < 1100; // tablet + mobile
 
           Widget buildNavigationRow() {
             return Row(
@@ -123,10 +123,10 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                     'LCR MACHINE',
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 2,
-                        ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2,
+                    ),
                   ),
                 ),
               ],
@@ -153,9 +153,7 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  onPressed: () {
-                    _showFilterSheet(context);
-                  },
+                  onPressed: () => _showFilterSheet(context),
                   icon: const Icon(Icons.tune, size: 20),
                   label: const Text(
                     'FILTER',
@@ -173,30 +171,32 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
             ],
           );
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (isCompact) ...[
-                buildNavigationRow(),
-                const SizedBox(height: 12),
+          // ✅ Gộp lại trên cùng một hàng cho mobile và tablet
+          if (isCompact) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: buildNavigationRow()),
+                const SizedBox(width: 12),
                 actions,
-              ] else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(child: buildNavigationRow()),
-                    const SizedBox(width: 12),
-                    actions,
-                  ],
-                ),
-              const SizedBox(height: 12),
+              ],
+            );
+          }
+
+          // Desktop giữ nguyên
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: buildNavigationRow()),
+              const SizedBox(width: 12),
+              actions,
             ],
           );
         },
       ),
     );
   }
-
   Future<DateTimeRange?> _pickDashboardDateTimeRange(
     BuildContext context,
     DateTimeRange initialRange,
@@ -1277,13 +1277,13 @@ class _SummaryRow extends StatelessWidget {
         title: 'INPUT',
         value: overview.total.toString(),
         suffix: 'PCS',
-        color: Colors.blueAccent,
+        color: const Color(0xFF2D7DD2),
       ),
       LcrSummaryTile(
         title: 'PASS',
         value: overview.pass.toString(),
         suffix: 'PCS',
-        color: Colors.greenAccent,
+        color: const Color(0xFF38A169),
         actionLabel: 'Overview',
         onActionTap: onPassOverview,
       ),
@@ -1291,7 +1291,7 @@ class _SummaryRow extends StatelessWidget {
         title: 'FAIL',
         value: overview.fail.toString(),
         suffix: 'PCS',
-        color: Colors.redAccent,
+        color: const Color(0xFFE53E3E),
         actionLabel: 'Overview',
         onActionTap: onFailOverview,
       ),
@@ -1299,7 +1299,7 @@ class _SummaryRow extends StatelessWidget {
         title: 'Y.R',
         value: overview.yieldRate.toStringAsFixed(2),
         suffix: '%',
-        color: Colors.amberAccent,
+        color: const Color(0xFFF6AD55),
       ),
     ];
 
@@ -1307,10 +1307,11 @@ class _SummaryRow extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
 
-        if (width >= 900) {
+        // 🖥 Desktop ≥1100px: 4 card trên 1 hàng (giữ nguyên)
+        if (width >= 1100) {
           return Row(
             children: [
-              for (var i = 0; i < tiles.length; i++) ...[
+              for (int i = 0; i < tiles.length; i++) ...[
                 Expanded(child: tiles[i]),
                 if (i != tiles.length - 1) const SizedBox(width: 16),
               ],
@@ -1318,30 +1319,25 @@ class _SummaryRow extends StatelessWidget {
           );
         }
 
-        if (width >= 600) {
-          final itemWidth = (width - 16) / 2;
-          return Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: tiles
-                .map((tile) => SizedBox(width: itemWidth, child: tile))
-                .toList(),
-          );
-        }
+        // 💻 Tablet & 📱 Mobile: luôn hiển thị 2 cột × 2 hàng
+        final crossAxisCount = 2;
+        final spacing = 12.0;
+        final itemWidth = (width - spacing) / 2;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < tiles.length; i++) ...[
-              tiles[i],
-              if (i != tiles.length - 1) const SizedBox(height: 12),
-            ],
-          ],
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          alignment: WrapAlignment.center,
+          children: tiles
+              .map((tile) => SizedBox(width: itemWidth, child: tile))
+              .toList(),
         );
       },
     );
   }
 }
+
+
 
 class _StatusOverviewDialog extends StatefulWidget {
   const _StatusOverviewDialog({
@@ -3590,7 +3586,7 @@ class _OutputChart extends StatelessWidget {
 }
 
 class _MachinesGrid extends StatelessWidget {
-  const _MachinesGrid(this.list);
+  const _MachinesGrid(this.list, {super.key});
 
   final List<LcrMachineGauge> list;
 
@@ -3609,21 +3605,58 @@ class _MachinesGrid extends StatelessWidget {
             ),
     ];
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < cards.length; i++)
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(right: i == cards.length - 1 ? 0 : 16),
-              child: LcrMachineCard(data: cards[i]),
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // 🖥 Desktop: 4 ngang
+    if (screenWidth >= 1100) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < cards.length; i++)
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: i == cards.length - 1 ? 0 : 16),
+                child: LcrMachineCard(data: cards[i]),
+              ),
             ),
-          ),
-      ],
+        ],
+      );
+    }
+
+    // 💻📱 Tablet/Mobile: 2 hàng × 2 cột
+    int crossAxisCount = 2;
+    double aspectRatio;
+    double totalHeight;
+
+    if (screenWidth >= 700) {
+      // Tablet
+      aspectRatio = 1.15;
+      totalHeight = screenWidth * 0.95; // tự động fit đủ 2 hàng
+    } else {
+      // Mobile
+      aspectRatio = 1.0;
+      totalHeight = screenWidth * 1.1; // nhỏ hơn một chút cho vừa
+    }
+
+    return SizedBox(
+      height: totalHeight,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: aspectRatio,
+        ),
+        itemCount: cards.length,
+        itemBuilder: (context, index) {
+          return LcrMachineCard(data: cards[index]);
+        },
+      ),
     );
   }
 }
-
 
 class _AnalysisTab extends StatelessWidget {
   const _AnalysisTab({

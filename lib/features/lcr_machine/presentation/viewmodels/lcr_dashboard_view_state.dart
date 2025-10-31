@@ -252,16 +252,6 @@ class LcrDashboardViewState {
         outputPass.add(passCount);
         outputFail.add(failCount);
         outputYr.add(double.parse(yr.toStringAsFixed(2)));
-
-        // Log chi tiết từng slot
-        final lines = slotLogs[i];
-        final buffer = StringBuffer()
-          ..write(
-              'slot=$i [$startLabel - $endLabel] pass=$passCount fail=$failCount total=$total');
-        if (lines != null && lines.isNotEmpty) {
-          for (final line in lines) buffer.write('\n  - $line');
-        }
-        developer.log(buffer.toString(), name: 'LCR_OUTPUT_SLOT');
       }
     }
 
