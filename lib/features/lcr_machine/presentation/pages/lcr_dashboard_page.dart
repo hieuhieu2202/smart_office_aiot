@@ -2396,12 +2396,14 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.cyanAccent.withOpacity(0.9),
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.4,
+                    letterSpacing: 1.1,
+                    fontSize: 12,
                   ) ??
                   const TextStyle(
                     color: Colors.cyanAccent,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.4,
+                    letterSpacing: 1.1,
+                    fontSize: 12,
                   ),
             ),
             const SizedBox(height: 6),
@@ -2423,8 +2425,8 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
       );
     }
 
-    const headerEstimate = 170.0;
-    const tileEstimate = 88.0;
+    const headerEstimate = 140.0;
+    const tileEstimate = 72.0;
     final estimatedHeight =
         headerEstimate + (sorted.length * tileEstimate); // conservative
 
@@ -2439,11 +2441,11 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
-              const SizedBox(height: 22),
+              const SizedBox(height: 16),
               ...List.generate(sorted.length, (index) {
                 return Padding(
                   padding: EdgeInsets.only(
-                    bottom: index == sorted.length - 1 ? 0 : 16,
+                    bottom: index == sorted.length - 1 ? 0 : 12,
                   ),
                   child: buildTile(index),
                 );
@@ -2456,7 +2458,7 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildHeader(),
-            const SizedBox(height: 22),
+            const SizedBox(height: 16),
             Expanded(
               child: Scrollbar(
                 controller: _scrollController,
@@ -2517,8 +2519,8 @@ class _FactoryDistributionTile extends StatelessWidget {
         text: label,
         style: const TextStyle(
           fontWeight: FontWeight.w700,
-          fontSize: 13,
-          letterSpacing: 0.6,
+          fontSize: 12,
+          letterSpacing: 0.4,
           color: Colors.white,
         ),
         children: [
@@ -2527,7 +2529,7 @@ class _FactoryDistributionTile extends StatelessWidget {
             text: '$value pcs',
             style: const TextStyle(
               fontWeight: FontWeight.w500,
-              fontSize: 12,
+              fontSize: 11,
               color: Colors.white70,
             ),
           ),
@@ -2536,7 +2538,7 @@ class _FactoryDistributionTile extends StatelessWidget {
             text: '$percentText%',
             style: const TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 12,
+              fontSize: 11,
               color: Colors.cyanAccent,
             ),
           ),
@@ -2548,21 +2550,22 @@ class _FactoryDistributionTile extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 12,
-                height: 12,
+                width: 10,
+                height: 10,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: gradient),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   label,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
+                    letterSpacing: 0.3,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -2571,11 +2574,12 @@ class _FactoryDistributionTile extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
+                  fontSize: 13,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           _GradientProgressBar(
             value: percent.clamp(0.0, 1.0),
             gradient: gradient,
@@ -2583,7 +2587,7 @@ class _FactoryDistributionTile extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '$value pcs',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
         ],
       ),
@@ -2632,18 +2636,18 @@ class _PulsingTotalBadgeState extends State<_PulsingTotalBadge>
     final textStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w800,
-          fontSize: 22,
-          letterSpacing: 1.1,
+          fontSize: 20,
+          letterSpacing: 0.9,
         ) ??
         const TextStyle(
           color: Colors.white,
-          fontSize: 22,
+          fontSize: 20,
           fontWeight: FontWeight.w800,
-          letterSpacing: 1.1,
+          letterSpacing: 0.9,
         );
 
     final badge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF56CCF2), Color(0xFF2F80ED)],
@@ -2697,7 +2701,7 @@ class _GradientProgressBar extends StatelessWidget {
         return ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
-            height: 10,
+            height: 8,
             child: Stack(
               children: [
                 Positioned.fill(
