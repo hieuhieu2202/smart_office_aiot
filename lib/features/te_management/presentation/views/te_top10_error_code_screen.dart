@@ -29,6 +29,36 @@ const Color _kRepairColor = Color(0xFFA78BFA);
 const Color _kSurfaceMuted = Color(0xFF0C2A4A);
 const Color _kTableGridColor = Color(0xFF123760);
 
+const TextStyle _kTableHeaderStyle = TextStyle(
+  color: _kTextPrimary,
+  fontSize: 12,
+  fontWeight: FontWeight.w700,
+  letterSpacing: 0.2,
+);
+
+const TextStyle _kTableValueStyle = TextStyle(
+  color: _kTextPrimary,
+  fontSize: 13,
+  fontWeight: FontWeight.w600,
+);
+
+const TextStyle _kTableMutedStyle = TextStyle(
+  color: _kTextSecondary,
+  fontSize: 12,
+  fontWeight: FontWeight.w500,
+);
+
+const List<_TableColumnSpec> _kTopErrorColumns = [
+  _TableColumnSpec(label: 'Top', flex: 9),
+  _TableColumnSpec(label: 'ERROR CODE', flex: 20),
+  _TableColumnSpec(label: 'F_FAIL', flex: 13),
+  _TableColumnSpec(label: 'R_FAIL', flex: 13),
+  _TableColumnSpec(label: 'MODEL NAME (Top 3)', flex: 22),
+  _TableColumnSpec(label: 'GROUP_NAME', flex: 22),
+  _TableColumnSpec(label: 'FIRST FAIL', flex: 14),
+  _TableColumnSpec(label: 'REPAIR FAIL', flex: 14),
+];
+
 class TETop10ErrorCodeScreen extends StatefulWidget {
   const TETop10ErrorCodeScreen({
     super.key,
@@ -504,23 +534,28 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           );
         }
 
-        return ListView.separated(
-          padding: EdgeInsets.zero,
-          physics: const ClampingScrollPhysics(),
-          itemBuilder: (context, index) {
-            final error = errors[index];
-            return _ErrorSummaryCard(
-              rank: index + 1,
-              error: error,
-              accentColor: _barPalette[index % _barPalette.length],
-              isSelected: identical(error, selectedError) || error == selectedError,
-              selectedDetail: selectedDetail,
-              onSelect: () => _controller.selectError(error),
-              onDetailTap: (detail) => _controller.selectDetail(detail),
-            );
-          },
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemCount: errors.length,
+        return Scrollbar(
+          thumbVisibility: false,
+          child: ListView.separated(
+            padding: const EdgeInsets.only(top: 4, bottom: 6),
+            primary: false,
+            physics: const ClampingScrollPhysics(),
+            itemBuilder: (context, index) {
+              final error = errors[index];
+              final accent = _barPalette[index % _barPalette.length];
+              return _ErrorTableRowGroup(
+                rank: index + 1,
+                error: error,
+                accentColor: accent,
+                selectedError: selectedError,
+                selectedDetail: selectedDetail,
+                onErrorTap: () => _controller.selectError(error),
+                onDetailTap: (detail) => _controller.selectDetail(detail),
+              );
+            },
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemCount: errors.length,
+          ),
         );
       }
 
@@ -585,6 +620,38 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               ],
             ),
             const SizedBox(height: 18),
+            Container(
+              decoration: BoxDecoration(
+                color: _kSurfaceMuted.withOpacity(0.55),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _kTableGridColor),
+              ),
+              child: Row(
+                children: [
+                  for (var i = 0; i < _kTopErrorColumns.length; i++)
+                    Expanded(
+                      flex: _kTopErrorColumns[i].flex,
+                      child: Container(
+                        padding: _kTopErrorColumns[i].padding,
+                        alignment: _kTopErrorColumns[i].alignment,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            right: i == _kTopErrorColumns.length - 1
+                                ? BorderSide.none
+                                : const BorderSide(color: _kTableGridColor, width: 1),
+                          ),
+                        ),
+                        child: Text(
+                          _kTopErrorColumns[i].label,
+                          textAlign: _kTopErrorColumns[i].textAlign,
+                          style: _kTableHeaderStyle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             Expanded(child: buildBody()),
           ],
         ),
@@ -1221,118 +1288,56 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   }
 }
 
-class _ErrorSummaryCard extends StatelessWidget {
-  const _ErrorSummaryCard({
+class _ErrorTableRowGroup extends StatelessWidget {
+  const _ErrorTableRowGroup({
     required this.rank,
     required this.error,
     required this.accentColor,
-    required this.isSelected,
+    required this.selectedError,
     required this.selectedDetail,
-    required this.onSelect,
+    required this.onErrorTap,
     required this.onDetailTap,
   });
 
   final int rank;
   final TETopErrorEntity error;
   final Color accentColor;
-  final bool isSelected;
+  final TETopErrorEntity? selectedError;
   final TETopErrorDetailEntity? selectedDetail;
-  final VoidCallback onSelect;
+  final VoidCallback onErrorTap;
   final ValueChanged<TETopErrorDetailEntity> onDetailTap;
 
   @override
   Widget build(BuildContext context) {
-    final total = error.totalFail;
-    final firstRatio = total == 0 ? 0.0 : error.firstFail / total;
-    final repairRatio = total == 0 ? 0.0 : error.repairFail / total;
-    final details = error.details.take(3).toList();
+    final detailList = error.details.take(3).toList();
+    final rows = detailList.isEmpty
+        ? <TETopErrorDetailEntity?>[null]
+        : detailList.cast<TETopErrorDetailEntity?>();
+    final isErrorSelected = selectedError?.errorCode == error.errorCode;
 
-    return InkWell(
-      onTap: onSelect,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? _kSurfaceMuted.withOpacity(0.65)
-              : _kSurfaceMuted.withOpacity(0.35),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isSelected
-                ? accentColor
-                : _kPanelBorderColor.withOpacity(0.7),
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _kTableGridColor),
+        color: _kPanelColor.withOpacity(0.6),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '#$rank',
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        error.errorCode,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _kTextPrimary,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'F ${error.firstFail} · R ${error.repairFail} · Σ $total',
-                        style: const TextStyle(
-                          color: _kTextSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  isSelected
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_unchecked,
-                  size: 20,
-                  color: isSelected ? accentColor : _kTextSecondary,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _ErrorProgressBar(
-              firstRatio: firstRatio,
-              repairRatio: repairRatio,
-            ),
-            const SizedBox(height: 14),
-            _DetailList(
-              details: details,
-              accentColor: accentColor,
-              selectedDetail: selectedDetail,
-              onDetailTap: onDetailTap,
-            ),
+            for (var i = 0; i < rows.length; i++)
+              _ErrorTableRow(
+                rank: rank,
+                error: error,
+                detail: rows[i],
+                accentColor: accentColor,
+                isFirst: i == 0,
+                isLast: i == rows.length - 1,
+                isErrorSelected: isErrorSelected,
+                isDetailSelected: rows[i] != null && rows[i] == selectedDetail,
+                onErrorTap: onErrorTap,
+                onDetailTap: onDetailTap,
+              ),
           ],
         ),
       ),
@@ -1340,242 +1345,199 @@ class _ErrorSummaryCard extends StatelessWidget {
   }
 }
 
-class _ErrorProgressBar extends StatelessWidget {
-  const _ErrorProgressBar({
-    required this.firstRatio,
-    required this.repairRatio,
-  });
-
-  final double firstRatio;
-  final double repairRatio;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 10,
-      decoration: BoxDecoration(
-        color: _kSurfaceMuted,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final firstWidth = width * firstRatio.clamp(0.0, 1.0);
-          final repairWidth = width * repairRatio.clamp(0.0, 1.0);
-          return Stack(
-            children: [
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: firstWidth,
-                child: Container(color: _kErrorColor.withOpacity(0.85)),
-              ),
-              Positioned(
-                left: firstWidth,
-                top: 0,
-                bottom: 0,
-                width: repairWidth,
-                child: Container(color: _kRepairColor.withOpacity(0.85)),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _DetailList extends StatelessWidget {
-  const _DetailList({
-    required this.details,
+class _ErrorTableRow extends StatelessWidget {
+  const _ErrorTableRow({
+    required this.rank,
+    required this.error,
+    required this.detail,
     required this.accentColor,
-    required this.selectedDetail,
+    required this.isFirst,
+    required this.isLast,
+    required this.isErrorSelected,
+    required this.isDetailSelected,
+    required this.onErrorTap,
     required this.onDetailTap,
   });
 
-  final List<TETopErrorDetailEntity> details;
+  final int rank;
+  final TETopErrorEntity error;
+  final TETopErrorDetailEntity? detail;
   final Color accentColor;
-  final TETopErrorDetailEntity? selectedDetail;
+  final bool isFirst;
+  final bool isLast;
+  final bool isErrorSelected;
+  final bool isDetailSelected;
+  final VoidCallback onErrorTap;
   final ValueChanged<TETopErrorDetailEntity> onDetailTap;
 
   @override
   Widget build(BuildContext context) {
-    if (details.isEmpty) {
-      return const Text(
-        'No model or group breakdown available.',
-        style: TextStyle(color: _kTextSecondary, fontSize: 12),
-      );
-    }
+    final hasDetail = detail != null;
+    final rowColor = isDetailSelected
+        ? accentColor.withOpacity(0.16)
+        : (isErrorSelected ? _kSurfaceMuted.withOpacity(0.4) : Colors.transparent);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.25),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _kPanelBorderColor.withOpacity(0.6)),
+    return Container(
+      color: rowColor,
+      child: Row(
+        children: [
+          _TableCell(
+            spec: _kTopErrorColumns[0],
+            showContent: isFirst,
+            addRightBorder: true,
+            addBottomBorder: !isLast,
+            onTap: onErrorTap,
+            child: Text('$rank', style: _kTableValueStyle),
           ),
-          child: Row(
-            children: const [
-              Expanded(
-                flex: 4,
-                child: Text(
-                  'MODEL',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _kTextSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  'GROUP',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _kTextSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  'F',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _kTextSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  'R',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _kTextSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+          _TableCell(
+            spec: _kTopErrorColumns[1],
+            showContent: isFirst,
+            addRightBorder: true,
+            addBottomBorder: !isLast,
+            onTap: onErrorTap,
+            child: Text(error.errorCode, style: _kTableValueStyle),
           ),
-        ),
-        const SizedBox(height: 8),
-        for (final detail in details)
-          _DetailRow(
-            detail: detail,
-            accentColor: accentColor,
-            selected: detail == selectedDetail,
-            onTap: () => onDetailTap(detail),
+          _TableCell(
+            spec: _kTopErrorColumns[2],
+            showContent: isFirst,
+            addRightBorder: true,
+            addBottomBorder: !isLast,
+            onTap: onErrorTap,
+            child: Text('${error.firstFail}', style: _kTableValueStyle),
           ),
-      ],
+          _TableCell(
+            spec: _kTopErrorColumns[3],
+            showContent: isFirst,
+            addRightBorder: true,
+            addBottomBorder: !isLast,
+            onTap: onErrorTap,
+            child: Text('${error.repairFail}', style: _kTableValueStyle),
+          ),
+          _TableCell(
+            spec: _kTopErrorColumns[4],
+            showContent: true,
+            addRightBorder: true,
+            addBottomBorder: !isLast,
+            onTap: hasDetail
+                ? () {
+                    onErrorTap();
+                    onDetailTap(detail!);
+                  }
+                : onErrorTap,
+            child: hasDetail
+                ? Text(detail!.modelName, style: _kTableValueStyle)
+                : const Text('No detail data', style: _kTableMutedStyle),
+          ),
+          _TableCell(
+            spec: _kTopErrorColumns[5],
+            showContent: true,
+            addRightBorder: true,
+            addBottomBorder: !isLast,
+            onTap: hasDetail
+                ? () {
+                    onErrorTap();
+                    onDetailTap(detail!);
+                  }
+                : onErrorTap,
+            child: hasDetail
+                ? Text(detail!.groupName, style: _kTableValueStyle)
+                : const Text('-', style: _kTableMutedStyle),
+          ),
+          _TableCell(
+            spec: _kTopErrorColumns[6],
+            showContent: true,
+            addRightBorder: true,
+            addBottomBorder: !isLast,
+            onTap: hasDetail
+                ? () {
+                    onErrorTap();
+                    onDetailTap(detail!);
+                  }
+                : null,
+            child: hasDetail
+                ? Text('${detail!.firstFail}', style: _kTableValueStyle)
+                : const Text('-', style: _kTableMutedStyle),
+          ),
+          _TableCell(
+            spec: _kTopErrorColumns[7],
+            showContent: true,
+            addRightBorder: false,
+            addBottomBorder: !isLast,
+            onTap: hasDetail
+                ? () {
+                    onErrorTap();
+                    onDetailTap(detail!);
+                  }
+                : null,
+            child: hasDetail
+                ? Text('${detail!.repairFail}', style: _kTableValueStyle)
+                : const Text('-', style: _kTableMutedStyle),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.detail,
-    required this.accentColor,
-    required this.selected,
-    required this.onTap,
+class _TableCell extends StatelessWidget {
+  const _TableCell({
+    required this.spec,
+    required this.child,
+    required this.showContent,
+    required this.addRightBorder,
+    required this.addBottomBorder,
+    this.onTap,
   });
 
-  final TETopErrorDetailEntity detail;
-  final Color accentColor;
-  final bool selected;
-  final VoidCallback onTap;
+  final _TableColumnSpec spec;
+  final Widget child;
+  final bool showContent;
+  final bool addRightBorder;
+  final bool addBottomBorder;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: InkWell(
+    final Widget content = showContent ? child : const SizedBox.shrink();
+    return Expanded(
+      flex: spec.flex,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          alignment: spec.alignment,
+          padding: spec.padding,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: selected ? accentColor.withOpacity(0.15) : Colors.transparent,
-            border: Border.all(
-              color: selected
-                  ? accentColor
-                  : _kPanelBorderColor.withOpacity(0.6),
+            border: Border(
+              right: addRightBorder
+                  ? const BorderSide(color: _kTableGridColor, width: 1)
+                  : BorderSide.none,
+              bottom: addBottomBorder
+                  ? const BorderSide(color: _kTableGridColor, width: 1)
+                  : BorderSide.none,
             ),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 4,
-                child: Text(
-                  detail.modelName,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: selected ? _kTextPrimary : _kTextSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  detail.groupName,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: selected ? _kTextPrimary : _kTextSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '${detail.firstFail}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: selected ? _kTextPrimary : _kTextSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '${detail.repairFail}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: selected ? _kTextPrimary : _kTextSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          child: content,
         ),
       ),
     );
   }
+}
+
+class _TableColumnSpec {
+  const _TableColumnSpec({
+    required this.label,
+    required this.flex,
+    this.alignment = Alignment.center,
+    this.textAlign = TextAlign.center,
+    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  });
+
+  final String label;
+  final int flex;
+  final Alignment alignment;
+  final TextAlign textAlign;
+  final EdgeInsets padding;
 }
 
 class _DistributionDatum {
