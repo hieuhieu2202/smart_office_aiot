@@ -3398,29 +3398,33 @@ class _OutputChart extends StatelessWidget {
         final bool isMobile = maxWidth < 640;
         final bool isTablet = !isMobile && maxWidth < 1024;
         final bool shouldWrapSlots = isMobile || isTablet;
-        final bool isUltraTight = maxWidth < 420;
+        final bool isTightMobile = maxWidth < 420;
 
         String _formatSlotLabel(String label) {
           if (!label.contains(' - ')) {
             return label;
           }
           final parts = label.split(' - ');
-          if (isUltraTight) {
-            return parts.first;
+          if (parts.length < 2) {
+            return label;
           }
-          return '${parts.first}\n${parts.last}';
+          final String start = parts.first.trim();
+          final String end = parts.last.trim();
+          return '$start\n$end';
         }
 
         final TextStyle axisLabelStyle = TextStyle(
           color: const Color(0xFFE8F4FF),
-          fontSize: isUltraTight
-              ? 9
-              : shouldWrapSlots
-                  ? 10
-                  : 11,
+          fontSize: shouldWrapSlots
+              ? (isTightMobile
+                  ? 8.5
+                  : 10)
+              : 11,
           fontWeight: FontWeight.w600,
-          letterSpacing: shouldWrapSlots ? 0.1 : 0.2,
-          height: shouldWrapSlots ? 1.15 : 1.0,
+          letterSpacing: shouldWrapSlots
+              ? (isTightMobile ? 0.0 : 0.1)
+              : 0.2,
+          height: shouldWrapSlots ? 1.05 : 1.0,
           shadows: const [
             Shadow(
               color: Color(0x99000000),
@@ -3527,7 +3531,9 @@ class _OutputChart extends StatelessWidget {
           final text = shouldWrapSlots ? _formatSlotLabel(label) : label;
           return ChartAxisLabel(text, axisLabelStyle);
         },
-        maximumLabelWidth: shouldWrapSlots ? 72 : null,
+        maximumLabelWidth: shouldWrapSlots
+            ? (isTightMobile ? 64 : 72)
+            : null,
       ),
       primaryYAxis: NumericAxis(
         minimum: 0,
