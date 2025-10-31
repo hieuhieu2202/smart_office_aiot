@@ -31,20 +31,20 @@ const Color _kTableGridColor = Color(0xFF123760);
 
 const TextStyle _kTableHeaderStyle = TextStyle(
   color: _kTextPrimary,
-  fontSize: 10,
+  fontSize: 12,
   fontWeight: FontWeight.w700,
   letterSpacing: 0.2,
 );
 
 const TextStyle _kTableValueStyle = TextStyle(
   color: _kTextPrimary,
-  fontSize: 11,
+  fontSize: 13,
   fontWeight: FontWeight.w600,
 );
 
 const TextStyle _kTableMutedStyle = TextStyle(
   color: _kTextSecondary,
-  fontSize: 10,
+  fontSize: 12,
   fontWeight: FontWeight.w500,
 );
 
@@ -656,6 +656,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                           _kTopErrorColumns[i].label,
                           textAlign: _kTopErrorColumns[i].textAlign,
                           style: _kTableHeaderStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
                         ),
                       ),
                     ),
@@ -1327,7 +1330,14 @@ class _TopErrorTableRow extends StatelessWidget {
 
     Widget buildDetailColumn(String Function(TETopErrorDetailEntity detail) mapper) {
       if (details.isEmpty) {
-        return const Text('—', style: _kTableMutedStyle, textAlign: TextAlign.center);
+        return const Text(
+          '—',
+          style: _kTableMutedStyle,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+        );
       }
       return Column(
         mainAxisSize: MainAxisSize.min,
@@ -1389,8 +1399,11 @@ class _TopErrorTableRow extends StatelessWidget {
                 children: [
                   Text(
                     error.errorCode,
-                    style: _kTableValueStyle.copyWith(fontSize: 13),
+                    style: _kTableValueStyle.copyWith(fontSize: 14),
                     textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
                   ),
                   const SizedBox(height: 6),
                   Container(
@@ -1524,8 +1537,11 @@ class _SummaryStat extends StatelessWidget {
       children: [
         Text(
           value.toString(),
-          style: _kTableValueStyle.copyWith(fontSize: 14, color: _kTextPrimary),
+          style: _kTableValueStyle.copyWith(fontSize: 15, color: _kTextPrimary),
           textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
         ),
         const SizedBox(height: 4),
         Text(
@@ -1535,6 +1551,9 @@ class _SummaryStat extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
           textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
         ),
       ],
     );
@@ -1559,7 +1578,7 @@ class _DetailValueTile extends StatelessWidget {
     final textStyle = isSelected
         ? _kTableValueStyle.copyWith(color: accentColor)
         : _kTableValueStyle.copyWith(
-            fontSize: 10,
+            fontSize: 11,
             color: _kTextPrimary.withOpacity(0.9),
           );
 
@@ -1581,7 +1600,14 @@ class _DetailValueTile extends StatelessWidget {
           ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Text(label, style: textStyle, textAlign: TextAlign.center),
+        child: Text(
+          label,
+          style: textStyle,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+        ),
       ),
     );
   }
