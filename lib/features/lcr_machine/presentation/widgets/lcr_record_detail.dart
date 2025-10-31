@@ -53,31 +53,36 @@ class LcrRecordDetail extends StatelessWidget {
         builder: (context, constraints) {
           const crossAxisCount = 2;
           const crossAxisSpacing = 16.0;
+          const runSpacing = 12.0;
           const baseAspectRatio = 3.4;
           const minTileHeight = 92.0;
 
-          final availableWidth = constraints.maxWidth;
-          final tileWidth = (availableWidth - crossAxisSpacing) / crossAxisCount;
+          final availableWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : MediaQuery.of(context).size.width;
+          final horizontalSpacing = crossAxisSpacing * (crossAxisCount - 1);
+          final usableWidth = availableWidth - horizontalSpacing;
+          final tileWidth = usableWidth > 0
+              ? usableWidth / crossAxisCount
+              : availableWidth / crossAxisCount;
           final idealTileHeight = tileWidth / baseAspectRatio;
           final tileHeight = idealTileHeight < minTileHeight ? minTileHeight : idealTileHeight;
-          final childAspectRatio = tileWidth / tileHeight;
 
-          return GridView.builder(
-            itemCount: entries.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              childAspectRatio: childAspectRatio,
-              crossAxisSpacing: crossAxisSpacing,
-              mainAxisSpacing: 12,
-            ),
+          return SingleChildScrollView(
             padding: EdgeInsets.zero,
-            primary: false,
-            shrinkWrap: true,
             physics: const BouncingScrollPhysics(),
-            itemBuilder: (context, index) {
-              final entry = entries[index];
-              return _DetailTile(entry: entry, theme: theme);
-            },
+            child: Wrap(
+              spacing: crossAxisSpacing,
+              runSpacing: runSpacing,
+              children: [
+                for (final entry in entries)
+                  SizedBox(
+                    width: tileWidth,
+                    height: tileHeight,
+                    child: _DetailTile(entry: entry, theme: theme),
+                  ),
+              ],
+            ),
           );
         },
       ),
