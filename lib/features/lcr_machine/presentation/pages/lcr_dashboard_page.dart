@@ -930,16 +930,24 @@ class _DashboardTab extends StatelessWidget {
     required LcrDashboardViewState data,
     required bool isMobile,
     required bool isTablet,
+    double? availableHeight,
   }) {
+    double resolveHeight(double base) {
+      if (availableHeight == null || !availableHeight.isFinite) {
+        return base;
+      }
+      return availableHeight!;
+    }
+
     final departmentCard = LcrChartCard(
       title: 'DEPARTMENT ANALYSIS',
-      height: 340,
+      height: resolveHeight(340),
       child: _StackedBarChart(data.departmentSeries),
     );
 
     final outputCard = LcrChartCard(
       title: 'YIELD RATE & OUTPUT',
-      height: 360,
+      height: resolveHeight(360),
       backgroundGradient: const LinearGradient(
         colors: [
           Color(0xFF062349),
@@ -954,7 +962,7 @@ class _DashboardTab extends StatelessWidget {
 
     final typeCard = LcrChartCard(
       title: 'TYPE ANALYSIS',
-      height: 340,
+      height: resolveHeight(340),
       child: _StackedBarChart(
         data.typeSeries,
         xLabelStyle: const TextStyle(
@@ -1135,7 +1143,82 @@ class _DashboardTab extends StatelessWidget {
           final isTablet = !isMobile && maxWidth < 1100;
           final horizontalPadding = isMobile ? 16.0 : 24.0;
           final verticalPadding = isMobile ? 16.0 : 24.0;
-          final resolvedPrimaryHeight = primaryRowHeight;
+          final resolvedPrimaryHeight = (isMobile || isTablet)
+              ? primaryRowHeight
+              : math.max(320.0, machineHeight);
+
+          final summaryWidget = _SummaryRow(
+            overview: data.overview,
+            onPassOverview: () => _showStatusOverview(context, true),
+            onFailOverview: () => _showStatusOverview(context, false),
+          );
+
+          if (!isMobile && !isTablet) {
+            const summaryEstimate = 140.0;
+            const betweenSummaryAndPrimary = 12.0;
+            const betweenRows = 16.0;
+            const minSecondaryHeight = 360.0;
+
+            final minRequiredHeight = (verticalPadding * 2) +
+                summaryEstimate +
+                betweenSummaryAndPrimary +
+                resolvedPrimaryHeight +
+                betweenRows +
+                minSecondaryHeight;
+
+            if (constraints.maxHeight >= minRequiredHeight) {
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 140),
+                      child: summaryWidget,
+                    ),
+                    SizedBox(height: betweenSummaryAndPrimary),
+                    Expanded(
+                      flex: 8,
+                      child: LayoutBuilder(
+                        builder: (context, innerConstraints) {
+                          final height = innerConstraints.maxHeight.isFinite
+                              ? innerConstraints.maxHeight
+                              : resolvedPrimaryHeight;
+                          return _buildPrimaryCharts(
+                            data: data,
+                            isMobile: isMobile,
+                            isTablet: isTablet,
+                            primaryRowHeight: height,
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(height: betweenRows),
+                    Expanded(
+                      flex: 11,
+                      child: LayoutBuilder(
+                        builder: (context, innerConstraints) {
+                          final secondaryHeight =
+                              innerConstraints.maxHeight.isFinite
+                                  ? innerConstraints.maxHeight
+                                  : null;
+                          return _buildSecondaryCharts(
+                            data: data,
+                            isMobile: isMobile,
+                            isTablet: isTablet,
+                            availableHeight: secondaryHeight,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
 
           return SizedBox(
             width: maxWidth,
@@ -1151,11 +1234,7 @@ class _DashboardTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _SummaryRow(
-                      overview: data.overview,
-                      onPassOverview: () => _showStatusOverview(context, true),
-                      onFailOverview: () => _showStatusOverview(context, false),
-                    ),
+                    summaryWidget,
                     SizedBox(height: isMobile ? 16 : 24),
                     _buildPrimaryCharts(
                       data: data,
