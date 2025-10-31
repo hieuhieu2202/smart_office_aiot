@@ -837,10 +837,14 @@ class _DashboardTab extends StatelessWidget {
   final LcrDashboardController controller;
 
   double _factoryDistributionHeight(int itemCount) {
-    const baseHeight = 160.0;
-    const perTile = 60.0;
-    final computed = baseHeight + (itemCount * perTile);
-    return computed.clamp(260.0, 360.0).toDouble();
+    if (itemCount <= 0) {
+      return 260.0;
+    }
+
+    const headerHeight = 170.0;
+    const perTile = 88.0;
+    final computed = headerHeight + (itemCount * perTile);
+    return math.max(260.0, computed);
   }
 
   double _machinePerformanceHeight(int itemCount) {
@@ -1131,8 +1135,7 @@ class _DashboardTab extends StatelessWidget {
           final isTablet = !isMobile && maxWidth < 1100;
           final horizontalPadding = isMobile ? 16.0 : 24.0;
           final verticalPadding = isMobile ? 16.0 : 24.0;
-          final resolvedPrimaryHeight =
-              isMobile ? math.min(primaryRowHeight, 360.0) : primaryRowHeight;
+          final resolvedPrimaryHeight = primaryRowHeight;
 
           return SizedBox(
             width: maxWidth,
@@ -2341,8 +2344,8 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
       );
     }
 
-    const headerEstimate = 130.0;
-    const tileEstimate = 82.0;
+    const headerEstimate = 170.0;
+    const tileEstimate = 88.0;
     final estimatedHeight =
         headerEstimate + (sorted.length * tileEstimate); // conservative
 
