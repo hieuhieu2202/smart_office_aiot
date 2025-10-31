@@ -445,7 +445,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                   flex: 2,
                   child: _buildTopErrorTablePanel(
                     isWide: true,
-                    expand: true,
                   ),
                 ),
                 const SizedBox(width: gap),
@@ -486,624 +485,476 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   }
 
 
-  Widget _buildTopErrorTablePanel({required bool isWide, bool expand = false}) {
+  Widget _buildTopErrorTablePanel({required bool isWide}) {
     final panel = Obx(() {
-      final errors = _controller.errors;
+      final errors = List<TETopErrorEntity>.from(_controller.errors);
       final selectedError = _controller.selectedError.value;
       final selectedDetail = _controller.selectedDetail.value;
+      final lastUpdated = _controller.lastUpdated.value;
+      final rangeLabel = _controller.rangeLabel;
+      final isRefreshing = _controller.isLoading.value;
 
-      final rows = <_ErrorTableRowData>[];
-      for (var i = 0; i < errors.length; i++) {
-        final error = errors[i];
-        rows.add(
-          _ErrorTableRowData(
-            error: error,
-            rank: i + 1,
-            details: error.details.take(3).toList(),
-          ),
-        );
-      }
-
-      const columns = [
-        _NeonTableColumn(
-          label: 'TOP',
-          flex: 8,
-          alignment: Alignment.center,
-          textAlign: TextAlign.center,
-        ),
-        _NeonTableColumn(
-          label: 'ERROR CODE',
-          flex: 18,
-          alignment: Alignment.center,
-          textAlign: TextAlign.center,
-        ),
-        _NeonTableColumn(
-          label: 'F_FAIL',
-          flex: 10,
-          alignment: Alignment.center,
-          textAlign: TextAlign.center,
-        ),
-        _NeonTableColumn(
-          label: 'R_FAIL',
-          flex: 10,
-          alignment: Alignment.center,
-          textAlign: TextAlign.center,
-        ),
-        _NeonTableColumn(
-          label: 'MODEL NAME (Top 3)',
-          flex: 20,
-          alignment: Alignment.center,
-          textAlign: TextAlign.center,
-        ),
-        _NeonTableColumn(
-          label: 'GROUP_NAME',
-          flex: 16,
-          alignment: Alignment.center,
-          textAlign: TextAlign.center,
-        ),
-        _NeonTableColumn(
-          label: 'FIRST FAIL',
-          flex: 9,
-          alignment: Alignment.center,
-          textAlign: TextAlign.center,
-        ),
-        _NeonTableColumn(
-          label: 'REPAIR FAIL',
-          flex: 9,
-          alignment: Alignment.center,
-          textAlign: TextAlign.center,
-        ),
-      ];
-
-      final gridColor = _kTableGridColor.withOpacity(0.8);
-
-      Widget buildTableBody() {
-        if (rows.isEmpty) {
-          return const Expanded(
-            child: Center(
-              child: Text(
-                'No data available for the selected filters.',
-                style: TextStyle(color: _kTextSecondary),
-              ),
+      Widget buildBody() {
+        if (errors.isEmpty) {
+          return const Center(
+            child: Text(
+              'No data available for the selected filters.',
+              style: TextStyle(color: _kTextSecondary),
             ),
           );
         }
 
-        return Expanded(
-          child: DecoratedBox(
-            decoration: const BoxDecoration(color: Color(0x1A0F253F)),
-            child: ListView.builder(
-              padding: EdgeInsets.zero,
-              itemCount: rows.length,
-              physics: const ClampingScrollPhysics(),
-              itemBuilder: (context, index) {
-                final data = rows[index];
-                final barColor =
-                    _barPalette[(data.rank - 1) % _barPalette.length];
-                final isSelected = selectedError == data.error;
-                return _buildTableDataRow(
-                  data: data,
-                  barColor: barColor,
-                  isSelected: isSelected,
-                  isStriped: index.isEven,
-                  isFirst: index == 0,
-                  isLast: index == rows.length - 1,
-                  columns: columns,
-                  gridColor: gridColor,
-                  selectedDetail: selectedDetail,
-                );
-              },
-            ),
-          ),
+        return ListView.separated(
+          padding: EdgeInsets.zero,
+          physics: const ClampingScrollPhysics(),
+          itemBuilder: (context, index) {
+            final error = errors[index];
+            return _ErrorSummaryCard(
+              rank: index + 1,
+              error: error,
+              accentColor: _barPalette[index % _barPalette.length],
+              isSelected: identical(error, selectedError) || error == selectedError,
+              selectedDetail: selectedDetail,
+              onSelect: () => _controller.selectError(error),
+              onDetailTap: (detail) => _controller.selectDetail(detail),
+            );
+          },
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemCount: errors.length,
         );
       }
 
-      final tableShell = Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: gridColor),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0x2A2B81FF), Color(0x1820D0FF)],
-          ),
-        ),
-        clipBehavior: Clip.hardEdge,
-        child: Column(
-          children: [
-            _buildTableHeaderRow(columns: columns, gridColor: gridColor),
-            Container(height: 1, color: gridColor.withOpacity(0.7)),
-            buildTableBody(),
-          ],
-        ),
-      );
-
-      final content = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _kSurfaceMuted.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _kPanelBorderColor.withOpacity(0.8)),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.table_chart_outlined, size: 18, color: _kAccentColor),
-                    SizedBox(width: 8),
-                    Text(
-                      'Top 10 Error Breakdown',
-                      style: TextStyle(
-                        color: _kTextPrimary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  TERefreshLabel(
-                    lastUpdated: _controller.lastUpdated.value,
-                    isRefreshing: _controller.isLoading.value,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    _controller.rangeLabel,
-                    style: const TextStyle(color: _kTextSecondary, fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Expanded(child: tableShell),
-        ],
-      );
-
       return Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0A1F44), Color(0xFF061228)],
-          ),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: _kPanelBorderColor.withOpacity(0.9)),
+          color: _kPanelColor.withOpacity(0.92),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _kPanelBorderColor.withOpacity(0.85)),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x80131F3D),
-              blurRadius: 28,
-              offset: Offset(0, 18),
+              color: Color(0x55121E3B),
+              blurRadius: 24,
+              offset: Offset(0, 14),
             ),
           ],
         ),
         padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
-        child: content,
-      );
-    });
-
-    if (expand) {
-      return panel;
-    }
-
-    final height = isWide ? 360.0 : 460.0;
-    return SizedBox(height: height, child: panel);
-  }
-
-  Widget _buildTableHeaderRow({
-    required List<_NeonTableColumn> columns,
-    required Color gridColor,
-  }) {
-    return Container(
-      color: const Color(0x1F0F2B4D),
-      child: Row(
-        children: [
-          for (var i = 0; i < columns.length; i++)
-            Expanded(
-              flex: columns[i].flex,
-              child: Container(
-                padding: columns[i].headerPadding,
-                decoration: BoxDecoration(
-                  border: Border(
-                    right: i == columns.length - 1
-                        ? BorderSide.none
-                        : BorderSide(color: gridColor, width: 1),
-                  ),
-                ),
-                child: Align(
-                  alignment: columns[i].alignment,
-                  child: Text(
-                    columns[i].label,
-                    textAlign: columns[i].textAlign,
-                    style: const TextStyle(
-                      color: _kAccentColor,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTableDataRow({
-    required _ErrorTableRowData data,
-    required Color barColor,
-    required bool isSelected,
-    required bool isStriped,
-    required bool isFirst,
-    required bool isLast,
-    required List<_NeonTableColumn> columns,
-    required Color gridColor,
-    required TETopErrorDetailEntity? selectedDetail,
-  }) {
-    final details = data.details;
-    final baseRowColor = isSelected
-        ? _kSurfaceMuted.withOpacity(0.14)
-        : isStriped
-            ? _kSurfaceMuted.withOpacity(0.06)
-            : Colors.transparent;
-
-    Future<void> handleFocusError() async {
-      await _controller.selectError(data.error);
-      await _controller.focusErrorTrend(data.error);
-    }
-
-    Future<void> handleDetailTap(TETopErrorDetailEntity detail) async {
-      await _controller.selectError(data.error);
-      await _controller.selectDetail(detail);
-    }
-
-    return InkWell(
-      onTap: handleFocusError,
-      child: Container(
-        decoration: BoxDecoration(
-          color: baseRowColor,
-          border: Border(
-            top: isFirst
-                ? BorderSide(color: gridColor.withOpacity(0.8), width: 1)
-                : BorderSide.none,
-            bottom: BorderSide(
-              color: gridColor.withOpacity(isLast ? 0.95 : 0.6),
-              width: 1,
-            ),
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              width: 4,
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? barColor.withOpacity(0.85) : Colors.transparent,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Row(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _kSurfaceMuted.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _kPanelBorderColor),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.table_chart_outlined, size: 18, color: _kAccentColor),
+                      SizedBox(width: 8),
+                      Text(
+                        'Top 10 Error Breakdown',
+                        style: TextStyle(
+                          color: _kTextPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildTableDataCell(
-                      '#${data.rank}',
-                      flex: columns[0].flex,
-                      alignment: columns[0].alignment,
-                      textAlign: columns[0].textAlign,
-                      color: barColor,
-                      fontWeight: FontWeight.w700,
-                      drawRightBorder: true,
-                      padding: columns[0].cellPadding,
-                      borderColor: gridColor,
+                    TERefreshLabel(
+                      lastUpdated: lastUpdated,
+                      isRefreshing: isRefreshing,
                     ),
-                    _buildTableDataCell(
-                      data.error.errorCode,
-                      flex: columns[1].flex,
-                      alignment: columns[1].alignment,
-                      textAlign: columns[1].textAlign,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.4,
-                      drawRightBorder: true,
-                      padding: columns[1].cellPadding,
-                      borderColor: gridColor,
-                      onTap: handleFocusError,
-                    ),
-                    _buildTableDataCell(
-                      data.error.firstFail.toString(),
-                      flex: columns[2].flex,
-                      alignment: columns[2].alignment,
-                      textAlign: columns[2].textAlign,
-                      fontWeight: FontWeight.w700,
-                      drawRightBorder: true,
-                      padding: columns[2].cellPadding,
-                      borderColor: gridColor,
-                    ),
-                    _buildTableDataCell(
-                      data.error.repairFail.toString(),
-                      flex: columns[3].flex,
-                      alignment: columns[3].alignment,
-                      textAlign: columns[3].textAlign,
-                      fontWeight: FontWeight.w700,
-                      drawRightBorder: true,
-                      padding: columns[3].cellPadding,
-                      borderColor: gridColor,
-                    ),
-                    _buildTableDataCell(
-                      '',
-                      flex: columns[4].flex,
-                      alignment: columns[4].alignment,
-                      textAlign: columns[4].textAlign,
-                      drawRightBorder: true,
-                      padding: columns[4].cellPadding,
-                      borderColor: gridColor,
-                      child: _buildDetailValueList(
-                        details: details,
-                        selectedDetail: selectedDetail,
-                        barColor: barColor,
-                        labelBuilder: (detail) => detail.modelName,
-                        onTap: handleDetailTap,
-                      ),
-                    ),
-                    _buildTableDataCell(
-                      '',
-                      flex: columns[5].flex,
-                      alignment: columns[5].alignment,
-                      textAlign: columns[5].textAlign,
-                      drawRightBorder: true,
-                      padding: columns[5].cellPadding,
-                      borderColor: gridColor,
-                      child: _buildDetailValueList(
-                        details: details,
-                        selectedDetail: selectedDetail,
-                        barColor: barColor,
-                        labelBuilder: (detail) => detail.groupName,
-                        onTap: handleDetailTap,
-                      ),
-                    ),
-                    _buildTableDataCell(
-                      '',
-                      flex: columns[6].flex,
-                      alignment: columns[6].alignment,
-                      textAlign: columns[6].textAlign,
-                      drawRightBorder: true,
-                      padding: columns[6].cellPadding,
-                      borderColor: gridColor,
-                      child: _buildDetailMetricList(
-                        details: details,
-                        selectedDetail: selectedDetail,
-                        barColor: barColor,
-                        valueBuilder: (detail) => detail.firstFail.toString(),
-                      ),
-                    ),
-                    _buildTableDataCell(
-                      '',
-                      flex: columns[7].flex,
-                      alignment: columns[7].alignment,
-                      textAlign: columns[7].textAlign,
-                      drawRightBorder: false,
-                      padding: columns[7].cellPadding,
-                      borderColor: gridColor,
-                      child: _buildDetailMetricList(
-                        details: details,
-                        selectedDetail: selectedDetail,
-                        barColor: barColor,
-                        valueBuilder: (detail) => detail.repairFail.toString(),
-                      ),
+                    const SizedBox(width: 12),
+                    Text(
+                      rangeLabel,
+                      style: const TextStyle(color: _kTextSecondary, fontSize: 12),
                     ),
                   ],
                 ),
-              ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Expanded(child: buildBody()),
+          ],
+        ),
+      );
+    });
+
+    if (isWide) {
+      return panel;
+    }
+
+    return SizedBox(height: 520, child: panel);
+  }
+
+class _ErrorSummaryCard extends StatelessWidget {
+  const _ErrorSummaryCard({
+    required this.rank,
+    required this.error,
+    required this.accentColor,
+    required this.isSelected,
+    required this.selectedDetail,
+    required this.onSelect,
+    required this.onDetailTap,
+  });
+
+  final int rank;
+  final TETopErrorEntity error;
+  final Color accentColor;
+  final bool isSelected;
+  final TETopErrorDetailEntity? selectedDetail;
+  final VoidCallback onSelect;
+  final ValueChanged<TETopErrorDetailEntity> onDetailTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = error.totalFail;
+    final firstRatio = total == 0 ? 0.0 : error.firstFail / total;
+    final repairRatio = total == 0 ? 0.0 : error.repairFail / total;
+    final details = error.details.take(3).toList();
+
+    return InkWell(
+      onTap: onSelect,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? _kSurfaceMuted.withOpacity(0.65)
+              : _kSurfaceMuted.withOpacity(0.35),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isSelected
+                ? accentColor
+                : _kPanelBorderColor.withOpacity(0.7),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '#$rank',
+                    style: TextStyle(
+                      color: accentColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        error.errorCode,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _kTextPrimary,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'F ${error.firstFail} · R ${error.repairFail} · Σ $total',
+                        style: const TextStyle(
+                          color: _kTextSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  size: 20,
+                  color: isSelected ? accentColor : _kTextSecondary,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _ErrorProgressBar(
+              firstRatio: firstRatio,
+              repairRatio: repairRatio,
+            ),
+            const SizedBox(height: 14),
+            _DetailList(
+              details: details,
+              accentColor: accentColor,
+              selectedDetail: selectedDetail,
+              onDetailTap: onDetailTap,
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildTableDataCell(
-    String text, {
-    required int flex,
-    Alignment alignment = Alignment.centerLeft,
-    TextAlign textAlign = TextAlign.left,
-    Color color = _kTextPrimary,
-    FontWeight fontWeight = FontWeight.w500,
-    double fontSize = 12,
-    double letterSpacing = 0.2,
-    bool muted = false,
-    bool invisible = false,
-    int maxLines = 1,
-    bool drawRightBorder = true,
-    EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-    Color? borderColor,
-    VoidCallback? onTap,
-    Widget? child,
-  }) {
-    final style = TextStyle(
-      color: muted ? _kTextSecondary.withOpacity(0.75) : color,
-      fontSize: fontSize,
-      fontWeight: fontWeight,
-      letterSpacing: letterSpacing,
-    );
+class _ErrorProgressBar extends StatelessWidget {
+  const _ErrorProgressBar({
+    required this.firstRatio,
+    required this.repairRatio,
+  });
 
-    final dividerColor = (borderColor ?? _kTableGridColor).withOpacity(0.6);
+  final double firstRatio;
+  final double repairRatio;
 
-    Widget content;
-    if (child != null) {
-      content = child;
-    } else {
-      final label = Text(
-        text,
-        maxLines: maxLines,
-        overflow: TextOverflow.ellipsis,
-        style: style,
-        textAlign: textAlign,
-      );
-      content = invisible ? Opacity(opacity: 0.0, child: label) : label;
-    }
-    content = Align(
-      alignment: alignment,
-      child: content,
-    );
-
-    if (onTap != null) {
-      content = MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: content,
-        ),
-      );
-    }
-
-    return Expanded(
-      flex: flex,
-      child: Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          border: Border(
-            right: drawRightBorder
-                ? BorderSide(color: dividerColor, width: 1)
-                : BorderSide.none,
-          ),
-        ),
-        child: content,
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 10,
+      decoration: BoxDecoration(
+        color: _kSurfaceMuted,
+        borderRadius: BorderRadius.circular(12),
       ),
-    );
-  }
-
-  Widget _buildDetailValueList({
-    required List<TETopErrorDetailEntity> details,
-    required TETopErrorDetailEntity? selectedDetail,
-    required Color barColor,
-    required String Function(TETopErrorDetailEntity) labelBuilder,
-    required Future<void> Function(TETopErrorDetailEntity) onTap,
-  }) {
-    if (details.isEmpty) {
-      return const Text(
-        '—',
-        style: TextStyle(
-          color: _kTextSecondary,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-        textAlign: TextAlign.center,
-      );
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        for (var i = 0; i < details.length; i++)
-          Padding(
-            padding: EdgeInsets.only(top: i == 0 ? 0 : 6),
-            child: _buildDetailPill(
-              label: labelBuilder(details[i]),
-              isSelected: selectedDetail == details[i],
-              barColor: barColor,
-              onTap: () {
-                onTap(details[i]);
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildDetailMetricList({
-    required List<TETopErrorDetailEntity> details,
-    required TETopErrorDetailEntity? selectedDetail,
-    required Color barColor,
-    required String Function(TETopErrorDetailEntity) valueBuilder,
-  }) {
-    if (details.isEmpty) {
-      return const Text(
-        '—',
-        style: TextStyle(
-          color: _kTextSecondary,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-        textAlign: TextAlign.center,
-      );
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        for (var i = 0; i < details.length; i++)
-          Padding(
-            padding: EdgeInsets.only(top: i == 0 ? 0 : 6),
-            child: Text(
-              valueBuilder(details[i]),
-              style: TextStyle(
-                color: selectedDetail == details[i]
-                    ? barColor
-                    : _kTextPrimary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+      clipBehavior: Clip.antiAlias,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final firstWidth = width * firstRatio.clamp(0.0, 1.0);
+          final repairWidth = width * repairRatio.clamp(0.0, 1.0);
+          return Stack(
+            children: [
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: firstWidth,
+                child: Container(color: _kErrorColor.withOpacity(0.85)),
               ),
-              textAlign: TextAlign.center,
-            ),
+              Positioned(
+                left: firstWidth,
+                top: 0,
+                bottom: 0,
+                width: repairWidth,
+                child: Container(color: _kRepairColor.withOpacity(0.85)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DetailList extends StatelessWidget {
+  const _DetailList({
+    required this.details,
+    required this.accentColor,
+    required this.selectedDetail,
+    required this.onDetailTap,
+  });
+
+  final List<TETopErrorDetailEntity> details;
+  final Color accentColor;
+  final TETopErrorDetailEntity? selectedDetail;
+  final ValueChanged<TETopErrorDetailEntity> onDetailTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (details.isEmpty) {
+      return const Text(
+        'No model or group breakdown available.',
+        style: TextStyle(color: _kTextSecondary, fontSize: 12),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.25),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _kPanelBorderColor.withOpacity(0.6)),
+          ),
+          child: Row(
+            children: const [
+              Expanded(
+                flex: 4,
+                child: Text(
+                  'MODEL',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _kTextSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 4,
+                child: Text(
+                  'GROUP',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _kTextSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'F',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _kTextSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'R',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _kTextSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final detail in details)
+          _DetailRow(
+            detail: detail,
+            accentColor: accentColor,
+            selected: detail == selectedDetail,
+            onTap: () => onDetailTap(detail),
           ),
       ],
     );
   }
+}
 
-  Widget _buildDetailPill({
-    required String label,
-    required bool isSelected,
-    required Color barColor,
-    required VoidCallback onTap,
-  }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.detail,
+    required this.accentColor,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final TETopErrorDetailEntity detail;
+  final Color accentColor;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: InkWell(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? barColor.withOpacity(0.2) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
+            color: selected ? accentColor.withOpacity(0.15) : Colors.transparent,
             border: Border.all(
-              color: isSelected
-                  ? barColor
-                  : _kPanelBorderColor.withOpacity(0.75),
+              color: selected
+                  ? accentColor
+                  : _kPanelBorderColor.withOpacity(0.6),
             ),
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected ? barColor : _kTextPrimary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: Text(
+                  detail.modelName,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: selected ? _kTextPrimary : _kTextSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 4,
+                child: Text(
+                  detail.groupName,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: selected ? _kTextPrimary : _kTextSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  '${detail.firstFail}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: selected ? _kTextPrimary : _kTextSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  '${detail.repairFail}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: selected ? _kTextPrimary : _kTextSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
   Widget _buildDistributionPanel() {
     return Obx(() {
       final errors = _controller.errors;
@@ -1805,36 +1656,6 @@ class _InfoBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-class _NeonTableColumn {
-  const _NeonTableColumn({
-    required this.label,
-    required this.flex,
-    this.alignment = Alignment.centerLeft,
-    this.textAlign = TextAlign.left,
-    this.headerPadding = const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-    this.cellPadding = const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-  });
-
-  final String label;
-  final int flex;
-  final Alignment alignment;
-  final TextAlign textAlign;
-  final EdgeInsets headerPadding;
-  final EdgeInsets cellPadding;
-}
-
-class _ErrorTableRowData {
-  const _ErrorTableRowData({
-    required this.error,
-    required this.rank,
-    required this.details,
-  });
-
-  final TETopErrorEntity error;
-  final List<TETopErrorDetailEntity> details;
-  final int rank;
 }
 
 class _RangeButton extends StatelessWidget {
