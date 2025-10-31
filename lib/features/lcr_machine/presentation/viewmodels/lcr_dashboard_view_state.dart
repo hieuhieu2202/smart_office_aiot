@@ -1,4 +1,7 @@
 import 'dart:developer' as developer;
+
+import 'package:intl/intl.dart';
+
 import '../../domain/entities/lcr_entities.dart';
 
 
@@ -85,6 +88,9 @@ class LcrDashboardViewState {
     const slotCount = 12; // 12 ca từ 07:30–19:30
     final Map<int, _SlotTotals> bySlot = {};
     final Map<int, List<String>> slotLogs = {};
+    final Map<DateTime, _SlotTotals> byDay = {};
+    DateTime? earliestRecord;
+    DateTime? latestRecord;
 
 
     for (final record in records) {
@@ -112,6 +118,22 @@ class LcrDashboardViewState {
 
 
       final dt = record.dateTime;
+
+      if (earliestRecord == null || dt.isBefore(earliestRecord!)) {
+        earliestRecord = dt;
+      }
+      if (latestRecord == null || dt.isAfter(latestRecord!)) {
+        latestRecord = dt;
+      }
+
+      final dayKey = DateTime(dt.year, dt.month, dt.day);
+      final dayBucket = byDay.putIfAbsent(dayKey, () => _SlotTotals());
+      if (record.status) {
+        dayBucket.pass += 1;
+      } else {
+        dayBucket.fail += 1;
+      }
+
       int section = dt.minute > 0 ? dt.hour + 1 : dt.hour;
       if (section >= 24) section = 0;
 
@@ -171,32 +193,76 @@ class LcrDashboardViewState {
     final outputYr = <double>[];
     final categoriesLabel = <String>[];
 
-    for (var i = 0; i < slotCount; i++) {
-      final section = (8 + i) % 24;
-      final startHour = (section + 23) % 24;
-      final endHour = section % 24;
-      final startLabel = '${startHour.toString().padLeft(2, '0')}:30';
-      final endLabel = '${endHour.toString().padLeft(2, '0')}:30';
-      categoriesLabel.add('$startLabel - $endLabel');
+    final bool shouldGroupByDay;
+    if (earliestRecord == null || latestRecord == null) {
+      shouldGroupByDay = false;
+    } else {
+      final startDate = DateTime(
+        earliestRecord!.year,
+        earliestRecord!.month,
+        earliestRecord!.day,
+      );
+      final endDate = DateTime(
+        latestRecord!.year,
+        latestRecord!.month,
+        latestRecord!.day,
+      );
+      final sameDate = startDate == endDate;
+      final duration = latestRecord!.difference(earliestRecord!);
+      final durationHours = duration.inMilliseconds / Duration.millisecondsPerHour;
+      final fillByWorkSections = sameDate || durationHours <= 12.01;
+      shouldGroupByDay = !fillByWorkSections;
+    }
 
-      final bucket = bySlot[i];
-      final passCount = bucket?.pass ?? 0;
-      final failCount = bucket?.fail ?? 0;
-      final total = passCount + failCount;
-      final yr = total == 0 ? 0 : (passCount / total * 100);
-      outputPass.add(passCount);
-      outputFail.add(failCount);
-      outputYr.add(double.parse(yr.toStringAsFixed(2)));
+    if (shouldGroupByDay && byDay.isNotEmpty) {
+      final formatter = DateFormat('yyyy-MM-dd');
+      final sortedDays = byDay.keys.toList()..sort();
+      for (final day in sortedDays) {
+        final bucket = byDay[day]!;
+        final passCount = bucket.pass;
+        final failCount = bucket.fail;
+        final total = passCount + failCount;
+        final yr = total == 0 ? 0 : (passCount / total * 100);
 
-      // Log chi tiết từng slot
-      final lines = slotLogs[i];
-      final buffer = StringBuffer()
-        ..write(
-            'slot=$i [$startLabel - $endLabel] pass=$passCount fail=$failCount total=$total');
-      if (lines != null && lines.isNotEmpty) {
-        for (final line in lines) buffer.write('\n  - $line');
+        final label = formatter.format(day);
+        categoriesLabel.add(label);
+        outputPass.add(passCount);
+        outputFail.add(failCount);
+        outputYr.add(double.parse(yr.toStringAsFixed(2)));
+
+        developer.log(
+          'date=$label pass=$passCount fail=$failCount total=$total',
+          name: 'LCR_OUTPUT_DAY',
+        );
       }
-      developer.log(buffer.toString(), name: 'LCR_OUTPUT_SLOT');
+    } else {
+      for (var i = 0; i < slotCount; i++) {
+        final section = (8 + i) % 24;
+        final startHour = (section + 23) % 24;
+        final endHour = section % 24;
+        final startLabel = '${startHour.toString().padLeft(2, '0')}:30';
+        final endLabel = '${endHour.toString().padLeft(2, '0')}:30';
+        categoriesLabel.add('$startLabel - $endLabel');
+
+        final bucket = bySlot[i];
+        final passCount = bucket?.pass ?? 0;
+        final failCount = bucket?.fail ?? 0;
+        final total = passCount + failCount;
+        final yr = total == 0 ? 0 : (passCount / total * 100);
+        outputPass.add(passCount);
+        outputFail.add(failCount);
+        outputYr.add(double.parse(yr.toStringAsFixed(2)));
+
+        // Log chi tiết từng slot
+        final lines = slotLogs[i];
+        final buffer = StringBuffer()
+          ..write(
+              'slot=$i [$startLabel - $endLabel] pass=$passCount fail=$failCount total=$total');
+        if (lines != null && lines.isNotEmpty) {
+          for (final line in lines) buffer.write('\n  - $line');
+        }
+        developer.log(buffer.toString(), name: 'LCR_OUTPUT_SLOT');
+      }
     }
 
     final outputTrend = LcrOutputTrend(

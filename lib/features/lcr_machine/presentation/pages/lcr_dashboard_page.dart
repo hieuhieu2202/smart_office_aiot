@@ -837,10 +837,14 @@ class _DashboardTab extends StatelessWidget {
   final LcrDashboardController controller;
 
   double _factoryDistributionHeight(int itemCount) {
-    const baseHeight = 160.0;
-    const perTile = 60.0;
-    final computed = baseHeight + (itemCount * perTile);
-    return computed.clamp(260.0, 360.0).toDouble();
+    if (itemCount <= 0) {
+      return 240.0;
+    }
+
+    const headerHeight = 150.0;
+    const perTile = 74.0;
+    final computed = headerHeight + (itemCount * perTile);
+    return math.max(240.0, computed);
   }
 
   double _machinePerformanceHeight(int itemCount) {
@@ -926,16 +930,24 @@ class _DashboardTab extends StatelessWidget {
     required LcrDashboardViewState data,
     required bool isMobile,
     required bool isTablet,
+    double? availableHeight,
   }) {
+    double resolveHeight(double base) {
+      if (availableHeight == null || !availableHeight.isFinite) {
+        return base;
+      }
+      return availableHeight!;
+    }
+
     final departmentCard = LcrChartCard(
       title: 'DEPARTMENT ANALYSIS',
-      height: 340,
+      height: resolveHeight(340),
       child: _StackedBarChart(data.departmentSeries),
     );
 
     final outputCard = LcrChartCard(
       title: 'YIELD RATE & OUTPUT',
-      height: 360,
+      height: resolveHeight(360),
       backgroundGradient: const LinearGradient(
         colors: [
           Color(0xFF062349),
@@ -950,7 +962,7 @@ class _DashboardTab extends StatelessWidget {
 
     final typeCard = LcrChartCard(
       title: 'TYPE ANALYSIS',
-      height: 340,
+      height: resolveHeight(340),
       child: _StackedBarChart(
         data.typeSeries,
         xLabelStyle: const TextStyle(
@@ -1131,8 +1143,82 @@ class _DashboardTab extends StatelessWidget {
           final isTablet = !isMobile && maxWidth < 1100;
           final horizontalPadding = isMobile ? 16.0 : 24.0;
           final verticalPadding = isMobile ? 16.0 : 24.0;
-          final resolvedPrimaryHeight =
-              isMobile ? math.min(primaryRowHeight, 360.0) : primaryRowHeight;
+          final resolvedPrimaryHeight = (isMobile || isTablet)
+              ? primaryRowHeight
+              : math.max(320.0, machineHeight);
+
+          final summaryWidget = _SummaryRow(
+            overview: data.overview,
+            onPassOverview: () => _showStatusOverview(context, true),
+            onFailOverview: () => _showStatusOverview(context, false),
+          );
+
+          if (!isMobile && !isTablet) {
+            const summaryEstimate = 140.0;
+            const betweenSummaryAndPrimary = 12.0;
+            const betweenRows = 16.0;
+            const minSecondaryHeight = 360.0;
+
+            final minRequiredHeight = (verticalPadding * 2) +
+                summaryEstimate +
+                betweenSummaryAndPrimary +
+                resolvedPrimaryHeight +
+                betweenRows +
+                minSecondaryHeight;
+
+            if (constraints.maxHeight >= minRequiredHeight) {
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 140),
+                      child: summaryWidget,
+                    ),
+                    SizedBox(height: betweenSummaryAndPrimary),
+                    Expanded(
+                      flex: 8,
+                      child: LayoutBuilder(
+                        builder: (context, innerConstraints) {
+                          final height = innerConstraints.maxHeight.isFinite
+                              ? innerConstraints.maxHeight
+                              : resolvedPrimaryHeight;
+                          return _buildPrimaryCharts(
+                            data: data,
+                            isMobile: isMobile,
+                            isTablet: isTablet,
+                            primaryRowHeight: height,
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(height: betweenRows),
+                    Expanded(
+                      flex: 11,
+                      child: LayoutBuilder(
+                        builder: (context, innerConstraints) {
+                          final secondaryHeight =
+                              innerConstraints.maxHeight.isFinite
+                                  ? innerConstraints.maxHeight
+                                  : null;
+                          return _buildSecondaryCharts(
+                            data: data,
+                            isMobile: isMobile,
+                            isTablet: isTablet,
+                            availableHeight: secondaryHeight,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
 
           return SizedBox(
             width: maxWidth,
@@ -1148,11 +1234,7 @@ class _DashboardTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _SummaryRow(
-                      overview: data.overview,
-                      onPassOverview: () => _showStatusOverview(context, true),
-                      onFailOverview: () => _showStatusOverview(context, false),
-                    ),
+                    summaryWidget,
                     SizedBox(height: isMobile ? 16 : 24),
                     _buildPrimaryCharts(
                       data: data,
@@ -1359,11 +1441,11 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
     final theme = Theme.of(context);
     final media = MediaQuery.of(context);
     final width = math.min(
-      math.max(media.size.width * 0.92, media.size.width - 48),
-      1800.0,
+      math.max(media.size.width * 0.96, media.size.width - 32),
+      1920.0,
     );
-    final tableMinWidth = math.max(width * 0.9, width - 96);
-    final height = math.min(media.size.height * 0.8, 640.0);
+    final tableMinWidth = math.max(width * 0.9, width - 56);
+    final height = math.min(media.size.height * 0.9, 820.0);
     final dateTimeFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
     final hasActiveFilters = _hasActiveFilters;
     final recordChipLabel = hasActiveFilters
@@ -1479,125 +1561,187 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Divider(color: Colors.white12, height: 1),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final filterControls = <Widget>[
-                    _FilterDropdown(
-                      label: 'TYPE',
-                      value: _selectedType,
-                      options: _typeOptions,
-                      onChanged: (value) => _onFilterChanged(type: value),
-                      width: 200,
-                    ),
-                    _FilterDropdown(
-                      label: 'EMPLOYEE ID',
-                      value: _selectedEmployee,
-                      options: _employeeOptions,
-                      onChanged: (value) => _onFilterChanged(employee: value),
-                      width: 180,
-                    ),
-                    _FilterDropdown(
-                      label: 'FACTORY',
-                      value: _selectedFactory,
-                      options: _factoryOptions,
-                      onChanged: (value) => _onFilterChanged(factory: value),
-                      width: 160,
-                    ),
-                    _FilterDropdown(
-                      label: 'DEPARTMENT',
-                      value: _selectedDepartment,
-                      options: _departmentOptions,
-                      onChanged: (value) => _onFilterChanged(department: value),
-                      width: 180,
-                    ),
-                    _FilterDropdown(
-                      label: 'MACHINE NO.',
-                      value: _selectedMachine,
-                      options: _machineOptions,
-                      onChanged: (value) => _onFilterChanged(machine: value),
-                      width: 150,
-                    ),
-                  ];
-
-                  final searchField = _SearchField(
-                    controller: _searchController,
-                    onChanged: _onSearchChanged,
-                  );
-
-                  final isWide = constraints.maxWidth >= 1080;
-                  final searchWidth = math.max(
-                    220.0,
-                    math.min(320.0, constraints.maxWidth * 0.35),
-                  );
-
-                  if (isWide) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: filterControls,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        SizedBox(
-                          width: searchWidth,
-                          child: searchField,
-                        ),
-                      ],
-                    );
-                  }
-
-                  final compactSearchWidth = math.min(360.0, constraints.maxWidth);
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: filterControls,
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: SizedBox(
-                          width: compactSearchWidth,
-                          child: searchField,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                child: records.isEmpty
-                  ? _buildEmptyState(theme, emptyMessage)
-                  : _buildRecordsTable(
-                      records: records,
-                      tableMinWidth: tableMinWidth,
-                      dateTimeFormatter: dateTimeFormatter,
-                      headingTextStyle: headingTextStyle,
-                      dataTextStyle: dataTextStyle,
-                      infoTextStyle: infoTextStyle,
-                      warningTextStyle: warningTextStyle,
-                      successTextStyle: successTextStyle,
-                    ),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isHorizontal = constraints.maxWidth >= 900;
+                    final gap = isHorizontal ? 20.0 : 0.0;
+                    final filterWidth = isHorizontal
+                        ? math.min(340.0, constraints.maxWidth * 0.28)
+                        : constraints.maxWidth;
+                    final tableAvailableWidth = isHorizontal
+                        ? math.max(0.0, constraints.maxWidth - filterWidth - gap)
+                        : constraints.maxWidth;
+                    final allowTwoColumns = isHorizontal
+                        ? filterWidth >= 260.0
+                        : constraints.maxWidth >= 560.0;
+                    final tableMinWidth = math.max(tableAvailableWidth, 720.0);
+                    final tableWidget = records.isEmpty
+                        ? _buildEmptyTableShell(theme, emptyMessage)
+                        : _buildRecordsTable(
+                            records: records,
+                            tableMinWidth: tableMinWidth,
+                            dateTimeFormatter: dateTimeFormatter,
+                            headingTextStyle: headingTextStyle,
+                            dataTextStyle: dataTextStyle,
+                            infoTextStyle: infoTextStyle,
+                            warningTextStyle: warningTextStyle,
+                            successTextStyle: successTextStyle,
+                          );
+
+                    if (isHorizontal) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            width: filterWidth,
+                            child: _buildFilterPane(
+                              allowTwoColumns: allowTwoColumns,
+                              scrollable: true,
+                            ),
+                          ),
+                          SizedBox(width: gap),
+                          Expanded(child: tableWidget),
+                        ],
+                      );
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildFilterPane(
+                          allowTwoColumns: allowTwoColumns,
+                          scrollable: false,
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(child: tableWidget),
+                      ],
+                    );
+                  },
                 ),
               ),
+            ),
           ],
         ),
       ),
     );
   }
 
+
+  Widget _buildFilterPane({
+    required bool allowTwoColumns,
+    required bool scrollable,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 320.0;
+        final contentWidth = math.max(0.0, availableWidth - 32.0);
+        final useTwoColumns = allowTwoColumns && contentWidth >= 320.0;
+        final fieldWidth = useTwoColumns
+            ? (contentWidth - 12.0) / 2.0
+            : contentWidth;
+        final resolvedFieldWidth = fieldWidth > 0
+            ? fieldWidth
+            : (contentWidth > 0 ? contentWidth : availableWidth);
+
+        final dropdowns = <Widget>[
+          _FilterDropdown(
+            label: 'TYPE',
+            value: _selectedType,
+            options: _typeOptions,
+            onChanged: (value) => _onFilterChanged(type: value),
+            width: resolvedFieldWidth,
+          ),
+          _FilterDropdown(
+            label: 'EMPLOYEE ID',
+            value: _selectedEmployee,
+            options: _employeeOptions,
+            onChanged: (value) => _onFilterChanged(employee: value),
+            width: resolvedFieldWidth,
+          ),
+          _FilterDropdown(
+            label: 'FACTORY',
+            value: _selectedFactory,
+            options: _factoryOptions,
+            onChanged: (value) => _onFilterChanged(factory: value),
+            width: resolvedFieldWidth,
+          ),
+          _FilterDropdown(
+            label: 'DEPARTMENT',
+            value: _selectedDepartment,
+            options: _departmentOptions,
+            onChanged: (value) => _onFilterChanged(department: value),
+            width: resolvedFieldWidth,
+          ),
+          _FilterDropdown(
+            label: 'MACHINE NO.',
+            value: _selectedMachine,
+            options: _machineOptions,
+            onChanged: (value) => _onFilterChanged(machine: value),
+            width: resolvedFieldWidth,
+          ),
+        ];
+
+        final column = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: dropdowns,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: _SearchField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+              ),
+            ),
+          ],
+        );
+
+        Widget content = column;
+        if (scrollable) {
+          final minHeight = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : 0.0;
+          content = SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: minHeight),
+              child: column,
+            ),
+          );
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: content,
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyTableShell(ThemeData theme, String message) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white12),
+        color: Colors.white.withOpacity(0.03),
+      ),
+      child: _buildEmptyState(theme, message),
+    );
+  }
 
   Widget _buildEmptyState(ThemeData theme, String message) {
     final style = theme.textTheme.titleMedium?.copyWith(
@@ -2112,18 +2256,22 @@ class _SearchField extends StatelessWidget {
     final hintStyle = theme.textTheme.bodySmall?.copyWith(
           color: Colors.white54,
           fontWeight: FontWeight.w500,
+          fontSize: 12,
         ) ??
         const TextStyle(
           color: Colors.white54,
           fontWeight: FontWeight.w500,
+          fontSize: 12,
         );
     final textStyle = theme.textTheme.bodyMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w600,
+          fontSize: 13,
         ) ??
         const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w600,
+          fontSize: 13,
         );
 
     return TextField(
@@ -2135,23 +2283,23 @@ class _SearchField extends StatelessWidget {
       decoration: InputDecoration(
         isDense: true,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         filled: true,
         fillColor: Colors.white.withOpacity(0.05),
         hintText: 'Search records',
         hintStyle: hintStyle,
         prefixIcon:
-            const Icon(Icons.search, color: Colors.white54, size: 20),
+            const Icon(Icons.search, color: Colors.white54, size: 18),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.white24),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.white24),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF20E0FF)),
         ),
       ),
@@ -2178,24 +2326,28 @@ class _FilterDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
-          color: Colors.white70,
+          color: Colors.white60,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
+          letterSpacing: 0.6,
+          fontSize: 11,
         ) ??
         const TextStyle(
-          color: Colors.white70,
+          color: Colors.white60,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
+          letterSpacing: 0.6,
+          fontSize: 11,
         );
     final valueStyle = theme.textTheme.bodySmall?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w600,
-          letterSpacing: 0.4,
+          letterSpacing: 0.3,
+          fontSize: 13,
         ) ??
         const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w600,
-          letterSpacing: 0.4,
+          letterSpacing: 0.3,
+          fontSize: 13,
         );
 
     return SizedBox(
@@ -2204,19 +2356,23 @@ class _FilterDropdown extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: labelStyle),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Container(
-            height: 44,
+            height: 40,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white24),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: value,
-                icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Colors.white70,
+                  size: 18,
+                ),
                 dropdownColor: const Color(0xFF04122F),
                 isExpanded: true,
                 style: valueStyle,
@@ -2228,7 +2384,11 @@ class _FilterDropdown extends StatelessWidget {
                     .map(
                       (option) => DropdownMenuItem<String>(
                         value: option,
-                        child: Text(option, overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          option,
+                          overflow: TextOverflow.ellipsis,
+                          style: valueStyle,
+                        ),
                       ),
                     )
                     .toList(),
@@ -2314,15 +2474,17 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.cyanAccent.withOpacity(0.9),
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.4,
+                    letterSpacing: 1.05,
+                    fontSize: 11,
                   ) ??
                   const TextStyle(
                     color: Colors.cyanAccent,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.4,
+                    letterSpacing: 1.05,
+                    fontSize: 11,
                   ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             _PulsingTotalBadge(total: total),
           ],
         ),
@@ -2341,8 +2503,8 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
       );
     }
 
-    const headerEstimate = 130.0;
-    const tileEstimate = 82.0;
+    const headerEstimate = 120.0;
+    const tileEstimate = 62.0;
     final estimatedHeight =
         headerEstimate + (sorted.length * tileEstimate); // conservative
 
@@ -2357,11 +2519,11 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
-              const SizedBox(height: 22),
+              const SizedBox(height: 12),
               ...List.generate(sorted.length, (index) {
                 return Padding(
                   padding: EdgeInsets.only(
-                    bottom: index == sorted.length - 1 ? 0 : 16,
+                    bottom: index == sorted.length - 1 ? 0 : 10,
                   ),
                   child: buildTile(index),
                 );
@@ -2374,7 +2536,7 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildHeader(),
-            const SizedBox(height: 22),
+            const SizedBox(height: 12),
             Expanded(
               child: Scrollbar(
                 controller: _scrollController,
@@ -2385,7 +2547,7 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
                   physics: const BouncingScrollPhysics(),
                   itemCount: sorted.length,
                   itemBuilder: (context, index) => buildTile(index),
-                  separatorBuilder: (context, index) => const SizedBox(height: 16),
+                  separatorBuilder: (context, index) => const SizedBox(height: 10),
                 ),
               ),
             ),
@@ -2425,7 +2587,7 @@ class _FactoryDistributionTile extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       waitDuration: const Duration(milliseconds: 120),
       showDuration: const Duration(milliseconds: 3500),
       verticalOffset: 18,
@@ -2435,8 +2597,8 @@ class _FactoryDistributionTile extends StatelessWidget {
         text: label,
         style: const TextStyle(
           fontWeight: FontWeight.w700,
-          fontSize: 13,
-          letterSpacing: 0.6,
+          fontSize: 11,
+          letterSpacing: 0.4,
           color: Colors.white,
         ),
         children: [
@@ -2445,7 +2607,7 @@ class _FactoryDistributionTile extends StatelessWidget {
             text: '$value pcs',
             style: const TextStyle(
               fontWeight: FontWeight.w500,
-              fontSize: 12,
+              fontSize: 10,
               color: Colors.white70,
             ),
           ),
@@ -2454,7 +2616,7 @@ class _FactoryDistributionTile extends StatelessWidget {
             text: '$percentText%',
             style: const TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 12,
+              fontSize: 10,
               color: Colors.cyanAccent,
             ),
           ),
@@ -2466,21 +2628,22 @@ class _FactoryDistributionTile extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 12,
-                height: 12,
+                width: 9,
+                height: 9,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: gradient),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 5),
               Expanded(
                 child: Text(
                   label,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
+                    letterSpacing: 0.3,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -2489,19 +2652,20 @@ class _FactoryDistributionTile extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
+                  fontSize: 12,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 3),
           _GradientProgressBar(
             value: percent.clamp(0.0, 1.0),
             gradient: gradient,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             '$value pcs',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            style: const TextStyle(color: Colors.white70, fontSize: 10),
           ),
         ],
       ),
@@ -2550,30 +2714,30 @@ class _PulsingTotalBadgeState extends State<_PulsingTotalBadge>
     final textStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w800,
-          fontSize: 22,
-          letterSpacing: 1.1,
+          fontSize: 18,
+          letterSpacing: 0.8,
         ) ??
         const TextStyle(
           color: Colors.white,
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: FontWeight.w800,
-          letterSpacing: 1.1,
+          letterSpacing: 0.8,
         );
 
     final badge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF56CCF2), Color(0xFF2F80ED)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(
             color: Color(0x332980B9),
-            blurRadius: 24,
-            offset: Offset(0, 10),
+            blurRadius: 18,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -2615,7 +2779,7 @@ class _GradientProgressBar extends StatelessWidget {
         return ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
-            height: 10,
+            height: 6,
             child: Stack(
               children: [
                 Positioned.fill(
