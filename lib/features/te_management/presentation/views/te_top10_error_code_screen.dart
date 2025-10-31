@@ -497,28 +497,13 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       final rows = <_ErrorTableRowData>[];
       for (var i = 0; i < errors.length; i++) {
         final error = errors[i];
-        final details = error.details.take(3).toList();
-        if (details.isEmpty) {
-          rows.add(
-            _ErrorTableRowData(
-              error: error,
-              detail: null,
-              rank: i + 1,
-              showMeta: true,
-            ),
-          );
-        } else {
-          for (var j = 0; j < details.length; j++) {
-            rows.add(
-              _ErrorTableRowData(
-                error: error,
-                detail: details[j],
-                rank: i + 1,
-                showMeta: j == 0,
-              ),
-            );
-          }
-        }
+        rows.add(
+          _ErrorTableRowData(
+            error: error,
+            rank: i + 1,
+            details: error.details.take(3).toList(),
+          ),
+        );
       }
 
       if (rows.isEmpty && _tableScrollController.hasClients) {
@@ -532,7 +517,12 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           alignment: Alignment.center,
           textAlign: TextAlign.center,
         ),
-        _NeonTableColumn(label: 'ERROR CODE', flex: 18),
+        _NeonTableColumn(
+          label: 'ERROR CODE',
+          flex: 18,
+          alignment: Alignment.center,
+          textAlign: TextAlign.center,
+        ),
         _NeonTableColumn(
           label: 'F_FAIL',
           flex: 10,
@@ -545,8 +535,18 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           alignment: Alignment.center,
           textAlign: TextAlign.center,
         ),
-        _NeonTableColumn(label: 'MODEL NAME (Top 3)', flex: 20),
-        _NeonTableColumn(label: 'GROUP_NAME', flex: 16),
+        _NeonTableColumn(
+          label: 'MODEL NAME (Top 3)',
+          flex: 20,
+          alignment: Alignment.center,
+          textAlign: TextAlign.center,
+        ),
+        _NeonTableColumn(
+          label: 'GROUP_NAME',
+          flex: 16,
+          alignment: Alignment.center,
+          textAlign: TextAlign.center,
+        ),
         _NeonTableColumn(
           label: 'FIRST FAIL',
           flex: 9,
@@ -593,10 +593,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                   final data = rows[index];
                   final barColor =
                       _barPalette[(data.rank - 1) % _barPalette.length];
-                  final isSelected = selectedError == data.error &&
-                      (selectedDetail == null
-                          ? data.showMeta
-                          : data.detail == selectedDetail);
+                  final isSelected = selectedError == data.error;
                   return _buildTableDataRow(
                     data: data,
                     barColor: barColor,
@@ -606,6 +603,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     isLast: index == rows.length - 1,
                     columns: columns,
                     gridColor: gridColor,
+                    selectedDetail: selectedDetail,
                   );
                 },
               ),
@@ -663,14 +661,15 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 ),
               ),
               const Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   TERefreshLabel(
                     lastUpdated: _controller.lastUpdated.value,
                     isRefreshing: _controller.isLoading.value,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(width: 12),
                   Text(
                     _controller.rangeLabel,
                     style: const TextStyle(color: _kTextSecondary, fontSize: 12),
@@ -763,33 +762,27 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     required bool isLast,
     required List<_NeonTableColumn> columns,
     required Color gridColor,
+    required TETopErrorDetailEntity? selectedDetail,
   }) {
-    final detail = data.detail;
-    final hasDetail = detail != null;
+    final details = data.details;
     final baseRowColor = isSelected
         ? barColor.withOpacity(0.18)
         : isStriped
             ? _kSurfaceMuted.withOpacity(0.12)
             : Colors.transparent;
 
-    void handleDetailTap() {
-      _controller.selectError(data.error);
-      if (detail != null) {
-        _controller.selectDetail(detail);
-      } else {
-        _controller.focusErrorTrend(data.error);
-      }
+    Future<void> handleFocusError() async {
+      await _controller.selectError(data.error);
+      await _controller.focusErrorTrend(data.error);
+    }
+
+    Future<void> handleDetailTap(TETopErrorDetailEntity detail) async {
+      await _controller.selectError(data.error);
+      await _controller.selectDetail(detail);
     }
 
     return InkWell(
-      onTap: () async {
-        if (detail != null) {
-          await _controller.selectError(data.error);
-          await _controller.selectDetail(detail);
-        } else {
-          await _controller.focusErrorTrend(data.error);
-        }
-      },
+      onTap: handleFocusError,
       child: Container(
         decoration: BoxDecoration(
           color: baseRowColor,
@@ -842,7 +835,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     textAlign: columns[0].textAlign,
                     color: barColor,
                     fontWeight: FontWeight.w700,
-                    invisible: !data.showMeta,
                     drawRightBorder: true,
                     padding: columns[0].cellPadding,
                     borderColor: gridColor,
@@ -854,11 +846,10 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     textAlign: columns[1].textAlign,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.4,
-                    invisible: !data.showMeta,
                     drawRightBorder: true,
                     padding: columns[1].cellPadding,
                     borderColor: gridColor,
-                    onTap: handleDetailTap,
+                    onTap: handleFocusError,
                   ),
                   _buildTableDataCell(
                     data.error.firstFail.toString(),
@@ -866,7 +857,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     alignment: columns[2].alignment,
                     textAlign: columns[2].textAlign,
                     fontWeight: FontWeight.w700,
-                    invisible: !data.showMeta,
                     drawRightBorder: true,
                     padding: columns[2].cellPadding,
                     borderColor: gridColor,
@@ -877,56 +867,71 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     alignment: columns[3].alignment,
                     textAlign: columns[3].textAlign,
                     fontWeight: FontWeight.w700,
-                    invisible: !data.showMeta,
                     drawRightBorder: true,
                     padding: columns[3].cellPadding,
                     borderColor: gridColor,
                   ),
                   _buildTableDataCell(
-                    hasDetail ? detail!.modelName : '—',
+                    '',
                     flex: columns[4].flex,
                     alignment: columns[4].alignment,
                     textAlign: columns[4].textAlign,
-                    muted: !hasDetail,
-                    maxLines: 2,
                     drawRightBorder: true,
                     padding: columns[4].cellPadding,
                     borderColor: gridColor,
-                    onTap: hasDetail ? handleDetailTap : null,
+                    child: _buildDetailValueList(
+                      details: details,
+                      selectedDetail: selectedDetail,
+                      barColor: barColor,
+                      labelBuilder: (detail) => detail.modelName,
+                      onTap: handleDetailTap,
+                    ),
                   ),
                   _buildTableDataCell(
-                    hasDetail ? detail!.groupName : '—',
+                    '',
                     flex: columns[5].flex,
                     alignment: columns[5].alignment,
                     textAlign: columns[5].textAlign,
-                    muted: !hasDetail,
-                    maxLines: 2,
                     drawRightBorder: true,
                     padding: columns[5].cellPadding,
                     borderColor: gridColor,
-                    onTap: hasDetail ? handleDetailTap : null,
+                    child: _buildDetailValueList(
+                      details: details,
+                      selectedDetail: selectedDetail,
+                      barColor: barColor,
+                      labelBuilder: (detail) => detail.groupName,
+                      onTap: handleDetailTap,
+                    ),
                   ),
                   _buildTableDataCell(
-                    hasDetail ? detail!.firstFail.toString() : '—',
+                    '',
                     flex: columns[6].flex,
                     alignment: columns[6].alignment,
                     textAlign: columns[6].textAlign,
-                    fontWeight: FontWeight.w600,
-                    muted: !hasDetail,
                     drawRightBorder: true,
                     padding: columns[6].cellPadding,
                     borderColor: gridColor,
+                    child: _buildDetailMetricList(
+                      details: details,
+                      selectedDetail: selectedDetail,
+                      barColor: barColor,
+                      valueBuilder: (detail) => detail.firstFail.toString(),
+                    ),
                   ),
                   _buildTableDataCell(
-                    hasDetail ? detail!.repairFail.toString() : '—',
+                    '',
                     flex: columns[7].flex,
                     alignment: columns[7].alignment,
                     textAlign: columns[7].textAlign,
-                    fontWeight: FontWeight.w600,
-                    muted: !hasDetail,
                     drawRightBorder: false,
                     padding: columns[7].cellPadding,
                     borderColor: gridColor,
+                    child: _buildDetailMetricList(
+                      details: details,
+                      selectedDetail: selectedDetail,
+                      barColor: barColor,
+                      valueBuilder: (detail) => detail.repairFail.toString(),
+                    ),
                   ),
                 ],
               ),
@@ -953,6 +958,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
     Color? borderColor,
     VoidCallback? onTap,
+    Widget? child,
   }) {
     final style = TextStyle(
       color: muted ? _kTextSecondary.withOpacity(0.75) : color,
@@ -961,17 +967,21 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       letterSpacing: letterSpacing,
     );
 
-    final label = Text(
-      text,
-      maxLines: maxLines,
-      overflow: TextOverflow.ellipsis,
-      style: style,
-      textAlign: textAlign,
-    );
-
     final dividerColor = (borderColor ?? _kTableGridColor).withOpacity(0.6);
 
-    Widget content = invisible ? Opacity(opacity: 0.0, child: label) : label;
+    Widget content;
+    if (child != null) {
+      content = child;
+    } else {
+      final label = Text(
+        text,
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+        style: style,
+        textAlign: textAlign,
+      );
+      content = invisible ? Opacity(opacity: 0.0, child: label) : label;
+    }
     content = Align(
       alignment: alignment,
       child: content,
@@ -1000,6 +1010,124 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           ),
         ),
         child: content,
+      ),
+    );
+  }
+
+  Widget _buildDetailValueList({
+    required List<TETopErrorDetailEntity> details,
+    required TETopErrorDetailEntity? selectedDetail,
+    required Color barColor,
+    required String Function(TETopErrorDetailEntity) labelBuilder,
+    required Future<void> Function(TETopErrorDetailEntity) onTap,
+  }) {
+    if (details.isEmpty) {
+      return const Text(
+        '—',
+        style: TextStyle(
+          color: _kTextSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        for (var i = 0; i < details.length; i++)
+          Padding(
+            padding: EdgeInsets.only(top: i == 0 ? 0 : 6),
+            child: _buildDetailPill(
+              label: labelBuilder(details[i]),
+              isSelected: selectedDetail == details[i],
+              barColor: barColor,
+              onTap: () {
+                onTap(details[i]);
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDetailMetricList({
+    required List<TETopErrorDetailEntity> details,
+    required TETopErrorDetailEntity? selectedDetail,
+    required Color barColor,
+    required String Function(TETopErrorDetailEntity) valueBuilder,
+  }) {
+    if (details.isEmpty) {
+      return const Text(
+        '—',
+        style: TextStyle(
+          color: _kTextSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        for (var i = 0; i < details.length; i++)
+          Padding(
+            padding: EdgeInsets.only(top: i == 0 ? 0 : 6),
+            child: Text(
+              valueBuilder(details[i]),
+              style: TextStyle(
+                color: selectedDetail == details[i]
+                    ? barColor
+                    : _kTextPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDetailPill({
+    required String label,
+    required bool isSelected,
+    required Color barColor,
+    required VoidCallback onTap,
+  }) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? barColor.withOpacity(0.2) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? barColor
+                  : _kPanelBorderColor.withOpacity(0.75),
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? barColor : _kTextPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1715,14 +1843,12 @@ class _ErrorTableRowData {
   const _ErrorTableRowData({
     required this.error,
     required this.rank,
-    required this.showMeta,
-    this.detail,
+    required this.details,
   });
 
   final TETopErrorEntity error;
-  final TETopErrorDetailEntity? detail;
+  final List<TETopErrorDetailEntity> details;
   final int rank;
-  final bool showMeta;
 }
 
 class _RangeButton extends StatelessWidget {
