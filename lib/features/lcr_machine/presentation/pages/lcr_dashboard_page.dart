@@ -95,6 +95,14 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 1100; // tablet + mobile
+          final isHandset = constraints.maxWidth < 600;
+
+          final titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+                fontSize: isHandset ? 18 : null,
+              );
 
           Widget buildNavigationRow() {
             return Row(
@@ -108,25 +116,25 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
                       Get.back<void>();
                     }
                   },
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.arrow_back_ios_new,
                     color: Colors.white70,
-                    size: 20,
+                    size: isHandset ? 18 : 20,
                   ),
-                  splashRadius: 22,
+                  splashRadius: isHandset ? 20 : 22,
                 ),
                 const SizedBox(width: 4),
-                const Icon(Icons.memory, color: Colors.cyanAccent, size: 28),
-                const SizedBox(width: 12),
+                Icon(
+                  Icons.memory,
+                  color: Colors.cyanAccent,
+                  size: isHandset ? 24 : 28,
+                ),
+                SizedBox(width: isHandset ? 8 : 12),
                 Flexible(
                   child: Text(
                     'LCR MACHINE',
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 2,
-                    ),
+                    style: titleStyle,
                   ),
                 ),
               ],
@@ -134,32 +142,33 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
           }
 
           final actions = Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: isHandset ? 8 : 12,
+            runSpacing: isHandset ? 8 : 12,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               SizedBox(
-                height: 44,
+                height: isHandset ? 36 : 44,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.cyanAccent,
                     side: const BorderSide(color: Colors.cyanAccent),
                     backgroundColor: const Color(0xFF03132D),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 8,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isHandset ? 14 : 18,
+                      vertical: isHandset ? 6 : 8,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   onPressed: () => _showFilterSheet(context),
-                  icon: const Icon(Icons.tune, size: 20),
-                  label: const Text(
+                  icon: Icon(Icons.tune, size: isHandset ? 18 : 20),
+                  label: Text(
                     'FILTER',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.1,
+                      fontSize: isHandset ? 12 : 14,
                     ),
                   ),
                 ),
