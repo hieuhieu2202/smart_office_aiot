@@ -53,6 +53,12 @@ class TETopErrorCodeController extends GetxController {
   final RxList<TETopErrorTrendPointEntity> trendPoints =
       <TETopErrorTrendPointEntity>[].obs;
   final Rx<DateTime> lastUpdated = DateTime.now().obs;
+  final RxMap<String, List<TETopErrorTrendPointEntity>> previewTrendPoints =
+      <String, List<TETopErrorTrendPointEntity>>{}.obs;
+  final RxSet<String> previewTrendLoading = <String>{}.obs;
+  final RxMap<String, String> previewTrendErrors =
+      <String, String>{}.obs;
+  final RxBool isTrendFocused = false.obs;
 
   Timer? _timer;
   Future<void>? _running;
@@ -149,6 +155,7 @@ class TETopErrorCodeController extends GetxController {
           type: apiType,
         );
         errors.assignAll(result);
+        _syncPreviewTrends();
         lastUpdated.value = DateTime.now();
         _ensureSelection();
       } catch (error) {
@@ -191,14 +198,26 @@ class TETopErrorCodeController extends GetxController {
     await _loadTrend(detail: selectedDetail.value);
   }
 
+  Future<void> focusErrorTrend(TETopErrorEntity error) async {
+    selectedError.value = error;
+    selectedDetail.value = null;
+    isTrendFocused.value = true;
+    await _loadTrend(detail: null);
+  }
+
   Future<void> selectDetail(TETopErrorDetailEntity? detail) async {
     selectedDetail.value = detail;
     await _loadTrend(detail: detail);
+    isTrendFocused.value = true;
   }
 
   void clearDetailSelection() {
-    if (selectedDetail.value == null) return;
+    if (selectedDetail.value == null) {
+      isTrendFocused.value = false;
+      return;
+    }
     selectedDetail.value = null;
+    isTrendFocused.value = false;
     _loadTrend(detail: null);
   }
 
@@ -207,6 +226,7 @@ class TETopErrorCodeController extends GetxController {
       selectedError.value = null;
       selectedDetail.value = null;
       trendPoints.clear();
+      isTrendFocused.value = false;
       return;
     }
 
@@ -223,8 +243,10 @@ class TETopErrorCodeController extends GetxController {
               element.groupName == detail.groupName);
           if (detailMatch != null) {
             selectedDetail.value = detailMatch;
+            isTrendFocused.value = true;
           } else {
             selectedDetail.value = null;
+            isTrendFocused.value = false;
           }
         }
         _loadTrend(detail: selectedDetail.value);
@@ -234,10 +256,9 @@ class TETopErrorCodeController extends GetxController {
 
     final fallback = errors.first;
     selectedError.value = fallback;
-    selectedDetail.value = fallback.details.isNotEmpty
-        ? fallback.details.first
-        : null;
-    _loadTrend(detail: selectedDetail.value);
+    selectedDetail.value = null;
+    isTrendFocused.value = false;
+    _loadTrend(detail: null);
   }
 
   Future<void> _fetchInitial() async {
@@ -281,5 +302,45 @@ class TETopErrorCodeController extends GetxController {
     } finally {
       isTrendLoading.value = false;
     }
+  }
+
+  void _syncPreviewTrends() {
+    final codes = errors.map((e) => e.errorCode).where((code) => code.isNotEmpty).toSet();
+    previewTrendPoints.removeWhere((key, value) => !codes.contains(key));
+    previewTrendErrors.removeWhere((key, value) => !codes.contains(key));
+    previewTrendLoading.removeWhere((code) => !codes.contains(code));
+    for (final error in errors) {
+      _warmupPreview(error);
+    }
+  }
+
+  void _warmupPreview(TETopErrorEntity error) {
+    final code = error.errorCode;
+    if (code.isEmpty) return;
+    if (previewTrendPoints.containsKey(code) ||
+        previewTrendLoading.contains(code)) {
+      return;
+    }
+    previewTrendLoading.add(code);
+    previewTrendErrors.remove(code);
+    Future(() async {
+      try {
+        final points = await getTopErrorTrendByErrorCodeUseCase(
+          modelSerial: modelSerial.value,
+          range: rangeLabel,
+          errorCode: code,
+          type: apiType,
+        );
+        previewTrendPoints[code] = points;
+      } catch (error) {
+        previewTrendPoints.remove(code);
+        previewTrendErrors[code] = error.toString();
+      } finally {
+        previewTrendLoading.remove(code);
+        previewTrendPoints.refresh();
+        previewTrendErrors.refresh();
+        previewTrendLoading.refresh();
+      }
+    });
   }
 }
