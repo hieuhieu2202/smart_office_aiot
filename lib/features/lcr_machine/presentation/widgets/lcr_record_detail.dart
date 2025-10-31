@@ -129,16 +129,18 @@ class _DetailGrid extends StatelessWidget {
           runSpacing: runSpacing,
           children: [
             for (final entry in entries)
-              ConstrainedBox(
-                constraints: BoxConstraints(minHeight: tileHeight),
+              SizedBox(
                 width: tileWidth,
-                child: _DetailTile(
-                  entry: entry,
-                  theme: theme,
-                  maxLines: valueMaxLines,
-                  labelFontSize: labelFontSize,
-                  valueFontSize: valueFontSize,
-                  verticalGap: verticalGap,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: tileHeight),
+                  child: _DetailTile(
+                    entry: entry,
+                    theme: theme,
+                    maxLines: valueMaxLines,
+                    labelFontSize: labelFontSize,
+                    valueFontSize: valueFontSize,
+                    verticalGap: verticalGap,
+                  ),
                 ),
               ),
           ],
