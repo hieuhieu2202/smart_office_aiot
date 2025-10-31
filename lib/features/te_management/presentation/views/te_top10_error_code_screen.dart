@@ -225,6 +225,82 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     });
   }
 
+  @override
+  Widget build(BuildContext context) {
+    const overlay = SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.black,
+      systemNavigationBarIconBrightness: Brightness.light,
+    );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: overlay,
+      child: Container(
+        decoration: const BoxDecoration(gradient: _kBackgroundGradient),
+        child: ResponsiveBuilder(
+          builder: (context, sizing) {
+            final isWide = sizing.screenSize.width >= 1100;
+            final horizontalPadding = isWide ? 28.0 : 16.0;
+            final verticalPadding = isWide ? 20.0 : 12.0;
+
+            return Scaffold(
+              backgroundColor: Colors.transparent,
+              extendBody: true,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                titleSpacing: 0,
+                centerTitle: false,
+                systemOverlayStyle: overlay,
+                title: Obx(() {
+                  final modelSerial = _controller.modelSerial.value;
+                  final titleText = widget.title ?? '$modelSerial · Top 10 Error Codes';
+                  return Text(
+                    titleText,
+                    style: const TextStyle(
+                      color: _kTextPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  );
+                }),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.filter_alt_outlined),
+                    tooltip: _isFilterPanelOpen ? 'Hide filters' : 'Show filters',
+                    color: _kAccentColor,
+                    onPressed: _toggleFilterPanel,
+                  ),
+                  const SizedBox(width: 4),
+                ],
+              ),
+              body: Stack(
+                children: [
+                  Positioned.fill(
+                    child: SafeArea(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                          vertical: verticalPadding,
+                        ),
+                        child: _buildContent(sizing),
+                      ),
+                    ),
+                  ),
+                  _buildFilterScrim(),
+                  _buildFilterPanel(sizing),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildFilterScrim() {
     return Positioned.fill(
       child: IgnorePointer(
@@ -1073,14 +1149,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     xValueMapper: (item, _) => item.label,
                     yValueMapper: (item, _) => item.total,
                     width: 3.0,
-                    gradient: LinearGradient(
-                      colors: [
-                        seriesConfigs[i].color.withOpacity(0.95),
-                        seriesConfigs[i].color.withOpacity(0.35),
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
                     color: seriesConfigs[i].color,
                     enableTooltip: true,
                     opacity: highlightedCode == null ||
@@ -1107,14 +1175,12 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     ),
                   ),
               ],
-              ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );
   }
-}
 
 
   Widget _buildFocusedTrendChart({
@@ -1201,11 +1267,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             xValueMapper: (item, _) => item.label,
             yValueMapper: (item, _) => item.firstFail,
             width: 3.2,
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF8F8F), Color(0xFFFF4D6D)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
             color: _kErrorColor,
             markerSettings: const MarkerSettings(
               isVisible: true,
@@ -1231,11 +1292,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             xValueMapper: (item, _) => item.label,
             yValueMapper: (item, _) => item.repairFail,
             width: 3.2,
-            gradient: const LinearGradient(
-              colors: [Color(0xFFB197FC), Color(0xFF7C3AED)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
             color: _kRepairColor,
             markerSettings: const MarkerSettings(
               isVisible: true,
