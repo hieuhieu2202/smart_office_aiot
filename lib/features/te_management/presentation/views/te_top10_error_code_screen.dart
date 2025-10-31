@@ -1,4 +1,6 @@
 
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -1012,8 +1014,10 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
     return IgnorePointer(
       ignoring: isLoading,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+      child: _Neon3DChartWrapper(
+        tiltX: 0.16,
+        tiltY: -0.18,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -1021,7 +1025,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             SfCartesianChart(
               key: const ValueKey('overview_trend_chart'),
               backgroundColor: Colors.transparent,
-              margin: const EdgeInsets.only(top: 8, right: 12, left: 4, bottom: 8),
+              margin: const EdgeInsets.only(top: 8, right: 16, left: 10, bottom: 12),
               plotAreaBorderWidth: 0,
               legend: Legend(
                 isVisible: true,
@@ -1069,11 +1073,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     xValueMapper: (item, _) => item.label,
                     yValueMapper: (item, _) => item.firstFail,
                     color: seriesConfigs[i].color,
-                    width: 2.5,
+                    width: 2.6,
                     opacity: highlightedCode == null ||
                             highlightedCode == seriesConfigs[i].error.errorCode
                         ? 1.0
-                        : 0.35,
+                        : 0.32,
                     markerSettings: const MarkerSettings(
                       isVisible: true,
                       shape: DataMarkerType.circle,
@@ -1130,102 +1134,116 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       );
     }
 
-    return SfCartesianChart(
-      backgroundColor: Colors.transparent,
-      margin: const EdgeInsets.only(top: 6, right: 6, bottom: 6),
-      plotAreaBorderWidth: 0,
-      legend: Legend(
-        isVisible: true,
-        textStyle: const TextStyle(
-          color: _kTextSecondary,
-          fontSize: 12,
-        ),
-      ),
-      tooltipBehavior: _trendTooltip,
-      primaryXAxis: CategoryAxis(
-        axisLine: const AxisLine(color: _kPanelBorderColor),
-        majorGridLines: const MajorGridLines(width: 0),
-        labelStyle: const TextStyle(
-          color: _kTextSecondary,
-          fontSize: 12,
-        ),
-      ),
-      primaryYAxis: NumericAxis(
-        axisLine: const AxisLine(width: 0),
-        majorGridLines: const MajorGridLines(
-          dashArray: [4, 4],
-          color: Color(0xFF123357),
-        ),
-        labelStyle: const TextStyle(
-          color: _kTextSecondary,
-          fontSize: 12,
-        ),
-      ),
-      series: <CartesianSeries<dynamic, dynamic>>[
-        ColumnSeries<dynamic, dynamic>(
-          name: 'First Fail',
-          dataSource: trendData,
-          xValueMapper: (item, _) =>
-              (item as TETopErrorTrendPointEntity).label,
-          yValueMapper: (item, _) =>
-              (item as TETopErrorTrendPointEntity).firstFail,
-          color: _kErrorColor,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(10),
+    return _Neon3DChartWrapper(
+      key: const ValueKey('focused_trend_chart'),
+      tiltX: 0.14,
+      tiltY: -0.12,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: SfCartesianChart(
+        backgroundColor: Colors.transparent,
+        margin: EdgeInsets.zero,
+        plotAreaBorderWidth: 0,
+        legend: Legend(
+          isVisible: true,
+          position: LegendPosition.bottom,
+          overflowMode: LegendItemOverflowMode.wrap,
+          textStyle: const TextStyle(
+            color: _kTextSecondary,
+            fontSize: 12,
           ),
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(
-              color: Colors.white,
-              fontSize: 10,
+        ),
+        tooltipBehavior: _trendTooltip,
+        primaryXAxis: CategoryAxis(
+          axisLine: const AxisLine(color: _kPanelBorderColor),
+          majorGridLines: const MajorGridLines(width: 0),
+          labelStyle: const TextStyle(
+            color: _kTextSecondary,
+            fontSize: 12,
+          ),
+        ),
+        primaryYAxis: NumericAxis(
+          axisLine: const AxisLine(width: 0),
+          majorGridLines: const MajorGridLines(
+            dashArray: [4, 4],
+            color: Color(0xFF123357),
+          ),
+          labelStyle: const TextStyle(
+            color: _kTextSecondary,
+            fontSize: 12,
+          ),
+        ),
+        series: <CartesianSeries<dynamic, dynamic>>[
+          ColumnSeries<dynamic, dynamic>(
+            name: 'First Fail',
+            dataSource: trendData,
+            xValueMapper: (item, _) =>
+                (item as TETopErrorTrendPointEntity).label,
+            yValueMapper: (item, _) =>
+                (item as TETopErrorTrendPointEntity).firstFail,
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFB7185), Color(0xFFF43F5E)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderColor: Colors.white.withOpacity(0.14),
+            borderWidth: 0.6,
+            dataLabelSettings: const DataLabelSettings(
+              isVisible: true,
+              textStyle: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+              ),
             ),
           ),
-        ),
-        ColumnSeries<dynamic, dynamic>(
-          name: 'Repair Fail',
-          dataSource: trendData,
-          xValueMapper: (item, _) =>
-              (item as TETopErrorTrendPointEntity).label,
-          yValueMapper: (item, _) =>
-              (item as TETopErrorTrendPointEntity).repairFail,
-          color: _kRepairColor,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(10),
-          ),
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(
-              color: Colors.white,
-              fontSize: 10,
+          ColumnSeries<dynamic, dynamic>(
+            name: 'Repair Fail',
+            dataSource: trendData,
+            xValueMapper: (item, _) =>
+                (item as TETopErrorTrendPointEntity).label,
+            yValueMapper: (item, _) =>
+                (item as TETopErrorTrendPointEntity).repairFail,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF38BDF8), Color(0xFF0EA5E9)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderColor: Colors.white.withOpacity(0.14),
+            borderWidth: 0.6,
+            dataLabelSettings: const DataLabelSettings(
+              isVisible: true,
+              textStyle: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+              ),
             ),
           ),
-        ),
-        LineSeries<dynamic, dynamic>(
-          name: 'Total',
-          dataSource: trendData,
-          xValueMapper: (item, _) =>
-              (item as TETopErrorTrendPointEntity).label,
-          yValueMapper: (item, _) =>
-              (item as TETopErrorTrendPointEntity).total,
-          color: _kAccentColor,
-          width: 3,
-          markerSettings: const MarkerSettings(
-            isVisible: true,
-            shape: DataMarkerType.circle,
-            width: 8,
-            height: 8,
-            borderColor: Colors.black,
-            borderWidth: 1,
-          ),
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(
-              color: Colors.white,
-              fontSize: 10,
+          LineSeries<dynamic, dynamic>(
+            name: 'Total',
+            dataSource: trendData,
+            xValueMapper: (item, _) =>
+                (item as TETopErrorTrendPointEntity).label,
+            yValueMapper: (item, _) =>
+                (item as TETopErrorTrendPointEntity).total,
+            color: _kAccentColor,
+            width: 3.2,
+            markerSettings: const MarkerSettings(
+              isVisible: true,
+              shape: DataMarkerType.circle,
+              width: 8,
+              height: 8,
+              borderColor: Colors.black,
+              borderWidth: 1,
+            ),
+            dataLabelSettings: const DataLabelSettings(
+              isVisible: true,
+              textStyle: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1773,6 +1791,122 @@ class _RangeButton extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+      ),
+    );
+  }
+}
+
+class _Neon3DChartWrapper extends StatelessWidget {
+  const _Neon3DChartWrapper({
+    super.key,
+    required this.child,
+    this.tiltX = 0.18,
+    this.tiltY = -0.18,
+    this.padding = const EdgeInsets.all(8),
+  });
+
+  final Widget child;
+  final double tiltX;
+  final double tiltY;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOutCubic,
+      child: _Neon3DChartSurface(child: child, padding: padding),
+      builder: (context, value, child) {
+        final matrix = Matrix4.identity()
+          ..setEntry(3, 2, 0.0014)
+          ..rotateX(tiltX * value)
+          ..rotateY(tiltY * value);
+        return Transform(
+          alignment: Alignment.center,
+          transform: matrix,
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+class _Neon3DChartSurface extends StatelessWidget {
+  const _Neon3DChartSurface({required this.child, required this.padding});
+
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(26),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F223F), Color(0xFF040A1D)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x3310A3FF),
+            blurRadius: 32,
+            offset: Offset(0, 18),
+            spreadRadius: 4,
+          ),
+          BoxShadow(
+            color: Color(0x22022444),
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.05),
+                    Colors.transparent,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -60,
+            right: -60,
+            bottom: -80,
+            child: Container(
+              height: 140,
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [Color(0x3322D3EE), Colors.transparent],
+                  radius: 0.95,
+                  center: Alignment.topCenter,
+                ),
+              ),
+            ),
+          ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(26),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 0.6, sigmaY: 0.6),
+              child: Padding(
+                padding: padding,
+                child: child,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
