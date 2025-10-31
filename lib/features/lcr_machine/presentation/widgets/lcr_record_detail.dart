@@ -51,7 +51,7 @@ class LcrRecordDetail extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          const crossAxisCount = 2;
+          final crossAxisCount = availableWidth < 540 ? 1 : 2;
           const crossAxisSpacing = 16.0;
           const runSpacing = 12.0;
           const baseAspectRatio = 3.4;
@@ -65,7 +65,9 @@ class LcrRecordDetail extends StatelessWidget {
           final tileWidth = usableWidth > 0
               ? usableWidth / crossAxisCount
               : availableWidth / crossAxisCount;
-          final idealTileHeight = tileWidth / baseAspectRatio;
+          final idealTileHeight = crossAxisCount == 1
+              ? tileWidth / (baseAspectRatio * 0.75)
+              : tileWidth / baseAspectRatio;
           final tileHeight = idealTileHeight < minTileHeight ? minTileHeight : idealTileHeight;
 
           return SingleChildScrollView(
