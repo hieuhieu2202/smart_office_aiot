@@ -1526,6 +1526,14 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
           color: Color(0xFF5CFF8F),
           fontWeight: FontWeight.w700,
         );
+    final chipTextStyle = theme.textTheme.labelSmall?.copyWith(
+          color: highlightColor,
+          fontWeight: FontWeight.w700,
+        ) ??
+        TextStyle(
+          color: highlightColor,
+          fontWeight: FontWeight.w700,
+        );
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -1550,41 +1558,82 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
-              child: Row(
-                children: [
-                  Text(
+              child: LayoutBuilder(
+                builder: (context, headerConstraints) {
+                  final isCompact = headerConstraints.maxWidth < 360;
+                  final titleText = Text(
                     title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: highlightColor.withOpacity(0.16),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      recordChipLabel,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: highlightColor,
-                        fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ) ??
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ),
+                  );
+
+                  Widget buildChip() {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
                       ),
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    splashRadius: 22,
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Colors.white70),
-                  ),
-                ],
+                      decoration: BoxDecoration(
+                        color: highlightColor.withOpacity(0.16),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        recordChipLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: chipTextStyle,
+                      ),
+                    );
+                  }
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: titleText),
+                            IconButton(
+                              splashRadius: 22,
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.close, color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        buildChip(),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: titleText),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: buildChip(),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        splashRadius: 22,
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.white70),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
             const Padding(
@@ -1641,9 +1690,12 @@ class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildFilterPane(
-                          allowTwoColumns: allowTwoColumns,
-                          scrollable: false,
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: _buildFilterPane(
+                            allowTwoColumns: allowTwoColumns,
+                            scrollable: true,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Expanded(child: tableWidget),
