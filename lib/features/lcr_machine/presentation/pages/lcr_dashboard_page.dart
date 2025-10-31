@@ -3399,6 +3399,11 @@ class _OutputChart extends StatelessWidget {
         final bool isTablet = !isMobile && maxWidth < 1024;
         final bool shouldWrapSlots = isMobile || isTablet;
         final bool isTightMobile = maxWidth < 420;
+        final double slotWidth =
+            data.isEmpty ? maxWidth : maxWidth / data.length;
+        final double? maxLabelWidth = shouldWrapSlots
+            ? math.max(48.0, math.min(slotWidth, 96.0))
+            : null;
 
         String _formatSlotLabel(String label) {
           if (!label.contains(' - ')) {
@@ -3422,9 +3427,13 @@ class _OutputChart extends StatelessWidget {
               : 11,
           fontWeight: FontWeight.w600,
           letterSpacing: shouldWrapSlots
-              ? (isTightMobile ? 0.0 : 0.1)
+              ? (isTightMobile ? 0.0 : 0.05)
               : 0.2,
-          height: shouldWrapSlots ? 1.05 : 1.0,
+          height: shouldWrapSlots
+              ? (isTightMobile
+                  ? 1.18
+                  : 1.22)
+              : 1.0,
           shadows: const [
             Shadow(
               color: Color(0x99000000),
@@ -3481,7 +3490,9 @@ class _OutputChart extends StatelessWidget {
     ];
 
     return SfCartesianChart(
-      margin: const EdgeInsets.fromLTRB(12, 18, 12, 12),
+      margin: shouldWrapSlots
+          ? const EdgeInsets.fromLTRB(12, 18, 12, 34)
+          : const EdgeInsets.fromLTRB(12, 18, 12, 12),
       backgroundColor: Colors.transparent,
       plotAreaBorderWidth: 0,
       plotAreaBackgroundColor: Colors.transparent,
@@ -3525,15 +3536,15 @@ class _OutputChart extends StatelessWidget {
         majorTickLines: const MajorTickLines(size: 0),
         axisLine: AxisLine(color: Colors.white.withOpacity(0.25), width: 0.8),
         labelAlignment: LabelAlignment.center,
-        labelIntersectAction: AxisLabelIntersectAction.none,
+        labelIntersectAction: shouldWrapSlots
+            ? AxisLabelIntersectAction.wrap
+            : AxisLabelIntersectAction.none,
         axisLabelFormatter: (AxisLabelRenderDetails details) {
           final label = details.text;
           final text = shouldWrapSlots ? _formatSlotLabel(label) : label;
           return ChartAxisLabel(text, axisLabelStyle);
         },
-        maximumLabelWidth: shouldWrapSlots
-            ? (isTightMobile ? 64 : 72)
-            : null,
+        maximumLabelWidth: maxLabelWidth,
       ),
       primaryYAxis: NumericAxis(
         minimum: 0,
