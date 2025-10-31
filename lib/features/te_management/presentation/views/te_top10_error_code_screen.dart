@@ -766,9 +766,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   }) {
     final details = data.details;
     final baseRowColor = isSelected
-        ? barColor.withOpacity(0.18)
+        ? _kSurfaceMuted.withOpacity(0.14)
         : isStriped
-            ? _kSurfaceMuted.withOpacity(0.12)
+            ? _kSurfaceMuted.withOpacity(0.06)
             : Colors.transparent;
 
     Future<void> handleFocusError() async {
@@ -795,145 +795,132 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               width: 1,
             ),
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: barColor.withOpacity(0.4),
-                    blurRadius: 18,
-                    offset: const Offset(0, 10),
-                  ),
-                ]
-              : null,
         ),
-        child: Stack(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (isSelected)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          barColor.withOpacity(0.22),
-                          barColor.withOpacity(0.05),
-                        ],
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              width: 4,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? barColor.withOpacity(0.85) : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(
+                  children: [
+                    _buildTableDataCell(
+                      '#${data.rank}',
+                      flex: columns[0].flex,
+                      alignment: columns[0].alignment,
+                      textAlign: columns[0].textAlign,
+                      color: barColor,
+                      fontWeight: FontWeight.w700,
+                      drawRightBorder: true,
+                      padding: columns[0].cellPadding,
+                      borderColor: gridColor,
+                    ),
+                    _buildTableDataCell(
+                      data.error.errorCode,
+                      flex: columns[1].flex,
+                      alignment: columns[1].alignment,
+                      textAlign: columns[1].textAlign,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.4,
+                      drawRightBorder: true,
+                      padding: columns[1].cellPadding,
+                      borderColor: gridColor,
+                      onTap: handleFocusError,
+                    ),
+                    _buildTableDataCell(
+                      data.error.firstFail.toString(),
+                      flex: columns[2].flex,
+                      alignment: columns[2].alignment,
+                      textAlign: columns[2].textAlign,
+                      fontWeight: FontWeight.w700,
+                      drawRightBorder: true,
+                      padding: columns[2].cellPadding,
+                      borderColor: gridColor,
+                    ),
+                    _buildTableDataCell(
+                      data.error.repairFail.toString(),
+                      flex: columns[3].flex,
+                      alignment: columns[3].alignment,
+                      textAlign: columns[3].textAlign,
+                      fontWeight: FontWeight.w700,
+                      drawRightBorder: true,
+                      padding: columns[3].cellPadding,
+                      borderColor: gridColor,
+                    ),
+                    _buildTableDataCell(
+                      '',
+                      flex: columns[4].flex,
+                      alignment: columns[4].alignment,
+                      textAlign: columns[4].textAlign,
+                      drawRightBorder: true,
+                      padding: columns[4].cellPadding,
+                      borderColor: gridColor,
+                      child: _buildDetailValueList(
+                        details: details,
+                        selectedDetail: selectedDetail,
+                        barColor: barColor,
+                        labelBuilder: (detail) => detail.modelName,
+                        onTap: handleDetailTap,
                       ),
                     ),
-                  ),
+                    _buildTableDataCell(
+                      '',
+                      flex: columns[5].flex,
+                      alignment: columns[5].alignment,
+                      textAlign: columns[5].textAlign,
+                      drawRightBorder: true,
+                      padding: columns[5].cellPadding,
+                      borderColor: gridColor,
+                      child: _buildDetailValueList(
+                        details: details,
+                        selectedDetail: selectedDetail,
+                        barColor: barColor,
+                        labelBuilder: (detail) => detail.groupName,
+                        onTap: handleDetailTap,
+                      ),
+                    ),
+                    _buildTableDataCell(
+                      '',
+                      flex: columns[6].flex,
+                      alignment: columns[6].alignment,
+                      textAlign: columns[6].textAlign,
+                      drawRightBorder: true,
+                      padding: columns[6].cellPadding,
+                      borderColor: gridColor,
+                      child: _buildDetailMetricList(
+                        details: details,
+                        selectedDetail: selectedDetail,
+                        barColor: barColor,
+                        valueBuilder: (detail) => detail.firstFail.toString(),
+                      ),
+                    ),
+                    _buildTableDataCell(
+                      '',
+                      flex: columns[7].flex,
+                      alignment: columns[7].alignment,
+                      textAlign: columns[7].textAlign,
+                      drawRightBorder: false,
+                      padding: columns[7].cellPadding,
+                      borderColor: gridColor,
+                      child: _buildDetailMetricList(
+                        details: details,
+                        selectedDetail: selectedDetail,
+                        barColor: barColor,
+                        valueBuilder: (detail) => detail.repairFail.toString(),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  _buildTableDataCell(
-                    '#${data.rank}',
-                    flex: columns[0].flex,
-                    alignment: columns[0].alignment,
-                    textAlign: columns[0].textAlign,
-                    color: barColor,
-                    fontWeight: FontWeight.w700,
-                    drawRightBorder: true,
-                    padding: columns[0].cellPadding,
-                    borderColor: gridColor,
-                  ),
-                  _buildTableDataCell(
-                    data.error.errorCode,
-                    flex: columns[1].flex,
-                    alignment: columns[1].alignment,
-                    textAlign: columns[1].textAlign,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.4,
-                    drawRightBorder: true,
-                    padding: columns[1].cellPadding,
-                    borderColor: gridColor,
-                    onTap: handleFocusError,
-                  ),
-                  _buildTableDataCell(
-                    data.error.firstFail.toString(),
-                    flex: columns[2].flex,
-                    alignment: columns[2].alignment,
-                    textAlign: columns[2].textAlign,
-                    fontWeight: FontWeight.w700,
-                    drawRightBorder: true,
-                    padding: columns[2].cellPadding,
-                    borderColor: gridColor,
-                  ),
-                  _buildTableDataCell(
-                    data.error.repairFail.toString(),
-                    flex: columns[3].flex,
-                    alignment: columns[3].alignment,
-                    textAlign: columns[3].textAlign,
-                    fontWeight: FontWeight.w700,
-                    drawRightBorder: true,
-                    padding: columns[3].cellPadding,
-                    borderColor: gridColor,
-                  ),
-                  _buildTableDataCell(
-                    '',
-                    flex: columns[4].flex,
-                    alignment: columns[4].alignment,
-                    textAlign: columns[4].textAlign,
-                    drawRightBorder: true,
-                    padding: columns[4].cellPadding,
-                    borderColor: gridColor,
-                    child: _buildDetailValueList(
-                      details: details,
-                      selectedDetail: selectedDetail,
-                      barColor: barColor,
-                      labelBuilder: (detail) => detail.modelName,
-                      onTap: handleDetailTap,
-                    ),
-                  ),
-                  _buildTableDataCell(
-                    '',
-                    flex: columns[5].flex,
-                    alignment: columns[5].alignment,
-                    textAlign: columns[5].textAlign,
-                    drawRightBorder: true,
-                    padding: columns[5].cellPadding,
-                    borderColor: gridColor,
-                    child: _buildDetailValueList(
-                      details: details,
-                      selectedDetail: selectedDetail,
-                      barColor: barColor,
-                      labelBuilder: (detail) => detail.groupName,
-                      onTap: handleDetailTap,
-                    ),
-                  ),
-                  _buildTableDataCell(
-                    '',
-                    flex: columns[6].flex,
-                    alignment: columns[6].alignment,
-                    textAlign: columns[6].textAlign,
-                    drawRightBorder: true,
-                    padding: columns[6].cellPadding,
-                    borderColor: gridColor,
-                    child: _buildDetailMetricList(
-                      details: details,
-                      selectedDetail: selectedDetail,
-                      barColor: barColor,
-                      valueBuilder: (detail) => detail.firstFail.toString(),
-                    ),
-                  ),
-                  _buildTableDataCell(
-                    '',
-                    flex: columns[7].flex,
-                    alignment: columns[7].alignment,
-                    textAlign: columns[7].textAlign,
-                    drawRightBorder: false,
-                    padding: columns[7].cellPadding,
-                    borderColor: gridColor,
-                    child: _buildDetailMetricList(
-                      details: details,
-                      selectedDetail: selectedDetail,
-                      barColor: barColor,
-                      valueBuilder: (detail) => detail.repairFail.toString(),
-                    ),
-                  ),
-                ],
               ),
             ),
           ],
