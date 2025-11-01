@@ -110,6 +110,7 @@ class AutomationResistorDashboardController extends GetxController {
     error.value = null;
     try {
       final request = _buildTrackingRequest();
+      _logRequest('Tracking', request);
       final tracking = await _getTrackingData(request);
       _logTrackingData(tracking);
       rawTracking.value = tracking;
@@ -127,6 +128,7 @@ class AutomationResistorDashboardController extends GetxController {
     isLoadingStatus.value = true;
     try {
       final request = _buildStatusRequest();
+      _logRequest('Status', request);
       final list = await _getStatusData(request);
       _logStatusData(list);
       statusEntries.assignAll(list);
@@ -347,13 +349,37 @@ class AutomationResistorDashboardController extends GetxController {
         'pass=${summary.pass}, fail=${summary.fail}, '
         'yieldRate=${summary.yieldRate}');
     debugPrint('[ResistorDashboard] Outputs (${tracking.outputs.length} items): '
-        '${tracking.outputs.map((e) => e.displayLabel).toList()}');
+        '${tracking.outputs.map((e) => {
+              'label': e.displayLabel,
+              'pass': e.pass,
+              'fail': e.fail,
+              'yr': e.yieldRate
+            }).toList()}');
     debugPrint('[ResistorDashboard] Machines (${tracking.machines.length} items): '
-        '${tracking.machines.map((e) => e.name).toList()}');
+        '${tracking.machines.map((e) => {
+              'name': e.name,
+              'pass': e.pass,
+              'fail': e.fail,
+              'yr': e.yieldRate
+            }).toList()}');
   }
 
   void _logStatusData(List<ResistorMachineStatus> list) {
     debugPrint('[ResistorDashboard] Status entries (${list.length} items) loaded');
+    if (list.isNotEmpty) {
+      final preview = list.take(5).map((entry) => {
+            'serial': entry.serialNumber,
+            'machine': entry.machineName,
+            'station': entry.stationSequence,
+            'time': entry.inStationTime.toIso8601String(),
+          });
+      debugPrint('[ResistorDashboard] Status preview: ${preview.toList()}');
+    }
+  }
+
+  void _logRequest(String label, ResistorMachineRequest request) {
+    final payload = request.toBody();
+    debugPrint('[ResistorDashboard] $label request payload: $payload');
   }
 
   static DateTimeRange _defaultRange() {
