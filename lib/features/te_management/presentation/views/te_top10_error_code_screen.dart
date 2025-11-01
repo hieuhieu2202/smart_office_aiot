@@ -853,13 +853,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                           );
                         });
 
-                        return SfCartesian3DChart(
+                        return SfCartesianChart(
                           key: const ValueKey('distribution_chart'),
                           backgroundColor: Colors.transparent,
-                          margin: const EdgeInsets.only(top: 12, right: 12, left: 4, bottom: 8),
-                          depth: 80,
-                          tiltAngle: 8,
-                          wallColor: const Color(0x33112B47),
+                          margin: const EdgeInsets.only(top: 12, right: 16, left: 8, bottom: 12),
+                          plotAreaBorderWidth: 0,
                           primaryXAxis: CategoryAxis(
                             labelStyle: const TextStyle(
                               color: _kTextPrimary,
@@ -875,11 +873,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),
-                            axisLine: const AxisLine(width: 0),
                             majorGridLines: const MajorGridLines(
                               color: Color(0x33163B63),
                               dashArray: <double>[4, 4],
                             ),
+                            axisLine: const AxisLine(width: 0),
                           ),
                           legend: const Legend(isVisible: false),
                           tooltipBehavior: TooltipBehavior(
@@ -889,15 +887,16 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                             borderWidth: 0,
                             textStyle: const TextStyle(color: Colors.white, fontSize: 11),
                           ),
-                          series: <ChartSeries3D<_DistributionDatum, String>>[
-                            ColumnSeries3D<_DistributionDatum, String>(
+                          series: <CartesianSeries<_DistributionDatum, String>>[
+                            ColumnSeries<_DistributionDatum, String>(
                               name: 'Failures',
                               dataSource: distributionData,
                               xValueMapper: (datum, _) => datum.label,
                               yValueMapper: (datum, _) => datum.value,
                               pointColorMapper: (datum, _) => datum.color,
                               width: 0.6,
-                              spacing: 0.2,
+                              spacing: 0.25,
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                               dataLabelMapper: (datum, _) => datum.value.toStringAsFixed(0),
                               dataLabelSettings: const DataLabelSettings(
                                 isVisible: true,
