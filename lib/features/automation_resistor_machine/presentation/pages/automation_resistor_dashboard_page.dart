@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:photo_view/photo_view.dart';
 
 import '../controllers/automation_resistor_dashboard_controller.dart';
+import '../../domain/entities/resistor_machine_entities.dart';
 import '../viewmodels/resistor_dashboard_view_state.dart';
 import '../widgets/resistor_combo_chart.dart';
 import '../widgets/resistor_filters_bar.dart';
@@ -20,6 +22,8 @@ class AutomationResistorDashboardPage extends StatefulWidget {
 class _AutomationResistorDashboardPageState
     extends State<AutomationResistorDashboardPage> {
   late final AutomationResistorDashboardController controller;
+  late final TextEditingController searchController;
+  late final FocusNode searchFocusNode;
 
   @override
   void initState() {
@@ -28,33 +32,69 @@ class _AutomationResistorDashboardPageState
       AutomationResistorDashboardController(),
       tag: 'AUTOMATION_RESISTOR_DASHBOARD',
     );
+    searchController = TextEditingController();
+    searchFocusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    searchFocusNode.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF010A1B),
-      body: SafeArea(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF001B3A), Color(0xFF020B1A)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF010A1B),
+        body: SafeArea(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF001B3A), Color(0xFF020B1A)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
-          ),
-          child: Obx(
-            () => Column(
+            child: Column(
               children: [
                 _buildHeader(context),
+                const TabBar(
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white60,
+                  indicatorColor: Colors.cyanAccent,
+                  labelStyle: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
+                  tabs: [
+                    Tab(text: 'DASHBOARD'),
+                    Tab(text: 'SN ANALYSIS'),
+                  ],
+                ),
                 Expanded(
-                  child: controller.isLoading.value
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.cyanAccent,
-                          ),
-                        )
-                      : _DashboardBody(controller: controller),
+                  child: TabBarView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      Obx(() {
+                        if (controller.isLoading.value) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.cyanAccent,
+                            ),
+                          );
+                        }
+                        return _DashboardBody(controller: controller);
+                      }),
+                      _SnAnalysisTab(
+                        controller: controller,
+                        searchController: searchController,
+                        searchFocusNode: searchFocusNode,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -70,66 +110,95 @@ class _AutomationResistorDashboardPageState
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 900;
-          return Column(
-            crossAxisAlignment:
-                isCompact ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
+          final tabController = DefaultTabController.of(context);
+          if (tabController == null) {
+            return const SizedBox.shrink();
+          }
+
+          return AnimatedBuilder(
+            animation: tabController,
+            builder: (context, _) {
+              final bool showFilters = tabController.index == 0;
+              final String title = tabController.index == 0
+                  ? 'AUTOMATION RESISTOR MACHINE DASHBOARD'
+                  : 'SERIAL NUMBER ANALYSIS';
+
+              return Column(
+                crossAxisAlignment: isCompact
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.stretch,
                 children: [
-                  Flexible(
-                    child: Text(
-                      'AUTOMATION RESISTOR MACHINE DASHBOARD',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 2,
-                          ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => controller.loadDashboard(),
-                    icon: const Icon(Icons.refresh, color: Colors.cyanAccent),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ResistorFiltersBar(
-                machineOptions: controller.machineNames,
-                selectedMachine: controller.selectedMachine.value,
-                onMachineChanged: controller.updateMachine,
-                selectedShift: controller.selectedShift.value,
-                onShiftChanged: controller.updateShift,
-                selectedStatus: controller.selectedStatus.value,
-                onStatusChanged: controller.updateStatus,
-                dateRange: controller.selectedRange.value,
-                onSelectDate: () async {
-                  final picked = await showDateRangePicker(
-                    context: context,
-                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                    lastDate: DateTime.now(),
-                    initialDateRange: controller.selectedRange.value,
-                    helpText: 'Select tracking range',
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.dark(
-                            primary: Colors.cyanAccent,
-                            surface: Color(0xFF04102A),
-                            onSurface: Colors.white,
-                          ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2,
+                              ),
                         ),
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (picked != null) {
-                    controller.updateRange(picked);
-                  }
-                },
-              ),
-            ],
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          if (tabController.index == 0) {
+                            controller.loadDashboard();
+                            controller.loadStatus();
+                          } else {
+                            searchController.clear();
+                            controller.clearSerialSearch();
+                            controller.clearSelectedSerial();
+                          }
+                        },
+                        icon:
+                            const Icon(Icons.refresh, color: Colors.cyanAccent),
+                      ),
+                    ],
+                  ),
+                  if (showFilters) ...[
+                    const SizedBox(height: 12),
+                    ResistorFiltersBar(
+                      machineOptions: controller.machineNames,
+                      selectedMachine: controller.selectedMachine.value,
+                      onMachineChanged: controller.updateMachine,
+                      selectedShift: controller.selectedShift.value,
+                      onShiftChanged: controller.updateShift,
+                      selectedStatus: controller.selectedStatus.value,
+                      onStatusChanged: controller.updateStatus,
+                      dateRange: controller.selectedRange.value,
+                      onSelectDate: () async {
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate:
+                              DateTime.now().subtract(const Duration(days: 365)),
+                          lastDate: DateTime.now(),
+                          initialDateRange: controller.selectedRange.value,
+                          helpText: 'Select tracking range',
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.dark(
+                                  primary: Colors.cyanAccent,
+                                  surface: Color(0xFF04102A),
+                                  onSurface: Colors.white,
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (picked != null) {
+                          controller.updateRange(picked);
+                        }
+                      },
+                    ),
+                  ],
+                ],
+              );
+            },
           );
         },
       ),
@@ -485,6 +554,609 @@ class _InfoRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SnAnalysisTab extends StatefulWidget {
+  const _SnAnalysisTab({
+    required this.controller,
+    required this.searchController,
+    required this.searchFocusNode,
+  });
+
+  final AutomationResistorDashboardController controller;
+  final TextEditingController searchController;
+  final FocusNode searchFocusNode;
+
+  @override
+  State<_SnAnalysisTab> createState() => _SnAnalysisTabState();
+}
+
+class _SnAnalysisTabState extends State<_SnAnalysisTab> {
+  String _lastQuery = '';
+
+  AutomationResistorDashboardController get controller => widget.controller;
+
+  void _onSearchChanged(String value) {
+    final query = value.trim();
+    if (query.length < 3) {
+      controller.clearSerialSearch();
+      _lastQuery = '';
+      return;
+    }
+    if (query == _lastQuery) return;
+    _lastQuery = query;
+    controller.searchSerial(query);
+  }
+
+  void _onSerialTap(ResistorMachineSerialMatch match) {
+    widget.searchController.text = match.serialNumber;
+    controller.selectSerial(match);
+    widget.searchFocusNode.unfocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final matches = controller.serialMatches;
+      final isSearching = controller.isSearchingSerial.value;
+      final isLoadingRecord = controller.isLoadingRecord.value;
+      final record = controller.selectedRecord.value;
+      final tests = controller.recordTestResults;
+      final selectedTest = controller.selectedTestResult.value;
+      final selectedSerial = controller.selectedSerial.value;
+
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isWide = constraints.maxWidth >= 1100;
+          final bool isTablet = constraints.maxWidth >= 720;
+
+          final searchSection = _buildSearchSection(
+            matches: matches,
+            isSearching: isSearching,
+            selectedSerial: selectedSerial,
+          );
+
+          final detailSection = _buildDetailSection(
+            context: context,
+            record: record,
+            tests: tests,
+            selectedTest: selectedTest,
+            isLoading: isLoadingRecord,
+            isTablet: isTablet,
+          );
+
+          if (isWide) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(width: 340, child: searchSection),
+                  const SizedBox(width: 24),
+                  Expanded(child: detailSection),
+                ],
+              ),
+            );
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              searchSection,
+              const SizedBox(height: 16),
+              detailSection,
+            ],
+          );
+        },
+      );
+    });
+  }
+
+  Widget _buildSearchSection({
+    required List<ResistorMachineSerialMatch> matches,
+    required bool isSearching,
+    required ResistorMachineSerialMatch? selectedSerial,
+  }) {
+    final query = widget.searchController.text.trim();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF021024).withOpacity(0.9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.blueGrey.shade900),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Search Serial Number',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: widget.searchController,
+            focusNode: widget.searchFocusNode,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'Enter at least 3 characters to search...',
+              hintStyle: const TextStyle(color: Colors.white54),
+              prefixIcon: const Icon(Icons.search, color: Colors.cyanAccent),
+              filled: true,
+              fillColor: const Color(0xFF03132D),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.white24),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.white24),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.cyanAccent),
+              ),
+            ),
+            style: const TextStyle(color: Colors.white),
+          ),
+          const SizedBox(height: 12),
+          if (selectedSerial != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.cyanAccent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    selectedSerial.serialNumber,
+                    style: const TextStyle(
+                      color: Colors.cyanAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Sequence ${selectedSerial.sequence}',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+          if (isSearching)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: CircularProgressIndicator(color: Colors.cyanAccent),
+              ),
+            )
+          else if (matches.isNotEmpty)
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: matches.length,
+                separatorBuilder: (_, __) => const Divider(color: Colors.white12),
+                itemBuilder: (context, index) {
+                  final item = matches[index];
+                  return ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    leading: const Icon(Icons.confirmation_number,
+                        color: Colors.cyanAccent),
+                    title: Text(
+                      item.serialNumber,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      'Sequence ${item.sequence}',
+                      style: const TextStyle(color: Colors.white54),
+                    ),
+                    trailing:
+                        const Icon(Icons.chevron_right, color: Colors.cyanAccent),
+                    onTap: () => _onSerialTap(item),
+                  );
+                },
+              ),
+            )
+          else
+            Text(
+              query.length >= 3
+                  ? 'No serial numbers matched your search.'
+                  : 'Type at least 3 characters to start searching.',
+              style: const TextStyle(color: Colors.white54),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailSection({
+    required BuildContext context,
+    required ResistorMachineRecord? record,
+    required List<ResistorMachineTestResult> tests,
+    required ResistorMachineTestResult? selectedTest,
+    required bool isLoading,
+    required bool isTablet,
+  }) {
+    if (isLoading) {
+      return Container(
+        decoration: _cardDecoration(),
+        padding: const EdgeInsets.all(24),
+        alignment: Alignment.center,
+        child: const CircularProgressIndicator(color: Colors.cyanAccent),
+      );
+    }
+
+    if (record == null) {
+      return Container(
+        decoration: _cardDecoration(),
+        padding: const EdgeInsets.all(24),
+        alignment: Alignment.center,
+        child: const Text(
+          'Select a serial number from the list to view tracking details.',
+          style: TextStyle(color: Colors.white60),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildInfoCard(record, isTablet),
+        const SizedBox(height: 16),
+        _buildTestList(tests, selectedTest),
+        const SizedBox(height: 16),
+        _buildMeasurementCard(selectedTest),
+      ],
+    );
+  }
+
+  Widget _buildInfoCard(ResistorMachineRecord record, bool isTablet) {
+    final info = <MapEntry<String, String>>[
+      MapEntry('Machine', record.machineName),
+      MapEntry('Serial', record.serialNumber ?? '-'),
+      MapEntry('Work Date', record.workDate),
+      MapEntry('Work Section', '${record.workSection}'),
+      MapEntry('Station', '${record.stationSequence}'),
+      MapEntry('Pass Qty', '${record.passQty}'),
+      MapEntry('Fail Qty', '${record.failQty}'),
+      MapEntry('Employee', record.employeeId ?? '-'),
+      MapEntry('Error Code', record.errorCode ?? '-'),
+    ];
+
+    return Container(
+      decoration: _cardDecoration(),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Record Details',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: info
+                .map(
+                  (entry) => _InfoChip(
+                    label: entry.key,
+                    value: entry.value,
+                    width: isTablet ? 220 : null,
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTestList(
+    List<ResistorMachineTestResult> tests,
+    ResistorMachineTestResult? selectedTest,
+  ) {
+    return Container(
+      decoration: _cardDecoration(),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Test Addresses',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 12),
+          if (tests.isEmpty)
+            const Text(
+              'No test data available for this serial number.',
+              style: TextStyle(color: Colors.white60),
+            )
+          else
+            SizedBox(
+              height: 220,
+              child: ListView.separated(
+                itemCount: tests.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final item = tests[index];
+                  final bool isSelected = selectedTest?.address == item.address;
+                  return ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    tileColor: isSelected
+                        ? Colors.cyanAccent.withOpacity(0.15)
+                        : Colors.transparent,
+                    title: Text(
+                      'Address ${item.address}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      item.result ? 'PASS' : 'FAIL',
+                      style: TextStyle(
+                        color: item.result ? Colors.greenAccent : Colors.redAccent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right,
+                        color: Colors.white54),
+                    onTap: () => controller.selectTestResult(item),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeasurementCard(ResistorMachineTestResult? test) {
+    return Container(
+      decoration: _cardDecoration(),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Measurement Details',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 12),
+          if (test == null)
+            const Text(
+              'Select a test address to view measurement details.',
+              style: TextStyle(color: Colors.white60),
+            )
+          else ...[
+            _buildMeasurementsTable(test),
+            const SizedBox(height: 16),
+            _buildImagePreview(test),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeasurementsTable(ResistorMachineTestResult test) {
+    final rows = test.details
+        .map(
+          (detail) => DataRow(
+            cells: [
+              DataCell(Text(detail.name, style: const TextStyle(color: Colors.white))),
+              DataCell(Text('${detail.row}',
+                  style: const TextStyle(color: Colors.white70))),
+              DataCell(Text('${detail.column}',
+                  style: const TextStyle(color: Colors.white70))),
+              DataCell(Text(
+                detail.measurementValue.toStringAsFixed(3),
+                style: const TextStyle(color: Colors.white),
+              )),
+              DataCell(Text(
+                detail.lowSampleValue.toStringAsFixed(3),
+                style: const TextStyle(color: Colors.white70),
+              )),
+              DataCell(Text(
+                detail.highSampleValue.toStringAsFixed(3),
+                style: const TextStyle(color: Colors.white70),
+              )),
+              DataCell(Text(
+                detail.pass ? 'PASS' : 'FAIL',
+                style: TextStyle(
+                  color: detail.pass ? Colors.greenAccent : Colors.redAccent,
+                  fontWeight: FontWeight.w600,
+                ),
+              )),
+            ],
+          ),
+        )
+        .toList();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        headingRowColor: MaterialStateProperty.all(Colors.white10),
+        dataRowColor: MaterialStateProperty.all(Colors.white10.withOpacity(0.05)),
+        columnSpacing: 24,
+        columns: const [
+          DataColumn(
+            label: Text('Name', style: TextStyle(color: Colors.white70)),
+          ),
+          DataColumn(
+            label: Text('Row', style: TextStyle(color: Colors.white70)),
+          ),
+          DataColumn(
+            label: Text('Column', style: TextStyle(color: Colors.white70)),
+          ),
+          DataColumn(
+            label: Text('Measurement', style: TextStyle(color: Colors.white70)),
+          ),
+          DataColumn(
+            label: Text('Low Sample', style: TextStyle(color: Colors.white70)),
+          ),
+          DataColumn(
+            label: Text('High Sample', style: TextStyle(color: Colors.white70)),
+          ),
+          DataColumn(
+            label: Text('Status', style: TextStyle(color: Colors.white70)),
+          ),
+        ],
+        rows: rows,
+      ),
+    );
+  }
+
+  Widget _buildImagePreview(ResistorMachineTestResult test) {
+    if (test.imagePath.isEmpty) {
+      return const Text(
+        'No inspection image provided.',
+        style: TextStyle(color: Colors.white60),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () {
+        showDialog<void>(
+          context: context,
+          builder: (context) {
+            return Dialog(
+              backgroundColor: Colors.black87,
+              insetPadding: const EdgeInsets.all(24),
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: PhotoView(
+                  imageProvider: NetworkImage(test.imagePath),
+                  backgroundDecoration:
+                      const BoxDecoration(color: Colors.transparent),
+                ),
+              ),
+            );
+          },
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AspectRatio(
+              aspectRatio: 4 / 3,
+              child: Image.network(
+                test.imagePath,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return Container(
+                    color: const Color(0xFF010A1B),
+                    alignment: Alignment.center,
+                    child: const CircularProgressIndicator(
+                      color: Colors.cyanAccent,
+                    ),
+                  );
+                },
+                errorBuilder: (_, __, ___) => Container(
+                  color: const Color(0xFF010A1B),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'Unable to load image',
+                    style: TextStyle(color: Colors.white60),
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.35),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: const Icon(Icons.zoom_in, color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _cardDecoration() {
+    return BoxDecoration(
+      color: const Color(0xFF021024).withOpacity(0.9),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: Colors.blueGrey.shade900),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.label,
+    required this.value,
+    this.width,
+  });
+
+  final String label;
+  final String value;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white60,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: content,
     );
   }
 }

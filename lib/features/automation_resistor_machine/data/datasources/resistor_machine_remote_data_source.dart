@@ -190,12 +190,20 @@ class ResistorMachineRemoteDataSource {
 
     final dynamic body = jsonDecode(res.body);
     if (body is Map<String, dynamic>) {
-      final dynamic testResults = body['TestResults'] ?? body['testResults'];
-      if (testResults is List) {
-        return testResults
-            .whereType<Map<String, dynamic>>()
-            .map(ResistorMachineTestResultModel.fromJson)
-            .toList();
+      final dynamic raw = body['DataDetails'] ?? body['dataDetails'];
+      if (raw != null) {
+        try {
+          final dynamic parsed =
+              raw is String ? jsonDecode(raw) : raw as dynamic;
+          if (parsed is List) {
+            return parsed
+                .whereType<Map<String, dynamic>>()
+                .map(ResistorMachineTestResultModel.fromJson)
+                .toList();
+          }
+        } catch (_) {
+          // Ignore parsing errors and fall through to empty list.
+        }
       }
     }
 

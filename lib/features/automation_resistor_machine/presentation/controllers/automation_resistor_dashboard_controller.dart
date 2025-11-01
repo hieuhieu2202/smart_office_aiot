@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,7 +11,6 @@ import '../../domain/entities/resistor_machine_entities.dart';
 import '../../domain/usecases/get_machine_names.dart';
 import '../../domain/usecases/get_record_by_id.dart';
 import '../../domain/usecases/get_status_data.dart';
-import '../../domain/usecases/get_test_results.dart';
 import '../../domain/usecases/get_tracking_data.dart';
 import '../../domain/usecases/search_serial_numbers.dart';
 import '../viewmodels/resistor_dashboard_view_state.dart';
@@ -22,7 +22,6 @@ class AutomationResistorDashboardController extends GetxController {
     GetResistorMachineTrackingData? getTrackingData,
     GetResistorMachineStatusData? getStatusData,
     GetResistorMachineRecordById? getRecordById,
-    GetResistorMachineTestResults? getTestResults,
     SearchResistorMachineSerialNumbers? searchSerialNumbers,
   }) : _repository = repository ??
             ResistorMachineRepositoryImpl(
@@ -33,7 +32,6 @@ class AutomationResistorDashboardController extends GetxController {
     _getTrackingData = getTrackingData ?? GetResistorMachineTrackingData(repo);
     _getStatusData = getStatusData ?? GetResistorMachineStatusData(repo);
     _getRecordById = getRecordById ?? GetResistorMachineRecordById(repo);
-    _getTestResults = getTestResults ?? GetResistorMachineTestResults(repo);
     _searchSerialNumbers =
         searchSerialNumbers ?? SearchResistorMachineSerialNumbers(repo);
   }
@@ -43,7 +41,6 @@ class AutomationResistorDashboardController extends GetxController {
   late final GetResistorMachineTrackingData _getTrackingData;
   late final GetResistorMachineStatusData _getStatusData;
   late final GetResistorMachineRecordById _getRecordById;
-  late final GetResistorMachineTestResults _getTestResults;
   late final SearchResistorMachineSerialNumbers _searchSerialNumbers;
 
   final RxBool isLoading = false.obs;
@@ -70,6 +67,11 @@ class AutomationResistorDashboardController extends GetxController {
       Rxn<ResistorMachineRecord>();
   final RxList<ResistorMachineTestResult> recordTestResults =
       <ResistorMachineTestResult>[].obs;
+  final Rxn<ResistorMachineSerialMatch> selectedSerial =
+      Rxn<ResistorMachineSerialMatch>();
+  final Rxn<ResistorMachineTestResult> selectedTestResult =
+      Rxn<ResistorMachineTestResult>();
+  final RxBool isLoadingRecord = false.obs;
 
   Timer? _autoRefresh;
 
@@ -149,20 +151,104 @@ class AutomationResistorDashboardController extends GetxController {
     }
   }
 
+  void clearSerialSearch() {
+    serialMatches.clear();
+  }
+
   Future<void> loadRecordDetail(int id) async {
+    isLoadingRecord.value = true;
     try {
       final record = await _getRecordById(id);
       if (record != null) {
         selectedRecord.value = record;
-        final tests = await _getTestResults(id);
+        final tests = _parseTestResults(record.dataDetails);
         recordTestResults.assignAll(tests);
+        if (tests.isNotEmpty) {
+          selectedTestResult.value = tests.first;
+        } else {
+          selectedTestResult.value = null;
+        }
       } else {
         selectedRecord.value = null;
         recordTestResults.clear();
+        selectedTestResult.value = null;
       }
     } catch (e) {
       error.value = e.toString();
+    } finally {
+      isLoadingRecord.value = false;
     }
+  }
+
+  Future<void> selectSerial(ResistorMachineSerialMatch match) async {
+    selectedSerial.value = match;
+    serialMatches.clear();
+    await loadRecordDetail(match.id);
+  }
+
+  void clearSelectedSerial() {
+    selectedSerial.value = null;
+    selectedRecord.value = null;
+    recordTestResults.clear();
+    selectedTestResult.value = null;
+  }
+
+  void selectTestResult(ResistorMachineTestResult result) {
+    selectedTestResult.value = result;
+  }
+
+  List<ResistorMachineTestResult> _parseTestResults(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return const <ResistorMachineTestResult>[];
+    }
+
+    try {
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map((Map<String, dynamic> item) {
+          final detailsRaw =
+              (item['List_Result'] ?? const <dynamic>[]) as List<dynamic>;
+          final details = detailsRaw
+              .whereType<Map<String, dynamic>>()
+              .map((Map<String, dynamic> detail) {
+            double parseDouble(dynamic value) {
+              if (value is int) return value.toDouble();
+              if (value is double) return value;
+              if (value is String) {
+                return double.tryParse(value) ?? 0;
+              }
+              return 0;
+            }
+
+            return ResistorMachineResultDetail(
+              name: (detail['Name'] ?? '') as String,
+              row: (detail['Row'] ?? 0) as int,
+              column: (detail['Column'] ?? 0) as int,
+              measurementValue:
+                  parseDouble(detail['Measurement_Value'] ?? detail['measurementValue']),
+              lowSampleValue:
+                  parseDouble(detail['Low_Sample_Value'] ?? detail['lowSampleValue']),
+              highSampleValue:
+                  parseDouble(detail['High_Sample_Value'] ?? detail['highSampleValue']),
+              pass: (detail['Pass'] ?? false) as bool,
+            );
+          }).toList();
+
+          return ResistorMachineTestResult(
+            address: (item['Address'] ?? 0) as int,
+            result: (item['Result'] ?? false) as bool,
+            imagePath: (item['ImagePath'] ?? '') as String,
+            details: details,
+          );
+        }).toList();
+      }
+    } catch (_) {
+      // Ignore parsing errors.
+    }
+
+    return const <ResistorMachineTestResult>[];
   }
 
   void updateRange(DateTimeRange range) {
