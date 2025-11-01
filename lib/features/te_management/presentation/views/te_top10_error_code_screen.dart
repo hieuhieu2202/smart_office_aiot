@@ -30,6 +30,9 @@ const Color _kErrorColor = Color(0xFFFF5C7C);
 const Color _kRepairColor = Color(0xFFA88DFF);
 const Color _kSurfaceMuted = Color(0xFF13335E);
 const Color _kTableGridColor = Color(0xFF2B6FF0);
+const Color _kTrendFirstColor = Color(0xFFFF6E9F);
+const Color _kTrendRepairColor = Color(0xFFB8A0FF);
+const Color _kTrendTotalColor = Color(0xFF66F4FF);
 
 const TextStyle _kTableHeaderStyle = TextStyle(
   color: _kTextPrimary,
@@ -107,6 +110,10 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   );
   bool _isFilterPanelOpen = false;
   static const Duration _kFilterAnimationDuration = Duration(milliseconds: 280);
+
+  Color _emphasize(Color color) {
+    return Color.lerp(color, Colors.white, 0.18)!;
+  }
 
   @override
   void initState() {
@@ -1080,7 +1087,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
     final tooltip = TooltipBehavior(
       enable: true,
-      color: const Color(0xFF123760),
+      color: const Color(0xFF173B73),
       header: '',
       textStyle: const TextStyle(color: Colors.white, fontSize: 11),
     );
@@ -1123,22 +1130,23 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               },
               primaryXAxis: CategoryAxis(
                 labelStyle: const TextStyle(
-                  color: _kTextPrimary,
+                  color: _kTextSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
-                axisLine: const AxisLine(color: Color(0x80FFFFFF), width: 0.8),
+                axisLine: const AxisLine(color: Color(0xA0FFFFFF), width: 1.2),
                 majorTickLines: const MajorTickLines(size: 0),
                 majorGridLines: const MajorGridLines(color: Colors.transparent),
+                labelIntersectAction: AxisLabelIntersectAction.rotate45,
               ),
               primaryYAxis: NumericAxis(
                 labelStyle: const TextStyle(
-                  color: _kTextPrimary,
+                  color: _kTextSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
                 axisLine: const AxisLine(color: Colors.transparent),
-                majorGridLines: const MajorGridLines(color: Color(0x55FFFFFF)),
+                majorGridLines: const MajorGridLines(color: Color(0x44FFFFFF)),
               ),
               onLegendTapped: (args) {
                 final index = args.seriesIndex;
@@ -1149,23 +1157,26 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               },
               series: <CartesianSeries<dynamic, dynamic>>[
                 for (var i = 0; i < seriesConfigs.length; i++)
-                  LineSeries<TETopErrorTrendPointEntity, String>(
+                  SplineSeries<TETopErrorTrendPointEntity, String>(
+                    splineType: SplineType.cardinal,
+                    cardinalSplineTension: 0.35,
                     name: seriesConfigs[i].error.errorCode,
                     dataSource: seriesConfigs[i].points,
                     xValueMapper: (item, _) => item.label,
                     yValueMapper: (item, _) => item.total,
-                    width: 3.0,
-                    color: seriesConfigs[i].color,
+                    width: 3.2,
+                    color: _emphasize(seriesConfigs[i].color),
                     enableTooltip: true,
                     opacity: highlightedCode == null ||
                             highlightedCode == seriesConfigs[i].error.errorCode
                         ? 1.0
-                        : 0.28,
+                        : 0.24,
                     onCreateShader: (details) {
+                      final base = _emphasize(seriesConfigs[i].color);
                       return LinearGradient(
                         colors: [
-                          seriesConfigs[i].color.withOpacity(0.85),
-                          seriesConfigs[i].color,
+                          base.withOpacity(0.25),
+                          base,
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -1176,9 +1187,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                       height: 12,
                       width: 12,
                       shape: DataMarkerType.circle,
-                      borderWidth: 2.4,
-                      borderColor: Colors.white,
-                      color: seriesConfigs[i].color,
+                      borderWidth: 2.6,
+                      borderColor: _emphasize(seriesConfigs[i].color),
+                      color: Colors.white,
                     ),
                     dataLabelSettings: const DataLabelSettings(
                       isVisible: true,
@@ -1188,7 +1199,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                         color: Colors.white,
                       ),
                       labelAlignment: ChartDataLabelAlignment.auto,
-                      labelIntersectAction: LabelIntersectAction.shift,
+                      labelIntersectAction: LabelIntersectAction.hide,
                     ),
                   ),
               ],
@@ -1260,39 +1271,42 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         ),
         tooltipBehavior: _trendTooltip,
         primaryXAxis: CategoryAxis(
-          axisLine: const AxisLine(color: Color(0x80FFFFFF), width: 0.8),
+          axisLine: const AxisLine(color: Color(0xA0FFFFFF), width: 1.2),
           majorGridLines: const MajorGridLines(width: 0),
           labelStyle: const TextStyle(
-            color: _kTextPrimary,
+            color: _kTextSecondary,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
+          labelIntersectAction: AxisLabelIntersectAction.rotate45,
         ),
         primaryYAxis: NumericAxis(
           axisLine: const AxisLine(width: 0),
           majorGridLines: const MajorGridLines(
             dashArray: [4, 4],
-            color: Color(0x55FFFFFF),
+            color: Color(0x44FFFFFF),
           ),
           labelStyle: const TextStyle(
-            color: _kTextPrimary,
+            color: _kTextSecondary,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
         ),
         series: <CartesianSeries<dynamic, dynamic>>[
-          LineSeries<TETopErrorTrendPointEntity, String>(
+          SplineSeries<TETopErrorTrendPointEntity, String>(
+            splineType: SplineType.cardinal,
+            cardinalSplineTension: 0.35,
             name: 'First Fail',
             dataSource: trendData,
             xValueMapper: (item, _) => item.label,
             yValueMapper: (item, _) => item.firstFail,
             width: 3.2,
-            color: _kErrorColor,
+            color: _kTrendFirstColor,
             onCreateShader: (details) {
               return LinearGradient(
                 colors: [
-                  _kErrorColor.withOpacity(0.85),
-                  _kErrorColor,
+                  _kTrendFirstColor.withOpacity(0.25),
+                  _kTrendFirstColor,
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -1303,9 +1317,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               shape: DataMarkerType.circle,
               width: 12,
               height: 12,
-              borderColor: Colors.white,
-              borderWidth: 2.4,
-              color: _kErrorColor,
+              borderColor: _kTrendFirstColor,
+              borderWidth: 2.8,
+              color: Colors.white,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1315,21 +1329,23 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
-              labelIntersectAction: LabelIntersectAction.shift,
+              labelIntersectAction: LabelIntersectAction.hide,
             ),
           ),
-          LineSeries<TETopErrorTrendPointEntity, String>(
+          SplineSeries<TETopErrorTrendPointEntity, String>(
+            splineType: SplineType.cardinal,
+            cardinalSplineTension: 0.35,
             name: 'Repair Fail',
             dataSource: trendData,
             xValueMapper: (item, _) => item.label,
             yValueMapper: (item, _) => item.repairFail,
             width: 3.2,
-            color: _kRepairColor,
+            color: _kTrendRepairColor,
             onCreateShader: (details) {
               return LinearGradient(
                 colors: [
-                  _kRepairColor.withOpacity(0.85),
-                  _kRepairColor,
+                  _kTrendRepairColor.withOpacity(0.25),
+                  _kTrendRepairColor,
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -1340,9 +1356,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               shape: DataMarkerType.circle,
               width: 12,
               height: 12,
-              borderColor: Colors.white,
-              borderWidth: 2.4,
-              color: _kRepairColor,
+              borderColor: _kTrendRepairColor,
+              borderWidth: 2.8,
+              color: Colors.white,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1352,22 +1368,23 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
-              labelIntersectAction: LabelIntersectAction.shift,
+              labelIntersectAction: LabelIntersectAction.hide,
             ),
           ),
-          LineSeries<TETopErrorTrendPointEntity, String>(
+          SplineSeries<TETopErrorTrendPointEntity, String>(
+            splineType: SplineType.cardinal,
+            cardinalSplineTension: 0.35,
             name: 'Total',
             dataSource: trendData,
             xValueMapper: (item, _) => item.label,
             yValueMapper: (item, _) => item.total,
             width: 3.4,
-            color: _kAccentColor,
-            dashArray: const <double>[4, 2],
+            color: _kTrendTotalColor,
             onCreateShader: (details) {
               return LinearGradient(
                 colors: [
-                  _kAccentColor.withOpacity(0.85),
-                  _kAccentColor,
+                  _kTrendTotalColor.withOpacity(0.25),
+                  _kTrendTotalColor,
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -1375,12 +1392,12 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             },
             markerSettings: MarkerSettings(
               isVisible: true,
-              shape: DataMarkerType.diamond,
-              width: 13,
-              height: 13,
-              borderColor: Colors.white,
-              borderWidth: 2.6,
-              color: _kAccentColor,
+              shape: DataMarkerType.circle,
+              width: 12,
+              height: 12,
+              borderColor: _kTrendTotalColor,
+              borderWidth: 2.8,
+              color: Colors.white,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1390,7 +1407,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
-              labelIntersectAction: LabelIntersectAction.shift,
+              labelIntersectAction: LabelIntersectAction.hide,
             ),
           ),
         ],
