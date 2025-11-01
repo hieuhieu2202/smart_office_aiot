@@ -38,7 +38,7 @@ const Color _kTrendRepairColor = Color(0xFF00FF9C);
 
 const TextStyle _kTableHeaderStyle = TextStyle(
   color: _kTextPrimary,
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: FontWeight.w700,
   letterSpacing: 0.2,
 );
