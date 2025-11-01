@@ -19,34 +19,34 @@ import '../widgets/refresh_label.dart';
 const LinearGradient _kBackgroundGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFF010511), Color(0xFF051B3A)],
+  colors: [Color(0xFF03102A), Color(0xFF0C3360)],
 );
-const Color _kPanelColor = Color(0xFF061B35);
-const Color _kPanelBorderColor = Color(0xFF133257);
-const Color _kAccentColor = Color(0xFF22D3EE);
-const Color _kTextPrimary = Color(0xFFE6F1FF);
-const Color _kTextSecondary = Color(0xFF9FB9D9);
-const Color _kErrorColor = Color(0xFFFF7A7A);
-const Color _kRepairColor = Color(0xFFA78BFA);
-const Color _kSurfaceMuted = Color(0xFF0C2A4A);
-const Color _kTableGridColor = Color(0xFF123760);
+const Color _kPanelColor = Color(0xFF10294A);
+const Color _kPanelBorderColor = Color(0xFF1F558A);
+const Color _kAccentColor = Color(0xFF45E3FF);
+const Color _kTextPrimary = Color(0xFFF3F8FF);
+const Color _kTextSecondary = Color(0xFFC3DBF8);
+const Color _kErrorColor = Color(0xFFFF7F8C);
+const Color _kRepairColor = Color(0xFFB79CFF);
+const Color _kSurfaceMuted = Color(0xFF17345C);
+const Color _kTableGridColor = Color(0xFF21598F);
 
 const TextStyle _kTableHeaderStyle = TextStyle(
   color: _kTextPrimary,
-  fontSize: 12,
+  fontSize: 13,
   fontWeight: FontWeight.w700,
   letterSpacing: 0.2,
 );
 
 const TextStyle _kTableValueStyle = TextStyle(
   color: _kTextPrimary,
-  fontSize: 13,
+  fontSize: 14,
   fontWeight: FontWeight.w600,
 );
 
 const TextStyle _kTableMutedStyle = TextStyle(
   color: _kTextSecondary,
-  fontSize: 12,
+  fontSize: 13,
   fontWeight: FontWeight.w500,
 );
 
@@ -83,16 +83,16 @@ class TETop10ErrorCodeScreen extends StatefulWidget {
 
 class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   static const List<Color> _barPalette = [
-    Color(0xFF5EEAD4),
-    Color(0xFF60A5FA),
-    Color(0xFFA78BFA),
-    Color(0xFFF472B6),
-    Color(0xFFFF9E80),
-    Color(0xFF4ADE80),
-    Color(0xFF34D399),
-    Color(0xFFF97316),
-    Color(0xFF22D3EE),
-    Color(0xFFEAB308),
+    Color(0xFF4FF7D2),
+    Color(0xFF5FB3FF),
+    Color(0xFFBF8BFF),
+    Color(0xFFFF79C6),
+    Color(0xFFFFC857),
+    Color(0xFF6CF9A8),
+    Color(0xFF54E0FF),
+    Color(0xFFFF8C5C),
+    Color(0xFF48EBFF),
+    Color(0xFFE7D85C),
   ];
 
   late final String _controllerTag;
@@ -100,7 +100,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   final DateFormat _rangeDisplayFormatter = DateFormat('yyyy/MM/dd HH:mm');
   final TooltipBehavior _trendTooltip = TooltipBehavior(
     enable: true,
-    color: const Color(0xFF0B1F39),
+    color: const Color(0xFF123760),
     header: '',
     textStyle: const TextStyle(color: Colors.white, fontSize: 12),
     borderWidth: 0,
@@ -700,15 +700,15 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF123B6D), Color(0xFF091327)],
+                  colors: [Color(0xFF1C4F88), Color(0xFF0A1C34)],
                 ),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _kTableGridColor.withOpacity(0.9)),
+                border: Border.all(color: _kTableGridColor.withOpacity(0.85)),
                 boxShadow: const [
                   BoxShadow(
-                    color: Color(0x3312203A),
-                    blurRadius: 14,
-                    offset: Offset(0, 6),
+                    color: Color(0x441C3C62),
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
                   ),
                 ],
               ),
@@ -764,15 +764,15 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF102A54), Color(0xFF050C1F)],
+            colors: [Color(0xFF153E6F), Color(0xFF07142B)],
           ),
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: _kPanelBorderColor.withOpacity(0.85)),
+          border: Border.all(color: _kPanelBorderColor.withOpacity(0.9)),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x66131F3C),
-              blurRadius: 26,
-              offset: Offset(0, 16),
+              color: Color(0x66204A7A),
+              blurRadius: 28,
+              offset: Offset(0, 18),
             ),
           ],
         ),
@@ -810,9 +810,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.25),
+                    color: Colors.black.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _kPanelBorderColor.withOpacity(0.6)),
+                    border: Border.all(color: _kPanelBorderColor.withOpacity(0.65)),
                   ),
                   child: Text(
                     'TOTAL: $totalFailures',
@@ -843,14 +843,14 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                         position: LegendPosition.bottom,
                         overflowMode: LegendItemOverflowMode.wrap,
                         textStyle: const TextStyle(
-                          color: _kTextSecondary,
+                          color: _kTextPrimary,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       tooltipBehavior: TooltipBehavior(
                         enable: true,
-                        color: const Color(0xFF0B1F39),
+                        color: const Color(0xFF123760),
                         header: '',
                         textStyle: const TextStyle(color: Colors.white, fontSize: 11),
                       ),
@@ -914,15 +914,15 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF0D2144), Color(0xFF040A1C)],
+            colors: [Color(0xFF184678), Color(0xFF0A1A34)],
           ),
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: _kPanelBorderColor.withOpacity(0.85)),
+          border: Border.all(color: _kPanelBorderColor.withOpacity(0.9)),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x55121E3B),
-              blurRadius: 26,
-              offset: Offset(0, 16),
+              color: Color(0x55204A7A),
+              blurRadius: 28,
+              offset: Offset(0, 18),
             ),
           ],
         ),
@@ -1080,7 +1080,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
     final tooltip = TooltipBehavior(
       enable: true,
-      color: const Color(0xFF0B1F39),
+      color: const Color(0xFF123760),
       header: '',
       textStyle: const TextStyle(color: Colors.white, fontSize: 11),
     );
@@ -1106,7 +1106,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 overflowMode: LegendItemOverflowMode.wrap,
                 toggleSeriesVisibility: false,
                 textStyle: const TextStyle(
-                  color: _kTextSecondary,
+                  color: _kTextPrimary,
                   fontSize: 11,
                 ),
               ),
@@ -1122,14 +1122,14 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               },
               primaryXAxis: CategoryAxis(
                 labelStyle: const TextStyle(color: _kTextSecondary, fontSize: 11),
-                axisLine: const AxisLine(color: Colors.white24),
+                axisLine: const AxisLine(color: Color(0x66FFFFFF)),
                 majorTickLines: const MajorTickLines(size: 0),
                 majorGridLines: const MajorGridLines(color: Colors.transparent),
               ),
               primaryYAxis: NumericAxis(
                 labelStyle: const TextStyle(color: _kTextSecondary, fontSize: 11),
                 axisLine: const AxisLine(color: Colors.transparent),
-                majorGridLines: const MajorGridLines(color: Colors.white10),
+                majorGridLines: const MajorGridLines(color: Color(0x33FFFFFF)),
               ),
               onLegendTapped: (args) {
                 final index = args.seriesIndex;
@@ -1155,7 +1155,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     onCreateShader: (details) {
                       return LinearGradient(
                         colors: [
-                          seriesConfigs[i].color.withOpacity(0.25),
+                          seriesConfigs[i].color.withOpacity(0.55),
                           seriesConfigs[i].color,
                         ],
                         begin: Alignment.topCenter,
@@ -1164,12 +1164,12 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     },
                     markerSettings: MarkerSettings(
                       isVisible: true,
-                      height: 9,
-                      width: 9,
+                      height: 10,
+                      width: 10,
                       shape: DataMarkerType.circle,
-                      borderWidth: 2,
-                      borderColor: Colors.white.withOpacity(0.95),
-                      color: seriesConfigs[i].color.withOpacity(0.95),
+                      borderWidth: 2.2,
+                      borderColor: Colors.white,
+                      color: seriesConfigs[i].color,
                     ),
                     dataLabelSettings: const DataLabelSettings(
                       isVisible: true,
@@ -1245,13 +1245,13 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           position: LegendPosition.bottom,
           overflowMode: LegendItemOverflowMode.wrap,
           textStyle: const TextStyle(
-            color: _kTextSecondary,
+            color: _kTextPrimary,
             fontSize: 12,
           ),
         ),
         tooltipBehavior: _trendTooltip,
         primaryXAxis: CategoryAxis(
-          axisLine: const AxisLine(color: _kPanelBorderColor),
+          axisLine: const AxisLine(color: Color(0x66FFFFFF)),
           majorGridLines: const MajorGridLines(width: 0),
           labelStyle: const TextStyle(
             color: _kTextSecondary,
@@ -1262,7 +1262,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           axisLine: const AxisLine(width: 0),
           majorGridLines: const MajorGridLines(
             dashArray: [4, 4],
-            color: Color(0xFF123357),
+            color: Color(0x33FFFFFF),
           ),
           labelStyle: const TextStyle(
             color: _kTextSecondary,
@@ -1278,8 +1278,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             width: 3.2,
             color: _kErrorColor,
             onCreateShader: (details) {
-              return const LinearGradient(
-                colors: [Color(0x55FF5F6D), Color(0xFFFF5F6D)],
+              return LinearGradient(
+                colors: [
+                  _kErrorColor.withOpacity(0.55),
+                  _kErrorColor,
+                ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ).createShader(details.rect);
@@ -1287,11 +1290,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
-              width: 10,
-              height: 10,
+              width: 11,
+              height: 11,
               borderColor: Colors.white,
-              borderWidth: 2,
-              color: _kErrorColor.withOpacity(0.95),
+              borderWidth: 2.2,
+              color: _kErrorColor,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1312,8 +1315,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             width: 3.2,
             color: _kRepairColor,
             onCreateShader: (details) {
-              return const LinearGradient(
-                colors: [Color(0x5540E0D0), Color(0xFF40E0D0)],
+              return LinearGradient(
+                colors: [
+                  _kRepairColor.withOpacity(0.55),
+                  _kRepairColor,
+                ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ).createShader(details.rect);
@@ -1321,11 +1327,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
-              width: 10,
-              height: 10,
+              width: 11,
+              height: 11,
               borderColor: Colors.white,
-              borderWidth: 2,
-              color: _kRepairColor.withOpacity(0.95),
+              borderWidth: 2.2,
+              color: _kRepairColor,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1347,8 +1353,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             color: _kAccentColor,
             dashArray: const <double>[4, 2],
             onCreateShader: (details) {
-              return const LinearGradient(
-                colors: [Color(0x55FFB347), Color(0xFFFFB347)],
+              return LinearGradient(
+                colors: [
+                  _kAccentColor.withOpacity(0.55),
+                  _kAccentColor,
+                ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ).createShader(details.rect);
@@ -1356,11 +1365,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.diamond,
-              width: 11,
-              height: 11,
+              width: 12,
+              height: 12,
               borderColor: Colors.white,
-              borderWidth: 2,
-              color: _kAccentColor.withOpacity(0.95),
+              borderWidth: 2.2,
+              color: _kAccentColor,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1438,14 +1447,16 @@ class _TopErrorTableRow extends StatelessWidget {
 
     final decoration = BoxDecoration(
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: _kTableGridColor.withOpacity(0.9)),
-      color: Color.lerp(_kPanelColor, Colors.black, 0.1)!
-          .withOpacity(hasSelectedDetail ? 0.96 : (isErrorSelected ? 0.92 : 0.78)),
+      border: Border.all(color: _kTableGridColor.withOpacity(0.85)),
+      color: Color.lerp(_kPanelColor, Colors.white, 0.12)!
+          .withOpacity(hasSelectedDetail ? 0.98 : (isErrorSelected ? 0.94 : 0.84)),
       boxShadow: [
         BoxShadow(
-          color: accentColor.withOpacity(hasSelectedDetail ? 0.32 : (isErrorSelected ? 0.25 : 0.12)),
-          blurRadius: hasSelectedDetail ? 24 : (isErrorSelected ? 22 : 14),
-          offset: const Offset(0, 8),
+          color: accentColor.withOpacity(
+            hasSelectedDetail ? 0.38 : (isErrorSelected ? 0.28 : 0.16),
+          ),
+          blurRadius: hasSelectedDetail ? 26 : (isErrorSelected ? 22 : 16),
+          offset: const Offset(0, 10),
         ),
       ],
     );
@@ -1489,7 +1500,7 @@ class _TopErrorTableRow extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(4),
                       gradient: LinearGradient(
-                        colors: [accentColor.withOpacity(0.9), accentColor.withOpacity(0.35)],
+                        colors: [accentColor.withOpacity(0.95), accentColor.withOpacity(0.5)],
                       ),
                     ),
                   ),
@@ -1571,14 +1582,14 @@ class _RankBadge extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         gradient: LinearGradient(
-          colors: [accentColor.withOpacity(0.9), accentColor.withOpacity(0.45)],
+          colors: [accentColor, accentColor.withOpacity(0.55)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.25),
-            blurRadius: 12,
+            color: accentColor.withOpacity(0.3),
+            blurRadius: 14,
             offset: const Offset(0, 6),
           ),
         ],
@@ -1614,7 +1625,7 @@ class _SummaryStat extends StatelessWidget {
       children: [
         Text(
           value.toString(),
-          style: _kTableValueStyle.copyWith(fontSize: 15, color: _kTextPrimary),
+          style: _kTableValueStyle.copyWith(fontSize: 16, color: _kTextPrimary),
           textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -1624,7 +1635,7 @@ class _SummaryStat extends StatelessWidget {
         Text(
           label,
           style: _kTableMutedStyle.copyWith(
-            color: accentColor,
+            color: accentColor.withOpacity(0.9),
             fontWeight: FontWeight.w700,
           ),
           textAlign: TextAlign.center,
@@ -1655,7 +1666,7 @@ class _DetailValueTile extends StatelessWidget {
     final textStyle = isSelected
         ? _kTableValueStyle.copyWith(color: accentColor)
         : _kTableValueStyle.copyWith(
-            fontSize: 11,
+            fontSize: 12,
             color: _kTextPrimary.withOpacity(0.9),
           );
 
@@ -1668,12 +1679,12 @@ class _DetailValueTile extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: isSelected ? accentColor.withOpacity(0.12) : Colors.transparent,
+          color: isSelected ? accentColor.withOpacity(0.18) : Colors.transparent,
           border: Border.all(
             color: isSelected
-                ? accentColor.withOpacity(0.65)
-                : _kTableGridColor.withOpacity(0.65),
-            width: isSelected ? 1.2 : 0.7,
+                ? accentColor.withOpacity(0.7)
+                : _kTableGridColor.withOpacity(0.55),
+            width: isSelected ? 1.3 : 0.75,
           ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -1907,22 +1918,22 @@ class _Neon3DChartSurface extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(26),
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F223F), Color(0xFF040A1D)],
+          colors: [Color(0xFF12335C), Color(0xFF06132A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x3310A3FF),
-            blurRadius: 32,
-            offset: Offset(0, 18),
-            spreadRadius: 4,
+            color: Color(0x4437D4FF),
+            blurRadius: 36,
+            offset: Offset(0, 20),
+            spreadRadius: 6,
           ),
           BoxShadow(
-            color: Color(0x22022444),
-            blurRadius: 18,
-            offset: Offset(0, 6),
+            color: Color(0x33112940),
+            blurRadius: 20,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -1935,7 +1946,7 @@ class _Neon3DChartSurface extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.white.withOpacity(0.05),
+                    Colors.white.withOpacity(0.08),
                     Colors.transparent,
                   ],
                   begin: Alignment.topLeft,
@@ -1952,7 +1963,7 @@ class _Neon3DChartSurface extends StatelessWidget {
               height: 140,
               decoration: const BoxDecoration(
                 gradient: RadialGradient(
-                  colors: [Color(0x3322D3EE), Colors.transparent],
+                  colors: [Color(0x4422D3EE), Colors.transparent],
                   radius: 0.95,
                   center: Alignment.topCenter,
                 ),
@@ -1982,7 +1993,7 @@ class _WeeklyGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..shader = LinearGradient(
-        colors: [const Color(0xFF1E3A5F).withOpacity(0.4), Colors.transparent],
+        colors: [const Color(0xFF2F70C9).withOpacity(0.45), Colors.transparent],
         begin: Alignment.centerLeft,
         end: Alignment.centerRight,
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
