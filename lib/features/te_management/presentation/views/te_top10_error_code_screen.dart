@@ -906,8 +906,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                               onCreateShader: (shaderDetails) {
                                 final rect = shaderDetails.rect;
                                 return const LinearGradient(
-                                  begin: Alignment(-0.45, -1.0),
-                                  end: Alignment(0.7, 1.0),
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
                                   colors: <Color>[
                                     _kDistributionBarHighlight,
                                     _kDistributionBarCore,
