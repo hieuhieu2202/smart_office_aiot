@@ -293,7 +293,7 @@ class AutomationResistorDashboardController extends GetxController {
 
   ResistorMachineRequest _buildTrackingRequest() {
     final rangeText = _formatRange(selectedRange.value);
-    final machine = selectedMachine.value;
+    final machine = _normalizeAll(selectedMachine.value);
 
     return ResistorMachineRequest(
       dateRange: rangeText,
@@ -305,7 +305,7 @@ class AutomationResistorDashboardController extends GetxController {
 
   ResistorMachineRequest _buildStatusRequest() {
     final rangeText = _formatRange(selectedRange.value);
-    final machine = selectedMachine.value;
+    final machine = _normalizeAll(selectedMachine.value);
     final status = selectedStatus.value == 'ALL' ? '' : selectedStatus.value;
 
     return ResistorMachineRequest(
@@ -321,6 +321,10 @@ class AutomationResistorDashboardController extends GetxController {
     final start = formatter.format(range.start);
     final end = formatter.format(range.end);
     return '$start - $end';
+  }
+
+  String _normalizeAll(String value) {
+    return value.toUpperCase() == 'ALL' ? '' : value;
   }
 
   void _startAutoRefresh() {
