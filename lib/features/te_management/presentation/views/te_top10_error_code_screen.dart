@@ -1190,10 +1190,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                   width: 3.2,
                   color: configs[i].color,
                   enableTooltip: true,
-                  opacity: highlightedCode == null ||
-                          highlightedCode == configs[i].error.errorCode
-                      ? 1
-                      : 0.3,
                   markerSettings: MarkerSettings(
                     isVisible: true,
                     shape: DataMarkerType.circle,
