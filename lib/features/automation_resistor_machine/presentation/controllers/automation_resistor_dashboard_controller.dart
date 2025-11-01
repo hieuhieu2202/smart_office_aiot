@@ -109,7 +109,7 @@ class AutomationResistorDashboardController extends GetxController {
     isLoading.value = true;
     error.value = null;
     try {
-      final request = _buildRequest();
+      final request = _buildTrackingRequest();
       final tracking = await _getTrackingData(request);
       rawTracking.value = tracking;
       dashboardView.value =
@@ -125,7 +125,7 @@ class AutomationResistorDashboardController extends GetxController {
   Future<void> loadStatus() async {
     isLoadingStatus.value = true;
     try {
-      final request = _buildRequest();
+      final request = _buildStatusRequest();
       final list = await _getStatusData(request);
       statusEntries.assignAll(list);
     } catch (e) {
@@ -291,21 +291,36 @@ class AutomationResistorDashboardController extends GetxController {
     loadStatus();
   }
 
-  ResistorMachineRequest _buildRequest() {
-    final formatter = DateFormat('yyyy-MM-dd HH:mm');
-    final startDate = selectedRange.value.start;
-    final start = formatter.format(startDate);
-    final end = formatter.format(selectedRange.value.end);
-    final range = '$start - $end';
-    final shift = _deriveShift(startDate);
+  ResistorMachineRequest _buildTrackingRequest() {
+    final rangeText = _formatRange(selectedRange.value);
+    final machine = selectedMachine.value;
+
+    return ResistorMachineRequest(
+      dateRange: rangeText,
+      shift: selectedShift.value,
+      machineName: machine,
+      status: '',
+    );
+  }
+
+  ResistorMachineRequest _buildStatusRequest() {
+    final rangeText = _formatRange(selectedRange.value);
+    final machine = selectedMachine.value;
     final status = selectedStatus.value == 'ALL' ? '' : selectedStatus.value;
 
     return ResistorMachineRequest(
-      dateRange: range,
-      shift: shift,
-      machineName: selectedMachine.value,
+      dateRange: rangeText,
+      shift: selectedShift.value,
+      machineName: machine,
       status: status,
     );
+  }
+
+  String _formatRange(DateTimeRange range) {
+    final formatter = DateFormat('yyyy-MM-dd HH:mm');
+    final start = formatter.format(range.start);
+    final end = formatter.format(range.end);
+    return '$start - $end';
   }
 
   void _startAutoRefresh() {
