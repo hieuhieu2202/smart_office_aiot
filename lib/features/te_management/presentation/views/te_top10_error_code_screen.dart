@@ -1162,20 +1162,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                   width: 3.4,
                   color: accent,
                   enableTooltip: true,
-                  opacity: highlightedCode == null ||
-                          highlightedCode == config.error.errorCode
-                      ? 1.0
-                      : 0.24,
-                  onCreateShader: (details) {
-                    return LinearGradient(
-                      colors: [
-                        accent,
-                        accent.withOpacity(0.92),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ).createShader(details.rect);
-                  },
                   markerSettings: MarkerSettings(
                     isVisible: true,
                     height: 12,
@@ -1297,16 +1283,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             yValueMapper: (item, _) => item.firstFail,
             width: 3.4,
             color: _kTrendFirstColor,
-            onCreateShader: (details) {
-              return LinearGradient(
-                colors: [
-                  _kTrendFirstColor,
-                  _kTrendFirstColor.withOpacity(0.9),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ).createShader(details.rect);
-            },
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
@@ -1336,16 +1312,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             yValueMapper: (item, _) => item.repairFail,
             width: 3.4,
             color: _kTrendRepairColor,
-            onCreateShader: (details) {
-              return LinearGradient(
-                colors: [
-                  _kTrendRepairColor,
-                  _kTrendRepairColor.withOpacity(0.9),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ).createShader(details.rect);
-            },
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
@@ -1375,16 +1341,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             yValueMapper: (item, _) => item.total,
             width: 3.6,
             color: _kTrendTotalColor,
-            onCreateShader: (details) {
-              return LinearGradient(
-                colors: [
-                  _kTrendTotalColor,
-                  _kTrendTotalColor.withOpacity(0.9),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ).createShader(details.rect);
-            },
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
