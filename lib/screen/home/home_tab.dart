@@ -358,18 +358,18 @@ class _HomeTabState extends State<HomeTab> {
 
     final borderRadius = BorderRadius.circular(20);
     final Color surfaceColor = isDark
-        ? Colors.white.withOpacity(0.06)
-        : Colors.white.withOpacity(0.55);
+        ? Colors.white.withOpacity(0.1)
+        : Colors.white.withOpacity(0.45);
     final Color borderColor = isDark
-        ? Colors.white.withOpacity(0.08)
-        : Colors.white.withOpacity(0.2);
+        ? Colors.white.withOpacity(0.12)
+        : Colors.white.withOpacity(0.18);
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: borderRadius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.45 : 0.18),
+            color: Colors.black.withOpacity(isDark ? 0.32 : 0.16),
             blurRadius: 26,
             offset: const Offset(0, 18),
           ),
