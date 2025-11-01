@@ -275,7 +275,7 @@ class AutomationResistorDashboardController extends GetxController {
   }
 
   ResistorMachineRequest _buildRequest() {
-    final formatter = DateFormat('yyyy-MM-dd');
+    final formatter = DateFormat('yyyy-MM-dd HH:mm');
     final start = formatter.format(selectedRange.value.start);
     final end = formatter.format(selectedRange.value.end);
     final range = '$start - $end';
@@ -300,7 +300,8 @@ class AutomationResistorDashboardController extends GetxController {
 
   static DateTimeRange _defaultRange() {
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day);
-    return DateTimeRange(start: start, end: now);
+    final start = DateTime(now.year, now.month, now.day, 7, 30);
+    final end = DateTime(now.year, now.month, now.day, 19, 30);
+    return DateTimeRange(start: start, end: end);
   }
 }

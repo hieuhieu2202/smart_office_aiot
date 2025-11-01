@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:photo_view/photo_view.dart';
 
 import '../controllers/automation_resistor_dashboard_controller.dart';
@@ -170,25 +171,9 @@ class _AutomationResistorDashboardPageState
                       onStatusChanged: controller.updateStatus,
                       dateRange: controller.selectedRange.value,
                       onSelectDate: () async {
-                        final picked = await showDateRangePicker(
-                          context: context,
-                          firstDate:
-                              DateTime.now().subtract(const Duration(days: 365)),
-                          lastDate: DateTime.now(),
-                          initialDateRange: controller.selectedRange.value,
-                          helpText: 'Select tracking range',
-                          builder: (context, child) {
-                            return Theme(
-                              data: Theme.of(context).copyWith(
-                                colorScheme: const ColorScheme.dark(
-                                  primary: Colors.cyanAccent,
-                                  surface: Color(0xFF04102A),
-                                  onSurface: Colors.white,
-                                ),
-                              ),
-                              child: child!,
-                            );
-                          },
+                        final picked = await _pickDateTimeRange(
+                          context,
+                          controller.selectedRange.value,
                         );
                         if (picked != null) {
                           controller.updateRange(picked);
@@ -202,6 +187,288 @@ class _AutomationResistorDashboardPageState
           );
         },
       ),
+    );
+  }
+
+  Future<DateTimeRange?> _pickDateTimeRange(
+    BuildContext context,
+    DateTimeRange initialRange,
+  ) async {
+    final pickedDates = await showDateRangePicker(
+      context: context,
+      initialDateRange: initialRange,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      helpText: 'Date',
+      builder: (context, child) {
+        final theme = Theme.of(context);
+        return Theme(
+          data: theme.copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.cyanAccent,
+              surface: Color(0xFF04102A),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 840,
+                maxHeight: 640,
+              ),
+              child: child!,
+            ),
+          ),
+        );
+      },
+    );
+
+    if (pickedDates == null) {
+      return null;
+    }
+
+    return showDialog<DateTimeRange>(
+      context: context,
+      builder: (context) {
+        final hours = List<int>.generate(24, (index) => index);
+        const minutes = [0, 30];
+
+        int startHour = initialRange.start.hour;
+        int startMinute = initialRange.start.minute >= 30 ? 30 : 0;
+        int endHour = initialRange.end.hour;
+        int endMinute = initialRange.end.minute >= 30 ? 30 : 0;
+
+        if (startHour == 0 &&
+            startMinute == 0 &&
+            endHour == 0 &&
+            endMinute == 0) {
+          startHour = 7;
+          startMinute = 30;
+          endHour = 19;
+          endMinute = 30;
+        }
+
+        DateTime _buildStartDate() => DateTime(
+              pickedDates.start.year,
+              pickedDates.start.month,
+              pickedDates.start.day,
+              startHour,
+              startMinute,
+            );
+
+        DateTime _buildEndDate() => DateTime(
+              pickedDates.end.year,
+              pickedDates.end.month,
+              pickedDates.end.day,
+              endHour,
+              endMinute,
+            );
+
+        String previewText() {
+          final format = DateFormat('yyyy-MM-dd HH:mm');
+          return '${format.format(_buildStartDate())} → ${format.format(_buildEndDate())}';
+        }
+
+        void applySelection() {
+          final start = _buildStartDate();
+          final end = _buildEndDate();
+          final normalizedEnd = end.isBefore(start) ? start : end;
+          Navigator.of(context).pop(
+            DateTimeRange(start: start, end: normalizedEnd),
+          );
+        }
+
+        Widget buildDropdown({
+          required String label,
+          required int value,
+          required List<int> items,
+          required ValueChanged<int?> onChanged,
+        }) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: Colors.white60)),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF052043),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.cyanAccent.withOpacity(0.5)),
+                ),
+                child: DropdownButton<int>(
+                  value: value,
+                  dropdownColor: const Color(0xFF03132D),
+                  underline: const SizedBox(),
+                  iconEnabledColor: Colors.cyanAccent,
+                  style: const TextStyle(color: Colors.white),
+                  items: items
+                      .map(
+                        (item) => DropdownMenuItem<int>(
+                          value: item,
+                          child: Text(item.toString().padLeft(2, '0')),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: onChanged,
+                ),
+              ),
+            ],
+          );
+        }
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF03132D),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Select Time Range',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Start',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: buildDropdown(
+                                    label: 'Hour',
+                                    value: startHour,
+                                    items: hours,
+                                    onChanged: (value) {
+                                      if (value == null) return;
+                                      setState(() => startHour = value);
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: buildDropdown(
+                                    label: 'Minute',
+                                    value: startMinute,
+                                    items: minutes,
+                                    onChanged: (value) {
+                                      if (value == null) return;
+                                      setState(() => startMinute = value);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'End',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: buildDropdown(
+                                    label: 'Hour',
+                                    value: endHour,
+                                    items: hours,
+                                    onChanged: (value) {
+                                      if (value == null) return;
+                                      setState(() => endHour = value);
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: buildDropdown(
+                                    label: 'Minute',
+                                    value: endMinute,
+                                    items: minutes,
+                                    onChanged: (value) {
+                                      if (value == null) return;
+                                      setState(() => endMinute = value);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF052043),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.cyanAccent.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule, color: Colors.cyanAccent),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            previewText(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('CANCEL'),
+                ),
+                ElevatedButton(
+                  onPressed: applySelection,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.cyanAccent,
+                    foregroundColor: Colors.black,
+                  ),
+                  child: const Text('APPLY'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

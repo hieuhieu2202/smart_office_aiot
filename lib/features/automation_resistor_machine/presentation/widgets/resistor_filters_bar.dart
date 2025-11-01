@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class ResistorFiltersBar extends StatelessWidget {
   const ResistorFiltersBar({
@@ -181,9 +182,7 @@ class _DateTile extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  '${range.start.year}-${range.start.month.toString().padLeft(2, '0')}-${range.start.day.toString().padLeft(2, '0')}'
-                  ' → '
-                  '${range.end.year}-${range.end.month.toString().padLeft(2, '0')}-${range.end.day.toString().padLeft(2, '0')}',
+                  _formatRange(range),
                   style: const TextStyle(color: Colors.white),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -193,6 +192,11 @@ class _DateTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatRange(DateTimeRange range) {
+    final formatter = DateFormat('yyyy-MM-dd HH:mm');
+    return '${formatter.format(range.start)} - ${formatter.format(range.end)}';
   }
 }
 
