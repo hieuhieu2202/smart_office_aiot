@@ -30,9 +30,9 @@ const Color _kErrorColor = Color(0xFFFF5C7C);
 const Color _kRepairColor = Color(0xFFA88DFF);
 const Color _kSurfaceMuted = Color(0xFF13335E);
 const Color _kTableGridColor = Color(0xFF2B6FF0);
-const Color _kTrendFirstColor = Color(0xFFFF1F71);
-const Color _kTrendRepairColor = Color(0xFF7C3BFF);
-const Color _kTrendTotalColor = Color(0xFF00F6FF);
+const Color _kTrendFirstColor = Color(0xFFFF3B3B);
+const Color _kTrendRepairColor = Color(0xFF00FF9C);
+const Color _kTrendTotalColor = Color(0xFF00E5FF);
 
 const TextStyle _kTableHeaderStyle = TextStyle(
   color: _kTextPrimary,
@@ -86,16 +86,16 @@ class TETop10ErrorCodeScreen extends StatefulWidget {
 
 class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   static const List<Color> _barPalette = [
-    Color(0xFFFF1F71),
-    Color(0xFF00E1FF),
-    Color(0xFFFFB400),
-    Color(0xFF18FF9A),
-    Color(0xFF8338FF),
-    Color(0xFFFF6B00),
-    Color(0xFF00D1FF),
-    Color(0xFFFF2ED1),
-    Color(0xFF3A86FF),
-    Color(0xFFFFF200),
+    Color(0xFF00E5FF),
+    Color(0xFF00FF9C),
+    Color(0xFFFFD400),
+    Color(0xFFFF3B3B),
+    Color(0xFFFF7A00),
+    Color(0xFFB620E0),
+    Color(0xFF7CFF00),
+    Color(0xFF00B8FF),
+    Color(0xFFFF00EE),
+    Color(0xFF00FFDC),
   ];
 
   late final String _controllerTag;
@@ -113,11 +113,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
   Color _emphasize(Color color) {
     final hsl = HSLColor.fromColor(color);
-    final targetSaturation = (hsl.saturation + 0.28).clamp(0.0, 1.0);
-    final targetLightness = (hsl.lightness + 0.12).clamp(0.0, 0.72);
     final boosted = hsl
-        .withSaturation(targetSaturation)
-        .withLightness(targetLightness);
+        .withSaturation((hsl.saturation + 0.18).clamp(0.0, 1.0))
+        .withLightness((hsl.lightness + 0.05).clamp(0.0, 0.62));
     return boosted.toColor();
   }
 
@@ -1155,54 +1153,54 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 axisLine: const AxisLine(color: Colors.transparent),
                 majorGridLines: const MajorGridLines(color: Color(0x44FFFFFF)),
               ),
-              series: <CartesianSeries<dynamic, dynamic>>[
-                for (var i = 0; i < seriesConfigs.length; i++)
-                  SplineSeries<TETopErrorTrendPointEntity, String>(
-                    splineType: SplineType.cardinal,
-                    cardinalSplineTension: 0.35,
-                    name: seriesConfigs[i].error.errorCode,
-                    dataSource: seriesConfigs[i].points,
-                    xValueMapper: (item, _) => item.label,
-                    yValueMapper: (item, _) => item.total,
-                    width: 3.2,
-                    color: _emphasize(seriesConfigs[i].color),
-                    enableTooltip: true,
-                    opacity: highlightedCode == null ||
-                            highlightedCode == seriesConfigs[i].error.errorCode
-                        ? 1.0
-                        : 0.24,
-                    onCreateShader: (details) {
-                      final base = _emphasize(seriesConfigs[i].color);
-                      return LinearGradient(
-                        colors: [
-                          base.withOpacity(0.25),
-                          base,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ).createShader(details.rect);
-                    },
-                    markerSettings: MarkerSettings(
-                      isVisible: true,
-                      height: 12,
-                      width: 12,
-                      shape: DataMarkerType.circle,
-                      borderWidth: 2.6,
-                      borderColor: _emphasize(seriesConfigs[i].color),
+              series: seriesConfigs
+                  .map<CartesianSeries<dynamic, dynamic>>((config) {
+                final accent = _emphasize(config.color);
+                return SplineSeries<TETopErrorTrendPointEntity, String>(
+                  splineType: SplineType.cardinal,
+                  cardinalSplineTension: 0.35,
+                  name: config.error.errorCode,
+                  dataSource: config.points,
+                  xValueMapper: (item, _) => item.label,
+                  yValueMapper: (item, _) => item.total,
+                  width: 3.4,
+                  color: accent,
+                  enableTooltip: true,
+                  opacity: highlightedCode == null ||
+                          highlightedCode == config.error.errorCode
+                      ? 1.0
+                      : 0.24,
+                  onCreateShader: (details) {
+                    return LinearGradient(
+                      colors: [
+                        accent.withOpacity(0.65),
+                        accent,
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ).createShader(details.rect);
+                  },
+                  markerSettings: MarkerSettings(
+                    isVisible: true,
+                    height: 12,
+                    width: 12,
+                    shape: DataMarkerType.circle,
+                    borderWidth: 2.4,
+                    borderColor: Colors.white,
+                    color: accent,
+                  ),
+                  dataLabelSettings: const DataLabelSettings(
+                    isVisible: true,
+                    textStyle: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
-                    dataLabelSettings: const DataLabelSettings(
-                      isVisible: true,
-                      textStyle: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                      labelAlignment: ChartDataLabelAlignment.auto,
-                      labelIntersectAction: LabelIntersectAction.shift,
-                    ),
+                    labelAlignment: ChartDataLabelAlignment.auto,
+                    labelIntersectAction: LabelIntersectAction.shift,
                   ),
-              ],
+                );
+              }).toList(),
             ),
           ],
         ),
@@ -1301,12 +1299,12 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             dataSource: trendData,
             xValueMapper: (item, _) => item.label,
             yValueMapper: (item, _) => item.firstFail,
-            width: 3.2,
+            width: 3.4,
             color: _kTrendFirstColor,
             onCreateShader: (details) {
               return LinearGradient(
                 colors: [
-                  _kTrendFirstColor.withOpacity(0.25),
+                  _kTrendFirstColor.withOpacity(0.6),
                   _kTrendFirstColor,
                 ],
                 begin: Alignment.topCenter,
@@ -1318,9 +1316,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               shape: DataMarkerType.circle,
               width: 12,
               height: 12,
-              borderColor: _kTrendFirstColor,
-              borderWidth: 2.8,
-              color: Colors.white,
+              borderColor: Colors.white,
+              borderWidth: 2.6,
+              color: _kTrendFirstColor,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1340,12 +1338,12 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             dataSource: trendData,
             xValueMapper: (item, _) => item.label,
             yValueMapper: (item, _) => item.repairFail,
-            width: 3.2,
+            width: 3.4,
             color: _kTrendRepairColor,
             onCreateShader: (details) {
               return LinearGradient(
                 colors: [
-                  _kTrendRepairColor.withOpacity(0.25),
+                  _kTrendRepairColor.withOpacity(0.6),
                   _kTrendRepairColor,
                 ],
                 begin: Alignment.topCenter,
@@ -1357,9 +1355,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               shape: DataMarkerType.circle,
               width: 12,
               height: 12,
-              borderColor: _kTrendRepairColor,
-              borderWidth: 2.8,
-              color: Colors.white,
+              borderColor: Colors.white,
+              borderWidth: 2.6,
+              color: _kTrendRepairColor,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1379,12 +1377,12 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             dataSource: trendData,
             xValueMapper: (item, _) => item.label,
             yValueMapper: (item, _) => item.total,
-            width: 3.4,
+            width: 3.6,
             color: _kTrendTotalColor,
             onCreateShader: (details) {
               return LinearGradient(
                 colors: [
-                  _kTrendTotalColor.withOpacity(0.25),
+                  _kTrendTotalColor.withOpacity(0.6),
                   _kTrendTotalColor,
                 ],
                 begin: Alignment.topCenter,
@@ -1396,9 +1394,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               shape: DataMarkerType.circle,
               width: 12,
               height: 12,
-              borderColor: _kTrendTotalColor,
-              borderWidth: 2.8,
-              color: Colors.white,
+              borderColor: Colors.white,
+              borderWidth: 2.6,
+              color: _kTrendTotalColor,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
