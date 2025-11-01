@@ -111,6 +111,7 @@ class AutomationResistorDashboardController extends GetxController {
     try {
       final request = _buildTrackingRequest();
       final tracking = await _getTrackingData(request);
+      _logTrackingData(tracking);
       rawTracking.value = tracking;
       dashboardView.value =
           ResistorDashboardViewState.fromTracking(tracking);
@@ -127,6 +128,7 @@ class AutomationResistorDashboardController extends GetxController {
     try {
       final request = _buildStatusRequest();
       final list = await _getStatusData(request);
+      _logStatusData(list);
       statusEntries.assignAll(list);
     } catch (e) {
       error.value = e.toString();
@@ -337,6 +339,21 @@ class AutomationResistorDashboardController extends GetxController {
         loadStatus();
       }
     });
+  }
+
+  void _logTrackingData(ResistorMachineTrackingData tracking) {
+    final summary = tracking.summary;
+    debugPrint('[ResistorDashboard] Summary: total=${summary.total}, '
+        'pass=${summary.pass}, fail=${summary.fail}, '
+        'yieldRate=${summary.yieldRate}');
+    debugPrint('[ResistorDashboard] Outputs (${tracking.outputs.length} items): '
+        '${tracking.outputs.map((e) => e.displayLabel).toList()}');
+    debugPrint('[ResistorDashboard] Machines (${tracking.machines.length} items): '
+        '${tracking.machines.map((e) => e.name).toList()}');
+  }
+
+  void _logStatusData(List<ResistorMachineStatus> list) {
+    debugPrint('[ResistorDashboard] Status entries (${list.length} items) loaded');
   }
 
   static DateTimeRange _defaultRange() {
