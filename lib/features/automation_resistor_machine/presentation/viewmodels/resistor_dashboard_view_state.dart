@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import '../../domain/entities/resistor_machine_entities.dart';
 
 class ResistorSummaryTileData {
@@ -21,11 +19,15 @@ class ResistorPieSlice {
     required this.label,
     required this.value,
     required this.color,
-  });
+    int? pass,
+  }) : _pass = pass;
 
   final String label;
   final int value;
   final int color;
+  final int? _pass;
+
+  int get pass => _pass ?? 0;
 }
 
 class ResistorStackedSeries {
@@ -46,24 +48,53 @@ class ResistorDashboardViewState {
   const ResistorDashboardViewState({
     required this.summary,
     required this.summaryTiles,
-    required this.summarySlices,
+    List<ResistorPieSlice>? failDistributionSlices,
+    int? failTotal,
     required this.sectionSeries,
     required this.machineSeries,
-  });
+  })  : _failDistributionSlices = failDistributionSlices,
+        _failTotal = failTotal;
 
   final ResistorMachineSummary summary;
   final List<ResistorSummaryTileData> summaryTiles;
-  final List<ResistorPieSlice> summarySlices;
+  final List<ResistorPieSlice>? _failDistributionSlices;
+  final int? _failTotal;
   final ResistorStackedSeries sectionSeries;
   final ResistorStackedSeries machineSeries;
+
+  static const ResistorPieSlice _defaultFailSlice = ResistorPieSlice(
+    label: 'N/A',
+    value: 0,
+    color: 0xFF00FFE7,
+  );
+
+  List<ResistorPieSlice> get failDistributionSlices {
+    final slices = _failDistributionSlices;
+    if (slices == null || slices.isEmpty) {
+      return const [_defaultFailSlice];
+    }
+    return slices;
+  }
+
+  int get failTotal {
+    final total = _failTotal;
+    if (total != null && total > 0) {
+      return total;
+    }
+
+    final slices = failDistributionSlices;
+    final computed = slices.fold<int>(0, (sum, slice) => sum + slice.value);
+    if (computed > 0) {
+      return computed;
+    }
+
+    return summary.fail;
+  }
 
   factory ResistorDashboardViewState.fromTracking(
     ResistorMachineTrackingData tracking,
   ) {
     final summary = tracking.summary;
-    final total = math.max(summary.total, 1);
-    final passPercent = summary.pass / total * 100;
-    final failPercent = summary.fail / total * 100;
 
     final summaryTiles = <ResistorSummaryTileData>[
       ResistorSummaryTileData(
@@ -110,18 +141,53 @@ class ResistorDashboardViewState {
       ),
     ];
 
-    final summarySlices = <ResistorPieSlice>[
-      ResistorPieSlice(
-        label: 'PASS ${passPercent.toStringAsFixed(1)}%',
-        value: summary.pass,
-        color: 0xFF00FFE7,
-      ),
-      ResistorPieSlice(
-        label: 'FAIL ${failPercent.toStringAsFixed(1)}%',
-        value: summary.fail,
-        color: 0xFFFF004F,
-      ),
+    final failPalette = <int>[
+      0xFF00FFE7,
+      0xFFFF004F,
+      0xFF40C4FF,
+      0xFFFFD740,
+      0xFF9575CD,
+      0xFFFF8A65,
+      0xFF69F0AE,
+      0xFF82B1FF,
+      0xFFFFAB91,
+      0xFFFFF176,
     ];
+
+    final failDistributionSlices = <ResistorPieSlice>[];
+
+    final machinesByFail = List<ResistorMachineInfo>.from(tracking.machines)
+      ..sort((a, b) => b.fail.compareTo(a.fail));
+
+    for (var i = 0; i < machinesByFail.length; i++) {
+      final machine = machinesByFail[i];
+      if (machine.fail <= 0) {
+        continue;
+      }
+      failDistributionSlices.add(
+        ResistorPieSlice(
+          label: machine.name,
+          value: machine.fail,
+          color: failPalette[i % failPalette.length],
+          pass: machine.pass,
+        ),
+      );
+    }
+
+    if (failDistributionSlices.isEmpty) {
+      failDistributionSlices.add(
+        const ResistorPieSlice(
+          label: 'N/A',
+          value: 0,
+          color: 0xFF00FFE7,
+        ),
+      );
+    }
+
+    final failTotal = failDistributionSlices.fold<int>(
+      0,
+      (sum, slice) => sum + slice.value,
+    );
 
     ResistorStackedSeries _buildSeries(List<dynamic> raw, bool isMachine) {
       final categories = <String>[];
@@ -164,7 +230,8 @@ class ResistorDashboardViewState {
     return ResistorDashboardViewState(
       summary: summary,
       summaryTiles: summaryTiles,
-      summarySlices: summarySlices,
+      failDistributionSlices: failDistributionSlices,
+      failTotal: failTotal == 0 ? summary.fail : failTotal,
       sectionSeries: sectionSeries,
       machineSeries: machineSeries,
     );
