@@ -337,8 +337,8 @@ class _HomeTabState extends State<HomeTab> {
           ),
           decoration: BoxDecoration(
             color: isDark
-                ? GlobalColors.primaryButtonDark.withOpacity(0.16)
-                : GlobalColors.primaryButtonLight.withOpacity(0.11),
+                ? GlobalColors.primaryButtonDark.withOpacity(0.24)
+                : GlobalColors.primaryButtonLight.withOpacity(0.18),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -358,27 +358,27 @@ class _HomeTabState extends State<HomeTab> {
 
     final borderRadius = BorderRadius.circular(20);
     final Color surfaceColor = isDark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.white.withOpacity(0.45);
+        ? Colors.white.withOpacity(0.22)
+        : Colors.white.withOpacity(0.62);
     final Color borderColor = isDark
-        ? Colors.white.withOpacity(0.12)
-        : Colors.white.withOpacity(0.18);
+        ? Colors.white.withOpacity(0.18)
+        : Colors.white.withOpacity(0.26);
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: borderRadius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.32 : 0.16),
-            blurRadius: 26,
-            offset: const Offset(0, 18),
+            color: Colors.black.withOpacity(isDark ? 0.22 : 0.12),
+            blurRadius: 28,
+            offset: const Offset(0, 20),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: borderRadius,
