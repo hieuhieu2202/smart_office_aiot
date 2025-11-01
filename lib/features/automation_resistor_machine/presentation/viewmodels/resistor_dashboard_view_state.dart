@@ -44,12 +44,14 @@ class ResistorStackedSeries {
 
 class ResistorDashboardViewState {
   const ResistorDashboardViewState({
+    required this.summary,
     required this.summaryTiles,
     required this.summarySlices,
     required this.sectionSeries,
     required this.machineSeries,
   });
 
+  final ResistorMachineSummary summary;
   final List<ResistorSummaryTileData> summaryTiles;
   final List<ResistorPieSlice> summarySlices;
   final ResistorStackedSeries sectionSeries;
@@ -160,6 +162,7 @@ class ResistorDashboardViewState {
     final machineSeries = _buildSeries(tracking.machines, true);
 
     return ResistorDashboardViewState(
+      summary: summary,
       summaryTiles: summaryTiles,
       summarySlices: summarySlices,
       sectionSeries: sectionSeries,

@@ -513,73 +513,80 @@ class _DesktopLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            flex: 5,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: _SummarySection(view: view),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF04142F).withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.blueGrey.shade800),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: ResistorSummaryPie(slices: view.summarySlices),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _SummarySection(view: view),
           const SizedBox(height: 24),
-          Expanded(
-            flex: 7,
-            child: Row(
-              children: [
-                Expanded(
-                  child: ResistorComboChart(
-                    title: 'OUTPUT BY SECTION',
-                    series: view.sectionSeries,
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: ResistorComboChart(
-                    title: 'MACHINE DISTRIBUTION',
-                    series: view.machineSeries,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Expanded(
+          Flexible(
             flex: 6,
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF021024).withOpacity(0.9),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.blueGrey.shade900),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Obx(
-                () => ResistorStatusTable(
-                  records: controller.statusEntries,
-                  isLoading: controller.isLoadingStatus.value,
-                  onTap: (item) async {
-                    await controller.loadRecordDetail(item.id);
-                    await _showRecordDialog(context, controller);
-                  },
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: _DashboardPanel(
+                    child: ResistorSummaryPie(
+                      slices: view.summarySlices,
+                      total: view.summary.total,
+                      title: 'FAIL DISTRIBUTION',
+                    ),
+                  ),
                 ),
+                const SizedBox(width: 24),
+                Expanded(
+                  flex: 6,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: ResistorComboChart(
+                          title: 'YIELD RATE AND OUTPUT',
+                          series: view.sectionSeries,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Expanded(
+                        child: ResistorComboChart(
+                          title: 'MACHINE DISTRIBUTION',
+                          series: view.machineSeries,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Flexible(
+            flex: 5,
+            child: _DashboardPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'LIST TRACKING DATA',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.1,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: Obx(
+                      () => ResistorStatusTable(
+                        records: controller.statusEntries,
+                        isLoading: controller.isLoadingStatus.value,
+                        onTap: (item) async {
+                          await controller.loadRecordDetail(item.id);
+                          await _showRecordDialog(context, controller);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -597,55 +604,67 @@ class _TabletLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: Column(
-        children: [
-          _SummarySection(view: view),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 260,
-            child: ResistorSummaryPie(slices: view.summarySlices),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 320,
-            child: ResistorComboChart(
-              title: 'OUTPUT BY SECTION',
-              series: view.sectionSeries,
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      children: [
+        _SummarySection(view: view),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 320,
+          child: _DashboardPanel(
+            child: ResistorSummaryPie(
+              slices: view.summarySlices,
+              total: view.summary.total,
             ),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 320,
-            child: ResistorComboChart(
-              title: 'MACHINE DISTRIBUTION',
-              series: view.machineSeries,
-            ),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 360,
+          child: ResistorComboChart(
+            title: 'YIELD RATE AND OUTPUT',
+            series: view.sectionSeries,
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF021024).withOpacity(0.9),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.blueGrey.shade900),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 360,
+          child: ResistorComboChart(
+            title: 'MACHINE DISTRIBUTION',
+            series: view.machineSeries,
+          ),
+        ),
+        const SizedBox(height: 20),
+        _DashboardPanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'LIST TRACKING DATA',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                    ),
               ),
-              padding: const EdgeInsets.all(16),
-              child: Obx(
-                () => ResistorStatusTable(
-                  records: controller.statusEntries,
-                  isLoading: controller.isLoadingStatus.value,
-                  onTap: (item) async {
-                    await controller.loadRecordDetail(item.id);
-                    await _showRecordDialog(context, controller);
-                  },
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 420,
+                child: Obx(
+                  () => ResistorStatusTable(
+                    records: controller.statusEntries,
+                    isLoading: controller.isLoadingStatus.value,
+                    onTap: (item) async {
+                      await controller.loadRecordDetail(item.id);
+                      await _showRecordDialog(context, controller);
+                    },
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -664,8 +683,13 @@ class _MobileLayout extends StatelessWidget {
         _SummarySection(view: view),
         const SizedBox(height: 16),
         SizedBox(
-          height: 220,
-          child: ResistorSummaryPie(slices: view.summarySlices),
+          height: 260,
+          child: _DashboardPanel(
+            child: ResistorSummaryPie(
+              slices: view.summarySlices,
+              total: view.summary.total,
+            ),
+          ),
         ),
         const SizedBox(height: 16),
         SizedBox(
@@ -684,25 +708,33 @@ class _MobileLayout extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF021024).withOpacity(0.9),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.blueGrey.shade900),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Obx(
-            () => SizedBox(
-              height: 400,
-              child: ResistorStatusTable(
-                records: controller.statusEntries,
-                isLoading: controller.isLoadingStatus.value,
-                onTap: (item) async {
-                  await controller.loadRecordDetail(item.id);
-                  await _showRecordDialog(context, controller);
-                },
+        _DashboardPanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'LIST TRACKING DATA',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                    ),
               ),
-            ),
+              const SizedBox(height: 12),
+              Obx(
+                () => SizedBox(
+                  height: 420,
+                  child: ResistorStatusTable(
+                    records: controller.statusEntries,
+                    isLoading: controller.isLoadingStatus.value,
+                    onTap: (item) async {
+                      await controller.loadRecordDetail(item.id);
+                      await _showRecordDialog(context, controller);
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -717,18 +749,66 @@ class _SummarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: view.summaryTiles
-          .map(
-            (tile) => SizedBox(
-              width: 220,
-              height: 120,
-              child: ResistorSummaryTile(data: tile),
-            ),
-          )
-          .toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        int columns = 4;
+        if (width < 520) {
+          columns = 1;
+        } else if (width < 820) {
+          columns = 2;
+        } else if (width < 1100) {
+          columns = 3;
+        }
+
+        final spacing = 18.0;
+        final itemWidth = (width - spacing * (columns - 1)) / columns;
+        final tileHeight = 130.0;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: view.summaryTiles
+              .map(
+                (tile) => SizedBox(
+                  width: itemWidth,
+                  height: tileHeight,
+                  child: ResistorSummaryTile(data: tile),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _DashboardPanel extends StatelessWidget {
+  const _DashboardPanel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF041B3E), Color(0xFF020B23)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: Colors.cyanAccent.withOpacity(0.25), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.cyanAccent.withOpacity(0.16),
+            blurRadius: 24,
+            offset: const Offset(0, 18),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: child,
     );
   }
 }
