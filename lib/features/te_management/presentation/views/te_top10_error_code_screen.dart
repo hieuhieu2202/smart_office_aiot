@@ -97,7 +97,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
   late final String _controllerTag;
   late final TETopErrorCodeController _controller;
-  final ScrollController _tableScrollController = ScrollController();
   final DateFormat _rangeDisplayFormatter = DateFormat('yyyy/MM/dd HH:mm');
   final TooltipBehavior _trendTooltip = TooltipBehavior(
     enable: true,
@@ -136,7 +135,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     if (Get.isRegistered<TETopErrorCodeController>(tag: _controllerTag)) {
       Get.delete<TETopErrorCodeController>(tag: _controllerTag);
     }
-    _tableScrollController.dispose();
     super.dispose();
   }
 
@@ -618,7 +616,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           padding: const EdgeInsets.only(top: 4, bottom: 6),
           primary: false,
           physics: const ClampingScrollPhysics(),
-          controller: _tableScrollController,
           itemBuilder: (context, index) {
             final error = errors[index];
             final accent = _barPalette[index % _barPalette.length];
@@ -1157,12 +1154,12 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                         : 0.28,
                     markerSettings: MarkerSettings(
                       isVisible: true,
-                      height: 9,
-                      width: 9,
+                      height: 10,
+                      width: 10,
                       shape: DataMarkerType.circle,
-                      borderWidth: 1.6,
-                      borderColor: Colors.white.withOpacity(0.95),
-                      color: seriesConfigs[i].color.withOpacity(0.9),
+                      borderWidth: 1.8,
+                      borderColor: Colors.white,
+                      color: seriesConfigs[i].color,
                     ),
                     dataLabelSettings: const DataLabelSettings(
                       isVisible: true,
@@ -1272,11 +1269,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
-              width: 9,
-              height: 9,
-              borderColor: Colors.white.withOpacity(0.95),
-              borderWidth: 1.6,
-              color: _kErrorColor.withOpacity(0.9),
+              width: 10,
+              height: 10,
+              borderColor: Colors.white,
+              borderWidth: 1.8,
+              color: _kErrorColor,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1298,11 +1295,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
-              width: 9,
-              height: 9,
-              borderColor: Colors.white.withOpacity(0.95),
-              borderWidth: 1.6,
-              color: _kRepairColor.withOpacity(0.9),
+              width: 10,
+              height: 10,
+              borderColor: Colors.white,
+              borderWidth: 1.8,
+              color: _kRepairColor,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1325,11 +1322,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.diamond,
-              width: 10,
-              height: 10,
-              borderColor: Colors.white.withOpacity(0.95),
-              borderWidth: 1.6,
-              color: _kAccentColor.withOpacity(0.85),
+              width: 11,
+              height: 11,
+              borderColor: Colors.white,
+              borderWidth: 1.8,
+              color: _kAccentColor,
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
