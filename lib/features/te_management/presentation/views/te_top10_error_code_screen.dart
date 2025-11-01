@@ -30,9 +30,9 @@ const Color _kErrorColor = Color(0xFFFF5C7C);
 const Color _kRepairColor = Color(0xFFA88DFF);
 const Color _kSurfaceMuted = Color(0xFF13335E);
 const Color _kTableGridColor = Color(0xFF2B6FF0);
-const Color _kTrendFirstColor = Color(0xFFFF6E9F);
-const Color _kTrendRepairColor = Color(0xFFB8A0FF);
-const Color _kTrendTotalColor = Color(0xFF66F4FF);
+const Color _kTrendFirstColor = Color(0xFFFF6FA9);
+const Color _kTrendRepairColor = Color(0xFFB89BFF);
+const Color _kTrendTotalColor = Color(0xFF64F9FF);
 
 const TextStyle _kTableHeaderStyle = TextStyle(
   color: _kTextPrimary,
@@ -86,16 +86,16 @@ class TETop10ErrorCodeScreen extends StatefulWidget {
 
 class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   static const List<Color> _barPalette = [
-    Color(0xFFFF5F91),
-    Color(0xFF3FD4FF),
-    Color(0xFFFFDA5A),
-    Color(0xFF58F6B6),
-    Color(0xFF9C74FF),
-    Color(0xFFFF9251),
-    Color(0xFF45F1FF),
-    Color(0xFFF8439A),
-    Color(0xFF3D8CFF),
-    Color(0xFFFFF066),
+    Color(0xFFFF6B9D),
+    Color(0xFF47D4FF),
+    Color(0xFFFFC15E),
+    Color(0xFF41F0AE),
+    Color(0xFF8D6BFF),
+    Color(0xFFFF8C51),
+    Color(0xFF38E5FF),
+    Color(0xFFFF5DAE),
+    Color(0xFF3F9BFF),
+    Color(0xFFFFEF5A),
   ];
 
   late final String _controllerTag;
@@ -112,7 +112,11 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   static const Duration _kFilterAnimationDuration = Duration(milliseconds: 280);
 
   Color _emphasize(Color color) {
-    return Color.lerp(color, Colors.white, 0.18)!;
+    final hsl = HSLColor.fromColor(color);
+    final boosted = hsl.withSaturation((hsl.saturation + 0.12).clamp(0.0, 1.0)).withLightness(
+          (hsl.lightness + 0.18).clamp(0.0, 1.0),
+        );
+    return boosted.toColor();
   }
 
   @override
@@ -1087,9 +1091,10 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
     final tooltip = TooltipBehavior(
       enable: true,
-      color: const Color(0xFF173B73),
+      color: const Color(0xFF10326A),
       header: '',
       textStyle: const TextStyle(color: Colors.white, fontSize: 11),
+      shadowColor: Colors.black.withOpacity(0.35),
     );
 
     return IgnorePointer(
@@ -1111,7 +1116,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 isVisible: true,
                 position: LegendPosition.bottom,
                 overflowMode: LegendItemOverflowMode.wrap,
-                toggleSeriesVisibility: false,
+                toggleSeriesVisibility: true,
                 textStyle: const TextStyle(
                   color: _kTextPrimary,
                   fontSize: 12,
@@ -1138,7 +1143,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 majorTickLines: const MajorTickLines(size: 0),
                 majorGridLines: const MajorGridLines(color: Colors.transparent),
                 labelIntersectAction: AxisLabelIntersectAction.rotate45,
-              ),
+                ),
               primaryYAxis: NumericAxis(
                 labelStyle: const TextStyle(
                   color: _kTextSecondary,
@@ -1148,13 +1153,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 axisLine: const AxisLine(color: Colors.transparent),
                 majorGridLines: const MajorGridLines(color: Color(0x44FFFFFF)),
               ),
-              onLegendTapped: (args) {
-                final index = args.seriesIndex;
-                if (index == null || index < 0 || index >= seriesConfigs.length) {
-                  return;
-                }
-                _controller.focusErrorTrend(seriesConfigs[index].error);
-              },
               series: <CartesianSeries<dynamic, dynamic>>[
                 for (var i = 0; i < seriesConfigs.length; i++)
                   SplineSeries<TETopErrorTrendPointEntity, String>(
@@ -1199,7 +1197,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                         color: Colors.white,
                       ),
                       labelAlignment: ChartDataLabelAlignment.auto,
-                      labelIntersectAction: LabelIntersectAction.hide,
+                      labelIntersectAction: LabelIntersectAction.shift,
                     ),
                   ),
               ],
@@ -1263,6 +1261,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           isVisible: true,
           position: LegendPosition.bottom,
           overflowMode: LegendItemOverflowMode.wrap,
+          toggleSeriesVisibility: true,
           textStyle: const TextStyle(
             color: _kTextPrimary,
             fontSize: 12,
@@ -1329,7 +1328,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
-              labelIntersectAction: LabelIntersectAction.hide,
+              labelIntersectAction: LabelIntersectAction.shift,
             ),
           ),
           SplineSeries<TETopErrorTrendPointEntity, String>(
@@ -1368,7 +1367,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
-              labelIntersectAction: LabelIntersectAction.hide,
+              labelIntersectAction: LabelIntersectAction.shift,
             ),
           ),
           SplineSeries<TETopErrorTrendPointEntity, String>(
@@ -1407,7 +1406,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
-              labelIntersectAction: LabelIntersectAction.hide,
+              labelIntersectAction: LabelIntersectAction.shift,
             ),
           ),
         ],
