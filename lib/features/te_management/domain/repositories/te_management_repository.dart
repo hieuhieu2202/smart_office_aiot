@@ -1,5 +1,6 @@
 import '../entities/te_report.dart';
 import '../entities/te_retest_rate.dart';
+import '../entities/te_top_error.dart';
 
 abstract class TEManagementRepository {
   Future<List<TEReportGroupEntity>> fetchReport({
@@ -27,5 +28,25 @@ abstract class TEManagementRepository {
     required String modelSerial,
     required String range,
     String model,
+  });
+
+  Future<List<TETopErrorEntity>> fetchTopErrorCodes({
+    required String modelSerial,
+    required String range,
+    String type,
+  });
+
+  Future<List<TETopErrorTrendPointEntity>> fetchTopErrorTrendByErrorCode({
+    required String modelSerial,
+    required String range,
+    required String errorCode,
+    String type,
+  });
+
+  Future<List<TETopErrorTrendPointEntity>> fetchTopErrorTrendByModelStation({
+    required String range,
+    required String errorCode,
+    required String model,
+    required String station,
   });
 }

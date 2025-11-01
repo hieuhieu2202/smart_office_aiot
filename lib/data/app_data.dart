@@ -105,6 +105,13 @@ List<AppProject> appProjects = [
         screenType: "te_management_adapter",
       ),
       AppProject(
+        name: "TE TOP 10 ERROR CODE (ADAPTER)",
+        progress: 1.0,
+        status: "Ready",
+        icon: Icons.error_outline,
+        screenType: "te_top10_error_code_adapter",
+      ),
+      AppProject(
         name: "TE RETEST RATE (ADAPTER)",
         progress: 1.0,
         status: "Ready",
@@ -245,6 +252,13 @@ List<AppProject> appProjects = [
         status: "Ready",
         icon: Icons.storage,
         screenType: "te_management_switch",
+      ),
+      AppProject(
+        name: "TE TOP 10 ERROR CODE (SWITCH)",
+        progress: 1.0,
+        status: "Ready",
+        icon: Icons.error_outline,
+        screenType: "te_top10_error_code_switch",
       ),
       AppProject(
         name: "TE RETEST RATE (SWITCH)",
