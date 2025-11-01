@@ -112,11 +112,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
   static const Duration _kFilterAnimationDuration = Duration(milliseconds: 280);
 
   Color _emphasize(Color color) {
-    final hsl = HSLColor.fromColor(color);
-    final boosted = hsl
-        .withSaturation((hsl.saturation + 0.18).clamp(0.0, 1.0))
-        .withLightness((hsl.lightness + 0.05).clamp(0.0, 0.62));
-    return boosted.toColor();
+    return color;
   }
 
   @override
@@ -1143,7 +1139,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 majorTickLines: const MajorTickLines(size: 0),
                 majorGridLines: const MajorGridLines(color: Colors.transparent),
                 labelIntersectAction: AxisLabelIntersectAction.rotate45,
-                ),
+              ),
               primaryYAxis: NumericAxis(
                 labelStyle: const TextStyle(
                   color: _kTextSecondary,
@@ -1173,8 +1169,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                   onCreateShader: (details) {
                     return LinearGradient(
                       colors: [
-                        accent.withOpacity(0.65),
                         accent,
+                        accent.withOpacity(0.92),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -1304,8 +1300,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             onCreateShader: (details) {
               return LinearGradient(
                 colors: [
-                  _kTrendFirstColor.withOpacity(0.6),
                   _kTrendFirstColor,
+                  _kTrendFirstColor.withOpacity(0.9),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -1343,8 +1339,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             onCreateShader: (details) {
               return LinearGradient(
                 colors: [
-                  _kTrendRepairColor.withOpacity(0.6),
                   _kTrendRepairColor,
+                  _kTrendRepairColor.withOpacity(0.9),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -1382,8 +1378,8 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             onCreateShader: (details) {
               return LinearGradient(
                 colors: [
-                  _kTrendTotalColor.withOpacity(0.6),
                   _kTrendTotalColor,
+                  _kTrendTotalColor.withOpacity(0.9),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
