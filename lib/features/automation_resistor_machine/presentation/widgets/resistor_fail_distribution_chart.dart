@@ -55,16 +55,16 @@ class ResistorFailDistributionChart extends StatelessWidget {
             plotAreaBorderWidth: 0,
             tooltipBehavior: TooltipBehavior(enable: true, header: ''),
             legend: const Legend(isVisible: false),
-            primaryXAxis: NumericAxis(
+            primaryXAxis: CategoryAxis(
+              axisLine: const AxisLine(width: 0),
+              majorGridLines: const MajorGridLines(width: 0),
+              labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            primaryYAxis: NumericAxis(
               axisLine: const AxisLine(color: Colors.white24),
               majorGridLines: const MajorGridLines(color: Color(0x2200FFFF)),
               labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
               numberFormat: NumberFormat.compact(),
-            ),
-            primaryYAxis: CategoryAxis(
-              axisLine: const AxisLine(width: 0),
-              majorGridLines: const MajorGridLines(width: 0),
-              labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
             series: <BarSeries<ResistorPieSlice, String>>[
               BarSeries<ResistorPieSlice, String>(
