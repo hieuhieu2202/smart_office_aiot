@@ -19,11 +19,13 @@ class ResistorPieSlice {
     required this.label,
     required this.value,
     required this.color,
+    this.pass = 0,
   });
 
   final String label;
   final int value;
   final int color;
+  final int pass;
 }
 
 class ResistorStackedSeries {
@@ -162,9 +164,10 @@ class ResistorDashboardViewState {
       }
       failDistributionSlices.add(
         ResistorPieSlice(
-          label: '${machine.name}: ${machine.fail}',
+          label: machine.name,
           value: machine.fail,
           color: failPalette[i % failPalette.length],
+          pass: machine.pass,
         ),
       );
     }
