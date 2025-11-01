@@ -98,6 +98,8 @@ class ResistorComboChart extends StatelessWidget {
                 axisLine: const AxisLine(width: 0),
                 majorGridLines: const MajorGridLines(color: Colors.white12),
                 majorTickLines: const MajorTickLines(size: 0),
+                axisLabelFormatter: (AxisLabelRenderDetails details) =>
+                    const ChartAxisLabel('', TextStyle()),
               ),
               axes: <ChartAxis>[
                 NumericAxis(
@@ -110,6 +112,8 @@ class ResistorComboChart extends StatelessWidget {
                   labelStyle: const TextStyle(color: Colors.cyanAccent),
                   majorGridLines: const MajorGridLines(width: 0),
                   axisLine: const AxisLine(width: 0),
+                  axisLabelFormatter: (AxisLabelRenderDetails details) =>
+                      const ChartAxisLabel('', TextStyle()),
                 ),
               ],
               tooltipBehavior: TooltipBehavior(enable: true),
@@ -118,8 +122,12 @@ class ResistorComboChart extends StatelessWidget {
                   name: 'PASS',
                   width: 0.65,
                   spacing: 0.15,
-                  color: const Color(0xFF00FFE7),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00FFE7), Color(0xFF008BFF)],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
                   dataSource: points,
                   xValueMapper: (_ComboPoint point, _) => point.category,
                   yValueMapper: (_ComboPoint point, _) => point.pass,
@@ -129,8 +137,12 @@ class ResistorComboChart extends StatelessWidget {
                   name: 'FAIL',
                   width: 0.65,
                   spacing: 0.15,
-                  color: const Color(0xFFFF004F),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF597A), Color(0xFFFF004F)],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
                   dataSource: points,
                   xValueMapper: (_ComboPoint point, _) => point.category,
                   yValueMapper: (_ComboPoint point, _) => point.fail,
