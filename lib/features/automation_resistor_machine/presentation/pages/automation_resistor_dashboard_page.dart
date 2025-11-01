@@ -279,6 +279,12 @@ class _AutomationResistorDashboardPageState
                                 controller.updateRange(picked);
                               }
                             },
+                            onReset: controller.resetFilters,
+                            onQuery: () {
+                              controller.loadDashboard();
+                              controller.loadStatus();
+                              Navigator.of(dialogContext).pop();
+                            },
                           ),
                         ),
                       ),
@@ -599,11 +605,15 @@ class _FilterDialogContent extends StatelessWidget {
     required this.controller,
     required this.onClose,
     required this.onPickDate,
+    required this.onReset,
+    required this.onQuery,
   });
 
   final AutomationResistorDashboardController controller;
   final VoidCallback onClose;
   final Future<void> Function() onPickDate;
+  final VoidCallback onReset;
+  final VoidCallback onQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -660,18 +670,67 @@ class _FilterDialogContent extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              ResistorFiltersBar(
-                machineOptions: controller.machineNames,
-                selectedMachine: controller.selectedMachine.value,
-                onMachineChanged: controller.updateMachine,
-                shiftOptions: const ['D', 'N'],
-                selectedShift: controller.selectedShift.value,
-                onShiftChanged: controller.updateShift,
-                statusOptions: const ['ALL', 'PASS', 'FAIL'],
-                selectedStatus: controller.selectedStatus.value,
-                onStatusChanged: controller.updateStatus,
-                dateRange: controller.selectedRange.value,
-                onSelectDate: onPickDate,
+              Obx(() {
+                return ResistorFiltersBar(
+                  machineOptions: controller.machineNames.toList(growable: false),
+                  selectedMachine: controller.selectedMachine.value,
+                  onMachineChanged: controller.updateMachine,
+                  shiftOptions: const ['D', 'N'],
+                  selectedShift: controller.selectedShift.value,
+                  onShiftChanged: controller.updateShift,
+                  statusOptions: const ['ALL', 'PASS', 'FAIL'],
+                  selectedStatus: controller.selectedStatus.value,
+                  onStatusChanged: controller.updateStatus,
+                  dateRange: controller.selectedRange.value,
+                  onSelectDate: onPickDate,
+                );
+              }),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        backgroundColor: const Color(0xFF031C3A),
+                        side: const BorderSide(color: Colors.white24),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: onReset,
+                      child: const Text(
+                        'Reset',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.cyanAccent,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: onQuery,
+                      child: const Text(
+                        'QUERY',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

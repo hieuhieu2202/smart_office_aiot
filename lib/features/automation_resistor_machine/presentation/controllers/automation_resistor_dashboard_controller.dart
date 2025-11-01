@@ -296,6 +296,16 @@ class AutomationResistorDashboardController extends GetxController {
     loadStatus();
   }
 
+  void resetFilters() {
+    final defaultRange = _defaultRange();
+    selectedRange.value = defaultRange;
+    selectedShift.value = _deriveShift(defaultRange.start);
+    selectedStatus.value = 'ALL';
+    selectedMachine.value = 'ALL';
+    loadDashboard();
+    loadStatus();
+  }
+
   ResistorMachineRequest _buildTrackingRequest() {
     final rangeText = _formatRange(selectedRange.value);
     final machine = _resolveSelection(selectedMachine.value);
