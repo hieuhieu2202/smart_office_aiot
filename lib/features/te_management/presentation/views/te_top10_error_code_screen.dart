@@ -33,6 +33,7 @@ const Color _kTableGridColor = Color(0xFF2B6FF0);
 const Color _kTrendFirstColor = Color(0xFFFF3B3B);
 const Color _kTrendRepairColor = Color(0xFF00FF9C);
 const Color _kTrendTotalColor = Color(0xFF00E5FF);
+const Color _kDistributionBarColor = Color(0xFF00E5FF);
 
 const TextStyle _kTableHeaderStyle = TextStyle(
   color: _kTextPrimary,
@@ -849,7 +850,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                           return _DistributionDatum(
                             label: item.errorCode,
                             value: item.totalFail.toDouble(),
-                            color: _barPalette[index % _barPalette.length],
                           );
                         });
 
@@ -893,10 +893,17 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                               dataSource: distributionData,
                               xValueMapper: (datum, _) => datum.label,
                               yValueMapper: (datum, _) => datum.value,
-                              pointColorMapper: (datum, _) => datum.color,
+                              color: _kDistributionBarColor,
                               width: 0.6,
                               spacing: 0.25,
                               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                              onCreateShader: (shaderDetails) {
+                                return const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Color(0xFF7CFFFB), Color(0xFF00E5FF)],
+                                ).createShader(shaderDetails.rect);
+                              },
                               dataLabelMapper: (datum, _) => datum.value.toStringAsFixed(0),
                               dataLabelSettings: const DataLabelSettings(
                                 isVisible: true,
@@ -1769,12 +1776,10 @@ class _DistributionDatum {
   _DistributionDatum({
     required this.label,
     required this.value,
-    required this.color,
   });
 
   final String label;
   final double value;
-  final Color color;
 }
 
 class _TrendSeriesConfig {
