@@ -19,13 +19,15 @@ class ResistorPieSlice {
     required this.label,
     required this.value,
     required this.color,
-    this.pass = 0,
-  });
+    int? pass,
+  }) : _pass = pass;
 
   final String label;
   final int value;
   final int color;
-  final int pass;
+  final int? _pass;
+
+  int get pass => _pass ?? 0;
 }
 
 class ResistorStackedSeries {
