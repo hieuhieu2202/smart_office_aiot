@@ -8,9 +8,6 @@ import 'package:intl/intl.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-import 'package:smart_factory/features/nvidia_lc_switch_kanban/presentation/viewmodels/series_utils.dart'
-    show build3dColumnShader;
-
 import '../../data/datasources/te_management_remote_data_source.dart';
 import '../../data/repositories/te_management_repository_impl.dart';
 import '../../domain/entities/te_top_error.dart';
@@ -856,11 +853,13 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                           );
                         });
 
-                        return SfCartesianChart(
+                        return SfCartesian3DChart(
                           key: const ValueKey('distribution_chart'),
                           backgroundColor: Colors.transparent,
                           margin: const EdgeInsets.only(top: 12, right: 12, left: 4, bottom: 8),
-                          plotAreaBorderWidth: 0,
+                          depth: 80,
+                          tiltAngle: 8,
+                          wallColor: const Color(0x33112B47),
                           primaryXAxis: CategoryAxis(
                             labelStyle: const TextStyle(
                               color: _kTextPrimary,
@@ -890,31 +889,24 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                             borderWidth: 0,
                             textStyle: const TextStyle(color: Colors.white, fontSize: 11),
                           ),
-                          series: <ChartSeries<_DistributionDatum, String>>[
-                            ColumnSeries<_DistributionDatum, String>(
+                          series: <ChartSeries3D<_DistributionDatum, String>>[
+                            ColumnSeries3D<_DistributionDatum, String>(
                               name: 'Failures',
                               dataSource: distributionData,
                               xValueMapper: (datum, _) => datum.label,
                               yValueMapper: (datum, _) => datum.value,
                               pointColorMapper: (datum, _) => datum.color,
-                              width: 0.45,
-                              spacing: 0.18,
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                              width: 0.6,
+                              spacing: 0.2,
                               dataLabelMapper: (datum, _) => datum.value.toStringAsFixed(0),
                               dataLabelSettings: const DataLabelSettings(
                                 isVisible: true,
                                 textStyle: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 10,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              onCreateShader: (ShaderDetails details) {
-                                final rect = details.rect;
-                                final pointIndex = details.pointIndex ?? 0;
-                                final baseColor = distributionData[pointIndex % distributionData.length].color;
-                                return build3dColumnShader(rect, baseColor);
-                              },
                             ),
                           ],
                         );
