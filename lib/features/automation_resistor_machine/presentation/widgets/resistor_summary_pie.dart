@@ -72,7 +72,6 @@ class ResistorSummaryPie extends StatelessWidget {
           endAngle: 270,
           explode: false,
           cornerStyle: CornerStyle.bothCurve,
-          gap: '2%',
           xValueMapper: (slice, _) => slice.label,
           yValueMapper: (slice, _) => slice.value,
           pointColorMapper: (slice, _) => Color(slice.color),
