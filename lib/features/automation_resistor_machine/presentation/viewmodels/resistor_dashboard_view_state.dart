@@ -64,12 +64,6 @@ class ResistorDashboardViewState {
 
     final summaryTiles = <ResistorSummaryTileData>[
       ResistorSummaryTileData(
-        title: 'WIP',
-        value: summary.wip.toString(),
-        subtitle: 'Work in progress',
-        color: 0xFF00B0FF,
-      ),
-      ResistorSummaryTileData(
         title: 'PASS',
         value: summary.pass.toString(),
         subtitle: 'Finished good quantity',
@@ -92,18 +86,6 @@ class ResistorDashboardViewState {
         value: '${summary.retestRate.toStringAsFixed(2)}%',
         subtitle: 'Retest rate',
         color: 0xFFFFD740,
-      ),
-      ResistorSummaryTileData(
-        title: 'FIRST FAIL',
-        value: summary.firstFail.toString(),
-        subtitle: 'First time failure',
-        color: 0xFF9575CD,
-      ),
-      ResistorSummaryTileData(
-        title: 'RETEST',
-        value: summary.retest.toString(),
-        subtitle: 'Retest quantity',
-        color: 0xFFFF8A65,
       ),
     ];
 
