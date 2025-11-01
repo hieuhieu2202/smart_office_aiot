@@ -282,6 +282,7 @@ class AutomationResistorDashboardController extends GetxController {
 
   void updateStatus(String status) {
     selectedStatus.value = status;
+    loadDashboard();
     loadStatus();
   }
 
@@ -294,12 +295,13 @@ class AutomationResistorDashboardController extends GetxController {
   ResistorMachineRequest _buildTrackingRequest() {
     final rangeText = _formatRange(selectedRange.value);
     final machine = _normalizeAll(selectedMachine.value);
+    final status = _normalizeAll(selectedStatus.value);
 
     return ResistorMachineRequest(
       dateRange: rangeText,
       shift: selectedShift.value,
       machineName: machine,
-      status: '',
+      status: status,
     );
   }
 

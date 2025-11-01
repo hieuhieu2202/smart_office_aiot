@@ -28,12 +28,17 @@ class ResistorMachineRequest extends Equatable {
   }
 
   Map<String, dynamic> toBody() {
-    return <String, dynamic>{
+    final body = <String, dynamic>{
       'DateRange': dateRange,
       'Shift': shift,
-      'MachineName': machineName,
       'Status': status,
     };
+
+    if (machineName.isNotEmpty) {
+      body['MachineName'] = machineName;
+    }
+
+    return body;
   }
 
   @override
