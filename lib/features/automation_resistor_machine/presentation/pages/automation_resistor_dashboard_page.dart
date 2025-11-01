@@ -8,7 +8,6 @@ import '../../domain/entities/resistor_machine_entities.dart';
 import '../viewmodels/resistor_dashboard_view_state.dart';
 import '../widgets/resistor_combo_chart.dart';
 import '../widgets/resistor_filters_bar.dart';
-import '../widgets/resistor_status_table.dart';
 import '../widgets/resistor_summary_pie.dart';
 import '../widgets/resistor_summary_tile.dart';
 
@@ -864,8 +863,7 @@ class _DesktopLayout extends StatelessWidget {
         children: [
           _SummarySection(view: view),
           const SizedBox(height: 24),
-          Flexible(
-            flex: 6,
+          Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -903,38 +901,6 @@ class _DesktopLayout extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          Flexible(
-            flex: 5,
-            child: _DashboardPanel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'LIST TRACKING DATA',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
-                        ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: Obx(
-                      () => ResistorStatusTable(
-                        records: controller.statusEntries,
-                        isLoading: controller.isLoadingStatus.value,
-                        onTap: (item) async {
-                          await controller.loadRecordDetail(item.id);
-                          await _showRecordDialog(context, controller);
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -955,7 +921,7 @@ class _TabletLayout extends StatelessWidget {
         _SummarySection(view: view),
         const SizedBox(height: 20),
         SizedBox(
-          height: 320,
+          height: 360,
           child: _DashboardPanel(
             child: ResistorSummaryPie(
               slices: view.summarySlices,
@@ -965,7 +931,7 @@ class _TabletLayout extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: 360,
+          height: 420,
           child: ResistorComboChart(
             title: 'YIELD RATE AND OUTPUT',
             series: view.sectionSeries,
@@ -973,40 +939,10 @@ class _TabletLayout extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: 360,
+          height: 420,
           child: ResistorComboChart(
             title: 'MACHINE DISTRIBUTION',
             series: view.machineSeries,
-          ),
-        ),
-        const SizedBox(height: 20),
-        _DashboardPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'LIST TRACKING DATA',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 420,
-                child: Obx(
-                  () => ResistorStatusTable(
-                    records: controller.statusEntries,
-                    isLoading: controller.isLoadingStatus.value,
-                    onTap: (item) async {
-                      await controller.loadRecordDetail(item.id);
-                      await _showRecordDialog(context, controller);
-                    },
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ],
@@ -1038,48 +974,18 @@ class _MobileLayout extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 280,
+          height: 340,
           child: ResistorComboChart(
-            title: 'OUTPUT BY SECTION',
+            title: 'YIELD RATE AND OUTPUT',
             series: view.sectionSeries,
           ),
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 280,
+          height: 340,
           child: ResistorComboChart(
             title: 'MACHINE DISTRIBUTION',
             series: view.machineSeries,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _DashboardPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'LIST TRACKING DATA',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              Obx(
-                () => SizedBox(
-                  height: 420,
-                  child: ResistorStatusTable(
-                    records: controller.statusEntries,
-                    isLoading: controller.isLoadingStatus.value,
-                    onTap: (item) async {
-                      await controller.loadRecordDetail(item.id);
-                      await _showRecordDialog(context, controller);
-                    },
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ],
@@ -1154,98 +1060,6 @@ class _DashboardPanel extends StatelessWidget {
       ),
       padding: const EdgeInsets.all(20),
       child: child,
-    );
-  }
-}
-
-Future<void> _showRecordDialog(
-  BuildContext context,
-  AutomationResistorDashboardController controller,
-) async {
-  final record = controller.selectedRecord.value;
-  if (record == null) return;
-
-  await showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: const Color(0xFF04142F),
-        title: Text(
-          'Record #${record.id}',
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: SizedBox(
-          width: 460,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _InfoRow('Machine', record.machineName),
-                _InfoRow('Serial', record.serialNumber ?? '-'),
-                _InfoRow('Work Date', record.workDate),
-                _InfoRow('Station', '${record.stationSequence}'),
-                _InfoRow('Pass Qty', '${record.passQty}'),
-                _InfoRow('Fail Qty', '${record.failQty}'),
-                _InfoRow('Employee', record.employeeId ?? '-'),
-                if (controller.recordTestResults.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Test Results',
-                    style: TextStyle(
-                      color: Colors.cyanAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  for (final test in controller.recordTestResults)
-                    _InfoRow(
-                      'Address ${test.address}',
-                      test.result ? 'PASS' : 'FAIL',
-                    ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow(this.label, this.value);
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(color: Colors.white70),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
