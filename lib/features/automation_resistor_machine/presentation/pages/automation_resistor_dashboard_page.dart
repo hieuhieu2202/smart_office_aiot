@@ -25,6 +25,7 @@ class _AutomationResistorDashboardPageState
   late final AutomationResistorDashboardController controller;
   late final TextEditingController searchController;
   late final FocusNode searchFocusNode;
+  final GlobalKey _filterButtonKey = GlobalKey();
 
   @override
   void initState() {
@@ -130,10 +131,17 @@ class _AutomationResistorDashboardPageState
                     : CrossAxisAlignment.stretch,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Flexible(
+                      IconButton(
+                        onPressed: _handleBack,
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.cyanAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
                         child: Text(
                           title,
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -143,6 +151,11 @@ class _AutomationResistorDashboardPageState
                               ),
                         ),
                       ),
+                      if (showFilters) ...[
+                        const SizedBox(width: 12),
+                        _buildFilterButton(() => _showFiltersSheet(context)),
+                      ],
+                      const SizedBox(width: 8),
                       IconButton(
                         onPressed: () {
                           if (tabController.index == 0) {
@@ -159,34 +172,142 @@ class _AutomationResistorDashboardPageState
                       ),
                     ],
                   ),
-                  if (showFilters) ...[
-                    const SizedBox(height: 12),
-                    ResistorFiltersBar(
-                      machineOptions: controller.machineNames,
-                      selectedMachine: controller.selectedMachine.value,
-                      onMachineChanged: controller.updateMachine,
-                      selectedShift: controller.selectedShift.value,
-                      onShiftChanged: controller.updateShift,
-                      selectedStatus: controller.selectedStatus.value,
-                      onStatusChanged: controller.updateStatus,
-                      dateRange: controller.selectedRange.value,
-                      onSelectDate: () async {
-                        final picked = await _pickDateTimeRange(
-                          context,
-                          controller.selectedRange.value,
-                        );
-                        if (picked != null) {
-                          controller.updateRange(picked);
-                        }
-                      },
-                    ),
-                  ],
                 ],
               );
             },
           );
         },
       ),
+    );
+  }
+
+  void _handleBack() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    if (Get.key.currentState?.canPop() ?? false) {
+      Get.back();
+    }
+  }
+
+  Widget _buildFilterButton(VoidCallback onPressed) {
+    return OutlinedButton.icon(
+      key: _filterButtonKey,
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.cyanAccent,
+        side: const BorderSide(color: Colors.cyanAccent),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      ),
+      icon: const Icon(Icons.tune, size: 18),
+      label: const Text(
+        'FILTER',
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFiltersSheet(BuildContext context) async {
+    final renderBox =
+        _filterButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    final overlayState = Overlay.of(context);
+    final overlay = overlayState?.context.findRenderObject() as RenderBox?;
+    final overlaySize = overlay?.size ?? MediaQuery.of(context).size;
+    Offset? buttonOffset;
+    Size buttonSize = Size.zero;
+
+    if (renderBox != null && overlay != null) {
+      buttonOffset = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
+      buttonSize = renderBox.size;
+    }
+
+    final mediaQuery = MediaQuery.of(context);
+    final double screenWidth = overlaySize.width;
+    final bool narrowLayout = screenWidth < 720;
+    final double baseTop = mediaQuery.padding.top + 72;
+    final double buttonTop = buttonOffset?.dy ?? baseTop;
+    final double topOffset = buttonTop + (buttonSize.height == 0 ? 0 : buttonSize.height) + 12;
+    final double computedRight = overlaySize.width -
+        ((buttonOffset?.dx ?? overlaySize.width) + buttonSize.width);
+    final double rightInset = computedRight < 24 ? 24 : computedRight;
+
+    await showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Filters',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        final bottomInset = MediaQuery.of(dialogContext).viewInsets.bottom;
+
+        return SafeArea(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(dialogContext).pop(),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: narrowLayout
+                        ? MediaQuery.of(dialogContext).padding.top + 24
+                        : topOffset,
+                    left: narrowLayout ? 24 : null,
+                    right: narrowLayout ? 24 : rightInset,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () {},
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: bottomInset + 24),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: _FilterDialogContent(
+                            onClose: () => Navigator.of(dialogContext).pop(),
+                            controller: controller,
+                            onPickDate: () async {
+                              final picked = await _pickDateTimeRange(
+                                dialogContext,
+                                controller.selectedRange.value,
+                              );
+                              if (picked != null) {
+                                controller.updateRange(picked);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          ),
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, -0.05),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            )),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -469,6 +590,93 @@ class _AutomationResistorDashboardPageState
           },
         );
       },
+    );
+  }
+}
+
+class _FilterDialogContent extends StatelessWidget {
+  const _FilterDialogContent({
+    required this.controller,
+    required this.onClose,
+    required this.onPickDate,
+  });
+
+  final AutomationResistorDashboardController controller;
+  final VoidCallback onClose;
+  final Future<void> Function() onPickDate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF021026),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.cyanAccent.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.45),
+              blurRadius: 24,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.tune, color: Colors.cyanAccent, size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'FILTER',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: onClose,
+                    icon: const Icon(Icons.close, color: Colors.white60),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Divider(color: Colors.white12, thickness: 1, height: 24),
+              const SizedBox(height: 8),
+              const Text(
+                'Refine your query',
+                style: TextStyle(
+                  color: Colors.white60,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ResistorFiltersBar(
+                machineOptions: controller.machineNames,
+                selectedMachine: controller.selectedMachine.value,
+                onMachineChanged: controller.updateMachine,
+                shiftOptions: const ['D', 'N'],
+                selectedShift: controller.selectedShift.value,
+                onShiftChanged: controller.updateShift,
+                statusOptions: const ['ALL', 'PASS', 'FAIL'],
+                selectedStatus: controller.selectedStatus.value,
+                onStatusChanged: controller.updateStatus,
+                dateRange: controller.selectedRange.value,
+                onSelectDate: onPickDate,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -110,7 +110,9 @@ class AutomationResistorDashboardController extends GetxController {
     error.value = null;
     try {
       final request = _buildTrackingRequest();
+      _logRequest('Tracking', request);
       final tracking = await _getTrackingData(request);
+      _logTrackingData(tracking);
       rawTracking.value = tracking;
       dashboardView.value =
           ResistorDashboardViewState.fromTracking(tracking);
@@ -126,7 +128,9 @@ class AutomationResistorDashboardController extends GetxController {
     isLoadingStatus.value = true;
     try {
       final request = _buildStatusRequest();
+      _logRequest('Status', request);
       final list = await _getStatusData(request);
+      _logStatusData(list);
       statusEntries.assignAll(list);
     } catch (e) {
       error.value = e.toString();
@@ -282,6 +286,7 @@ class AutomationResistorDashboardController extends GetxController {
 
   void updateStatus(String status) {
     selectedStatus.value = status;
+    loadDashboard();
     loadStatus();
   }
 
@@ -293,20 +298,21 @@ class AutomationResistorDashboardController extends GetxController {
 
   ResistorMachineRequest _buildTrackingRequest() {
     final rangeText = _formatRange(selectedRange.value);
-    final machine = selectedMachine.value;
+    final machine = _resolveSelection(selectedMachine.value);
+    final status = _resolveSelection(selectedStatus.value);
 
     return ResistorMachineRequest(
       dateRange: rangeText,
       shift: selectedShift.value,
       machineName: machine,
-      status: '',
+      status: status,
     );
   }
 
   ResistorMachineRequest _buildStatusRequest() {
     final rangeText = _formatRange(selectedRange.value);
-    final machine = selectedMachine.value;
-    final status = selectedStatus.value == 'ALL' ? '' : selectedStatus.value;
+    final machine = _resolveSelection(selectedMachine.value);
+    final status = _resolveSelection(selectedStatus.value);
 
     return ResistorMachineRequest(
       dateRange: rangeText,
@@ -323,6 +329,14 @@ class AutomationResistorDashboardController extends GetxController {
     return '$start - $end';
   }
 
+  String _resolveSelection(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return 'ALL';
+    }
+    return trimmed.toUpperCase() == 'ALL' ? 'ALL' : trimmed;
+  }
+
   void _startAutoRefresh() {
     _autoRefresh?.cancel();
     _autoRefresh = Timer.periodic(const Duration(minutes: 5), (_) {
@@ -331,6 +345,45 @@ class AutomationResistorDashboardController extends GetxController {
         loadStatus();
       }
     });
+  }
+
+  void _logTrackingData(ResistorMachineTrackingData tracking) {
+    final summary = tracking.summary;
+    debugPrint('[ResistorDashboard] Summary: total=${summary.total}, '
+        'pass=${summary.pass}, fail=${summary.fail}, '
+        'yieldRate=${summary.yieldRate}');
+    debugPrint('[ResistorDashboard] Outputs (${tracking.outputs.length} items): '
+        '${tracking.outputs.map((e) => {
+              'label': e.displayLabel,
+              'pass': e.pass,
+              'fail': e.fail,
+              'yr': e.yieldRate
+            }).toList()}');
+    debugPrint('[ResistorDashboard] Machines (${tracking.machines.length} items): '
+        '${tracking.machines.map((e) => {
+              'name': e.name,
+              'pass': e.pass,
+              'fail': e.fail,
+              'yr': e.yieldRate
+            }).toList()}');
+  }
+
+  void _logStatusData(List<ResistorMachineStatus> list) {
+    debugPrint('[ResistorDashboard] Status entries (${list.length} items) loaded');
+    if (list.isNotEmpty) {
+      final preview = list.take(5).map((entry) => {
+            'serial': entry.serialNumber,
+            'machine': entry.machineName,
+            'station': entry.stationSequence,
+            'time': entry.inStationTime.toIso8601String(),
+          });
+      debugPrint('[ResistorDashboard] Status preview: ${preview.toList()}');
+    }
+  }
+
+  void _logRequest(String label, ResistorMachineRequest request) {
+    final payload = request.toBody();
+    debugPrint('[ResistorDashboard] $label request payload: $payload');
   }
 
   static DateTimeRange _defaultRange() {
