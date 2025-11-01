@@ -253,14 +253,31 @@ class AutomationResistorDashboardController extends GetxController {
 
   void updateRange(DateTimeRange range) {
     selectedRange.value = range;
+    selectedShift.value = _deriveShift(range.start);
     loadDashboard();
     loadStatus();
   }
 
   void updateShift(String shift) {
-    selectedShift.value = shift;
-    loadDashboard();
-    loadStatus();
+    if (shift == selectedShift.value) {
+      return;
+    }
+
+    final current = selectedRange.value.start;
+    final dayAnchor = DateTime(current.year, current.month, current.day);
+
+    DateTimeRange newRange;
+    if (shift == 'D') {
+      final start = dayAnchor.add(const Duration(hours: 7, minutes: 30));
+      final end = start.add(const Duration(hours: 12));
+      newRange = DateTimeRange(start: start, end: end);
+    } else {
+      final start = dayAnchor.add(const Duration(hours: 19, minutes: 30));
+      final end = start.add(const Duration(hours: 12));
+      newRange = DateTimeRange(start: start, end: end);
+    }
+
+    updateRange(newRange);
   }
 
   void updateStatus(String status) {
@@ -276,15 +293,18 @@ class AutomationResistorDashboardController extends GetxController {
 
   ResistorMachineRequest _buildRequest() {
     final formatter = DateFormat('yyyy-MM-dd HH:mm');
-    final start = formatter.format(selectedRange.value.start);
+    final startDate = selectedRange.value.start;
+    final start = formatter.format(startDate);
     final end = formatter.format(selectedRange.value.end);
     final range = '$start - $end';
+    final shift = _deriveShift(startDate);
+    final status = selectedStatus.value == 'ALL' ? '' : selectedStatus.value;
 
     return ResistorMachineRequest(
       dateRange: range,
-      shift: selectedShift.value,
+      shift: shift,
       machineName: selectedMachine.value,
-      status: selectedStatus.value,
+      status: status,
     );
   }
 
@@ -303,5 +323,16 @@ class AutomationResistorDashboardController extends GetxController {
     final start = DateTime(now.year, now.month, now.day, 7, 30);
     final end = DateTime(now.year, now.month, now.day, 19, 30);
     return DateTimeRange(start: start, end: end);
+  }
+
+  String _deriveShift(DateTime date) {
+    final totalMinutes = date.hour * 60 + date.minute;
+    final dayStart = 7 * 60 + 30; // 07:30
+    final nightStart = 19 * 60 + 30; // 19:30
+
+    if (totalMinutes >= dayStart && totalMinutes < nightStart) {
+      return 'D';
+    }
+    return 'N';
   }
 }
