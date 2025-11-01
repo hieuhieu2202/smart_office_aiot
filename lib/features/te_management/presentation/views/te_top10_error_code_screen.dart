@@ -8,6 +8,9 @@ import 'package:intl/intl.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
+import 'package:smart_factory/features/nvidia_lc_switch_kanban/presentation/viewmodels/series_utils.dart'
+    show build3dColumnShader;
+
 import '../../data/datasources/te_management_remote_data_source.dart';
 import '../../data/repositories/te_management_repository_impl.dart';
 import '../../domain/entities/te_top_error.dart';
@@ -800,7 +803,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.donut_small_outlined, color: Colors.black, size: 20),
+                  child: const Icon(Icons.bar_chart_outlined, color: Colors.black, size: 20),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -842,53 +845,80 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                         style: TextStyle(color: _kTextSecondary),
                       ),
                     )
-                  : SfCircularChart(
-                      backgroundColor: Colors.transparent,
-                      margin: EdgeInsets.zero,
-                      legend: Legend(
-                        isVisible: true,
-                        position: LegendPosition.bottom,
-                        overflowMode: LegendItemOverflowMode.wrap,
-                        textStyle: const TextStyle(
-                          color: _kTextPrimary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      tooltipBehavior: TooltipBehavior(
-                        enable: true,
-                        color: const Color(0xFF123760),
-                        header: '',
-                        textStyle: const TextStyle(color: Colors.white, fontSize: 11),
-                      ),
-                      series: <CircularSeries<_DistributionDatum, String>>[
-                        DoughnutSeries<_DistributionDatum, String>(
-                          dataSource: List.generate(errors.length, (index) {
-                            final item = errors[index];
-                            return _DistributionDatum(
-                              label: item.errorCode,
-                              value: item.totalFail.toDouble(),
-                              color: _barPalette[index % _barPalette.length],
-                            );
-                          }),
-                          xValueMapper: (datum, _) => datum.label,
-                          yValueMapper: (datum, _) => datum.value,
-                          pointColorMapper: (datum, _) => datum.color,
-                          radius: '78%',
-                          innerRadius: '55%',
-                          explode: true,
-                          explodeOffset: '4%',
-                          dataLabelSettings: const DataLabelSettings(
-                            isVisible: true,
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
+                  : Builder(
+                      builder: (context) {
+                        final distributionData = List.generate(errors.length, (index) {
+                          final item = errors[index];
+                          return _DistributionDatum(
+                            label: item.errorCode,
+                            value: item.totalFail.toDouble(),
+                            color: _barPalette[index % _barPalette.length],
+                          );
+                        });
+
+                        return SfCartesianChart(
+                          key: const ValueKey('distribution_chart'),
+                          backgroundColor: Colors.transparent,
+                          margin: const EdgeInsets.only(top: 12, right: 12, left: 4, bottom: 8),
+                          plotAreaBorderWidth: 0,
+                          primaryXAxis: CategoryAxis(
+                            labelStyle: const TextStyle(
+                              color: _kTextPrimary,
+                              fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
-                            labelPosition: ChartDataLabelPosition.outside,
+                            majorGridLines: const MajorGridLines(width: 0),
+                            axisLine: const AxisLine(color: Colors.white24),
                           ),
-                        ),
-                      ],
+                          primaryYAxis: NumericAxis(
+                            labelStyle: const TextStyle(
+                              color: _kTextSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            axisLine: const AxisLine(width: 0),
+                            majorGridLines: const MajorGridLines(
+                              color: Color(0x33163B63),
+                              dashArray: <double>[4, 4],
+                            ),
+                          ),
+                          legend: const Legend(isVisible: false),
+                          tooltipBehavior: TooltipBehavior(
+                            enable: true,
+                            color: const Color(0xFF123760),
+                            header: '',
+                            borderWidth: 0,
+                            textStyle: const TextStyle(color: Colors.white, fontSize: 11),
+                          ),
+                          series: <ChartSeries<_DistributionDatum, String>>[
+                            ColumnSeries<_DistributionDatum, String>(
+                              name: 'Failures',
+                              dataSource: distributionData,
+                              xValueMapper: (datum, _) => datum.label,
+                              yValueMapper: (datum, _) => datum.value,
+                              pointColorMapper: (datum, _) => datum.color,
+                              width: 0.45,
+                              spacing: 0.18,
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                              dataLabelMapper: (datum, _) => datum.value.toStringAsFixed(0),
+                              dataLabelSettings: const DataLabelSettings(
+                                isVisible: true,
+                                textStyle: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              onCreateShader: (ShaderDetails details) {
+                                final rect = details.rect;
+                                final pointIndex = details.pointIndex ?? 0;
+                                final baseColor = distributionData[pointIndex % distributionData.length].color;
+                                return build3dColumnShader(rect, baseColor);
+                              },
+                            ),
+                          ],
+                        );
+                      },
                     ),
             ),
           ],
