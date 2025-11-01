@@ -1112,41 +1112,103 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxWidth = constraints.maxWidth;
-        final crossAxisCount = maxWidth >= 980 ? 2 : 1;
-        final spacing = 16.0;
-        final itemWidth = crossAxisCount == 1
-            ? maxWidth
-            : (maxWidth - spacing) / crossAxisCount;
+    final tooltip = TooltipBehavior(
+      enable: true,
+      color: const Color(0xFF123760),
+      header: '',
+      textStyle: const TextStyle(color: Colors.white, fontSize: 11),
+    );
 
-        return Scrollbar(
-          thumbVisibility: configs.length > crossAxisCount,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(right: 6),
-            physics: const BouncingScrollPhysics(),
-            child: Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                for (var i = 0; i < configs.length; i++)
-                  SizedBox(
-                    width: itemWidth,
-                    child: _OverviewTrendCard(
-                      rank: i + 1,
-                      config: configs[i],
-                      isHighlighted: highlightedCode == null ||
-                          highlightedCode == configs[i].error.errorCode,
-                      onFocus: () =>
-                          _controller.focusErrorTrend(configs[i].error),
-                    ),
-                  ),
-              ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const Positioned.fill(child: CustomPaint(painter: _WeeklyGridPainter())),
+          SfCartesianChart(
+            key: const ValueKey('overview_trend_chart'),
+            backgroundColor: Colors.transparent,
+            margin: const EdgeInsets.only(top: 12, right: 16, left: 10, bottom: 12),
+            plotAreaBorderWidth: 0,
+            legend: Legend(
+              isVisible: true,
+              position: LegendPosition.bottom,
+              overflowMode: LegendItemOverflowMode.wrap,
+              toggleSeriesVisibility: true,
+              textStyle: const TextStyle(
+                color: _kTextPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
+            tooltipBehavior: tooltip,
+            selectionType: SelectionType.series,
+            selectionGesture: ActivationMode.singleTap,
+            onSelectionChanged: (args) {
+              final index = args.seriesIndex;
+              if (index == null || index < 0 || index >= configs.length) {
+                return;
+              }
+              _controller.focusErrorTrend(configs[index].error);
+            },
+            onLegendTapped: (args) {
+              final index = args.seriesIndex;
+              if (index == null || index < 0 || index >= configs.length) {
+                return;
+              }
+              _controller.focusErrorTrend(configs[index].error);
+            },
+            primaryXAxis: CategoryAxis(
+              labelStyle: const TextStyle(
+                color: _kTextSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+              labelRotation: 310,
+              axisLine: const AxisLine(color: Colors.white24),
+              majorTickLines: const MajorTickLines(size: 0),
+              majorGridLines: const MajorGridLines(color: Colors.transparent),
+            ),
+            primaryYAxis: NumericAxis(
+              labelStyle: const TextStyle(
+                color: _kTextSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+              axisLine: const AxisLine(color: Colors.transparent),
+              majorGridLines: const MajorGridLines(color: Color(0x33163B63)),
+            ),
+            series: <CartesianSeries<dynamic, dynamic>>[
+              for (var i = 0; i < configs.length; i++)
+                SplineSeries<TETopErrorTrendPointEntity, String>(
+                  splineType: SplineType.cardinal,
+                  cardinalSplineTension: 0.35,
+                  name: configs[i].error.errorCode,
+                  dataSource: configs[i].points,
+                  xValueMapper: (item, _) => item.label,
+                  yValueMapper: (item, _) => item.total,
+                  width: 3.2,
+                  color: configs[i].color,
+                  enableTooltip: true,
+                  opacity: highlightedCode == null ||
+                          highlightedCode == configs[i].error.errorCode
+                      ? 1
+                      : 0.3,
+                  markerSettings: MarkerSettings(
+                    isVisible: true,
+                    shape: DataMarkerType.circle,
+                    width: 10,
+                    height: 10,
+                    borderColor: Colors.white,
+                    borderWidth: 2.2,
+                    color: configs[i].color,
+                  ),
+                  dataLabelSettings: const DataLabelSettings(isVisible: false),
+                ),
+            ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -1290,256 +1352,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 fontWeight: FontWeight.w700,
               ),
               labelIntersectAction: LabelIntersectAction.shift,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OverviewTrendCard extends StatelessWidget {
-  const _OverviewTrendCard({
-    required this.rank,
-    required this.config,
-    required this.isHighlighted,
-    required this.onFocus,
-  });
-
-  final int rank;
-  final _TrendSeriesConfig config;
-  final bool isHighlighted;
-  final VoidCallback onFocus;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = config.color;
-    final tooltip = TooltipBehavior(
-      enable: true,
-      color: const Color(0xFF10326A),
-      header: '',
-      textStyle: const TextStyle(color: Colors.white, fontSize: 11),
-      shadowColor: Colors.black.withOpacity(0.35),
-    );
-
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 220),
-      opacity: isHighlighted ? 1 : 0.35,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: onFocus,
-          child: _Neon3DChartWrapper(
-            tiltX: 0,
-            tiltY: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: accent.withOpacity(0.22),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: accent.withOpacity(0.6)),
-                      ),
-                      child: Text(
-                        '#$rank',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            config.error.errorCode,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _kTextPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'F ${config.error.firstFail} · R ${config.error.repairFail} · Σ ${config.error.totalFail}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _kTextSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.open_in_new,
-                      size: 18,
-                      color: accent.withOpacity(0.9),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: const [
-                    _TrendLegendChip(color: _kTrendFirstColor, label: 'F_FAIL'),
-                    SizedBox(width: 10),
-                    _TrendLegendChip(color: _kTrendRepairColor, label: 'R_FAIL'),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 200,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      const Positioned.fill(
-                        child: CustomPaint(painter: _WeeklyGridPainter()),
-                      ),
-                      SfCartesianChart(
-                        backgroundColor: Colors.transparent,
-                        margin: EdgeInsets.zero,
-                        plotAreaBorderWidth: 0,
-                        legend: const Legend(isVisible: false),
-                        tooltipBehavior: tooltip,
-                        primaryXAxis: CategoryAxis(
-                          labelStyle: const TextStyle(
-                            color: _kTextSecondary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          axisLine:
-                              const AxisLine(color: Color(0xA0FFFFFF), width: 1.1),
-                          majorTickLines: const MajorTickLines(size: 0),
-                          majorGridLines: const MajorGridLines(color: Colors.transparent),
-                          labelIntersectAction: AxisLabelIntersectAction.rotate45,
-                        ),
-                        primaryYAxis: NumericAxis(
-                          labelStyle: const TextStyle(
-                            color: _kTextSecondary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          axisLine: const AxisLine(color: Colors.transparent),
-                          majorGridLines:
-                              const MajorGridLines(color: Color(0x33FFFFFF)),
-                        ),
-                        series: <CartesianSeries<dynamic, dynamic>>[
-                          SplineSeries<TETopErrorTrendPointEntity, String>(
-                            splineType: SplineType.cardinal,
-                            cardinalSplineTension: 0.35,
-                            name: 'F_FAIL',
-                            dataSource: config.points,
-                            xValueMapper: (item, _) => item.label,
-                            yValueMapper: (item, _) => item.firstFail,
-                            width: 3.2,
-                            color: _kTrendFirstColor,
-                            enableTooltip: true,
-                            markerSettings: MarkerSettings(
-                              isVisible: true,
-                              shape: DataMarkerType.circle,
-                              width: 10,
-                              height: 10,
-                              borderColor: Colors.white,
-                              borderWidth: 2.2,
-                              color: _kTrendFirstColor,
-                            ),
-                            dataLabelSettings: const DataLabelSettings(isVisible: false),
-                          ),
-                          SplineSeries<TETopErrorTrendPointEntity, String>(
-                            splineType: SplineType.cardinal,
-                            cardinalSplineTension: 0.35,
-                            name: 'R_FAIL',
-                            dataSource: config.points,
-                            xValueMapper: (item, _) => item.label,
-                            yValueMapper: (item, _) => item.repairFail,
-                            width: 3.2,
-                            color: _kTrendRepairColor,
-                            enableTooltip: true,
-                            markerSettings: MarkerSettings(
-                              isVisible: true,
-                              shape: DataMarkerType.circle,
-                              width: 10,
-                              height: 10,
-                              borderColor: Colors.white,
-                              borderWidth: 2.2,
-                              color: _kTrendRepairColor,
-                            ),
-                            dataLabelSettings: const DataLabelSettings(isVisible: false),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TrendLegendChip extends StatelessWidget {
-  const _TrendLegendChip({
-    required this.color,
-    required this.label,
-  });
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.18),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.65)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(4),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.65),
-                  blurRadius: 6,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
             ),
           ),
         ],
