@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../viewmodels/resistor_dashboard_view_state.dart';
 
@@ -49,41 +48,122 @@ class ResistorFailDistributionChart extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Expanded(
-          child: SfCartesianChart(
-            backgroundColor: Colors.transparent,
-            isTransposed: true,
-            plotAreaBorderWidth: 0,
-            tooltipBehavior: TooltipBehavior(enable: true, header: ''),
-            legend: const Legend(isVisible: false),
-            primaryXAxis: CategoryAxis(
-              axisLine: const AxisLine(width: 0),
-              majorGridLines: const MajorGridLines(width: 0),
-              labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-            primaryYAxis: NumericAxis(
-              axisLine: const AxisLine(color: Colors.white24),
-              majorGridLines: const MajorGridLines(color: Color(0x2200FFFF)),
-              labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
-              numberFormat: NumberFormat.compact(),
-            ),
-            series: <BarSeries<ResistorPieSlice, String>>[
-              BarSeries<ResistorPieSlice, String>(
-                dataSource: data,
-                xValueMapper: (slice, _) => slice.label,
-                yValueMapper: (slice, _) => slice.value,
-                pointColorMapper: (slice, _) => Color(slice.color),
-                borderRadius:
-                    const BorderRadius.horizontal(right: Radius.circular(10)),
-                dataLabelSettings: const DataLabelSettings(
-                  isVisible: true,
-                  textStyle: TextStyle(color: Colors.white),
-                  labelAlignment: ChartDataLabelAlignment.middle,
-                ),
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final maxValue = data.fold<int>(
+                0,
+                (previousValue, element) =>
+                    element.value > previousValue ? element.value : previousValue,
+              );
+
+              return ListView.separated(
+                itemCount: data.length,
+                physics: const BouncingScrollPhysics(),
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final slice = data[index];
+                  final fraction = maxValue == 0 ? 0.0 : slice.value / maxValue;
+
+                  return _FailDistributionBar(
+                    label: slice.label,
+                    value: formatter.format(slice.value),
+                    color: Color(slice.color),
+                    width: constraints.maxWidth,
+                    fraction: fraction.clamp(0.0, 1.0),
+                  );
+                },
+              );
+            },
           ),
         ),
       ],
+    );
+  }
+}
+
+class _FailDistributionBar extends StatelessWidget {
+  const _FailDistributionBar({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.width,
+    required this.fraction,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+  final double width;
+  final double fraction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0x3300FFFF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x2200FFFF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                value,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 12,
+            width: width,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(color: const Color(0x3300FFFF)),
+                  FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: fraction,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            color.withOpacity(0.15),
+                            color,
+                          ],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
