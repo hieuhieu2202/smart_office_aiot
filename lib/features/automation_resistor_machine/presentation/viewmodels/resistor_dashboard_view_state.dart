@@ -44,18 +44,48 @@ class ResistorDashboardViewState {
   const ResistorDashboardViewState({
     required this.summary,
     required this.summaryTiles,
-    required this.failDistributionSlices,
-    required this.failTotal,
+    List<ResistorPieSlice>? failDistributionSlices,
+    int? failTotal,
     required this.sectionSeries,
     required this.machineSeries,
-  });
+  })  : _failDistributionSlices = failDistributionSlices,
+        _failTotal = failTotal;
 
   final ResistorMachineSummary summary;
   final List<ResistorSummaryTileData> summaryTiles;
-  final List<ResistorPieSlice> failDistributionSlices;
-  final int failTotal;
+  final List<ResistorPieSlice>? _failDistributionSlices;
+  final int? _failTotal;
   final ResistorStackedSeries sectionSeries;
   final ResistorStackedSeries machineSeries;
+
+  static const ResistorPieSlice _defaultFailSlice = ResistorPieSlice(
+    label: 'N/A',
+    value: 0,
+    color: 0xFF00FFE7,
+  );
+
+  List<ResistorPieSlice> get failDistributionSlices {
+    final slices = _failDistributionSlices;
+    if (slices == null || slices.isEmpty) {
+      return const [_defaultFailSlice];
+    }
+    return slices;
+  }
+
+  int get failTotal {
+    final total = _failTotal;
+    if (total != null && total > 0) {
+      return total;
+    }
+
+    final slices = failDistributionSlices;
+    final computed = slices.fold<int>(0, (sum, slice) => sum + slice.value);
+    if (computed > 0) {
+      return computed;
+    }
+
+    return summary.fail;
+  }
 
   factory ResistorDashboardViewState.fromTracking(
     ResistorMachineTrackingData tracking,
