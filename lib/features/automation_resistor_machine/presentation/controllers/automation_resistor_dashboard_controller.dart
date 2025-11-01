@@ -255,55 +255,36 @@ class AutomationResistorDashboardController extends GetxController {
     return const <ResistorMachineTestResult>[];
   }
 
-  void updateRange(DateTimeRange range) {
+  void applyFilters({
+    required DateTimeRange range,
+    required String machine,
+    required String status,
+  }) {
     selectedRange.value = range;
     selectedShift.value = _deriveShift(range.start);
-    loadDashboard();
-    loadStatus();
-  }
-
-  void updateShift(String shift) {
-    if (shift == selectedShift.value) {
-      return;
-    }
-
-    final current = selectedRange.value.start;
-    final dayAnchor = DateTime(current.year, current.month, current.day);
-
-    DateTimeRange newRange;
-    if (shift == 'D') {
-      final start = dayAnchor.add(const Duration(hours: 7, minutes: 30));
-      final end = start.add(const Duration(hours: 12));
-      newRange = DateTimeRange(start: start, end: end);
-    } else {
-      final start = dayAnchor.add(const Duration(hours: 19, minutes: 30));
-      final end = start.add(const Duration(hours: 12));
-      newRange = DateTimeRange(start: start, end: end);
-    }
-
-    updateRange(newRange);
-  }
-
-  void updateStatus(String status) {
+    selectedMachine.value = machine;
     selectedStatus.value = status;
     loadDashboard();
     loadStatus();
   }
 
-  void updateMachine(String machine) {
-    selectedMachine.value = machine;
-    loadDashboard();
-    loadStatus();
+  DateTimeRange rangeForShift(DateTimeRange baseRange, String shift) {
+    final current = baseRange.start;
+    final dayAnchor = DateTime(current.year, current.month, current.day);
+
+    if (shift == 'D') {
+      final start = dayAnchor.add(const Duration(hours: 7, minutes: 30));
+      final end = start.add(const Duration(hours: 12));
+      return DateTimeRange(start: start, end: end);
+    }
+
+    final start = dayAnchor.add(const Duration(hours: 19, minutes: 30));
+    final end = start.add(const Duration(hours: 12));
+    return DateTimeRange(start: start, end: end);
   }
 
-  void resetFilters() {
-    final defaultRange = _defaultRange();
-    selectedRange.value = defaultRange;
-    selectedShift.value = _deriveShift(defaultRange.start);
-    selectedStatus.value = 'ALL';
-    selectedMachine.value = 'ALL';
-    loadDashboard();
-    loadStatus();
+  String inferShiftFromRange(DateTimeRange range) {
+    return _deriveShift(range.start);
   }
 
   ResistorMachineRequest _buildTrackingRequest() {

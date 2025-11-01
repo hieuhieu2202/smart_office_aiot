@@ -270,19 +270,18 @@ class _AutomationResistorDashboardPageState
                           child: _FilterDialogContent(
                             onClose: () => Navigator.of(dialogContext).pop(),
                             controller: controller,
-                            onPickDate: () async {
-                              final picked = await _pickDateTimeRange(
-                                dialogContext,
-                                controller.selectedRange.value,
+                            onPickDate: (currentRange) =>
+                                _pickDateTimeRange(dialogContext, currentRange),
+                            onQuery: (
+                              range,
+                              machine,
+                              status,
+                            ) {
+                              controller.applyFilters(
+                                range: range,
+                                machine: machine,
+                                status: status,
                               );
-                              if (picked != null) {
-                                controller.updateRange(picked);
-                              }
-                            },
-                            onReset: controller.resetFilters,
-                            onQuery: () {
-                              controller.loadDashboard();
-                              controller.loadStatus();
                               Navigator.of(dialogContext).pop();
                             },
                           ),
@@ -600,20 +599,74 @@ class _AutomationResistorDashboardPageState
   }
 }
 
-class _FilterDialogContent extends StatelessWidget {
+class _FilterDialogContent extends StatefulWidget {
   const _FilterDialogContent({
     required this.controller,
     required this.onClose,
     required this.onPickDate,
-    required this.onReset,
     required this.onQuery,
   });
 
   final AutomationResistorDashboardController controller;
   final VoidCallback onClose;
-  final Future<void> Function() onPickDate;
-  final VoidCallback onReset;
-  final VoidCallback onQuery;
+  final Future<DateTimeRange?> Function(DateTimeRange currentRange) onPickDate;
+  final void Function(DateTimeRange range, String machine, String status) onQuery;
+
+  @override
+  State<_FilterDialogContent> createState() => _FilterDialogContentState();
+}
+
+class _FilterDialogContentState extends State<_FilterDialogContent> {
+  late DateTimeRange _range;
+  late String _machine;
+  late String _shift;
+  late String _status;
+
+  @override
+  void initState() {
+    super.initState();
+    final controller = widget.controller;
+    _range = controller.selectedRange.value;
+    _machine = controller.selectedMachine.value;
+    _shift = controller.selectedShift.value;
+    _status = controller.selectedStatus.value;
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await widget.onPickDate(_range);
+    if (picked != null) {
+      setState(() {
+        _range = picked;
+        _shift = widget.controller.inferShiftFromRange(picked);
+      });
+    }
+  }
+
+  void _changeShift(String value) {
+    setState(() {
+      _shift = value;
+      _range = widget.controller.rangeForShift(_range, value);
+    });
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _machine = 'ALL';
+      _status = 'ALL';
+      _shift = 'D';
+      _range = widget.controller.rangeForShift(_range, 'D');
+    });
+  }
+
+  void _submit() {
+    final normalizedShift = widget.controller.inferShiftFromRange(_range);
+    if (normalizedShift != _shift) {
+      setState(() {
+        _shift = normalizedShift;
+      });
+    }
+    widget.onQuery(_range, _machine, _status);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -653,7 +706,7 @@ class _FilterDialogContent extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    onPressed: onClose,
+                    onPressed: widget.onClose,
                     icon: const Icon(Icons.close, color: Colors.white60),
                   ),
                 ],
@@ -671,18 +724,43 @@ class _FilterDialogContent extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Obx(() {
+                final machines =
+                    widget.controller.machineNames.toList(growable: false);
+                var machineSelection = _machine;
+                if (!machines.contains(machineSelection)) {
+                  machineSelection = machines.isNotEmpty ? machines.first : 'ALL';
+                  if (machineSelection != _machine) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      setState(() {
+                        _machine = machineSelection;
+                      });
+                    });
+                  }
+                }
+
                 return ResistorFiltersBar(
-                  machineOptions: controller.machineNames.toList(growable: false),
-                  selectedMachine: controller.selectedMachine.value,
-                  onMachineChanged: controller.updateMachine,
+                  machineOptions: machines,
+                  selectedMachine: machineSelection,
+                  onMachineChanged: (value) {
+                    setState(() {
+                      _machine = value;
+                    });
+                  },
                   shiftOptions: const ['D', 'N'],
-                  selectedShift: controller.selectedShift.value,
-                  onShiftChanged: controller.updateShift,
+                  selectedShift: _shift,
+                  onShiftChanged: _changeShift,
                   statusOptions: const ['ALL', 'PASS', 'FAIL'],
-                  selectedStatus: controller.selectedStatus.value,
-                  onStatusChanged: controller.updateStatus,
-                  dateRange: controller.selectedRange.value,
-                  onSelectDate: onPickDate,
+                  selectedStatus: _status,
+                  onStatusChanged: (value) {
+                    setState(() {
+                      _status = value;
+                    });
+                  },
+                  dateRange: _range,
+                  onSelectDate: () async {
+                    await _selectDate();
+                  },
                 );
               }),
               const SizedBox(height: 28),
@@ -699,7 +777,7 @@ class _FilterDialogContent extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      onPressed: onReset,
+                      onPressed: _resetFilters,
                       child: const Text(
                         'Reset',
                         style: TextStyle(
@@ -720,7 +798,7 @@ class _FilterDialogContent extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      onPressed: onQuery,
+                      onPressed: _submit,
                       child: const Text(
                         'QUERY',
                         style: TextStyle(
