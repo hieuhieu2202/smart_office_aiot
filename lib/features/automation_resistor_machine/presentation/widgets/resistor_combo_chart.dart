@@ -99,7 +99,7 @@ class ResistorComboChart extends StatelessWidget {
                 majorGridLines: const MajorGridLines(color: Colors.white12),
                 majorTickLines: const MajorTickLines(size: 0),
                 axisLabelFormatter: (AxisLabelRenderDetails details) =>
-                    const ChartAxisLabel('', TextStyle()),
+                    ChartAxisLabel('', const TextStyle()),
               ),
               axes: <ChartAxis>[
                 NumericAxis(
@@ -113,7 +113,7 @@ class ResistorComboChart extends StatelessWidget {
                   majorGridLines: const MajorGridLines(width: 0),
                   axisLine: const AxisLine(width: 0),
                   axisLabelFormatter: (AxisLabelRenderDetails details) =>
-                      const ChartAxisLabel('', TextStyle()),
+                      ChartAxisLabel('', const TextStyle()),
                 ),
               ],
               tooltipBehavior: TooltipBehavior(enable: true),
