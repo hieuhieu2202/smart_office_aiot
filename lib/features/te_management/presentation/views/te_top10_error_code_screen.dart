@@ -1152,14 +1152,24 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                             highlightedCode == seriesConfigs[i].error.errorCode
                         ? 1.0
                         : 0.28,
+                    onCreateShader: (details) {
+                      return LinearGradient(
+                        colors: [
+                          seriesConfigs[i].color.withOpacity(0.25),
+                          seriesConfigs[i].color,
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ).createShader(details.rect);
+                    },
                     markerSettings: MarkerSettings(
                       isVisible: true,
-                      height: 10,
-                      width: 10,
+                      height: 9,
+                      width: 9,
                       shape: DataMarkerType.circle,
-                      borderWidth: 1.8,
-                      borderColor: Colors.white,
-                      color: seriesConfigs[i].color,
+                      borderWidth: 2,
+                      borderColor: Colors.white.withOpacity(0.95),
+                      color: seriesConfigs[i].color.withOpacity(0.95),
                     ),
                     dataLabelSettings: const DataLabelSettings(
                       isVisible: true,
@@ -1170,6 +1180,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                         color: Colors.white,
                       ),
                       labelAlignment: ChartDataLabelAlignment.auto,
+                      labelIntersectAction: LabelIntersectAction.shift,
                     ),
                   ),
               ],
@@ -1266,14 +1277,21 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             yValueMapper: (item, _) => item.firstFail,
             width: 3.2,
             color: _kErrorColor,
+            onCreateShader: (details) {
+              return const LinearGradient(
+                colors: [Color(0x55FF5F6D), Color(0xFFFF5F6D)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ).createShader(details.rect);
+            },
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
               width: 10,
               height: 10,
               borderColor: Colors.white,
-              borderWidth: 1.8,
-              color: _kErrorColor,
+              borderWidth: 2,
+              color: _kErrorColor.withOpacity(0.95),
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1283,6 +1301,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
               ),
+              labelIntersectAction: LabelIntersectAction.shift,
             ),
           ),
           LineSeries<TETopErrorTrendPointEntity, String>(
@@ -1292,14 +1311,21 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             yValueMapper: (item, _) => item.repairFail,
             width: 3.2,
             color: _kRepairColor,
+            onCreateShader: (details) {
+              return const LinearGradient(
+                colors: [Color(0x5540E0D0), Color(0xFF40E0D0)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ).createShader(details.rect);
+            },
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
               width: 10,
               height: 10,
               borderColor: Colors.white,
-              borderWidth: 1.8,
-              color: _kRepairColor,
+              borderWidth: 2,
+              color: _kRepairColor.withOpacity(0.95),
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1309,6 +1335,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
               ),
+              labelIntersectAction: LabelIntersectAction.shift,
             ),
           ),
           LineSeries<TETopErrorTrendPointEntity, String>(
@@ -1319,14 +1346,21 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             width: 3.4,
             color: _kAccentColor,
             dashArray: const <double>[4, 2],
+            onCreateShader: (details) {
+              return const LinearGradient(
+                colors: [Color(0x55FFB347), Color(0xFFFFB347)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ).createShader(details.rect);
+            },
             markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.diamond,
               width: 11,
               height: 11,
               borderColor: Colors.white,
-              borderWidth: 1.8,
-              color: _kAccentColor,
+              borderWidth: 2,
+              color: _kAccentColor.withOpacity(0.95),
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1336,6 +1370,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
               ),
+              labelIntersectAction: LabelIntersectAction.shift,
             ),
           ),
         ],
