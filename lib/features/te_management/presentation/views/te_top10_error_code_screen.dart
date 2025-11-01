@@ -30,6 +30,9 @@ const Color _kErrorColor = Color(0xFFFF5C7C);
 const Color _kRepairColor = Color(0xFFA88DFF);
 const Color _kSurfaceMuted = Color(0xFF13335E);
 const Color _kTableGridColor = Color(0xFF2B6FF0);
+const Color _kDistributionBarHighlight = Color(0xFF7CFFFB);
+const Color _kDistributionBarCore = Color(0xFF00E5FF);
+const Color _kDistributionBarShadow = Color(0xFF0059B2);
 const Color _kTrendFirstColor = Color(0xFFFF3B3B);
 const Color _kTrendRepairColor = Color(0xFF00FF9C);
 
@@ -891,25 +894,31 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                               dataSource: distributionData,
                               xValueMapper: (datum, _) => datum.label,
                               yValueMapper: (datum, _) => datum.value,
-                              color: Colors.transparent,
+                              color: _kDistributionBarCore,
                               width: 0.6,
                               spacing: 0.25,
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                              borderColor: Colors.white.withOpacity(0.35),
-                              borderWidth: 0.8,
-                              trackColor: const Color(0x3300E5FF),
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                              borderColor: Colors.white.withOpacity(0.55),
+                              borderWidth: 1.1,
+                              trackColor: const Color(0x29234169),
+                              trackBorderColor: Colors.white24,
+                              trackBorderWidth: 0.4,
                               onCreateShader: (shaderDetails) {
                                 final rect = shaderDetails.rect;
                                 return const LinearGradient(
-                                  begin: Alignment(-0.3, -1.0),
-                                  end: Alignment(0.6, 1.0),
-                                  colors: [
-                                    Color(0xFF8CFFF8),
-                                    Color(0xFF00E5FF),
-                                    Color(0xFF0078FF),
+                                  begin: Alignment(-0.45, -1.0),
+                                  end: Alignment(0.7, 1.0),
+                                  colors: <Color>[
+                                    _kDistributionBarHighlight,
+                                    _kDistributionBarCore,
+                                    _kDistributionBarShadow,
                                   ],
-                                  stops: [0.0, 0.45, 1.0],
+                                  stops: <double>[0.0, 0.48, 1.0],
                                 ).createShader(rect);
+                              },
+                              onPointRender: (details) {
+                                details.color = _kDistributionBarCore;
+                                details.borderColor = Colors.white.withOpacity(0.7);
                               },
                               dataLabelMapper: (datum, _) => datum.value.toStringAsFixed(0),
                               dataLabelSettings: const DataLabelSettings(
