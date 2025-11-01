@@ -60,23 +60,11 @@ class ResistorFiltersBar extends StatelessWidget {
         );
       }).toList();
 
-      if (isCompact) {
-        return Wrap(
-          runSpacing: 12,
-          spacing: 12,
-          alignment: WrapAlignment.start,
-          children: filters,
-        );
-      }
-
-      return Align(
-        alignment: Alignment.centerRight,
-        child: Wrap(
-          runSpacing: 12,
-          spacing: 16,
-          crossAxisAlignment: WrapCrossAlignment.end,
-          children: filters,
-        ),
+      return Wrap(
+        runSpacing: 12,
+        spacing: isCompact ? 12 : 16,
+        alignment: WrapAlignment.start,
+        children: filters,
       );
     });
   }

@@ -130,10 +130,17 @@ class _AutomationResistorDashboardPageState
                     : CrossAxisAlignment.stretch,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Flexible(
+                      IconButton(
+                        onPressed: _handleBack,
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.cyanAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
                         child: Text(
                           title,
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -143,6 +150,11 @@ class _AutomationResistorDashboardPageState
                               ),
                         ),
                       ),
+                      if (showFilters) ...[
+                        const SizedBox(width: 12),
+                        _buildFilterButton(() => _showFiltersSheet(context)),
+                      ],
+                      const SizedBox(width: 8),
                       IconButton(
                         onPressed: () {
                           if (tabController.index == 0) {
@@ -159,34 +171,130 @@ class _AutomationResistorDashboardPageState
                       ),
                     ],
                   ),
-                  if (showFilters) ...[
-                    const SizedBox(height: 12),
-                    ResistorFiltersBar(
-                      machineOptions: controller.machineNames,
-                      selectedMachine: controller.selectedMachine.value,
-                      onMachineChanged: controller.updateMachine,
-                      selectedShift: controller.selectedShift.value,
-                      onShiftChanged: controller.updateShift,
-                      selectedStatus: controller.selectedStatus.value,
-                      onStatusChanged: controller.updateStatus,
-                      dateRange: controller.selectedRange.value,
-                      onSelectDate: () async {
-                        final picked = await _pickDateTimeRange(
-                          context,
-                          controller.selectedRange.value,
-                        );
-                        if (picked != null) {
-                          controller.updateRange(picked);
-                        }
-                      },
-                    ),
-                  ],
                 ],
               );
             },
           );
         },
       ),
+    );
+  }
+
+  void _handleBack() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    if (Get.key.currentState?.canPop() ?? false) {
+      Get.back();
+    }
+  }
+
+  Widget _buildFilterButton(VoidCallback onPressed) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.cyanAccent,
+        side: const BorderSide(color: Colors.cyanAccent),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      ),
+      icon: const Icon(Icons.tune, size: 18),
+      label: const Text(
+        'FILTER',
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showFiltersSheet(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF021026),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: Colors.cyanAccent.withOpacity(0.2)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 24,
+                  offset: const Offset(0, -12),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.tune, color: Colors.cyanAccent),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'FILTERS',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.of(sheetContext).pop(),
+                            icon: const Icon(Icons.close, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ResistorFiltersBar(
+                        machineOptions: controller.machineNames,
+                        selectedMachine: controller.selectedMachine.value,
+                        onMachineChanged: (value) {
+                          controller.updateMachine(value);
+                        },
+                        selectedShift: controller.selectedShift.value,
+                        onShiftChanged: (value) {
+                          controller.updateShift(value);
+                        },
+                        selectedStatus: controller.selectedStatus.value,
+                        onStatusChanged: (value) {
+                          controller.updateStatus(value);
+                        },
+                        dateRange: controller.selectedRange.value,
+                        onSelectDate: () async {
+                          final picked = await _pickDateTimeRange(
+                            sheetContext,
+                            controller.selectedRange.value,
+                          );
+                          if (picked != null) {
+                            controller.updateRange(picked);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
