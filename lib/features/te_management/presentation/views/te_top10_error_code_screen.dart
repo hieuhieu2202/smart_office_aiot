@@ -32,7 +32,6 @@ const Color _kSurfaceMuted = Color(0xFF13335E);
 const Color _kTableGridColor = Color(0xFF2B6FF0);
 const Color _kTrendFirstColor = Color(0xFFFF3B3B);
 const Color _kTrendRepairColor = Color(0xFF00FF9C);
-const Color _kDistributionBarColor = Color(0xFF00E5FF);
 
 const TextStyle _kTableHeaderStyle = TextStyle(
   color: _kTextPrimary,
@@ -892,16 +891,25 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                               dataSource: distributionData,
                               xValueMapper: (datum, _) => datum.label,
                               yValueMapper: (datum, _) => datum.value,
-                              color: _kDistributionBarColor,
+                              color: Colors.transparent,
                               width: 0.6,
                               spacing: 0.25,
                               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                              borderColor: Colors.white.withOpacity(0.35),
+                              borderWidth: 0.8,
+                              trackColor: const Color(0x3300E5FF),
                               onCreateShader: (shaderDetails) {
+                                final rect = shaderDetails.rect;
                                 return const LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [Color(0xFF7CFFFB), Color(0xFF00E5FF)],
-                                ).createShader(shaderDetails.rect);
+                                  begin: Alignment(-0.3, -1.0),
+                                  end: Alignment(0.6, 1.0),
+                                  colors: [
+                                    Color(0xFF8CFFF8),
+                                    Color(0xFF00E5FF),
+                                    Color(0xFF0078FF),
+                                  ],
+                                  stops: [0.0, 0.45, 1.0],
+                                ).createShader(rect);
                               },
                               dataLabelMapper: (datum, _) => datum.value.toStringAsFixed(0),
                               dataLabelSettings: const DataLabelSettings(
