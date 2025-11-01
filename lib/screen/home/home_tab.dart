@@ -17,6 +17,7 @@ import '../../widget/custom_app_bar.dart';
 import '../setting/controller/setting_controller.dart';
 import '../../screen/home/controller/ai_controller.dart';
 import '../../screen/home/widget/ai_chat/chatbot_fab.dart';
+import '../../screen/home/widget/neon_network_background.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -141,27 +142,8 @@ class _HomeTabState extends State<HomeTab> {
               accent: GlobalColors.accentByIsDark(isDark),
               titleAlign: TextAlign.left,
             ),
-            body: Container(
-              decoration: BoxDecoration(
-                gradient: isDark
-                    ? LinearGradient(
-                        colors: [
-                          GlobalColors.bodyDarkBg,
-                          Colors.blueGrey[900]!,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      )
-                    : LinearGradient(
-                        colors: [
-                          Colors.blue[50]!.withOpacity(0.9),
-                          Colors.grey[100]!.withOpacity(0.9),
-                          Colors.blue[100]!.withOpacity(0.85),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-              ),
+            body: NeonNetworkBackdrop(
+              isDark: isDark,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
                 switchInCurve: Curves.easeOutCubic,
