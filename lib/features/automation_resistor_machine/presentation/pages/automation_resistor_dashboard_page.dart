@@ -7,8 +7,8 @@ import '../controllers/automation_resistor_dashboard_controller.dart';
 import '../../domain/entities/resistor_machine_entities.dart';
 import '../viewmodels/resistor_dashboard_view_state.dart';
 import '../widgets/resistor_combo_chart.dart';
+import '../widgets/resistor_fail_distribution_chart.dart';
 import '../widgets/resistor_filters_bar.dart';
-import '../widgets/resistor_summary_pie.dart';
 import '../widgets/resistor_summary_tile.dart';
 
 class AutomationResistorDashboardPage extends StatefulWidget {
@@ -870,10 +870,9 @@ class _DesktopLayout extends StatelessWidget {
                 Expanded(
                   flex: 4,
                   child: _DashboardPanel(
-                    child: ResistorSummaryPie(
+                    child: ResistorFailDistributionChart(
                       slices: view.failDistributionSlices,
                       total: view.failTotal,
-                      title: 'FAIL DISTRIBUTION',
                     ),
                   ),
                 ),
@@ -923,7 +922,7 @@ class _TabletLayout extends StatelessWidget {
         SizedBox(
           height: 360,
           child: _DashboardPanel(
-            child: ResistorSummaryPie(
+            child: ResistorFailDistributionChart(
               slices: view.failDistributionSlices,
               total: view.failTotal,
             ),
@@ -966,7 +965,7 @@ class _MobileLayout extends StatelessWidget {
         SizedBox(
           height: 260,
           child: _DashboardPanel(
-            child: ResistorSummaryPie(
+            child: ResistorFailDistributionChart(
               slices: view.failDistributionSlices,
               total: view.failTotal,
             ),
