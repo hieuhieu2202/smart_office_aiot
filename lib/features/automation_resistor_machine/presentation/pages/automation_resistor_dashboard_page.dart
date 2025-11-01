@@ -871,8 +871,8 @@ class _DesktopLayout extends StatelessWidget {
                   flex: 4,
                   child: _DashboardPanel(
                     child: ResistorSummaryPie(
-                      slices: view.summarySlices,
-                      total: view.summary.total,
+                      slices: view.failDistributionSlices,
+                      total: view.failTotal,
                       title: 'FAIL DISTRIBUTION',
                     ),
                   ),
@@ -924,8 +924,8 @@ class _TabletLayout extends StatelessWidget {
           height: 360,
           child: _DashboardPanel(
             child: ResistorSummaryPie(
-              slices: view.summarySlices,
-              total: view.summary.total,
+              slices: view.failDistributionSlices,
+              total: view.failTotal,
             ),
           ),
         ),
@@ -967,8 +967,8 @@ class _MobileLayout extends StatelessWidget {
           height: 260,
           child: _DashboardPanel(
             child: ResistorSummaryPie(
-              slices: view.summarySlices,
-              total: view.summary.total,
+              slices: view.failDistributionSlices,
+              total: view.failTotal,
             ),
           ),
         ),
