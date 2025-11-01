@@ -614,30 +614,26 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           );
         }
 
-        return Scrollbar(
+        return ListView.separated(
+          padding: const EdgeInsets.only(top: 4, bottom: 6),
+          primary: false,
+          physics: const ClampingScrollPhysics(),
           controller: _tableScrollController,
-          thumbVisibility: false,
-          child: ListView.separated(
-            padding: const EdgeInsets.only(top: 4, bottom: 6),
-            primary: false,
-            physics: const ClampingScrollPhysics(),
-            controller: _tableScrollController,
-            itemBuilder: (context, index) {
-              final error = errors[index];
-              final accent = _barPalette[index % _barPalette.length];
-              return _TopErrorTableRow(
-                rank: index + 1,
-                error: error,
-                accentColor: accent,
-                selectedError: selectedError,
-                selectedDetail: selectedDetail,
-                onErrorTap: () => _controller.selectError(error),
-                onDetailTap: (detail) => _controller.selectDetail(detail),
-              );
-            },
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemCount: errors.length,
-          ),
+          itemBuilder: (context, index) {
+            final error = errors[index];
+            final accent = _barPalette[index % _barPalette.length];
+            return _TopErrorTableRow(
+              rank: index + 1,
+              error: error,
+              accentColor: accent,
+              selectedError: selectedError,
+              selectedDetail: selectedDetail,
+              onErrorTap: () => _controller.selectError(error),
+              onDetailTap: (detail) => _controller.selectDetail(detail),
+            );
+          },
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemCount: errors.length,
         );
       }
 
