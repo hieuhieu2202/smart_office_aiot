@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -355,54 +356,78 @@ class _HomeTabState extends State<HomeTab> {
       ],
     );
 
-    return Card(
-      elevation: 3,
-      color: isDark
-          ? GlobalColors.cardDarkBg
-          : Colors.white.withOpacity(0.95),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
+    final borderRadius = BorderRadius.circular(20);
+    final Color surfaceColor = isDark
+        ? Colors.white.withOpacity(0.06)
+        : Colors.white.withOpacity(0.55);
+    final Color borderColor = isDark
+        ? Colors.white.withOpacity(0.08)
+        : Colors.white.withOpacity(0.2);
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: borderRadius,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.45 : 0.18),
+            blurRadius: 26,
+            offset: const Offset(0, 18),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: EdgeInsets.all(cardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            header,
-            const SizedBox(height: 18),
-            if (subProjects.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 28),
-                child: Center(
-                  child: Text(
-                    text.no_id,
-                    style: GlobalTextStyles.bodySmall(
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: borderRadius,
+              border: Border.all(color: borderColor, width: 1.1),
+              color: surfaceColor,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(cardPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  header,
+                  const SizedBox(height: 18),
+                  if (subProjects.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 28),
+                      child: Center(
+                        child: Text(
+                          text.no_id,
+                          style: GlobalTextStyles.bodySmall(
+                            isDark: isDark,
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (isMobile)
+                    _buildMobileSubProjectPager(
+                      context: context,
                       isDark: isDark,
+                      index: index,
+                      pages: pages,
+                      pageController: pageController!,
+                    )
+                  else
+                    _buildWideSubProjectArea(
+                      context: context,
+                      isDark: isDark,
+                      subProjects: subProjects,
+                      isTablet: isTablet,
+                      isDesktop: isDesktop,
+                      index: index,
+                      pages: widePages,
+                      pageController: wideController,
+                      enablePager: enableWidePager,
                     ),
-                  ),
-                ),
-              )
-            else if (isMobile)
-              _buildMobileSubProjectPager(
-                context: context,
-                isDark: isDark,
-                index: index,
-                pages: pages,
-                pageController: pageController!,
-              )
-            else
-              _buildWideSubProjectArea(
-                context: context,
-                isDark: isDark,
-                subProjects: subProjects,
-                isTablet: isTablet,
-                isDesktop: isDesktop,
-                index: index,
-                pages: widePages,
-                pageController: wideController,
-                enablePager: enableWidePager,
+                ],
               ),
-          ],
+            ),
+          ),
         ),
       ),
     );
