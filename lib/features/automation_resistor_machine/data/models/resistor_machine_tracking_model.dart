@@ -13,13 +13,13 @@ class ResistorMachineSummaryModel extends ResistorMachineSummary {
 
   factory ResistorMachineSummaryModel.fromJson(Map<String, dynamic> json) {
     return ResistorMachineSummaryModel(
-      wip: (json['WIP'] ?? 0) as int,
-      pass: (json['PASS'] ?? 0) as int,
-      fail: (json['FAIL'] ?? 0) as int,
-      firstFail: (json['FIRST_FAIL'] ?? 0) as int,
-      retest: (json['RETEST'] ?? 0) as int,
-      yieldRate: _toDouble(json['YR']),
-      retestRate: _toDouble(json['RR']),
+      wip: _readInt(json, 'WIP'),
+      pass: _readInt(json, 'PASS'),
+      fail: _readInt(json, 'FAIL'),
+      firstFail: _readInt(json, 'FIRST_FAIL'),
+      retest: _readInt(json, 'RETEST'),
+      yieldRate: _readDouble(json, 'YR'),
+      retestRate: _readDouble(json, 'RR'),
     );
   }
 }
@@ -38,14 +38,14 @@ class ResistorMachineOutputModel extends ResistorMachineOutput {
 
   factory ResistorMachineOutputModel.fromJson(Map<String, dynamic> json) {
     return ResistorMachineOutputModel(
-      section: json['SECTION'] as int?,
-      workDate: json['WORKDATE'] as String?,
-      pass: (json['PASS'] ?? 0) as int,
-      fail: (json['FAIL'] ?? 0) as int,
-      firstFail: (json['FIRST_FAIL'] ?? 0) as int,
-      retest: (json['RETEST'] ?? 0) as int,
-      yieldRate: _toDouble(json['YR']),
-      retestRate: _toDouble(json['RR']),
+      section: _readNullableInt(json, 'SECTION'),
+      workDate: _readString(json, 'WORKDATE'),
+      pass: _readInt(json, 'PASS'),
+      fail: _readInt(json, 'FAIL'),
+      firstFail: _readInt(json, 'FIRST_FAIL'),
+      retest: _readInt(json, 'RETEST'),
+      yieldRate: _readDouble(json, 'YR'),
+      retestRate: _readDouble(json, 'RR'),
     );
   }
 }
@@ -63,13 +63,13 @@ class ResistorMachineInfoModel extends ResistorMachineInfo {
 
   factory ResistorMachineInfoModel.fromJson(Map<String, dynamic> json) {
     return ResistorMachineInfoModel(
-      name: (json['NAME'] ?? '') as String,
-      pass: (json['PASS'] ?? 0) as int,
-      fail: (json['FAIL'] ?? 0) as int,
-      firstFail: (json['FIRST_FAIL'] ?? 0) as int,
-      retest: (json['RETEST'] ?? 0) as int,
-      yieldRate: _toDouble(json['YR']),
-      retestRate: _toDouble(json['RR']),
+      name: _readString(json, 'NAME') ?? '',
+      pass: _readInt(json, 'PASS'),
+      fail: _readInt(json, 'FAIL'),
+      firstFail: _readInt(json, 'FIRST_FAIL'),
+      retest: _readInt(json, 'RETEST'),
+      yieldRate: _readDouble(json, 'YR'),
+      retestRate: _readDouble(json, 'RR'),
     );
   }
 }
@@ -115,4 +115,65 @@ double _toDouble(dynamic value) {
     return double.tryParse(value) ?? 0;
   }
   return 0;
+}
+
+int _toInt(dynamic value) {
+  if (value is int) return value;
+  if (value is double) return value.toInt();
+  if (value is String) {
+    return int.tryParse(value) ?? 0;
+  }
+  return 0;
+}
+
+double _readDouble(Map<String, dynamic> json, String key) {
+  final value = _valueForKey(json, key);
+  return _toDouble(value);
+}
+
+int _readInt(Map<String, dynamic> json, String key) {
+  final value = _valueForKey(json, key);
+  if (value == null) {
+    return 0;
+  }
+  return _toInt(value);
+}
+
+int? _readNullableInt(Map<String, dynamic> json, String key) {
+  final value = _valueForKey(json, key);
+  if (value == null) {
+    return null;
+  }
+  if (value is int) {
+    return value;
+  }
+  if (value is double) {
+    return value.toInt();
+  }
+  if (value is String) {
+    return int.tryParse(value);
+  }
+  return null;
+}
+
+String? _readString(Map<String, dynamic> json, String key) {
+  final value = _valueForKey(json, key);
+  if (value == null) {
+    return null;
+  }
+  return value.toString();
+}
+
+dynamic _valueForKey(Map<String, dynamic> json, String key) {
+  final lookup = _normalizeKey(key);
+  for (final entry in json.entries) {
+    if (_normalizeKey(entry.key.toString()) == lookup) {
+      return entry.value;
+    }
+  }
+  return null;
+}
+
+String _normalizeKey(String key) {
+  return key.toLowerCase().replaceAll(RegExp(r'[_\s]'), '');
 }
