@@ -916,10 +916,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                                   stops: <double>[0.0, 0.48, 1.0],
                                 ).createShader(rect);
                               },
-                              onPointRender: (details) {
-                                details.color = _kDistributionBarCore;
-                                details.borderColor = Colors.white.withOpacity(0.7);
-                              },
                               dataLabelMapper: (datum, _) => datum.value.toStringAsFixed(0),
                               dataLabelSettings: const DataLabelSettings(
                                 isVisible: true,
