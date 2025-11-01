@@ -25,6 +25,7 @@ class _AutomationResistorDashboardPageState
   late final AutomationResistorDashboardController controller;
   late final TextEditingController searchController;
   late final FocusNode searchFocusNode;
+  final GlobalKey _filterButtonKey = GlobalKey();
 
   @override
   void initState() {
@@ -193,6 +194,7 @@ class _AutomationResistorDashboardPageState
 
   Widget _buildFilterButton(VoidCallback onPressed) {
     return OutlinedButton.icon(
+      key: _filterButtonKey,
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.cyanAccent,
@@ -212,86 +214,97 @@ class _AutomationResistorDashboardPageState
   }
 
   Future<void> _showFiltersSheet(BuildContext context) async {
-    await showModalBottomSheet<void>(
+    final renderBox =
+        _filterButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    final overlayState = Overlay.of(context);
+    final overlay = overlayState?.context.findRenderObject() as RenderBox?;
+    final overlaySize = overlay?.size ?? MediaQuery.of(context).size;
+    Offset? buttonOffset;
+    Size buttonSize = Size.zero;
+
+    if (renderBox != null && overlay != null) {
+      buttonOffset = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
+      buttonSize = renderBox.size;
+    }
+
+    final mediaQuery = MediaQuery.of(context);
+    final double screenWidth = overlaySize.width;
+    final bool narrowLayout = screenWidth < 720;
+    final double baseTop = mediaQuery.padding.top + 72;
+    final double buttonTop = buttonOffset?.dy ?? baseTop;
+    final double topOffset = buttonTop + (buttonSize.height == 0 ? 0 : buttonSize.height) + 12;
+    final double computedRight = overlaySize.width -
+        ((buttonOffset?.dx ?? overlaySize.width) + buttonSize.width);
+    final double rightInset = computedRight < 24 ? 24 : computedRight;
+
+    await showGeneralDialog<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
-        return Padding(
-          padding: EdgeInsets.only(bottom: bottomInset),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF021026),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: Colors.cyanAccent.withOpacity(0.2)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
-                  blurRadius: 24,
-                  offset: const Offset(0, -12),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.tune, color: Colors.cyanAccent),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'FILTERS',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.2,
-                            ),
+      barrierDismissible: true,
+      barrierLabel: 'Filters',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        final bottomInset = MediaQuery.of(dialogContext).viewInsets.bottom;
+
+        return SafeArea(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(dialogContext).pop(),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: narrowLayout
+                        ? MediaQuery.of(dialogContext).padding.top + 24
+                        : topOffset,
+                    left: narrowLayout ? 24 : null,
+                    right: narrowLayout ? 24 : rightInset,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () {},
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: bottomInset + 24),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: _FilterDialogContent(
+                            onClose: () => Navigator.of(dialogContext).pop(),
+                            controller: controller,
+                            onPickDate: () async {
+                              final picked = await _pickDateTimeRange(
+                                dialogContext,
+                                controller.selectedRange.value,
+                              );
+                              if (picked != null) {
+                                controller.updateRange(picked);
+                              }
+                            },
                           ),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: () => Navigator.of(sheetContext).pop(),
-                            icon: const Icon(Icons.close, color: Colors.white70),
-                          ),
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      ResistorFiltersBar(
-                        machineOptions: controller.machineNames,
-                        selectedMachine: controller.selectedMachine.value,
-                        onMachineChanged: (value) {
-                          controller.updateMachine(value);
-                        },
-                        selectedShift: controller.selectedShift.value,
-                        onShiftChanged: (value) {
-                          controller.updateShift(value);
-                        },
-                        selectedStatus: controller.selectedStatus.value,
-                        onStatusChanged: (value) {
-                          controller.updateStatus(value);
-                        },
-                        dateRange: controller.selectedRange.value,
-                        onSelectDate: () async {
-                          final picked = await _pickDateTimeRange(
-                            sheetContext,
-                            controller.selectedRange.value,
-                          );
-                          if (picked != null) {
-                            controller.updateRange(picked);
-                          }
-                        },
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          ),
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, -0.05),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            )),
+            child: child,
           ),
         );
       },
@@ -577,6 +590,93 @@ class _AutomationResistorDashboardPageState
           },
         );
       },
+    );
+  }
+}
+
+class _FilterDialogContent extends StatelessWidget {
+  const _FilterDialogContent({
+    required this.controller,
+    required this.onClose,
+    required this.onPickDate,
+  });
+
+  final AutomationResistorDashboardController controller;
+  final VoidCallback onClose;
+  final Future<void> Function() onPickDate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF021026),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.cyanAccent.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.45),
+              blurRadius: 24,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.tune, color: Colors.cyanAccent, size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'FILTER',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: onClose,
+                    icon: const Icon(Icons.close, color: Colors.white60),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Divider(color: Colors.white12, thickness: 1, height: 24),
+              const SizedBox(height: 8),
+              const Text(
+                'Refine your query',
+                style: TextStyle(
+                  color: Colors.white60,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ResistorFiltersBar(
+                machineOptions: controller.machineNames,
+                selectedMachine: controller.selectedMachine.value,
+                onMachineChanged: controller.updateMachine,
+                shiftOptions: const ['D', 'N'],
+                selectedShift: controller.selectedShift.value,
+                onShiftChanged: controller.updateShift,
+                statusOptions: const ['ALL', 'PASS', 'FAIL'],
+                selectedStatus: controller.selectedStatus.value,
+                onStatusChanged: controller.updateStatus,
+                dateRange: controller.selectedRange.value,
+                onSelectDate: onPickDate,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

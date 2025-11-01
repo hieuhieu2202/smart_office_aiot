@@ -7,8 +7,10 @@ class ResistorFiltersBar extends StatelessWidget {
     required this.machineOptions,
     required this.selectedMachine,
     required this.onMachineChanged,
+    required this.shiftOptions,
     required this.selectedShift,
     required this.onShiftChanged,
+    required this.statusOptions,
     required this.selectedStatus,
     required this.onStatusChanged,
     required this.dateRange,
@@ -18,55 +20,51 @@ class ResistorFiltersBar extends StatelessWidget {
   final List<String> machineOptions;
   final String selectedMachine;
   final ValueChanged<String> onMachineChanged;
+  final List<String> shiftOptions;
   final String selectedShift;
   final ValueChanged<String> onShiftChanged;
+  final List<String> statusOptions;
   final String selectedStatus;
   final ValueChanged<String> onStatusChanged;
   final DateTimeRange dateRange;
-  final VoidCallback onSelectDate;
+  final Future<void> Function() onSelectDate;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final isCompact = constraints.maxWidth < 900;
-      final filters = <Widget>[
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _DateTile(
+          label: 'Date range',
+          range: dateRange,
+          onTap: () async {
+            await onSelectDate();
+          },
+        ),
+        const SizedBox(height: 16),
         _DropdownTile(
           label: 'Machine',
           value: selectedMachine,
           options: machineOptions,
           onChanged: onMachineChanged,
         ),
-        _SegmentedTile(
+        const SizedBox(height: 16),
+        _DropdownTile(
           label: 'Shift',
           value: selectedShift,
+          options: shiftOptions,
           onChanged: onShiftChanged,
-          options: const ['D', 'N'],
         ),
-        _SegmentedTile(
+        const SizedBox(height: 16),
+        _DropdownTile(
           label: 'Status',
           value: selectedStatus,
+          options: statusOptions,
           onChanged: onStatusChanged,
-          options: const ['ALL', 'PASS', 'FAIL'],
         ),
-        _DateTile(
-          label: 'Date range',
-          range: dateRange,
-          onTap: onSelectDate,
-        ),
-      ].map((widget) {
-        return ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 160, maxWidth: 240),
-          child: widget,
-        );
-      }).toList();
-
-      return Wrap(
-        runSpacing: 12,
-        spacing: isCompact ? 12 : 16,
-        alignment: WrapAlignment.start,
-        children: filters,
-      );
-    });
+      ],
+    );
   }
 }
 
@@ -91,6 +89,8 @@ class _DropdownTile extends StatelessWidget {
         value: value,
         dropdownColor: const Color(0xFF03132D),
         decoration: const InputDecoration.collapsed(hintText: ''),
+        isExpanded: true,
+        iconEnabledColor: Colors.cyanAccent,
         items: options
             .map(
               (item) => DropdownMenuItem<String>(
@@ -100,48 +100,10 @@ class _DropdownTile extends StatelessWidget {
             )
             .toList(),
         onChanged: (value) {
-          if (value != null) onChanged(value);
+          if (value != null) {
+            onChanged(value);
+          }
         },
-      ),
-    );
-  }
-}
-
-class _SegmentedTile extends StatelessWidget {
-  const _SegmentedTile({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-    required this.options,
-  });
-
-  final String label;
-  final String value;
-  final ValueChanged<String> onChanged;
-  final List<String> options;
-
-  @override
-  Widget build(BuildContext context) {
-    return _TileContainer(
-      label: label,
-      child: ToggleButtons(
-        borderRadius: BorderRadius.circular(12),
-        borderColor: Colors.white24,
-        selectedBorderColor: Colors.cyanAccent,
-        fillColor: Colors.cyanAccent.withOpacity(0.1),
-        selectedColor: Colors.cyanAccent,
-        color: Colors.white70,
-        isSelected: options.map((e) => e == value).toList(),
-        onPressed: (index) => onChanged(options[index]),
-        children: options
-            .map(
-              (option) => Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Text(option),
-              ),
-            )
-            .toList(),
       ),
     );
   }
@@ -156,19 +118,21 @@ class _DateTile extends StatelessWidget {
 
   final String label;
   final DateTimeRange range;
-  final VoidCallback onTap;
+  final Future<void> Function() onTap;
 
   @override
   Widget build(BuildContext context) {
     return _TileContainer(
       label: label,
       child: InkWell(
-        onTap: onTap,
+        onTap: () async {
+          await onTap();
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
             children: [
               const Icon(Icons.calendar_today, color: Colors.cyanAccent),
               const SizedBox(width: 12),
