@@ -97,6 +97,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
 
   late final String _controllerTag;
   late final TETopErrorCodeController _controller;
+  final ScrollController _tableScrollController = ScrollController();
   final DateFormat _rangeDisplayFormatter = DateFormat('yyyy/MM/dd HH:mm');
   final TooltipBehavior _trendTooltip = TooltipBehavior(
     enable: true,
@@ -135,6 +136,7 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
     if (Get.isRegistered<TETopErrorCodeController>(tag: _controllerTag)) {
       Get.delete<TETopErrorCodeController>(tag: _controllerTag);
     }
+    _tableScrollController.dispose();
     super.dispose();
   }
 
@@ -613,11 +615,13 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         }
 
         return Scrollbar(
+          controller: _tableScrollController,
           thumbVisibility: false,
           child: ListView.separated(
             padding: const EdgeInsets.only(top: 4, bottom: 6),
             primary: false,
             physics: const ClampingScrollPhysics(),
+            controller: _tableScrollController,
             itemBuilder: (context, index) {
               final error = errors[index];
               final accent = _barPalette[index % _barPalette.length];
@@ -1155,13 +1159,14 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                             highlightedCode == seriesConfigs[i].error.errorCode
                         ? 1.0
                         : 0.28,
-                    markerSettings: const MarkerSettings(
+                    markerSettings: MarkerSettings(
                       isVisible: true,
-                      height: 8,
-                      width: 8,
+                      height: 9,
+                      width: 9,
                       shape: DataMarkerType.circle,
-                      borderWidth: 1.2,
-                      borderColor: Colors.black,
+                      borderWidth: 1.6,
+                      borderColor: Colors.white.withOpacity(0.95),
+                      color: seriesConfigs[i].color.withOpacity(0.9),
                     ),
                     dataLabelSettings: const DataLabelSettings(
                       isVisible: true,
@@ -1268,13 +1273,14 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             yValueMapper: (item, _) => item.firstFail,
             width: 3.2,
             color: _kErrorColor,
-            markerSettings: const MarkerSettings(
+            markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
-              width: 8,
-              height: 8,
-              borderColor: Colors.black,
-              borderWidth: 1.2,
+              width: 9,
+              height: 9,
+              borderColor: Colors.white.withOpacity(0.95),
+              borderWidth: 1.6,
+              color: _kErrorColor.withOpacity(0.9),
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1293,13 +1299,14 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             yValueMapper: (item, _) => item.repairFail,
             width: 3.2,
             color: _kRepairColor,
-            markerSettings: const MarkerSettings(
+            markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.circle,
-              width: 8,
-              height: 8,
-              borderColor: Colors.black,
-              borderWidth: 1.2,
+              width: 9,
+              height: 9,
+              borderColor: Colors.white.withOpacity(0.95),
+              borderWidth: 1.6,
+              color: _kRepairColor.withOpacity(0.9),
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
@@ -1319,13 +1326,14 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
             width: 3.4,
             color: _kAccentColor,
             dashArray: const <double>[4, 2],
-            markerSettings: const MarkerSettings(
+            markerSettings: MarkerSettings(
               isVisible: true,
               shape: DataMarkerType.diamond,
               width: 10,
               height: 10,
-              borderColor: Colors.black,
-              borderWidth: 1.4,
+              borderColor: Colors.white.withOpacity(0.95),
+              borderWidth: 1.6,
+              color: _kAccentColor.withOpacity(0.85),
             ),
             enableTooltip: true,
             dataLabelSettings: const DataLabelSettings(
