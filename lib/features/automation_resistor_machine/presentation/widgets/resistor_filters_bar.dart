@@ -29,7 +29,7 @@ class ResistorFiltersBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       final isCompact = constraints.maxWidth < 900;
-      final content = <Widget>[
+      final filters = <Widget>[
         _DropdownTile(
           label: 'Machine',
           value: selectedMachine,
@@ -53,26 +53,30 @@ class ResistorFiltersBar extends StatelessWidget {
           range: dateRange,
           onTap: onSelectDate,
         ),
-      ];
+      ].map((widget) {
+        return ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 160, maxWidth: 240),
+          child: widget,
+        );
+      }).toList();
 
       if (isCompact) {
         return Wrap(
           runSpacing: 12,
           spacing: 12,
-          children: content,
+          alignment: WrapAlignment.start,
+          children: filters,
         );
       }
 
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: content
-            .map((widget) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: widget,
-                  ),
-                ))
-            .toList(),
+      return Align(
+        alignment: Alignment.centerRight,
+        child: Wrap(
+          runSpacing: 12,
+          spacing: 16,
+          crossAxisAlignment: WrapCrossAlignment.end,
+          children: filters,
+        ),
       );
     });
   }
@@ -219,14 +223,14 @@ class _TileContainer extends StatelessWidget {
             letterSpacing: 1.1,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
             color: const Color(0xFF03132D),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.white12),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: child,
         ),
       ],
