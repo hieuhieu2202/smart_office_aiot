@@ -16,36 +16,36 @@ const double _kHeaderTopHeight = 40;
 const double _kHeaderBottomHeight = 32;
 const double _kRowHeight = 54;
 
-const Color _kHeaderColor = Color(0xFF0D3B5B);
-const Color _kHeaderAccent = Color(0xFF082A44);
+const Color _kHeaderColor = Color(0xFF14263C);
+const Color _kHeaderAccent = Color(0xFF0F1D2B);
 const LinearGradient _kTableBackgroundGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFF063356), Color(0xFF03172C)],
+  colors: [Color(0xFF091524), Color(0xFF01060C)],
 );
-const Color _kRowEvenColor = Color(0xFF0A3654);
-const Color _kRowOddColor = Color(0xFF072C47);
-const Color _kSpanBackground = Color(0xFF0E3F61);
-const Color _kBorderColor = Color(0x553AD2FF);
+const Color _kRowEvenColor = Color(0xFF152536);
+const Color _kRowOddColor = Color(0xFF101D2B);
+const Color _kSpanBackground = Color(0xFF1A3143);
+const Color _kBorderColor = Color(0x332B7DAF);
 const List<BoxShadow> _kTableShadows = [
   const BoxShadow(
-    color: Color(0x2229C6FF),
-    blurRadius: 34,
-    spreadRadius: 2,
-    offset: const Offset(0, 26),
+    color: Color(0x141B84C6),
+    blurRadius: 28,
+    spreadRadius: 1,
+    offset: Offset(0, 20),
   ),
 ];
-const BorderSide _kGridBorder = BorderSide(color: Color(0x335FE0FF), width: 1.05);
+const BorderSide _kGridBorder = BorderSide(color: Color(0x332B7DAF), width: 1.0);
 const LinearGradient _kCompactCardGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFF0C314F), Color(0xFF061A2C)],
+  colors: [Color(0xFF132738), Color(0xFF0D1A27)],
 );
-const Color _kCompactCardBorder = Color(0x2239D2FF);
-const Color _kCompactCardShadow = Color(0x1A33D6FF);
-const Color _kCompactGroupBar = Color(0x3322D3EE);
-const Color _kCompactChipBackground = Color(0xFF0D2941);
-const Color _kCompactChipBorder = Color(0x3322D3EE);
+const Color _kCompactCardBorder = Color(0x1A2A7CB8);
+const Color _kCompactCardShadow = Color(0x111B5E8C);
+const Color _kCompactGroupBar = Color(0x22307FAE);
+const Color _kCompactChipBackground = Color(0xFF172433);
+const Color _kCompactChipBorder = Color(0x22307FAE);
 
 class TERetestRateTable extends StatefulWidget {
   const TERetestRateTable({
@@ -615,7 +615,7 @@ class _CompactGroupSection extends StatelessWidget {
                 ),
                 if (groupTap != null)
                   const Icon(Icons.area_chart_rounded,
-                      color: Color(0xFF91E6FF), size: 18),
+                      color: Color(0xFF7FB9E8), size: 18),
               ],
             ),
           ),
@@ -682,7 +682,7 @@ class _CompactDayNightRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF0C304C),
+        color: const Color(0xFF11263B),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
@@ -798,14 +798,14 @@ class _CompactShiftTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF134062),
+                  color: const Color(0xFF1F3346),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white24),
+                  border: Border.all(color: Colors.white10),
                 ),
                 child: Text(
                   label,
                   style: const TextStyle(
-                    color: Color(0xFFBDEBFF),
+                    color: Color(0xFFC9E2F5),
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.3,
@@ -855,13 +855,13 @@ class _CompactIndexBadge extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF21C3FF), Color(0xFF1172FF)],
+          colors: [Color(0xFF3A8ECF), Color(0xFF1F4F8A)],
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x3322D3EE),
-            blurRadius: 16,
-            offset: Offset(0, 8),
+            color: Color(0x221D6AA8),
+            blurRadius: 14,
+            offset: Offset(0, 7),
           ),
         ],
       ),
