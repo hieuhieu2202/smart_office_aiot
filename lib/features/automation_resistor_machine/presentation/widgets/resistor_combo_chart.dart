@@ -23,6 +23,8 @@ class ResistorComboChart extends StatelessWidget {
     final pass = series.pass;
     final fail = series.fail;
     final yr = series.yieldRate;
+    final sections = series.sections;
+    final shiftStartMinutes = series.shiftStartMinutes;
     final showYieldTarget = title.toLowerCase().contains('yield rate');
 
     if (categories.isEmpty || pass.isEmpty || fail.isEmpty || yr.isEmpty) {
@@ -46,6 +48,9 @@ class ResistorComboChart extends StatelessWidget {
         pass: pass[index],
         fail: fail[index],
         yr: yr[index],
+        section: index < sections.length ? sections[index] : null,
+        shiftStartMinutes:
+            index < shiftStartMinutes.length ? shiftStartMinutes[index] : null,
       ),
     );
 
@@ -304,6 +309,8 @@ class _ComboPoint {
     required this.pass,
     required this.fail,
     required this.yr,
+    this.section,
+    this.shiftStartMinutes,
   });
 
   final String rawCategory;
@@ -311,6 +318,8 @@ class _ComboPoint {
   final int pass;
   final int fail;
   final double yr;
+  final int? section;
+  final int? shiftStartMinutes;
 }
 
 const List<String> _sectionShiftWindows = <String>[
@@ -327,6 +336,13 @@ const List<String> _sectionShiftWindows = <String>[
   '17:30 - 18:30',
   '18:30 - 19:30',
 ];
+
+final List<int> _sectionStartMinutes = List<int>.unmodifiable(
+  List<int>.generate(
+    _sectionShiftWindows.length,
+    (index) => (7 + index) * 60 + 30,
+  ),
+);
 
 String _formatCategoryLabel(String value) {
   final trimmed = value.trim();
@@ -348,35 +364,47 @@ String _formatCategoryLabel(String value) {
 }
 
 List<_ComboPoint> _normalizeShiftWindows(List<_ComboPoint> points) {
-  final Map<int, _ShiftBucket> buckets = <int, _ShiftBucket>{};
+  final buckets = List<_ShiftBucket>.generate(
+    _sectionShiftWindows.length,
+    (_) => _ShiftBucket(),
+  );
+
   for (final point in points) {
-    final slotIndex = _resolveShiftIndex(point.rawCategory, point.displayCategory);
-    if (slotIndex != null) {
-      final bucket = buckets.putIfAbsent(slotIndex, () => _ShiftBucket());
-      bucket.pass += point.pass;
-      bucket.fail += point.fail;
+    final slotIndex = _resolveShiftIndex(point);
+    if (slotIndex == null) {
+      continue;
     }
+    final bucket = buckets[slotIndex];
+    bucket.pass += point.pass;
+    bucket.fail += point.fail;
   }
 
-  final normalized = <_ComboPoint>[];
-  for (var i = 0; i < _sectionShiftWindows.length; i++) {
-    final bucket = buckets[i];
-    normalized.add(
-      _ComboPoint(
-        rawCategory: 'S${i + 1}',
-        displayCategory: _sectionShiftWindows[i],
-        pass: bucket?.pass ?? 0,
-        fail: bucket?.fail ?? 0,
-        yr: bucket?.yr ?? 0,
-      ),
+  return List<_ComboPoint>.generate(_sectionShiftWindows.length, (index) {
+    final bucket = buckets[index];
+    return _ComboPoint(
+      rawCategory: 'S${index + 1}',
+      displayCategory: _sectionShiftWindows[index],
+      pass: bucket.pass,
+      fail: bucket.fail,
+      yr: bucket.yr,
+      section: index + 1,
+      shiftStartMinutes: _sectionStartMinutes[index],
     );
-  }
-
-  return normalized;
+  });
 }
 
-int? _resolveShiftIndex(String rawCategory, String displayCategory) {
-  final rawMatch = RegExp(r'^S(\d+)$').firstMatch(rawCategory.trim());
+int? _resolveShiftIndex(_ComboPoint point) {
+  final section = point.section;
+  if (section != null && section > 0 && section <= _sectionShiftWindows.length) {
+    return section - 1;
+  }
+
+  final minuteIndex = _indexForStartMinutes(point.shiftStartMinutes);
+  if (minuteIndex != null) {
+    return minuteIndex;
+  }
+
+  final rawMatch = RegExp(r'^S(\d+)$').firstMatch(point.rawCategory.trim());
   if (rawMatch != null) {
     final value = int.tryParse(rawMatch.group(1) ?? '');
     if (value != null && value > 0 && value <= _sectionShiftWindows.length) {
@@ -384,7 +412,7 @@ int? _resolveShiftIndex(String rawCategory, String displayCategory) {
     }
   }
 
-  final normalizedDisplay = displayCategory.trim();
+  final normalizedDisplay = point.displayCategory.trim();
   final displayIndex = _sectionShiftWindows
       .indexWhere((element) => element.toLowerCase() == normalizedDisplay.toLowerCase());
   if (displayIndex != -1) {
@@ -402,6 +430,30 @@ int? _resolveShiftIndex(String rawCategory, String displayCategory) {
   }
 
   return null;
+}
+
+int? _indexForStartMinutes(int? minutes) {
+  if (minutes == null || _sectionStartMinutes.isEmpty) {
+    return null;
+  }
+
+  final base = _sectionStartMinutes.first;
+  final delta = minutes - base;
+  if (delta < 0) {
+    return null;
+  }
+
+  final index = delta ~/ 60;
+  if (index < 0 || index >= _sectionStartMinutes.length) {
+    return null;
+  }
+
+  final expected = _sectionStartMinutes[index];
+  if ((minutes - expected).abs() >= 60) {
+    return null;
+  }
+
+  return index;
 }
 
 String _wrapShiftLabel(String label) {
