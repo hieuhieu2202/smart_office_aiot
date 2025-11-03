@@ -444,10 +444,23 @@ String _formatShiftLabel(
   DateTime? shiftStartTime,
 ) {
   final formatter = DateFormat('HH:mm');
-  final base = DateTime(1970, 1, 1, 6, 30);
-  final start = base.add(Duration(hours: section - 1));
-  final end = start.add(const Duration(hours: 1));
-  return '${formatter.format(start)} - ${formatter.format(end)}';
+  if (shiftStartTime != null && baseSection > 0) {
+    final offsetHours = section - baseSection;
+    final start = shiftStartTime.add(Duration(hours: offsetHours));
+    final end = start.add(const Duration(hours: 1));
+    return '${formatter.format(start)} - ${formatter.format(end)}';
+  }
+
+  if (startMinutes != null) {
+    final start = _dateFromMinutes(startMinutes);
+    final end = start.add(const Duration(hours: 1));
+    return '${formatter.format(start)} - ${formatter.format(end)}';
+  }
+
+  final fallbackMinutes = _minutesFromNormalizedSection(section);
+  final fallbackStart = _dateFromMinutes(fallbackMinutes);
+  final fallbackEnd = fallbackStart.add(const Duration(hours: 1));
+  return '${formatter.format(fallbackStart)} - ${formatter.format(fallbackEnd)}';
 }
 
 DateTime _dateFromMinutes(int minutes) {
