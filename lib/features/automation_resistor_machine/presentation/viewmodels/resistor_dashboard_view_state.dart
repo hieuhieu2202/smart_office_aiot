@@ -159,17 +159,30 @@ class ResistorDashboardViewState {
     final machinesByFail = List<ResistorMachineInfo>.from(tracking.machines)
       ..sort((a, b) => b.fail.compareTo(a.fail));
 
+    int _sanitizeCount(int value) => value < 0 ? 0 : value;
+
+    double _sanitizeRate(double value) {
+      if (value.isNaN || value.isInfinite) {
+        return 0;
+      }
+      if (value < 0) {
+        return 0;
+      }
+      return value;
+    }
+
     for (var i = 0; i < machinesByFail.length; i++) {
       final machine = machinesByFail[i];
-      if (machine.fail <= 0) {
+      final failCount = _sanitizeCount(machine.fail);
+      if (failCount <= 0) {
         continue;
       }
       failDistributionSlices.add(
         ResistorPieSlice(
           label: machine.name,
-          value: machine.fail,
+          value: failCount,
           color: failPalette[i % failPalette.length],
-          pass: machine.pass,
+          pass: _sanitizeCount(machine.pass),
         ),
       );
     }
@@ -198,14 +211,14 @@ class ResistorDashboardViewState {
       for (final item in raw) {
         if (item is ResistorMachineOutput) {
           categories.add(item.displayLabel);
-          pass.add(item.pass);
-          fail.add(item.fail);
-          yieldRate.add(item.yieldRate);
+          pass.add(_sanitizeCount(item.pass));
+          fail.add(_sanitizeCount(item.fail));
+          yieldRate.add(_sanitizeRate(item.yieldRate));
         } else if (item is ResistorMachineInfo) {
           categories.add(item.name);
-          pass.add(item.pass);
-          fail.add(item.fail);
-          yieldRate.add(item.yieldRate);
+          pass.add(_sanitizeCount(item.pass));
+          fail.add(_sanitizeCount(item.fail));
+          yieldRate.add(_sanitizeRate(item.yieldRate));
         }
       }
 
