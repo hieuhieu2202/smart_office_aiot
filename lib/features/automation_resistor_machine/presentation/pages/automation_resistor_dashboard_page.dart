@@ -882,11 +882,12 @@ class _DesktopLayout extends StatelessWidget {
                   child: Column(
                     children: [
                       Expanded(
-                        child: ResistorComboChart(
-                          title: 'YIELD RATE AND OUTPUT',
-                          series: view.sectionSeries,
-                          alignToShiftWindows: true,
-                        ),
+                        child: Obx(() => ResistorComboChart(
+                              title: 'YIELD RATE AND OUTPUT',
+                              series: view.sectionSeries,
+                              alignToShiftWindows: true,
+                              startSection: controller.startSection.value,
+                            )),
                       ),
                       const SizedBox(height: 24),
                       Expanded(
@@ -932,11 +933,12 @@ class _TabletLayout extends StatelessWidget {
         const SizedBox(height: 20),
         SizedBox(
           height: 420,
-          child: ResistorComboChart(
-            title: 'YIELD RATE AND OUTPUT',
-            series: view.sectionSeries,
-            alignToShiftWindows: true,
-          ),
+          child: Obx(() => ResistorComboChart(
+                title: 'YIELD RATE AND OUTPUT',
+                series: view.sectionSeries,
+                alignToShiftWindows: true,
+                startSection: controller.startSection.value,
+              )),
         ),
         const SizedBox(height: 20),
         SizedBox(
@@ -976,11 +978,12 @@ class _MobileLayout extends StatelessWidget {
         const SizedBox(height: 16),
         SizedBox(
           height: 340,
-          child: ResistorComboChart(
-            title: 'YIELD RATE AND OUTPUT',
-            series: view.sectionSeries,
-            alignToShiftWindows: true,
-          ),
+          child: Obx(() => ResistorComboChart(
+                title: 'YIELD RATE AND OUTPUT',
+                series: view.sectionSeries,
+                alignToShiftWindows: true,
+                startSection: controller.startSection.value,
+              )),
         ),
         const SizedBox(height: 16),
         SizedBox(

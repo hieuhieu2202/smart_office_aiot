@@ -40,15 +40,16 @@ class ResistorComboChart extends StatelessWidget {
 
     var points = List<_ComboPoint>.generate(
       itemCount,
-          (index) => _ComboPoint(
+      (index) => _ComboPoint(
         rawCategory: categories[index],
-        displayCategory: _formatCategoryLabel(categories[index]),
+        displayCategory: _formatCategoryLabel(categories[index],
+            index < sections.length ? sections[index] : null),
         pass: pass[index],
         fail: fail[index],
         yr: yr[index],
         section: index < sections.length ? sections[index] : null,
         shiftStartMinutes:
-        index < shiftStartMinutes.length ? shiftStartMinutes[index] : null,
+            index < shiftStartMinutes.length ? shiftStartMinutes[index] : null,
       ),
     );
 
@@ -311,16 +312,18 @@ class _ComboPoint {
 }
 
 const int _minutesPerSection = 60;
+const int _sectionsPerShift = 12;
 
-String _formatCategoryLabel(String value) {
+String _formatCategoryLabel(String value, int? section) {
   final trimmed = value.trim();
   final match = RegExp(r'^S(\d+)$').firstMatch(trimmed);
-  if (match == null) return trimmed;
+  final parsedSection = section ?? int.tryParse(match?.group(1) ?? '');
 
-  final section = int.tryParse(match.group(1) ?? '');
-  if (section == null || section <= 0) return trimmed;
+  if (parsedSection == null || parsedSection <= 0) {
+    return trimmed;
+  }
 
-  return _formatShiftLabel(section, null);
+  return _formatShiftLabel(parsedSection, null);
 }
 
 List<_ComboPoint> _normalizeShiftWindows(
@@ -359,7 +362,8 @@ List<_ComboPoint> _normalizeShiftWindows(
   }
 
   final minPossible = sortedSections.first;
-  final maxPossible = math.max(sortedSections.last - 11, minPossible);
+  final maxPossible =
+      math.max(sortedSections.last - (_sectionsPerShift - 1), minPossible);
   if (effectiveStartSection < minPossible) {
     effectiveStartSection = minPossible;
   }
@@ -367,29 +371,20 @@ List<_ComboPoint> _normalizeShiftWindows(
     effectiveStartSection = maxPossible;
   }
 
-  final baseMinutes = _resolveBaseMinutes(
-    effectiveStartSection,
-    sectionStartMinutes,
-    sortedSections,
-  );
-
   final normalized = <_ComboPoint>[];
-  for (var offset = 0; offset < 12; offset++) {
+  for (var offset = 0; offset < _sectionsPerShift; offset++) {
     final sectionNumber = effectiveStartSection + offset;
     final bucket = sectionBuckets[sectionNumber];
-    final startMinutes = baseMinutes != null
-        ? baseMinutes + offset * _minutesPerSection
-        : sectionStartMinutes[sectionNumber];
 
     normalized.add(
       _ComboPoint(
         rawCategory: 'S$sectionNumber',
-        displayCategory: _formatShiftLabel(sectionNumber, startMinutes),
+        displayCategory: _formatShiftLabel(sectionNumber, null),
         pass: bucket?.pass ?? 0,
         fail: bucket?.fail ?? 0,
         yr: bucket?.yr ?? 0,
         section: sectionNumber,
-        shiftStartMinutes: startMinutes,
+        shiftStartMinutes: sectionStartMinutes[sectionNumber],
       ),
     );
   }
@@ -418,45 +413,6 @@ int? _extractSectionNumber(_ComboPoint point) {
   return null;
 }
 
-int? _resolveBaseMinutes(
-  int startSection,
-  Map<int, int> sectionStartMinutes,
-  List<int> sortedSections,
-) {
-  if (sectionStartMinutes.isEmpty) {
-    return null;
-  }
-
-  final direct = sectionStartMinutes[startSection];
-  if (direct != null) {
-    return direct;
-  }
-
-  int? lowerSection;
-  for (final section in sortedSections) {
-    if (section >= startSection) break;
-    if (sectionStartMinutes.containsKey(section)) {
-      lowerSection = section;
-    }
-  }
-  if (lowerSection != null) {
-    final minutes = sectionStartMinutes[lowerSection]!;
-    final diff = startSection - lowerSection;
-    return minutes + diff * _minutesPerSection;
-  }
-
-  for (final section in sortedSections) {
-    if (section <= startSection) continue;
-    final minutes = sectionStartMinutes[section];
-    if (minutes != null) {
-      final diff = section - startSection;
-      return minutes - diff * _minutesPerSection;
-    }
-  }
-
-  return null;
-}
-
 String _formatShiftLabel(int section, int? startMinutes) {
   if (startMinutes != null) {
     final startLabel = _formatMinutes(startMinutes);
@@ -464,9 +420,16 @@ String _formatShiftLabel(int section, int? startMinutes) {
     return '$startLabel - $endLabel';
   }
 
-  final normalized = ((section % 24) + 24) % 24;
-  final startHour = (normalized + 23) % 24;
-  final endHour = normalized % 24;
+  if (section <= 0) {
+    return '07:30 - 08:30';
+  }
+
+  final normalizedSection = ((section - 1) % _sectionsPerShift + _sectionsPerShift) %
+      _sectionsPerShift;
+  final blockIndex = ((section - 1) ~/ _sectionsPerShift);
+  final baseHour = blockIndex.isEven ? 7 : 19;
+  final startHour = (baseHour + normalizedSection) % 24;
+  final endHour = (startHour + 1) % 24;
   final startLabel = '${startHour.toString().padLeft(2, '0')}:30';
   final endLabel = '${endHour.toString().padLeft(2, '0')}:30';
   return '$startLabel - $endLabel';

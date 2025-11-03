@@ -130,24 +130,8 @@ class AutomationResistorDashboardController extends GetxController {
       } else {
         _logTrackingData(tracking);
         rawTracking.value = tracking;
+        _updateStartSection(tracking.outputs);
         dashboardView.value = ResistorDashboardViewState.fromTracking(tracking);
-
-        // 🧭 Tự động xác định ca bắt đầu dựa theo dữ liệu API (giữ nguyên số SECTION thực tế)
-        try {
-          final sections =
-              tracking.outputs.map((e) => e.section).whereType<int>().toList();
-          if (sections.isNotEmpty) {
-            final minSection = sections.reduce((a, b) => a < b ? a : b);
-            startSection.value = minSection;
-            debugPrint(
-                '[ResistorDashboard] 🧮 startSection auto-calculated: ${startSection.value}');
-          } else {
-            startSection.value = 1;
-          }
-        } catch (e) {
-          startSection.value = 1;
-          debugPrint('[ResistorDashboard] ⚠️ startSection fallback to 1: $e');
-        }
       }
     } catch (e) {
       debugPrint('[ResistorDashboard] ❌ API error: $e — fallback to empty data');
@@ -448,6 +432,24 @@ class AutomationResistorDashboardController extends GetxController {
   void _logRequest(String label, ResistorMachineRequest request) {
     final payload = request.toBody();
     debugPrint('[ResistorDashboard] $label request payload: $payload');
+  }
+
+  void _updateStartSection(List<ResistorMachineOutput> outputs) {
+    try {
+      final sections = outputs.map((e) => e.section).whereType<int>().toList();
+      if (sections.isEmpty) {
+        startSection.value = 1;
+        return;
+      }
+
+      final minSection = sections.reduce((a, b) => a < b ? a : b);
+      startSection.value = minSection;
+      debugPrint(
+          '[ResistorDashboard] 🧮 startSection auto-calculated: ${startSection.value}');
+    } catch (e) {
+      startSection.value = 1;
+      debugPrint('[ResistorDashboard] ⚠️ startSection fallback to 1: $e');
+    }
   }
 
   static DateTimeRange _defaultRange() {
