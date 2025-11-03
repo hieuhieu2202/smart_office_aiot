@@ -1481,15 +1481,18 @@ class _YieldValueCell extends StatelessWidget {
     Color fillColor = Color.alphaBlend(const Color(0x143DD0FF), background);
     Color textColor = const Color(0xFFE4F5FF);
     if (value != null) {
-      if (value >= 5) {
-        fillColor = Color.alphaBlend(const Color(0x44FF6B81), background);
-        textColor = _dangerColor;
-      } else if (value >= 3) {
-        fillColor = Color.alphaBlend(const Color(0x44F9D262), background);
-        textColor = _warningColor;
-      } else {
-        fillColor = Color.alphaBlend(const Color(0x4437F4C5), background);
-        textColor = _normalColor;
+      final double normalized = value.clamp(0, 100);
+      fillColor = Color.alphaBlend(const Color(0x4437F4C5), background);
+      textColor = _normalColor;
+
+      if (normalized != 0) {
+        if (normalized < 85) {
+          fillColor = Color.alphaBlend(const Color(0x44FF6B81), background);
+          textColor = _dangerColor;
+        } else if (normalized < 90) {
+          fillColor = Color.alphaBlend(const Color(0x44F9D262), background);
+          textColor = _warningColor;
+        }
       }
     } else {
       textColor = Colors.white60;
