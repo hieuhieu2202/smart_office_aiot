@@ -190,6 +190,7 @@ class _ResistorFailDistributionChartState
 
 class _FailDistributionBar extends StatefulWidget {
   const _FailDistributionBar({
+    super.key,
     required this.label,
     required this.value,
     required this.color,
