@@ -66,6 +66,13 @@ const List<_TableColumnSpec> _kTopErrorColumns = [
   _TableColumnSpec(label: 'REPAIR FAIL', flex: 14),
 ];
 
+String _ellipsizeLabel(String text, [int maxChars = 10]) {
+  if (maxChars <= 1 || text.length <= maxChars) {
+    return text;
+  }
+  return '${text.substring(0, maxChars - 1)}…';
+}
+
 class TETop10ErrorCodeScreen extends StatefulWidget {
   const TETop10ErrorCodeScreen({
     super.key,
@@ -865,6 +872,10 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
+                            axisLabelFormatter: (AxisLabelRenderDetails details) {
+                              final text = _ellipsizeLabel(details.text, 10);
+                              return ChartAxisLabel(text, details.textStyle);
+                            },
                             majorGridLines: const MajorGridLines(width: 0),
                             axisLine: const AxisLine(color: Colors.white24),
                           ),
