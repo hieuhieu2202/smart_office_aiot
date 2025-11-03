@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../viewmodels/resistor_dashboard_view_state.dart';
 
@@ -10,12 +11,14 @@ class ResistorComboChart extends StatelessWidget {
     required this.series,
     this.alignToShiftWindows = false,
     this.startSection = 1,
+    this.shiftStartTime,
   });
 
   final String title;
   final ResistorStackedSeries series;
   final bool alignToShiftWindows;
   final int startSection;
+  final DateTime? shiftStartTime;
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +45,12 @@ class ResistorComboChart extends StatelessWidget {
       itemCount,
       (index) => _ComboPoint(
         rawCategory: categories[index],
-        displayCategory: _formatCategoryLabel(categories[index],
-            index < sections.length ? sections[index] : null),
+        displayCategory: _formatCategoryLabel(
+          categories[index],
+          index < sections.length ? sections[index] : null,
+          baseStartSection: alignToShiftWindows ? startSection : null,
+          shiftStartTime: alignToShiftWindows ? shiftStartTime : null,
+        ),
         pass: pass[index],
         fail: fail[index],
         yr: yr[index],
@@ -54,7 +61,7 @@ class ResistorComboChart extends StatelessWidget {
     );
 
     if (alignToShiftWindows) {
-      points = _normalizeShiftWindows(points, startSection);
+      points = _normalizeShiftWindows(points, startSection, shiftStartTime);
     }
 
     final axisLabelStyle = TextStyle(
@@ -314,7 +321,12 @@ class _ComboPoint {
 const int _minutesPerSection = 60;
 const int _sectionsPerShift = 12;
 
-String _formatCategoryLabel(String value, int? section) {
+String _formatCategoryLabel(
+  String value,
+  int? section, {
+  int? baseStartSection,
+  DateTime? shiftStartTime,
+}) {
   final trimmed = value.trim();
   final match = RegExp(r'^S(\d+)$').firstMatch(trimmed);
   final parsedSection = section ?? int.tryParse(match?.group(1) ?? '');
@@ -323,12 +335,14 @@ String _formatCategoryLabel(String value, int? section) {
     return trimmed;
   }
 
-  return _formatShiftLabel(parsedSection, null);
+  final effectiveBase = baseStartSection ?? parsedSection;
+  return _formatShiftLabel(parsedSection, null, effectiveBase, shiftStartTime);
 }
 
 List<_ComboPoint> _normalizeShiftWindows(
   List<_ComboPoint> points,
   int startSectionHint,
+  DateTime? shiftStartTime,
 ) {
   if (points.isEmpty) return points;
 
@@ -356,7 +370,8 @@ List<_ComboPoint> _normalizeShiftWindows(
   }
 
   final sortedSections = sectionBuckets.keys.toList()..sort();
-  final normalizedStart = startSectionHint > 0 ? startSectionHint : 1;
+  final baseSection = startSectionHint > 0 ? startSectionHint : sortedSections.first;
+  final normalizedStart = baseSection;
   final offset = sortedSections.first - normalizedStart;
 
   final normalized = <_ComboPoint>[];
@@ -370,7 +385,12 @@ List<_ComboPoint> _normalizeShiftWindows(
     normalized.add(
       _ComboPoint(
         rawCategory: 'S$normalizedSection',
-        displayCategory: _formatShiftLabel(normalizedSection, minutes),
+        displayCategory: _formatShiftLabel(
+          normalizedSection,
+          minutes,
+          baseSection,
+          shiftStartTime,
+        ),
         pass: bucket?.pass ?? 0,
         fail: bucket?.fail ?? 0,
         yr: bucket?.yr ?? 0,
@@ -417,33 +437,42 @@ int? _extractSectionNumber(_ComboPoint point) {
   return null;
 }
 
-String _formatShiftLabel(int section, int? startMinutes) {
+String _formatShiftLabel(
+  int section,
+  int? startMinutes,
+  int baseSection,
+  DateTime? shiftStartTime,
+) {
+  final formatter = DateFormat('HH:mm');
+
+  if (shiftStartTime != null && baseSection > 0) {
+    final offsetHours = section - baseSection;
+    final start = shiftStartTime.add(Duration(hours: offsetHours));
+    final end = start.add(const Duration(hours: 1));
+    return '${formatter.format(start)} - ${formatter.format(end)}';
+  }
+
   if (startMinutes != null) {
-    final startLabel = _formatMinutes(startMinutes);
-    final endLabel = _formatMinutes(startMinutes + _minutesPerSection);
-    return '$startLabel - $endLabel';
+    final start = _dateFromMinutes(startMinutes);
+    final end = _dateFromMinutes(startMinutes + _minutesPerSection);
+    return '${formatter.format(start)} - ${formatter.format(end)}';
   }
 
-  if (section <= 0) {
-    return '07:30 - 08:30';
+  if (baseSection > 0) {
+    final reference = DateTime(1970, 1, 1, 7, 30);
+    final start = reference.add(Duration(hours: section - baseSection));
+    final end = start.add(const Duration(hours: 1));
+    return '${formatter.format(start)} - ${formatter.format(end)}';
   }
 
-  final normalizedSection = ((section - 1) % _sectionsPerShift + _sectionsPerShift) %
-      _sectionsPerShift;
-  final blockIndex = ((section - 1) ~/ _sectionsPerShift);
-  final baseHour = blockIndex.isEven ? 7 : 19;
-  final startHour = (baseHour + normalizedSection) % 24;
-  final endHour = (startHour + 1) % 24;
-  final startLabel = '${startHour.toString().padLeft(2, '0')}:30';
-  final endLabel = '${endHour.toString().padLeft(2, '0')}:30';
-  return '$startLabel - $endLabel';
+  final fallbackStart = DateTime(1970, 1, 1, 7, 30);
+  final fallbackEnd = fallbackStart.add(const Duration(hours: 1));
+  return '${formatter.format(fallbackStart)} - ${formatter.format(fallbackEnd)}';
 }
 
-String _formatMinutes(int minutes) {
+DateTime _dateFromMinutes(int minutes) {
   final normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60);
-  final hour = normalized ~/ 60;
-  final minute = normalized % 60;
-  return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  return DateTime(1970, 1, 1).add(Duration(minutes: normalized));
 }
 
 String _wrapShiftLabel(String label) {

@@ -75,6 +75,7 @@ class AutomationResistorDashboardController extends GetxController {
 
   /// 🔹 Thêm biến startSection để xác định ca bắt đầu (dựa theo API)
   final RxInt startSection = 1.obs;
+  final Rx<DateTime> shiftStartTime = Rx<DateTime>(_defaultRange().start);
 
   Timer? _autoRefresh;
   bool _isSilentRefreshing = false;
@@ -437,17 +438,24 @@ class AutomationResistorDashboardController extends GetxController {
   void _updateStartSection(List<ResistorMachineOutput> outputs) {
     try {
       final sections = outputs.map((e) => e.section).whereType<int>().toList();
+      final range = selectedRange.value;
+      final DateTime detectedShiftStart = range.start;
+      shiftStartTime.value = detectedShiftStart;
+
       if (sections.isEmpty) {
         startSection.value = 1;
+        debugPrint(
+            '[ResistorDashboard] 🧮 startSection defaulted to 1 with shiftStartTime ${detectedShiftStart.toIso8601String()}');
         return;
       }
 
       final minSection = sections.reduce((a, b) => a < b ? a : b);
-      startSection.value = minSection > 6 ? (minSection - 6) : 1;
+      startSection.value = minSection;
       debugPrint(
-          '[ResistorDashboard] 🧮 startSection auto-calculated: ${startSection.value}');
+          '[ResistorDashboard] 🧮 startSection set to $minSection, shiftStartTime: ${detectedShiftStart.toIso8601String()}');
     } catch (e) {
       startSection.value = 1;
+      shiftStartTime.value = selectedRange.value.start;
       debugPrint('[ResistorDashboard] ⚠️ startSection fallback to 1: $e');
     }
   }
