@@ -1,6 +1,7 @@
 import '../entities/te_report.dart';
 import '../entities/te_retest_rate.dart';
 import '../entities/te_top_error.dart';
+import '../entities/te_yield_rate.dart';
 
 abstract class TEManagementRepository {
   Future<List<TEReportGroupEntity>> fetchReport({
@@ -25,6 +26,12 @@ abstract class TEManagementRepository {
   });
 
   Future<TERetestDetailEntity> fetchRetestRateReport({
+    required String modelSerial,
+    required String range,
+    String model,
+  });
+
+  Future<TEYieldDetailEntity> fetchYieldRateReport({
     required String modelSerial,
     required String range,
     String model,
