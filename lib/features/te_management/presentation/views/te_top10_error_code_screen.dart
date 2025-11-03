@@ -874,9 +874,21 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    headerChip,
-                    const Spacer(),
-                    statusRow,
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: headerChip,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: statusRow,
+                      ),
+                    ),
                   ],
                 );
               },
