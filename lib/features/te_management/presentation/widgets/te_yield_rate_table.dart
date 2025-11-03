@@ -16,36 +16,36 @@ const double _kHeaderTopHeight = 40;
 const double _kHeaderBottomHeight = 32;
 const double _kRowHeight = 54;
 
-const Color _kHeaderColor = Color(0xFF2563EB);
-const Color _kHeaderAccent = Color(0xFF1D4ED8);
+const Color _kHeaderColor = Color(0xFF3B82F6);
+const Color _kHeaderAccent = Color(0xFF2563EB);
 const LinearGradient _kTableBackgroundGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFFF0F6FF), Color(0xFFE0F2FF)],
+  colors: [Color(0xFFFAFDFF), Color(0xFFE6F2FF)],
 );
-const Color _kRowEvenColor = Color(0xFFF9FBFF);
-const Color _kRowOddColor = Color(0xFFF1F6FF);
-const Color _kSpanBackground = Color(0xFFE0ECFF);
-const Color _kBorderColor = Color(0xFFB6D4FF);
+const Color _kRowEvenColor = Color(0xFFFFFFFF);
+const Color _kRowOddColor = Color(0xFFF3F8FF);
+const Color _kSpanBackground = Color(0xFFDCEBFF);
+const Color _kBorderColor = Color(0xFFA9C9FF);
 const List<BoxShadow> _kTableShadows = [
   BoxShadow(
-    color: Color(0x33267EE7),
-    blurRadius: 24,
-    spreadRadius: 2,
-    offset: Offset(0, 18),
+    color: Color(0xFFDBE9FF),
+    blurRadius: 20,
+    spreadRadius: 1,
+    offset: Offset(0, 16),
   ),
 ];
-const BorderSide _kGridBorder = BorderSide(color: Color(0xFFB6D4FF), width: 1.0);
+const BorderSide _kGridBorder = BorderSide(color: Color(0xFFA9C9FF), width: 1.0);
 const LinearGradient _kCompactCardGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFFEAF3FF), Color(0xFFD6ECFF)],
+  colors: [Color(0xFFFAFCFF), Color(0xFFDBEBFF)],
 );
-const Color _kCompactCardBorder = Color(0xFF9FC5FF);
-const Color _kCompactCardShadow = Color(0x3387B7F8);
-const Color _kCompactGroupBar = Color(0xFFB9D6FF);
-const Color _kCompactChipBackground = Color(0xFFE5F0FF);
-const Color _kCompactChipBorder = Color(0xFF9EC9FF);
+const Color _kCompactCardBorder = Color(0xFF8DBBFF);
+const Color _kCompactCardShadow = Color(0xFFD9E7FF);
+const Color _kCompactGroupBar = Color(0xFFC6DDFF);
+const Color _kCompactChipBackground = Color(0xFFEAF3FF);
+const Color _kCompactChipBorder = Color(0xFF8BB8FF);
 
 class TEYieldRateTable extends StatefulWidget {
   const TEYieldRateTable({
@@ -193,7 +193,7 @@ class _TEYieldRateTableState extends State<TEYieldRateTable> {
             return const Center(
               child: Text(
                 'No data available',
-                style: TextStyle(color: Color(0xFF64748B)),
+                style: TextStyle(color: Color(0xFF4C6388)),
               ),
             );
           }
@@ -363,7 +363,7 @@ class _CompactYieldRateView extends StatelessWidget {
         child: const Center(
           child: Text(
             'No data available',
-            style: TextStyle(color: Color(0xFF64748B)),
+            style: TextStyle(color: Color(0xFF4C6388)),
           ),
         ),
       );
@@ -509,7 +509,7 @@ class _CompactModelCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF0F172A),
+                    color: Color(0xFF123B66),
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.3,
@@ -606,7 +606,7 @@ class _CompactGroupSection extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Color(0xFF0F172A),
+                      color: Color(0xFF123B66),
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.2,
@@ -624,7 +624,7 @@ class _CompactGroupSection extends StatelessWidget {
         if (cells.isEmpty)
           const Text(
             'No shift data',
-            style: TextStyle(color: Color(0xFF64748B)),
+            style: TextStyle(color: Color(0xFF4C6388)),
           )
         else ...[
           for (var i = 0; i < cells.length; i += 2)
@@ -761,13 +761,13 @@ class _CompactShiftTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final rate = detail?.yieldRate;
     final rateText = rate == null ? 'N/A' : '${rate.toStringAsFixed(2)}%';
-    final rateColor = rate == null
-        ? const Color(0xFF94A3B8)
-        : (rate >= 5
-            ? const Color(0xFFB91C1C)
-            : (rate >= 3
-                ? const Color(0xFFB45309)
-                : const Color(0xFF047857)));
+      final rateColor = rate == null
+          ? const Color(0xFF94A3B8)
+          : (rate >= 5
+              ? const Color(0xFFE11D48)
+              : (rate >= 3
+                  ? const Color(0xFFF59E0B)
+                  : const Color(0xFF16A34A)));
 
     final tile = AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -782,9 +782,9 @@ class _CompactShiftTile extends StatelessWidget {
         boxShadow: highlighted
             ? const [
                 BoxShadow(
-                  color: Color(0x330EA5E9),
-                  blurRadius: 18,
-                  spreadRadius: 2,
+                  color: Color(0xFFD3E7FF),
+                  blurRadius: 16,
+                  spreadRadius: 1.5,
                   offset: Offset(0, 8),
                 ),
               ]
@@ -805,7 +805,7 @@ class _CompactShiftTile extends StatelessWidget {
                 child: Text(
                   label,
                   style: const TextStyle(
-                    color: Color(0xFF0F172A),
+                    color: Color(0xFF123B66),
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.3,
@@ -859,7 +859,7 @@ class _CompactIndexBadge extends StatelessWidget {
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x332563EB),
+            color: Color(0xFFD3E7FF),
             blurRadius: 14,
             offset: Offset(0, 7),
           ),
@@ -1323,7 +1323,7 @@ class _SpanCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = textStyle ??
         const TextStyle(
-          color: Color(0xFF0F172A),
+          color: Color(0xFF123B66),
           fontWeight: FontWeight.w600,
           fontSize: 13,
         );
@@ -1390,7 +1390,7 @@ class _GroupCell extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFF102549),
+              color: Color(0xFF1554A1),
               fontWeight: FontWeight.w700,
               letterSpacing: 0.25,
             ),
@@ -1417,8 +1417,8 @@ class _GroupCell extends StatelessWidget {
       ),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x33267EE7),
-          blurRadius: 12,
+          color: Color(0xFFD3E7FF),
+          blurRadius: 10,
           offset: Offset(0, 6),
         ),
       ],
@@ -1465,19 +1465,19 @@ class _YieldValueCell extends StatelessWidget {
   final bool showRightBorder;
   final bool highlighted;
 
-  static const Color _dangerColor = Color(0xFFB91C1C);
-  static const Color _warningColor = Color(0xFFB45309);
-  static const Color _normalColor = Color(0xFF047857);
-  static const Color _dangerFill = Color(0xFFFFE5E9);
-  static const Color _warningFill = Color(0xFFFFF4DB);
-  static const Color _normalFill = Color(0xFFE7FFF2);
-  static const Color _naFill = Color(0xFFF1F5F9);
+  static const Color _dangerColor = Color(0xFFE11D48);
+  static const Color _warningColor = Color(0xFFF59E0B);
+  static const Color _normalColor = Color(0xFF16A34A);
+  static const Color _dangerFill = Color(0xFFFFD9E1);
+  static const Color _warningFill = Color(0xFFFFEDC7);
+  static const Color _normalFill = Color(0xFFCFF9E8);
+  static const Color _naFill = Color(0xFFE9F2FF);
 
   @override
   Widget build(BuildContext context) {
     final value = detail.yieldRate;
     Color fillColor = _naFill;
-    Color textColor = const Color(0xFF1F2937);
+    Color textColor = const Color(0xFF10243B);
     if (value != null) {
       final double normalized = value.clamp(0, 100);
       fillColor = _normalFill;
@@ -1493,7 +1493,7 @@ class _YieldValueCell extends StatelessWidget {
         }
       }
     } else {
-      textColor = const Color(0xFF64748B);
+      textColor = const Color(0xFF4C6388);
       fillColor = _naFill;
     }
 
@@ -1503,7 +1503,7 @@ class _YieldValueCell extends StatelessWidget {
         ? Color.lerp(fillColor, const Color(0xFF0EA5E9), 0.45) ?? fillColor
         : fillColor;
     final effectiveTextColor = highlighted
-        ? Color.lerp(textColor, const Color(0xFF0F172A), 0.35) ?? textColor
+        ? Color.lerp(textColor, const Color(0xFF123B66), 0.35) ?? textColor
         : textColor;
 
     Widget cell = AnimatedContainer(
@@ -1520,9 +1520,9 @@ class _YieldValueCell extends StatelessWidget {
         boxShadow: highlighted
             ? const [
                 BoxShadow(
-                  color: Color(0x33267EE7),
-                  blurRadius: 18,
-                  spreadRadius: 1.2,
+                  color: Color(0xFFD3E7FF),
+                  blurRadius: 16,
+                  spreadRadius: 1.1,
                 ),
               ]
             : null,
@@ -1541,7 +1541,7 @@ class _YieldValueCell extends StatelessWidget {
 
     cell = Tooltip(
       message: tooltip,
-      textStyle: const TextStyle(color: Color(0xFF0F172A), fontSize: 12),
+      textStyle: const TextStyle(color: Color(0xFF123B66), fontSize: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
