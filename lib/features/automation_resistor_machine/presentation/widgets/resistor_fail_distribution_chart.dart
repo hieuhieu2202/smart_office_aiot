@@ -214,7 +214,7 @@ class _FailDistributionBar extends StatefulWidget {
 
 class _FailDistributionBarState extends State<_FailDistributionBar>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _shimmerController;
+  AnimationController? _shimmerController;
 
   @override
   void initState() {
@@ -227,7 +227,7 @@ class _FailDistributionBarState extends State<_FailDistributionBar>
 
   @override
   void dispose() {
-    _shimmerController.dispose();
+    _shimmerController?.dispose();
     super.dispose();
   }
 
@@ -272,9 +272,29 @@ class _FailDistributionBarState extends State<_FailDistributionBar>
                     FractionallySizedBox(
                       alignment: Alignment.centerLeft,
                       widthFactor: fraction,
-                      child: _FailFill(
-                        shimmerController: _shimmerController,
-                        baseColor: widget.color,
+                      child: Builder(
+                        builder: (context) {
+                          final shimmerController = _shimmerController;
+                          if (shimmerController == null) {
+                            return DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: [
+                                    widget.color.withOpacity(0.2),
+                                    widget.color,
+                                  ],
+                                ),
+                              ),
+                              child: const SizedBox.expand(),
+                            );
+                          }
+                          return _FailFill(
+                            shimmerController: shimmerController,
+                            baseColor: widget.color,
+                          );
+                        },
                       ),
                     ),
                     Positioned.fill(
