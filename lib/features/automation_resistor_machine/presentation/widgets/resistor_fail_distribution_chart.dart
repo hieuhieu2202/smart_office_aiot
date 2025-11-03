@@ -163,12 +163,17 @@ class _ResistorFailDistributionChartState
                     final fraction =
                         maxValue == 0 ? 0.0 : slice.value / maxValue;
 
+                    final percentage = widget.total == 0
+                        ? 0.0
+                        : (slice.value / widget.total) * 100;
+
                     return _FailDistributionBar(
                       label: slice.label,
                       value: formatter.format(slice.value),
                       color: Color(slice.color),
                       width: constraints.maxWidth,
-                      fraction: fraction.clamp(0.0, 1.0),
+                      fraction: fraction.clamp(0.0, 1.0).toDouble(),
+                      percentage: percentage.clamp(0.0, 100.0).toDouble(),
                       onTap: (offset) => _showDetails(slice, offset),
                     );
                   },
@@ -182,14 +187,16 @@ class _ResistorFailDistributionChartState
   }
 }
 
-class _FailDistributionBar extends StatelessWidget {
+class _FailDistributionBar extends StatefulWidget {
   const _FailDistributionBar({
     required this.label,
     required this.value,
     required this.color,
     required this.width,
     required this.fraction,
+    required this.percentage,
     required this.onTap,
+    this.duration = const Duration(milliseconds: 700),
   });
 
   final String label;
@@ -197,7 +204,46 @@ class _FailDistributionBar extends StatelessWidget {
   final Color color;
   final double width;
   final double fraction;
+  final double percentage;
   final void Function(Offset offset) onTap;
+  final Duration duration;
+
+  @override
+  State<_FailDistributionBar> createState() => _FailDistributionBarState();
+}
+
+class _FailDistributionBarState extends State<_FailDistributionBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _progress;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    _progress = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FailDistributionBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.fraction != widget.fraction ||
+        oldWidget.percentage != widget.percentage ||
+        oldWidget.label != widget.label ||
+        oldWidget.value != widget.value) {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -205,72 +251,97 @@ class _FailDistributionBar extends StatelessWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (details) => onTap(details.globalPosition),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0x3300FFFF),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0x2200FFFF)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-              overflow: TextOverflow.ellipsis,
+      onTapDown: (details) => widget.onTap(details.globalPosition),
+      child: AnimatedBuilder(
+        animation: _progress,
+        builder: (context, child) {
+          final animatedFraction = widget.fraction * _progress.value;
+          final animatedPercentage = widget.percentage * _progress.value;
+          final percentageText = '${animatedPercentage.toStringAsFixed(1)}%';
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0x3300FFFF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0x2200FFFF)),
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 16,
-              width: width,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Container(color: const Color(0x3300FFFF)),
-                    FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: fraction,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              color.withOpacity(0.15),
-                              color,
-                            ],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ),
-                    Positioned.fill(
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            value,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 16,
+                  width: widget.width,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Container(color: const Color(0x3300FFFF)),
+                        FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor:
+                              animatedFraction.clamp(0.0, 1.0).toDouble(),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  widget.color.withOpacity(0.15),
+                                  widget.color,
+                                ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                percentageText,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                widget.value,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
