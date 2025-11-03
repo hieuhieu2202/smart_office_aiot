@@ -28,6 +28,7 @@ class ResistorMachineOutputModel extends ResistorMachineOutput {
   ResistorMachineOutputModel({
     required super.section,
     required super.workDate,
+    required super.startTime,
     required super.pass,
     required super.fail,
     required super.firstFail,
@@ -40,6 +41,7 @@ class ResistorMachineOutputModel extends ResistorMachineOutput {
     return ResistorMachineOutputModel(
       section: _readNullableInt(json, 'SECTION'),
       workDate: _readString(json, 'WORKDATE'),
+      startTime: _readDateTime(json, const <String>['START_TIME', 'STARTTIME', 'TIME_START', 'TIMESTART']),
       pass: _readInt(json, 'PASS'),
       fail: _readInt(json, 'FAIL'),
       firstFail: _readInt(json, 'FIRST_FAIL'),
@@ -48,6 +50,49 @@ class ResistorMachineOutputModel extends ResistorMachineOutput {
       retestRate: _readDouble(json, 'RR'),
     );
   }
+}
+
+DateTime? _readDateTime(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = _valueForKey(json, key);
+    if (value == null) continue;
+    if (value is DateTime) {
+      return value;
+    }
+    if (value is int) {
+      try {
+        return DateTime.fromMillisecondsSinceEpoch(value);
+      } catch (_) {
+        continue;
+      }
+    }
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) continue;
+      DateTime? parsed = DateTime.tryParse(trimmed);
+      if (parsed != null) {
+        return parsed;
+      }
+      final normalized = trimmed.replaceAll('/', '-');
+      parsed = DateTime.tryParse(normalized);
+      if (parsed != null) {
+        return parsed;
+      }
+      if (trimmed.contains(' ')) {
+        final iso = trimmed.replaceFirst(' ', 'T');
+        parsed = DateTime.tryParse(iso);
+        if (parsed != null) {
+          return parsed;
+        }
+        final normalizedIso = normalized.replaceFirst(' ', 'T');
+        parsed = DateTime.tryParse(normalizedIso);
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 class ResistorMachineInfoModel extends ResistorMachineInfo {

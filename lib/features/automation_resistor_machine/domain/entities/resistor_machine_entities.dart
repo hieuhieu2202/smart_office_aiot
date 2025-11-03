@@ -77,6 +77,7 @@ class ResistorMachineOutput extends Equatable {
   const ResistorMachineOutput({
     required this.section,
     required this.workDate,
+    required this.startTime,
     required this.pass,
     required this.fail,
     required this.firstFail,
@@ -87,6 +88,7 @@ class ResistorMachineOutput extends Equatable {
 
   final int? section;
   final String? workDate;
+  final DateTime? startTime;
   final int pass;
   final int fail;
   final int firstFail;
@@ -105,6 +107,7 @@ class ResistorMachineOutput extends Equatable {
   List<Object?> get props => <Object?>[
         section,
         workDate,
+        startTime,
         pass,
         fail,
         firstFail,
