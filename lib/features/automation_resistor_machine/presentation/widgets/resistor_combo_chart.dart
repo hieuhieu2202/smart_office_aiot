@@ -21,6 +21,7 @@ class ResistorComboChart extends StatelessWidget {
     final pass = series.pass;
     final fail = series.fail;
     final yr = series.yieldRate;
+    final showYieldTarget = title.toLowerCase().contains('yield rate');
 
     if (categories.isEmpty || pass.isEmpty || fail.isEmpty || yr.isEmpty) {
       return _buildEmptyState(context);
@@ -38,7 +39,7 @@ class ResistorComboChart extends StatelessWidget {
     final points = List<_ComboPoint>.generate(
       itemCount,
       (index) => _ComboPoint(
-        category: categories[index],
+        displayCategory: _formatCategoryLabel(categories[index]),
         pass: pass[index],
         fail: fail[index],
         yr: yr[index],
@@ -69,13 +70,23 @@ class ResistorComboChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.1,
+                      ),
                 ),
+              ),
+              if (showYieldTarget) ...[
+                const SizedBox(width: 12),
+                const _TargetBadge(),
+              ],
+            ],
           ),
           const SizedBox(height: 12),
           Expanded(
@@ -117,6 +128,33 @@ class ResistorComboChart extends StatelessWidget {
                 ),
               ],
               tooltipBehavior: TooltipBehavior(enable: true),
+              annotations: <CartesianChartAnnotation>[
+                if (showYieldTarget && points.isNotEmpty)
+                  CartesianChartAnnotation(
+                    widget: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.cyanAccent.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.cyanAccent.withOpacity(0.6), width: 1),
+                      ),
+                      child: const Text(
+                        '98%',
+                        style: TextStyle(
+                          color: Colors.cyanAccent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    x: points.last.displayCategory,
+                    y: 98,
+                    yAxisName: 'yrAxis',
+                    coordinateUnit: CoordinateUnit.point,
+                    horizontalAlignment: ChartAlignment.near,
+                    verticalAlignment: ChartAlignment.center,
+                  ),
+              ],
               series: <CartesianSeries<_ComboPoint, String>>[
                 ColumnSeries<_ComboPoint, String>(
                   name: 'PASS',
@@ -129,9 +167,16 @@ class ResistorComboChart extends StatelessWidget {
                     end: Alignment.topCenter,
                   ),
                   dataSource: points,
-                  xValueMapper: (_ComboPoint point, _) => point.category,
+                  xValueMapper: (_ComboPoint point, _) => point.displayCategory,
                   yValueMapper: (_ComboPoint point, _) => point.pass,
-                  dataLabelSettings: const DataLabelSettings(isVisible: false),
+                  dataLabelSettings: const DataLabelSettings(
+                    isVisible: true,
+                    labelAlignment: ChartDataLabelAlignment.outer,
+                    textStyle: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
                 ColumnSeries<_ComboPoint, String>(
                   name: 'FAIL',
@@ -144,9 +189,16 @@ class ResistorComboChart extends StatelessWidget {
                     end: Alignment.topCenter,
                   ),
                   dataSource: points,
-                  xValueMapper: (_ComboPoint point, _) => point.category,
+                  xValueMapper: (_ComboPoint point, _) => point.displayCategory,
                   yValueMapper: (_ComboPoint point, _) => point.fail,
-                  dataLabelSettings: const DataLabelSettings(isVisible: false),
+                  dataLabelSettings: const DataLabelSettings(
+                    isVisible: true,
+                    labelAlignment: ChartDataLabelAlignment.outer,
+                    textStyle: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
                 SplineSeries<_ComboPoint, String>(
                   name: 'YR',
@@ -161,7 +213,7 @@ class ResistorComboChart extends StatelessWidget {
                     color: Color(0xFF39FF14),
                     borderColor: Colors.white,
                   ),
-                  xValueMapper: (_ComboPoint point, _) => point.category,
+                  xValueMapper: (_ComboPoint point, _) => point.displayCategory,
                   yValueMapper: (_ComboPoint point, _) => point.yr,
                   dataLabelSettings: const DataLabelSettings(isVisible: false),
                 ),
@@ -173,7 +225,7 @@ class ResistorComboChart extends StatelessWidget {
                   dashArray: const <double>[6, 4],
                   width: 2,
                   markerSettings: const MarkerSettings(isVisible: false),
-                  xValueMapper: (_ComboPoint point, _) => point.category,
+                  xValueMapper: (_ComboPoint point, _) => point.displayCategory,
                   yValueMapper: (_ComboPoint point, _) => 98,
                 ),
               ],
@@ -220,14 +272,74 @@ class ResistorComboChart extends StatelessWidget {
 
 class _ComboPoint {
   const _ComboPoint({
-    required this.category,
+    required this.displayCategory,
     required this.pass,
     required this.fail,
     required this.yr,
   });
 
-  final String category;
+  final String displayCategory;
   final int pass;
   final int fail;
   final double yr;
+}
+
+class _TargetBadge extends StatelessWidget {
+  const _TargetBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.cyanAccent.withOpacity(0.6), width: 1),
+        gradient: LinearGradient(
+          colors: [
+            Colors.cyanAccent.withOpacity(0.24),
+            Colors.blueAccent.withOpacity(0.16),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: const Text(
+        '98%',
+        style: TextStyle(
+          color: Colors.cyanAccent,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.6,
+        ),
+      ),
+    );
+  }
+}
+
+String _formatCategoryLabel(String value) {
+  final match = RegExp(r'^S(\d+)$').firstMatch(value.trim());
+  if (match == null) {
+    return value;
+  }
+
+  final index = int.tryParse(match.group(1) ?? '') ?? 0;
+  if (index <= 0) {
+    return value;
+  }
+
+  const minutesPerDay = 24 * 60;
+  const slotMinutes = 120;
+  const baseMinutes = 7 * 60 + 30;
+
+  final startMinutes = baseMinutes + (index - 1) * slotMinutes;
+  final endMinutes = startMinutes + slotMinutes;
+
+  final startLabel = _formatMinutes(startMinutes % minutesPerDay);
+  final endLabel = _formatMinutes(endMinutes % minutesPerDay);
+  return '$startLabel - $endLabel';
+}
+
+String _formatMinutes(int totalMinutes) {
+  final hours = totalMinutes ~/ 60;
+  final minutes = totalMinutes % 60;
+  return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
 }
