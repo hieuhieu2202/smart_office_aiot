@@ -6,6 +6,7 @@ import 'package:smart_factory/screen/home/widget/racks_monitor/racks_monitor_scr
 import 'package:smart_factory/screen/home/widget/yield_report/yield_report_screen.dart';
 import 'package:smart_factory/features/te_management/presentation/views/te_management_screen.dart';
 import 'package:smart_factory/features/te_management/presentation/views/te_retest_rate_screen.dart';
+import 'package:smart_factory/features/te_management/presentation/views/te_top10_error_code_screen.dart';
 import 'package:smart_factory/screen/home/widget/PCBA_LINE/CLEAN_SENSOR_ES2/pcba_line_dashboard_screen.dart';
 import 'package:smart_factory/screen/home/widget/nvidia_lc_switch/Dashboard/Curing_Room_Monitoring_Screen.dart';
 import 'package:smart_factory/screen/home/controller/cdu_controller.dart';
@@ -57,6 +58,20 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
         initialModelSerial: 'ADAPTER',
         title: project.name,
         controllerTag: 'te_retest_rate_adapter',
+      ),
+  'te_top10_error_code': (project) => TETop10ErrorCodeScreen(
+        title: project.name,
+        controllerTag: 'te_top10_error_code_default',
+      ),
+  'te_top10_error_code_adapter': (project) => TETop10ErrorCodeScreen(
+        initialModelSerial: 'ADAPTER',
+        title: project.name,
+        controllerTag: 'te_top10_error_code_adapter',
+      ),
+  'te_top10_error_code_switch': (project) => TETop10ErrorCodeScreen(
+        initialModelSerial: 'SWITCH',
+        title: project.name,
+        controllerTag: 'te_top10_error_code_switch',
       ),
   'te_management_adapter': (project) => TEManagementScreen(
         initialModelSerial: 'ADAPTER',
