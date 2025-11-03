@@ -615,9 +615,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         isTablet ? 440 : 480,
       );
       final tableHeight = _clampDimension(
-        viewportHeight * (isTablet ? 0.56 : 0.66),
-        420,
-        isTablet ? 620 : 720,
+        viewportHeight * (isTablet ? 0.6 : 0.78),
+        isTablet ? 520 : 580,
+        isTablet ? 760 : 860,
       );
 
       return ListView(
