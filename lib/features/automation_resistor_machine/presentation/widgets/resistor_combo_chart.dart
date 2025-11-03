@@ -356,40 +356,44 @@ List<_ComboPoint> _normalizeShiftWindows(
   }
 
   final sortedSections = sectionBuckets.keys.toList()..sort();
-  var effectiveStartSection = sortedSections.first;
-  if (startSectionHint > 0) {
-    effectiveStartSection = math.max(startSectionHint, effectiveStartSection);
-  }
-
-  final minPossible = sortedSections.first;
-  final maxPossible =
-      math.max(sortedSections.last - (_sectionsPerShift - 1), minPossible);
-  if (effectiveStartSection < minPossible) {
-    effectiveStartSection = minPossible;
-  }
-  if (effectiveStartSection > maxPossible) {
-    effectiveStartSection = maxPossible;
-  }
+  final normalizedStart = startSectionHint > 0 ? startSectionHint : 1;
+  final offset = sortedSections.first - normalizedStart;
 
   final normalized = <_ComboPoint>[];
-  for (var offset = 0; offset < _sectionsPerShift; offset++) {
-    final sectionNumber = effectiveStartSection + offset;
-    final bucket = sectionBuckets[sectionNumber];
+  for (var index = 0; index < _sectionsPerShift; index++) {
+    final normalizedSection = normalizedStart + index;
+    final actualSection = normalizedSection + offset;
+    final bucket = sectionBuckets[actualSection];
+    final minutes = sectionStartMinutes[actualSection] ??
+        _minutesFromNormalizedSection(normalizedSection);
 
     normalized.add(
       _ComboPoint(
-        rawCategory: 'S$sectionNumber',
-        displayCategory: _formatShiftLabel(sectionNumber, null),
+        rawCategory: 'S$normalizedSection',
+        displayCategory: _formatShiftLabel(normalizedSection, minutes),
         pass: bucket?.pass ?? 0,
         fail: bucket?.fail ?? 0,
         yr: bucket?.yr ?? 0,
-        section: sectionNumber,
-        shiftStartMinutes: sectionStartMinutes[sectionNumber],
+        section: normalizedSection,
+        shiftStartMinutes: minutes,
       ),
     );
   }
 
   return normalized;
+}
+
+int _minutesFromNormalizedSection(int section) {
+  if (section <= 0) {
+    return 7 * 60 + 30;
+  }
+
+  final normalizedIndex =
+      ((section - 1) % _sectionsPerShift + _sectionsPerShift) % _sectionsPerShift;
+  final blockIndex = ((section - 1) ~/ _sectionsPerShift);
+  final baseHour = blockIndex.isEven ? 7 : 19;
+  final startHour = (baseHour + normalizedIndex) % 24;
+  return startHour * 60 + 30;
 }
 
 int? _extractSectionNumber(_ComboPoint point) {

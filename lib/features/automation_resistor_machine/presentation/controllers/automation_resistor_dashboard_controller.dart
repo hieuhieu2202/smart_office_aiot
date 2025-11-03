@@ -443,7 +443,7 @@ class AutomationResistorDashboardController extends GetxController {
       }
 
       final minSection = sections.reduce((a, b) => a < b ? a : b);
-      startSection.value = minSection;
+      startSection.value = minSection > 6 ? (minSection - 6) : 1;
       debugPrint(
           '[ResistorDashboard] 🧮 startSection auto-calculated: ${startSection.value}');
     } catch (e) {
