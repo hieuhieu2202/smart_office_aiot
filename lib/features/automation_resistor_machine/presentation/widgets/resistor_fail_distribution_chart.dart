@@ -198,7 +198,6 @@ class _FailDistributionBar extends StatefulWidget {
     required this.fraction,
     required this.percentage,
     required this.onTap,
-    this.duration = const Duration(milliseconds: 700),
   });
 
   final String label;
@@ -208,7 +207,6 @@ class _FailDistributionBar extends StatefulWidget {
   final double fraction;
   final double percentage;
   final void Function(Offset offset) onTap;
-  final Duration duration;
 
   @override
   State<_FailDistributionBar> createState() => _FailDistributionBarState();
@@ -216,167 +214,177 @@ class _FailDistributionBar extends StatefulWidget {
 
 class _FailDistributionBarState extends State<_FailDistributionBar>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late Animation<double> _fractionAnimation;
-  late Animation<double> _percentageAnimation;
-  late final Animation<double> _curve;
-  bool _hasActiveTweens = false;
+  late final AnimationController _shimmerController;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: widget.duration);
-    _curve = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
-    _setupAnimations(fromZero: true);
-    _controller.forward();
-  }
-
-  @override
-  void didUpdateWidget(covariant _FailDistributionBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.duration != widget.duration) {
-      _controller.duration = widget.duration;
-    }
-
-    final valuesChanged = oldWidget.fraction != widget.fraction ||
-        oldWidget.percentage != widget.percentage;
-    final identityChanged =
-        oldWidget.label != widget.label || oldWidget.value != widget.value;
-
-    if (valuesChanged || identityChanged) {
-      _setupAnimations(fromZero: identityChanged);
-      _controller.forward(from: 0);
-    }
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3600),
+    )..repeat();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _shimmerController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final fraction = widget.fraction.clamp(0.0, 1.0).toDouble();
+    final percentage = widget.percentage.clamp(0.0, 100.0).toDouble();
+    final percentageText = '${percentage.toStringAsFixed(1)}%';
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (details) => widget.onTap(details.globalPosition),
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final animatedFraction =
-              _fractionAnimation.value.clamp(0.0, 1.0).toDouble();
-          final animatedPercentage =
-              _percentageAnimation.value.clamp(0.0, 100.0).toDouble();
-          final percentageText = '${animatedPercentage.toStringAsFixed(1)}%';
-
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0x3300FFFF),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0x2200FFFF)),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0x3300FFFF),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x2200FFFF)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+              overflow: TextOverflow.ellipsis,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.label,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 16,
+              width: widget.width,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Container(color: const Color(0x3300FFFF)),
+                    FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: fraction,
+                      child: _FailFill(
+                        shimmerController: _shimmerController,
+                        baseColor: widget.color,
                       ),
-                  overflow: TextOverflow.ellipsis,
+                    ),
+                    Positioned.fill(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            percentageText,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            widget.value,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 16,
-                  width: widget.width,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Container(color: const Color(0x3300FFFF)),
-                        FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor:
-                              animatedFraction.clamp(0.0, 1.0).toDouble(),
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  widget.color.withOpacity(0.15),
-                                  widget.color,
-                                ],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                            ),
-                          ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FailFill extends StatelessWidget {
+  const _FailFill({
+    required this.shimmerController,
+    required this.baseColor,
+  });
+
+  final AnimationController shimmerController;
+  final Color baseColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final highlight = Color.lerp(baseColor, Colors.blueAccent, 0.45) ?? baseColor;
+
+    return ClipRect(
+      child: AnimatedBuilder(
+        animation: shimmerController,
+        builder: (context, child) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final shimmerWidth = width * 0.45;
+              final progress = shimmerController.value;
+              final travelDistance = width + shimmerWidth;
+              final offset = travelDistance * progress - shimmerWidth;
+
+              return Stack(
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          baseColor.withOpacity(0.2),
+                          baseColor,
+                        ],
+                      ),
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                  Positioned(
+                    left: offset,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: shimmerWidth,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            baseColor.withOpacity(0.0),
+                            highlight.withOpacity(0.7),
+                            baseColor.withOpacity(0.0),
+                          ],
+                          stops: const [0.0, 0.5, 1.0],
                         ),
-                        Positioned.fill(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(
-                                percentageText,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned.fill(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(
-                                widget.value,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              );
+            },
           );
         },
       ),
     );
-  }
-
-  void _setupAnimations({required bool fromZero}) {
-    final shouldReset = fromZero || !_hasActiveTweens;
-    final beginFraction = shouldReset ? 0.0 : _fractionAnimation.value;
-    final beginPercentage = shouldReset ? 0.0 : _percentageAnimation.value;
-
-    _fractionAnimation = Tween<double>(
-      begin: beginFraction,
-      end: widget.fraction,
-    ).animate(_curve);
-
-    _percentageAnimation = Tween<double>(
-      begin: beginPercentage,
-      end: widget.percentage,
-    ).animate(_curve);
-
-    _hasActiveTweens = true;
   }
 }
 
