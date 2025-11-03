@@ -168,6 +168,7 @@ class _ResistorFailDistributionChartState
                         : (slice.value / widget.total) * 100;
 
                     return _FailDistributionBar(
+                      key: ValueKey(slice.label),
                       label: slice.label,
                       value: formatter.format(slice.value),
                       color: Color(slice.color),
@@ -215,26 +216,37 @@ class _FailDistributionBar extends StatefulWidget {
 class _FailDistributionBarState extends State<_FailDistributionBar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _progress;
+  late Animation<double> _fractionAnimation;
+  late Animation<double> _percentageAnimation;
+  late final Animation<double> _curve;
+  bool _hasActiveTweens = false;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _progress = CurvedAnimation(
+    _curve = CurvedAnimation(
       parent: _controller,
       curve: Curves.easeOutCubic,
     );
+    _setupAnimations(fromZero: true);
     _controller.forward();
   }
 
   @override
   void didUpdateWidget(covariant _FailDistributionBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.fraction != widget.fraction ||
-        oldWidget.percentage != widget.percentage ||
-        oldWidget.label != widget.label ||
-        oldWidget.value != widget.value) {
+    if (oldWidget.duration != widget.duration) {
+      _controller.duration = widget.duration;
+    }
+
+    final valuesChanged = oldWidget.fraction != widget.fraction ||
+        oldWidget.percentage != widget.percentage;
+    final identityChanged =
+        oldWidget.label != widget.label || oldWidget.value != widget.value;
+
+    if (valuesChanged || identityChanged) {
+      _setupAnimations(fromZero: identityChanged);
       _controller.forward(from: 0);
     }
   }
@@ -253,10 +265,12 @@ class _FailDistributionBarState extends State<_FailDistributionBar>
       behavior: HitTestBehavior.opaque,
       onTapDown: (details) => widget.onTap(details.globalPosition),
       child: AnimatedBuilder(
-        animation: _progress,
+        animation: _controller,
         builder: (context, child) {
-          final animatedFraction = widget.fraction * _progress.value;
-          final animatedPercentage = widget.percentage * _progress.value;
+          final animatedFraction =
+              _fractionAnimation.value.clamp(0.0, 1.0).toDouble();
+          final animatedPercentage =
+              _percentageAnimation.value.clamp(0.0, 100.0).toDouble();
           final percentageText = '${animatedPercentage.toStringAsFixed(1)}%';
 
           return Container(
@@ -344,6 +358,24 @@ class _FailDistributionBarState extends State<_FailDistributionBar>
         },
       ),
     );
+  }
+
+  void _setupAnimations({required bool fromZero}) {
+    final shouldReset = fromZero || !_hasActiveTweens;
+    final beginFraction = shouldReset ? 0.0 : _fractionAnimation.value;
+    final beginPercentage = shouldReset ? 0.0 : _percentageAnimation.value;
+
+    _fractionAnimation = Tween<double>(
+      begin: beginFraction,
+      end: widget.fraction,
+    ).animate(_curve);
+
+    _percentageAnimation = Tween<double>(
+      begin: beginPercentage,
+      end: widget.percentage,
+    ).animate(_curve);
+
+    _hasActiveTweens = true;
   }
 }
 
