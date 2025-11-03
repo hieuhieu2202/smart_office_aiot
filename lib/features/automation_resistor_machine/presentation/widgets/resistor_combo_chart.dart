@@ -82,10 +82,6 @@ class ResistorComboChart extends StatelessWidget {
                       ),
                 ),
               ),
-              if (showYieldTarget) ...[
-                const SizedBox(width: 12),
-                const _TargetBadge(),
-              ],
             ],
           ),
           const SizedBox(height: 12),
@@ -131,19 +127,25 @@ class ResistorComboChart extends StatelessWidget {
               annotations: <CartesianChartAnnotation>[
                 if (showYieldTarget && points.isNotEmpty)
                   CartesianChartAnnotation(
-                    widget: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.cyanAccent.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.cyanAccent.withOpacity(0.6), width: 1),
-                      ),
-                      child: const Text(
-                        '98%',
-                        style: TextStyle(
-                          color: Colors.cyanAccent,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
+                    widget: Transform.translate(
+                      offset: const Offset(14, -8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.cyanAccent.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: Colors.cyanAccent.withOpacity(0.6),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Text(
+                          'Target (98%)',
+                          style: TextStyle(
+                            color: Colors.cyanAccent,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
@@ -151,7 +153,7 @@ class ResistorComboChart extends StatelessWidget {
                     y: 98,
                     yAxisName: 'yrAxis',
                     coordinateUnit: CoordinateUnit.point,
-                    horizontalAlignment: ChartAlignment.near,
+                    horizontalAlignment: ChartAlignment.far,
                     verticalAlignment: ChartAlignment.center,
                   ),
               ],
@@ -218,7 +220,7 @@ class ResistorComboChart extends StatelessWidget {
                   dataLabelSettings: const DataLabelSettings(isVisible: false),
                 ),
                 LineSeries<_ComboPoint, String>(
-                  name: 'Target 98%',
+                  name: 'Target (98%)',
                   yAxisName: 'yrAxis',
                   dataSource: points,
                   color: Colors.cyanAccent,
@@ -284,37 +286,6 @@ class _ComboPoint {
   final double yr;
 }
 
-class _TargetBadge extends StatelessWidget {
-  const _TargetBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.6), width: 1),
-        gradient: LinearGradient(
-          colors: [
-            Colors.cyanAccent.withOpacity(0.24),
-            Colors.blueAccent.withOpacity(0.16),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: const Text(
-        '98%',
-        style: TextStyle(
-          color: Colors.cyanAccent,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.6,
-        ),
-      ),
-    );
-  }
-}
-
 String _formatCategoryLabel(String value) {
   final match = RegExp(r'^S(\d+)$').firstMatch(value.trim());
   if (match == null) {
@@ -327,7 +298,7 @@ String _formatCategoryLabel(String value) {
   }
 
   const minutesPerDay = 24 * 60;
-  const slotMinutes = 120;
+  const slotMinutes = 60;
   const baseMinutes = 7 * 60 + 30;
 
   final startMinutes = baseMinutes + (index - 1) * slotMinutes;
