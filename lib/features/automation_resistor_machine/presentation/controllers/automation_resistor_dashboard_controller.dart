@@ -438,25 +438,43 @@ class AutomationResistorDashboardController extends GetxController {
   void _updateStartSection(List<ResistorMachineOutput> outputs) {
     try {
       final sections = outputs.map((e) => e.section).whereType<int>().toList();
-      final range = selectedRange.value;
-      final DateTime detectedShiftStart = range.start;
-      shiftStartTime.value = detectedShiftStart;
-
       if (sections.isEmpty) {
         startSection.value = 1;
+        // fallback 07:30 if no data
+        shiftStartTime.value = DateTime(
+          selectedRange.value.start.year,
+          selectedRange.value.start.month,
+          selectedRange.value.start.day,
+          7,
+          30,
+        );
         debugPrint(
-            '[ResistorDashboard] 🧮 startSection defaulted to 1 with shiftStartTime ${detectedShiftStart.toIso8601String()}');
+            '[ResistorDashboard] 🧮 startSection defaulted to 1, shiftStartTime 07:30');
         return;
       }
 
+      // ✅ detect the minimum section number
       final minSection = sections.reduce((a, b) => a < b ? a : b);
       startSection.value = minSection;
+
+      // ✅ if section=1 → shift started at 06:30, otherwise → 07:30
+      final baseHour = (minSection == 1) ? 6 : 7;
+      final baseMinute = 30;
+      final detected = DateTime(
+        selectedRange.value.start.year,
+        selectedRange.value.start.month,
+        selectedRange.value.start.day,
+        baseHour,
+        baseMinute,
+      );
+      shiftStartTime.value = detected;
+
       debugPrint(
-          '[ResistorDashboard] 🧮 startSection set to $minSection, shiftStartTime: ${detectedShiftStart.toIso8601String()}');
+          '[ResistorDashboard] 🧮 startSection=$minSection, shiftStartTime=${DateFormat('HH:mm').format(detected)}');
     } catch (e) {
       startSection.value = 1;
       shiftStartTime.value = selectedRange.value.start;
-      debugPrint('[ResistorDashboard] ⚠️ startSection fallback to 1: $e');
+      debugPrint('[ResistorDashboard] ⚠️ startSection fallback: $e');
     }
   }
 
