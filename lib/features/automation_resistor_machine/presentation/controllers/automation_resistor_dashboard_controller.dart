@@ -443,46 +443,43 @@ class AutomationResistorDashboardController extends GetxController {
           selectedRange.value.start.year,
           selectedRange.value.start.month,
           selectedRange.value.start.day,
-          7,
+          6,
           30,
         );
-        debugPrint('[ResistorDashboard] 🧮 Default shiftStartTime 07:30');
+        debugPrint('[ResistorDashboard] Default shiftStartTime 06:30');
         return;
       }
 
-      // find minimum section
       final sections = outputs.map((e) => e.section).whereType<int>().toList();
-      startSection.value =
-          sections.isNotEmpty ? sections.reduce((a, b) => a < b ? a : b) : 1;
-
-      // ✅ find earliest start time from API Outputs
-      final times = outputs
-          .map((e) => e.startTime)
-          .whereType<DateTime>()
-          .toList()
-        ..sort((a, b) => a.compareTo(b));
-
-      if (times.isNotEmpty) {
-        shiftStartTime.value = times.first;
-        debugPrint(
-            '[ResistorDashboard] 🧭 shiftStartTime from API = ${DateFormat('HH:mm').format(times.first)}');
-      } else {
-        // fallback: estimate by section number
-        final baseHour = (startSection.value == 1) ? 6 : 7;
+      if (sections.isEmpty) {
+        startSection.value = 1;
         shiftStartTime.value = DateTime(
           selectedRange.value.start.year,
           selectedRange.value.start.month,
           selectedRange.value.start.day,
-          baseHour,
+          6,
           30,
         );
-        debugPrint(
-            '[ResistorDashboard] ⚙️ fallback shiftStartTime ${DateFormat('HH:mm').format(shiftStartTime.value)}');
+        return;
       }
+
+      // 🧭 same as web: Outputs.Min(SECTION)
+      final minSection = sections.reduce((a, b) => a < b ? a : b);
+      startSection.value = minSection;
+
+      // Calculate actual start time of that section based on 06:30 base
+      shiftStartTime.value = DateTime(
+        selectedRange.value.start.year,
+        selectedRange.value.start.month,
+        selectedRange.value.start.day,
+        6,
+        30,
+      ).add(Duration(hours: minSection - 1));
+
+      debugPrint(
+          '[ResistorDashboard] Web logic startSection=$minSection, startTime=${DateFormat('HH:mm').format(shiftStartTime.value)}');
     } catch (e) {
-      startSection.value = 1;
-      shiftStartTime.value = selectedRange.value.start;
-      debugPrint('[ResistorDashboard] ⚠️ _updateStartSection error: $e');
+      debugPrint('[ResistorDashboard] _updateStartSection error: $e');
     }
   }
 
