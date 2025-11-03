@@ -437,7 +437,14 @@ class AutomationResistorDashboardController extends GetxController {
 
   void _updateStartSection(List<ResistorMachineOutput> outputs) {
     try {
-      final baseAnchor = _resolveShiftBase();
+      final rangeStart = selectedRange.value.start;
+      final baseAnchor = DateTime(
+        rangeStart.year,
+        rangeStart.month,
+        rangeStart.day,
+        6,
+        30,
+      );
 
       if (outputs.isEmpty) {
         startSection.value = 1;
@@ -459,8 +466,7 @@ class AutomationResistorDashboardController extends GetxController {
       final minSection = sections.reduce((a, b) => a < b ? a : b);
       startSection.value = minSection;
 
-      final offsetHours = minSection > 1 ? minSection - 1 : 0;
-      final detectedStart = baseAnchor.add(Duration(hours: offsetHours));
+      final detectedStart = baseAnchor.add(Duration(hours: minSection - 1));
       shiftStartTime.value = detectedStart;
 
       debugPrint(
@@ -468,8 +474,14 @@ class AutomationResistorDashboardController extends GetxController {
       );
     } catch (e) {
       startSection.value = 1;
-      final fallback = _resolveShiftBase();
-      shiftStartTime.value = fallback;
+      final rangeStart = selectedRange.value.start;
+      shiftStartTime.value = DateTime(
+        rangeStart.year,
+        rangeStart.month,
+        rangeStart.day,
+        6,
+        30,
+      );
       debugPrint('[ResistorDashboard] ⚠️ _updateStartSection error: $e');
     }
   }
