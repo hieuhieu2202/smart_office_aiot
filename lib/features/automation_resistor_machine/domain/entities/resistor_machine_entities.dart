@@ -157,7 +157,22 @@ class ResistorMachineTrackingData extends Equatable {
   final ResistorMachineSummary summary;
   final List<ResistorMachineOutput> outputs;
   final List<ResistorMachineInfo> machines;
-
+  // Factory dữ liệu trống để fallback khi API lỗi hoặc không có dữ liệu
+  factory ResistorMachineTrackingData.empty() {
+    return const ResistorMachineTrackingData(
+      summary: ResistorMachineSummary(
+        wip: 0,
+        pass: 0,
+        fail: 0,
+        firstFail: 0,
+        retest: 0,
+        yieldRate: 0.0,
+        retestRate: 0.0,
+      ),
+      outputs: [],
+      machines: [],
+    );
+  }
   @override
   List<Object?> get props => <Object?>[summary, outputs, machines];
 }

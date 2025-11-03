@@ -111,14 +111,29 @@ class AutomationResistorDashboardController extends GetxController {
     try {
       final request = _buildTrackingRequest();
       _logRequest('Tracking', request);
+
       final tracking = await _getTrackingData(request);
-      _logTrackingData(tracking);
-      rawTracking.value = tracking;
-      dashboardView.value =
-          ResistorDashboardViewState.fromTracking(tracking);
+
+      if (tracking == null ||
+          (tracking.summary.pass == 0 &&
+              tracking.summary.fail == 0 &&
+              tracking.machines.isEmpty &&
+              tracking.outputs.isEmpty)) {
+        debugPrint('[ResistorDashboard] ⚠️ No data from API — using empty dataset');
+        final empty = ResistorMachineTrackingData.empty();
+        rawTracking.value = empty;
+        dashboardView.value = ResistorDashboardViewState.fromTracking(empty);
+      } else {
+        _logTrackingData(tracking);
+        rawTracking.value = tracking;
+        dashboardView.value = ResistorDashboardViewState.fromTracking(tracking);
+      }
     } catch (e) {
+      debugPrint('[ResistorDashboard] ❌ API error: $e — fallback to empty data');
+      final empty = ResistorMachineTrackingData.empty();
+      rawTracking.value = empty;
+      dashboardView.value = ResistorDashboardViewState.fromTracking(empty);
       error.value = e.toString();
-      dashboardView.value = null;
     } finally {
       isLoading.value = false;
     }
