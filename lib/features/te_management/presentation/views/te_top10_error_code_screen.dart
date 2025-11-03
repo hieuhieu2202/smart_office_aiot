@@ -66,6 +66,8 @@ const List<_TableColumnSpec> _kTopErrorColumns = [
   _TableColumnSpec(label: 'REPAIR FAIL', flex: 14),
 ];
 
+const double _kCompactTableMinWidth = 920;
+
 String _ellipsizeLabel(String text, [int maxChars = 10]) {
   if (maxChars <= 1 || text.length <= maxChars) {
     return text;
@@ -663,25 +665,106 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
           );
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.only(top: 4, bottom: 6),
-          primary: false,
-          physics: const ClampingScrollPhysics(),
-          itemBuilder: (context, index) {
-            final error = errors[index];
-            final accent = _barPalette[index % _barPalette.length];
-            return _TopErrorTableRow(
-              rank: index + 1,
-              error: error,
-              accentColor: accent,
-              selectedError: selectedError,
-              selectedDetail: selectedDetail,
-              onErrorTap: () => _controller.selectError(error),
-              onDetailTap: (detail) => _controller.selectDetail(detail),
+        Widget buildListView() {
+          return ListView.separated(
+            padding: const EdgeInsets.only(top: 4, bottom: 6),
+            primary: false,
+            physics: const ClampingScrollPhysics(),
+            itemBuilder: (context, index) {
+              final error = errors[index];
+              final accent = _barPalette[index % _barPalette.length];
+              return _TopErrorTableRow(
+                rank: index + 1,
+                error: error,
+                accentColor: accent,
+                selectedError: selectedError,
+                selectedDetail: selectedDetail,
+                onErrorTap: () => _controller.selectError(error),
+                onDetailTap: (detail) => _controller.selectDetail(detail),
+              );
+            },
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemCount: errors.length,
+          );
+        }
+
+        if (isWide) {
+          return buildListView();
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final needsHorizontalScroll =
+                constraints.maxWidth < _kCompactTableMinWidth;
+            final effectiveWidth = needsHorizontalScroll
+                ? _kCompactTableMinWidth
+                : constraints.maxWidth;
+
+            final listView = SizedBox(
+              width: effectiveWidth,
+              child: buildListView(),
+            );
+
+            if (!needsHorizontalScroll) {
+              return listView;
+            }
+
+            return ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: listView,
+              ),
             );
           },
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemCount: errors.length,
+        );
+      }
+
+      Widget buildHeaderRow() {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF1C4F88), Color(0xFF0A1C34)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _kTableGridColor.withOpacity(0.85)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x441C3C62),
+                blurRadius: 18,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              for (var i = 0; i < _kTopErrorColumns.length; i++)
+                Expanded(
+                  flex: _kTopErrorColumns[i].flex,
+                  child: Container(
+                    padding: _kTopErrorColumns[i].padding,
+                    alignment: _kTopErrorColumns[i].alignment,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        right: i == _kTopErrorColumns.length - 1
+                            ? BorderSide.none
+                            : const BorderSide(color: _kTableGridColor, width: 1),
+                      ),
+                    ),
+                    child: Text(
+                      _kTopErrorColumns[i].label,
+                      textAlign: _kTopErrorColumns[i].textAlign,
+                      style: _kTableHeaderStyle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       }
 
@@ -746,53 +829,44 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               ],
             ),
             const SizedBox(height: 18),
-            Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF1C4F88), Color(0xFF0A1C34)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _kTableGridColor.withOpacity(0.85)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x441C3C62),
-                    blurRadius: 18,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  for (var i = 0; i < _kTopErrorColumns.length; i++)
-                    Expanded(
-                      flex: _kTopErrorColumns[i].flex,
-                      child: Container(
-                        padding: _kTopErrorColumns[i].padding,
-                        alignment: _kTopErrorColumns[i].alignment,
-                        decoration: BoxDecoration(
-                          border: Border(
-                            right: i == _kTopErrorColumns.length - 1
-                                ? BorderSide.none
-                                : const BorderSide(color: _kTableGridColor, width: 1),
-                          ),
-                        ),
-                        child: Text(
-                          _kTopErrorColumns[i].label,
-                          textAlign: _kTopErrorColumns[i].textAlign,
-                          style: _kTableHeaderStyle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: false,
-                        ),
-                      ),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final needsHorizontalScroll =
+                      !isWide && constraints.maxWidth < _kCompactTableMinWidth;
+                  final effectiveWidth = needsHorizontalScroll
+                      ? _kCompactTableMinWidth
+                      : constraints.maxWidth;
+
+                  Widget content = Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      buildHeaderRow(),
+                      const SizedBox(height: 12),
+                      Expanded(child: buildBody()),
+                    ],
+                  );
+
+                  content = SizedBox(
+                    width: effectiveWidth,
+                    child: content,
+                  );
+
+                  if (!needsHorizontalScroll) {
+                    return content;
+                  }
+
+                  return ScrollConfiguration(
+                    behavior:
+                        ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: content,
                     ),
-                ],
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 12),
-            Expanded(child: buildBody()),
           ],
         ),
       );
