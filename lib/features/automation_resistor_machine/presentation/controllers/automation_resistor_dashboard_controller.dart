@@ -349,7 +349,7 @@ class AutomationResistorDashboardController extends GetxController {
       if (statusEntries.isNotEmpty) {
         await _silentRefreshStatus();
       }
-    } catch (Object e) {
+    } catch (e) {
       debugPrint('[ResistorDashboard] ⚠️ Silent refresh error: $e');
     } finally {
       _isSilentRefreshing = false;
