@@ -132,14 +132,15 @@ class AutomationResistorDashboardController extends GetxController {
         rawTracking.value = tracking;
         dashboardView.value = ResistorDashboardViewState.fromTracking(tracking);
 
-        // 🧭 Tự động xác định ca bắt đầu dựa theo dữ liệu API
+        // 🧭 Tự động xác định ca bắt đầu dựa theo dữ liệu API (giữ nguyên số SECTION thực tế)
         try {
-          final sections = tracking.outputs.map((e) => e.section).whereType<int>().toList();
+          final sections =
+              tracking.outputs.map((e) => e.section).whereType<int>().toList();
           if (sections.isNotEmpty) {
             final minSection = sections.reduce((a, b) => a < b ? a : b);
-            // API web dùng SECTION = 7 tương ứng 07:30, nên trừ 6 để đưa về index app (S1 = 06:30–07:30)
-            startSection.value = minSection > 6 ? (minSection - 6) : 1;
-            debugPrint('[ResistorDashboard] 🧮 startSection auto-calculated: ${startSection.value}');
+            startSection.value = minSection;
+            debugPrint(
+                '[ResistorDashboard] 🧮 startSection auto-calculated: ${startSection.value}');
           } else {
             startSection.value = 1;
           }

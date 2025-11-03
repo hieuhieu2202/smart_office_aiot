@@ -310,86 +310,173 @@ class _ComboPoint {
   final int? shiftStartMinutes;
 }
 
-const List<String> _sectionShiftWindows = [
-  '06:30 - 07:30',
-  '07:30 - 08:30',
-  '08:30 - 09:30',
-  '09:30 - 10:30',
-  '10:30 - 11:30',
-  '11:30 - 12:30',
-  '12:30 - 13:30',
-  '13:30 - 14:30',
-  '14:30 - 15:30',
-  '15:30 - 16:30',
-  '16:30 - 17:30',
-  '17:30 - 18:30',
-  '18:30 - 19:30',
-];
+const int _minutesPerSection = 60;
+
 String _formatCategoryLabel(String value) {
   final trimmed = value.trim();
   final match = RegExp(r'^S(\d+)$').firstMatch(trimmed);
   if (match == null) return trimmed;
 
-  final index = int.tryParse(match.group(1) ?? '');
-  if (index == null || index <= 0) return trimmed;
+  final section = int.tryParse(match.group(1) ?? '');
+  if (section == null || section <= 0) return trimmed;
 
-  if (index <= _sectionShiftWindows.length) {
-    return _sectionShiftWindows[index - 1];
-  }
-  return trimmed;
+  return _formatShiftLabel(section, null);
 }
 
-List<_ComboPoint> _normalizeShiftWindows(List<_ComboPoint> points, int startSection) {
-  final buckets = <int, _ShiftBucket>{};
-  int? firstValidIndex;
+List<_ComboPoint> _normalizeShiftWindows(
+  List<_ComboPoint> points,
+  int startSectionHint,
+) {
+  if (points.isEmpty) return points;
 
-  for (final p in points) {
-    final idx = _resolveShiftIndex(p);
-    if (idx != null) {
-      final b = buckets.putIfAbsent(idx, () => _ShiftBucket());
-      b.pass += p.pass;
-      b.fail += p.fail;
-      firstValidIndex ??= idx; // ghi nhớ index đầu tiên có dữ liệu
+  final sectionBuckets = <int, _ShiftBucket>{};
+  final sectionStartMinutes = <int, int>{};
+
+  for (final point in points) {
+    final section = _extractSectionNumber(point);
+    if (section == null) {
+      continue;
+    }
+
+    final bucket = sectionBuckets.putIfAbsent(section, () => _ShiftBucket());
+    bucket.pass += point.pass;
+    bucket.fail += point.fail;
+
+    final minutes = point.shiftStartMinutes;
+    if (minutes != null && !sectionStartMinutes.containsKey(section)) {
+      sectionStartMinutes[section] = minutes;
     }
   }
 
-  // nếu controller truyền startSection = 1 thì dùng index đầu tiên có data
-  final start = (startSection == 1 && firstValidIndex != null)
-      ? firstValidIndex!.clamp(0, _sectionShiftWindows.length - 1)
-      : (startSection - 1).clamp(0, _sectionShiftWindows.length - 1);
+  if (sectionBuckets.isEmpty) {
+    return points;
+  }
 
-  final end = math.min(start + 12, _sectionShiftWindows.length);
+  final sortedSections = sectionBuckets.keys.toList()..sort();
+  var effectiveStartSection = sortedSections.first;
+  if (startSectionHint > 0) {
+    effectiveStartSection = math.max(startSectionHint, effectiveStartSection);
+  }
+
+  final minPossible = sortedSections.first;
+  final maxPossible = math.max(sortedSections.last - 11, minPossible);
+  if (effectiveStartSection < minPossible) {
+    effectiveStartSection = minPossible;
+  }
+  if (effectiveStartSection > maxPossible) {
+    effectiveStartSection = maxPossible;
+  }
+
+  final baseMinutes = _resolveBaseMinutes(
+    effectiveStartSection,
+    sectionStartMinutes,
+    sortedSections,
+  );
 
   final normalized = <_ComboPoint>[];
-  for (var i = start; i < end; i++) {
-    final b = buckets[i];
+  for (var offset = 0; offset < 12; offset++) {
+    final sectionNumber = effectiveStartSection + offset;
+    final bucket = sectionBuckets[sectionNumber];
+    final startMinutes = baseMinutes != null
+        ? baseMinutes + offset * _minutesPerSection
+        : sectionStartMinutes[sectionNumber];
+
     normalized.add(
       _ComboPoint(
-        rawCategory: 'S${i + 1}',
-        displayCategory: _sectionShiftWindows[i],
-        pass: b?.pass ?? 0,
-        fail: b?.fail ?? 0,
-        yr: b?.yr ?? 0,
+        rawCategory: 'S$sectionNumber',
+        displayCategory: _formatShiftLabel(sectionNumber, startMinutes),
+        pass: bucket?.pass ?? 0,
+        fail: bucket?.fail ?? 0,
+        yr: bucket?.yr ?? 0,
+        section: sectionNumber,
+        shiftStartMinutes: startMinutes,
       ),
     );
   }
+
   return normalized;
 }
 
-int? _resolveShiftIndex(_ComboPoint p) {
-  final s = p.section;
-  if (s != null && s > 0 && s <= _sectionShiftWindows.length) return s - 1;
-
-  final raw = RegExp(r'^S(\d+)$').firstMatch(p.rawCategory.trim());
-  if (raw != null) {
-    final v = int.tryParse(raw.group(1) ?? '');
-    if (v != null && v > 0 && v <= _sectionShiftWindows.length) return v - 1;
+int? _extractSectionNumber(_ComboPoint point) {
+  final section = point.section;
+  if (section != null && section > 0) {
+    return section;
   }
 
-  final d = _sectionShiftWindows.indexWhere(
-        (e) => e.toLowerCase() == p.displayCategory.toLowerCase(),
-  );
-  return d != -1 ? d : null;
+  final raw = RegExp(r'^S(\d+)$', caseSensitive: false)
+      .firstMatch(point.rawCategory.trim());
+  if (raw != null) {
+    return int.tryParse(raw.group(1)!);
+  }
+
+  final display = RegExp(r'^S(\d+)$', caseSensitive: false)
+      .firstMatch(point.displayCategory.trim());
+  if (display != null) {
+    return int.tryParse(display.group(1)!);
+  }
+
+  return null;
+}
+
+int? _resolveBaseMinutes(
+  int startSection,
+  Map<int, int> sectionStartMinutes,
+  List<int> sortedSections,
+) {
+  if (sectionStartMinutes.isEmpty) {
+    return null;
+  }
+
+  final direct = sectionStartMinutes[startSection];
+  if (direct != null) {
+    return direct;
+  }
+
+  int? lowerSection;
+  for (final section in sortedSections) {
+    if (section >= startSection) break;
+    if (sectionStartMinutes.containsKey(section)) {
+      lowerSection = section;
+    }
+  }
+  if (lowerSection != null) {
+    final minutes = sectionStartMinutes[lowerSection]!;
+    final diff = startSection - lowerSection;
+    return minutes + diff * _minutesPerSection;
+  }
+
+  for (final section in sortedSections) {
+    if (section <= startSection) continue;
+    final minutes = sectionStartMinutes[section];
+    if (minutes != null) {
+      final diff = section - startSection;
+      return minutes - diff * _minutesPerSection;
+    }
+  }
+
+  return null;
+}
+
+String _formatShiftLabel(int section, int? startMinutes) {
+  if (startMinutes != null) {
+    final startLabel = _formatMinutes(startMinutes);
+    final endLabel = _formatMinutes(startMinutes + _minutesPerSection);
+    return '$startLabel - $endLabel';
+  }
+
+  final normalized = ((section % 24) + 24) % 24;
+  final startHour = (normalized + 23) % 24;
+  final endHour = normalized % 24;
+  final startLabel = '${startHour.toString().padLeft(2, '0')}:30';
+  final endLabel = '${endHour.toString().padLeft(2, '0')}:30';
+  return '$startLabel - $endLabel';
+}
+
+String _formatMinutes(int minutes) {
+  final normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+  final hour = normalized ~/ 60;
+  final minute = normalized % 60;
+  return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 }
 
 String _wrapShiftLabel(String label) {
