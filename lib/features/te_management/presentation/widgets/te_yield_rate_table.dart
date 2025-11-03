@@ -1323,7 +1323,7 @@ class _SpanCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = textStyle ??
         const TextStyle(
-          color: Color(0xFFBFE6FF),
+          color: Color(0xFFF1FBFF),
           fontWeight: FontWeight.w600,
           fontSize: 13,
         );
@@ -1393,7 +1393,7 @@ class _GroupCell extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFFE2F4FF),
+              color: Color(0xFFF6FDFF),
               fontWeight: FontWeight.w700,
               letterSpacing: 0.25,
             ),
@@ -1401,7 +1401,7 @@ class _GroupCell extends StatelessWidget {
         ),
         if (onTap != null) ...[
           const SizedBox(width: 6),
-          const Icon(Icons.area_chart, size: 16, color: Color(0xFF7DEAFF)),
+          const Icon(Icons.area_chart, size: 16, color: Color(0xFF9FF6FF)),
         ],
       ],
     );
@@ -1471,15 +1471,15 @@ class _YieldValueCell extends StatelessWidget {
   final bool showRightBorder;
   final bool highlighted;
 
-  static const Color _dangerColor = Color(0xFFFF8BA3);
-  static const Color _warningColor = Color(0xFFF7D77E);
-  static const Color _normalColor = Color(0xFF6EF2CE);
+  static const Color _dangerColor = Color(0xFFFF9DB6);
+  static const Color _warningColor = Color(0xFFFFE6A1);
+  static const Color _normalColor = Color(0xFF8BFFD8);
 
   @override
   Widget build(BuildContext context) {
     final value = detail.yieldRate;
     Color fillColor = Color.alphaBlend(const Color(0x143DD0FF), background);
-    Color textColor = const Color(0xFFE4F5FF);
+    Color textColor = const Color(0xFFF4FBFF);
     if (value != null) {
       final double normalized = value.clamp(0, 100);
       fillColor = Color.alphaBlend(const Color(0x4437F4C5), background);
@@ -1495,17 +1495,17 @@ class _YieldValueCell extends StatelessWidget {
         }
       }
     } else {
-      textColor = Colors.white60;
+      textColor = Colors.white70;
       fillColor = Color.alphaBlend(const Color(0x0F2C5A80), background);
     }
 
     final tooltip = _buildTooltip(detail);
 
     final animatedColor = highlighted
-        ? Color.lerp(fillColor, const Color(0xFF3BD5FF), 0.45) ?? fillColor
+        ? Color.lerp(fillColor, const Color(0xFF54E5FF), 0.45) ?? fillColor
         : fillColor;
     final effectiveTextColor = highlighted
-        ? Color.lerp(textColor, Colors.white, 0.35) ?? textColor
+        ? Color.lerp(textColor, Colors.white, 0.45) ?? textColor
         : textColor;
 
     Widget cell = AnimatedContainer(
