@@ -785,10 +785,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final headerChip = Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: _kSurfaceMuted.withOpacity(0.6),
@@ -810,9 +809,9 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                       ),
                     ],
                   ),
-                ),
-                const Spacer(),
-                Row(
+                );
+
+                final statusRow = Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TERefreshLabel(
@@ -820,13 +819,41 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                       isRefreshing: isRefreshing,
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      rangeLabel,
-                      style: const TextStyle(color: _kTextSecondary, fontSize: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _kSurfaceMuted.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _kPanelBorderColor.withOpacity(0.8)),
+                      ),
+                      child: Text(
+                        rangeLabel,
+                        style: const TextStyle(color: _kTextSecondary, fontSize: 12),
+                      ),
                     ),
                   ],
-                ),
-              ],
+                );
+
+                if (constraints.maxWidth < 420) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      headerChip,
+                      const SizedBox(height: 12),
+                      statusRow,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    headerChip,
+                    const Spacer(),
+                    statusRow,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 18),
             Expanded(
