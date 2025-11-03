@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../../../config/global_color.dart';
-
 class NeonNetworkBackdrop extends StatefulWidget {
   const NeonNetworkBackdrop({
     super.key,
@@ -21,8 +19,8 @@ class NeonNetworkBackdrop extends StatefulWidget {
 
 class _NeonNetworkBackdropState extends State<NeonNetworkBackdrop>
     with SingleTickerProviderStateMixin {
-  static const int _minNodes = 45;
-  static const int _maxNodes = 110;
+  static const int _minNodes = 70;
+  static const int _maxNodes = 130;
   static const double _maxSpeed = 28;
 
   final List<_NeonNode> _nodes = <_NeonNode>[];
@@ -30,6 +28,7 @@ class _NeonNetworkBackdropState extends State<NeonNetworkBackdrop>
   late final Ticker _ticker;
   Duration? _lastTick;
   Size _viewport = Size.zero;
+  double _pulsePhase = 0;
 
   @override
   void initState() {
@@ -88,6 +87,8 @@ class _NeonNetworkBackdropState extends State<NeonNetworkBackdrop>
         ..velocity = Offset(dx, dy);
     }
 
+    _pulsePhase = (_pulsePhase + dt * 1.6) % (2 * math.pi);
+
     setState(() {});
   }
 
@@ -132,14 +133,13 @@ class _NeonNetworkBackdropState extends State<NeonNetworkBackdrop>
         }
 
         final Gradient gradient = widget.isDark
-            ? LinearGradient(
+            ? const RadialGradient(
                 colors: <Color>[
-                  GlobalColors.bodyDarkBg,
-                  Colors.blueGrey.shade900,
-                  const Color(0xFF020A16),
+                  Color(0xFF010B18),
+                  Color(0xFF00040D),
                 ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                center: Alignment.center,
+                radius: 1.0,
               )
             : const LinearGradient(
                 colors: <Color>[
@@ -164,6 +164,7 @@ class _NeonNetworkBackdropState extends State<NeonNetworkBackdrop>
                     nodes: _nodes,
                     linkDistance: _computeLinkDistance(),
                     isDark: widget.isDark,
+                    pulsePhase: _pulsePhase,
                   ),
                 ),
               ),
@@ -178,8 +179,8 @@ class _NeonNetworkBackdropState extends State<NeonNetworkBackdrop>
     if (_viewport == Size.zero) {
       return 0;
     }
-    final double base = math.min(_viewport.width, _viewport.height);
-    return base.clamp(140.0, 220.0);
+    final double base = math.min(_viewport.width, _viewport.height) * 0.4;
+    return base.clamp(100.0, 160.0);
   }
 }
 
@@ -188,11 +189,13 @@ class _NeonNetworkPainter extends CustomPainter {
     required this.nodes,
     required this.linkDistance,
     required this.isDark,
+    required this.pulsePhase,
   });
 
   final List<_NeonNode> nodes;
   final double linkDistance;
   final bool isDark;
+  final double pulsePhase;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -200,21 +203,27 @@ class _NeonNetworkPainter extends CustomPainter {
       return;
     }
 
+    canvas.saveLayer(Offset.zero & size, Paint());
+
     final Color glowColor = isDark
         ? const Color(0xFF00E5FF)
-        : const Color(0xFF2563EB);
+        : const Color(0xFF00E5FF);
 
     final Paint linePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.1
-      ..strokeCap = StrokeCap.round;
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round
+      ..blendMode = BlendMode.plus;
 
     final Paint glowDotPaint = Paint()
-      ..color = glowColor
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      ..color = glowColor.withOpacity(0.9)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 12)
+      ..blendMode = BlendMode.plus;
 
     final Paint coreDotPaint = Paint()
-      ..color = Colors.white.withOpacity(isDark ? 0.9 : 0.8);
+      ..color = Colors.white.withOpacity(isDark ? 0.95 : 0.85);
+
+    final double pulse = (math.sin(pulsePhase) * 0.6) + 0.8;
 
     for (int i = 0; i < nodes.length; i++) {
       final Offset origin = nodes[i].position;
@@ -225,15 +234,18 @@ class _NeonNetworkPainter extends CustomPainter {
           continue;
         }
         final double opacity = 1 - (distance / linkDistance);
-        linePaint.color = glowColor.withOpacity(opacity.clamp(0.05, 0.8));
+        final double intensity = (opacity * pulse).clamp(0.08, 1.0);
+        linePaint.color = glowColor.withOpacity(intensity);
         canvas.drawLine(origin, target, linePaint);
       }
     }
 
     for (final _NeonNode node in nodes) {
-      canvas.drawCircle(node.position, 2.8, glowDotPaint);
-      canvas.drawCircle(node.position, 1.6, coreDotPaint);
+      canvas.drawCircle(node.position, 3.0, glowDotPaint);
+      canvas.drawCircle(node.position, 1.4, coreDotPaint);
     }
+
+    canvas.restore();
   }
 
   @override
