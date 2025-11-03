@@ -74,6 +74,7 @@ class AutomationResistorDashboardController extends GetxController {
   final RxBool isLoadingRecord = false.obs;
 
   Timer? _autoRefresh;
+  bool _isSilentRefreshing = false;
 
   @override
   void onInit() {
@@ -345,12 +346,49 @@ class AutomationResistorDashboardController extends GetxController {
 
   void _startAutoRefresh() {
     _autoRefresh?.cancel();
-    _autoRefresh = Timer.periodic(const Duration(minutes: 5), (_) {
-      loadDashboard();
-      if (statusEntries.isNotEmpty) {
-        loadStatus();
-      }
+    _autoRefresh = Timer.periodic(const Duration(minutes: 1), (_) {
+      _performSilentRefresh();
     });
+  }
+
+  Future<void> _performSilentRefresh() async {
+    if (_isSilentRefreshing ||
+        isLoading.value ||
+        isLoadingStatus.value) {
+      return;
+    }
+
+    _isSilentRefreshing = true;
+    try {
+      await _silentRefreshDashboard();
+      if (statusEntries.isNotEmpty) {
+        await _silentRefreshStatus();
+      }
+    } catch (e) {
+      debugPrint('[ResistorDashboard] ⚠️ Silent refresh error: $e');
+    } finally {
+      _isSilentRefreshing = false;
+    }
+  }
+
+  Future<void> _silentRefreshDashboard() async {
+    final request = _buildTrackingRequest();
+    _logRequest('Tracking', request);
+
+    final tracking = await _getTrackingData(request);
+    _logTrackingData(tracking);
+    rawTracking.value = tracking;
+    dashboardView.value =
+        ResistorDashboardViewState.fromTracking(tracking);
+  }
+
+  Future<void> _silentRefreshStatus() async {
+    final request = _buildStatusRequest();
+    _logRequest('Status', request);
+
+    final list = await _getStatusData(request);
+    _logStatusData(list);
+    statusEntries.assignAll(list);
   }
 
   void _logTrackingData(ResistorMachineTrackingData tracking) {

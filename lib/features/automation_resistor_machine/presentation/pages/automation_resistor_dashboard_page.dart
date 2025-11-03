@@ -885,6 +885,7 @@ class _DesktopLayout extends StatelessWidget {
                         child: ResistorComboChart(
                           title: 'YIELD RATE AND OUTPUT',
                           series: view.sectionSeries,
+                          alignToShiftWindows: true,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -934,6 +935,7 @@ class _TabletLayout extends StatelessWidget {
           child: ResistorComboChart(
             title: 'YIELD RATE AND OUTPUT',
             series: view.sectionSeries,
+            alignToShiftWindows: true,
           ),
         ),
         const SizedBox(height: 20),
@@ -977,6 +979,7 @@ class _MobileLayout extends StatelessWidget {
           child: ResistorComboChart(
             title: 'YIELD RATE AND OUTPUT',
             series: view.sectionSeries,
+            alignToShiftWindows: true,
           ),
         ),
         const SizedBox(height: 16),

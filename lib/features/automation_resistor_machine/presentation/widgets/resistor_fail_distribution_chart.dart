@@ -163,12 +163,18 @@ class _ResistorFailDistributionChartState
                     final fraction =
                         maxValue == 0 ? 0.0 : slice.value / maxValue;
 
+                    final percentage = widget.total == 0
+                        ? 0.0
+                        : (slice.value / widget.total) * 100;
+
                     return _FailDistributionBar(
+                      key: ValueKey(slice.label),
                       label: slice.label,
                       value: formatter.format(slice.value),
                       color: Color(slice.color),
                       width: constraints.maxWidth,
-                      fraction: fraction.clamp(0.0, 1.0),
+                      fraction: fraction.clamp(0.0, 1.0).toDouble(),
+                      percentage: percentage.clamp(0.0, 100.0).toDouble(),
                       onTap: (offset) => _showDetails(slice, offset),
                     );
                   },
@@ -182,13 +188,15 @@ class _ResistorFailDistributionChartState
   }
 }
 
-class _FailDistributionBar extends StatelessWidget {
+class _FailDistributionBar extends StatefulWidget {
   const _FailDistributionBar({
+    super.key,
     required this.label,
     required this.value,
     required this.color,
     required this.width,
     required this.fraction,
+    required this.percentage,
     required this.onTap,
   });
 
@@ -197,15 +205,42 @@ class _FailDistributionBar extends StatelessWidget {
   final Color color;
   final double width;
   final double fraction;
+  final double percentage;
   final void Function(Offset offset) onTap;
+
+  @override
+  State<_FailDistributionBar> createState() => _FailDistributionBarState();
+}
+
+class _FailDistributionBarState extends State<_FailDistributionBar>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _shimmerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3600),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shimmerController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final fraction = widget.fraction.clamp(0.0, 1.0).toDouble();
+    final percentage = widget.percentage.clamp(0.0, 100.0).toDouble();
+    final percentageText = '${percentage.toStringAsFixed(1)}%';
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (details) => onTap(details.globalPosition),
+      onTapDown: (details) => widget.onTap(details.globalPosition),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
@@ -217,7 +252,7 @@ class _FailDistributionBar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              label,
+              widget.label,
               style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -227,7 +262,7 @@ class _FailDistributionBar extends StatelessWidget {
             const SizedBox(height: 10),
             SizedBox(
               height: 16,
-              width: width,
+              width: widget.width,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Stack(
@@ -237,15 +272,42 @@ class _FailDistributionBar extends StatelessWidget {
                     FractionallySizedBox(
                       alignment: Alignment.centerLeft,
                       widthFactor: fraction,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              color.withOpacity(0.15),
-                              color,
-                            ],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
+                      child: Builder(
+                        builder: (context) {
+                          final shimmerController = _shimmerController;
+                          if (shimmerController == null) {
+                            return DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: [
+                                    widget.color.withOpacity(0.2),
+                                    widget.color,
+                                  ],
+                                ),
+                              ),
+                              child: const SizedBox.expand(),
+                            );
+                          }
+                          return _FailFill(
+                            shimmerController: shimmerController,
+                            baseColor: widget.color,
+                          );
+                        },
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            percentageText,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ),
                       ),
@@ -256,7 +318,7 @@ class _FailDistributionBar extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Text(
-                            value,
+                            widget.value,
                             style: theme.textTheme.bodySmall?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -271,6 +333,76 @@ class _FailDistributionBar extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _FailFill extends StatelessWidget {
+  const _FailFill({
+    required this.shimmerController,
+    required this.baseColor,
+  });
+
+  final AnimationController shimmerController;
+  final Color baseColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final highlight = Color.lerp(baseColor, Colors.blueAccent, 0.45) ?? baseColor;
+
+    return ClipRect(
+      child: AnimatedBuilder(
+        animation: shimmerController,
+        builder: (context, child) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final shimmerWidth = width * 0.45;
+              final progress = shimmerController.value;
+              final travelDistance = width + shimmerWidth;
+              final offset = travelDistance * progress - shimmerWidth;
+
+              return Stack(
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          baseColor.withOpacity(0.2),
+                          baseColor,
+                        ],
+                      ),
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                  Positioned(
+                    left: offset,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: shimmerWidth,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            baseColor.withOpacity(0.0),
+                            highlight.withOpacity(0.7),
+                            baseColor.withOpacity(0.0),
+                          ],
+                          stops: const [0.0, 0.5, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }

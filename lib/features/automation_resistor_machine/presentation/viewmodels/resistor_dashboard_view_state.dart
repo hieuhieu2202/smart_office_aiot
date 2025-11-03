@@ -36,12 +36,16 @@ class ResistorStackedSeries {
     required this.pass,
     required this.fail,
     required this.yieldRate,
+    required this.sections,
+    required this.shiftStartMinutes,
   });
 
   final List<String> categories;
   final List<int> pass;
   final List<int> fail;
   final List<double> yieldRate;
+  final List<int?> sections;
+  final List<int?> shiftStartMinutes;
 }
 
 class ResistorDashboardViewState {
@@ -176,6 +180,8 @@ class ResistorDashboardViewState {
       final pass = <int>[];
       final fail = <int>[];
       final yieldRate = <double>[];
+      final sections = <int?>[];
+      final shiftStartMinutes = <int?>[];
 
       for (final item in raw) {
         if (item is ResistorMachineOutput) {
@@ -183,11 +189,15 @@ class ResistorDashboardViewState {
           pass.add(item.pass);
           fail.add(item.fail);
           yieldRate.add(item.yieldRate);
+          sections.add(item.section);
+          shiftStartMinutes.add(_computeShiftStartMinutes(item));
         } else if (item is ResistorMachineInfo) {
           categories.add(item.name);
           pass.add(item.pass);
           fail.add(item.fail);
           yieldRate.add(item.yieldRate);
+          sections.add(null);
+          shiftStartMinutes.add(null);
         }
       }
 
@@ -196,6 +206,8 @@ class ResistorDashboardViewState {
         pass.add(0);
         fail.add(0);
         yieldRate.add(0);
+        sections.add(null);
+        shiftStartMinutes.add(null);
       }
 
       return ResistorStackedSeries(
@@ -203,6 +215,8 @@ class ResistorDashboardViewState {
         pass: pass,
         fail: fail,
         yieldRate: yieldRate,
+        sections: sections,
+        shiftStartMinutes: shiftStartMinutes,
       );
     }
 
@@ -218,4 +232,42 @@ class ResistorDashboardViewState {
       machineSeries: machineSeries,
     );
   }
+}
+
+const int _resistorShiftStartMinute = 7 * 60 + 30;
+
+int? _computeShiftStartMinutes(ResistorMachineOutput output) {
+  final raw = output.workDate?.trim();
+  if (raw != null && raw.isNotEmpty) {
+    DateTime? parsed = DateTime.tryParse(raw);
+    if (parsed == null && raw.contains(' ')) {
+      parsed = DateTime.tryParse(raw.replaceFirst(' ', 'T'));
+    }
+    if (parsed == null && raw.contains('/')) {
+      final normalized = raw.replaceAll('/', '-');
+      parsed = DateTime.tryParse(normalized);
+      if (parsed == null && normalized.contains(' ')) {
+        parsed = DateTime.tryParse(normalized.replaceFirst(' ', 'T'));
+      }
+    }
+    if (parsed != null) {
+      return parsed.hour * 60 + parsed.minute;
+    }
+
+    final match = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(raw);
+    if (match != null) {
+      final hour = int.tryParse(match.group(1)!);
+      final minute = int.tryParse(match.group(2)!);
+      if (hour != null && minute != null) {
+        return hour * 60 + minute;
+      }
+    }
+  }
+
+  final section = output.section;
+  if (section != null && section > 0) {
+    return _resistorShiftStartMinute + (section - 1) * 60;
+  }
+
+  return null;
 }
