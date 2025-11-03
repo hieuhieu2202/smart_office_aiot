@@ -286,31 +286,36 @@ class _ComboPoint {
   final double yr;
 }
 
+const List<String> _sectionShiftWindows = <String>[
+  '07:30 - 08:30',
+  '08:30 - 09:30',
+  '09:30 - 10:30',
+  '10:30 - 11:30',
+  '11:30 - 12:30',
+  '12:30 - 13:30',
+  '13:30 - 14:30',
+  '14:30 - 15:30',
+  '15:30 - 16:30',
+  '16:30 - 17:30',
+  '17:30 - 18:30',
+  '18:30 - 19:30',
+];
+
 String _formatCategoryLabel(String value) {
-  final match = RegExp(r'^S(\d+)$').firstMatch(value.trim());
+  final trimmed = value.trim();
+  final match = RegExp(r'^S(\d+)$').firstMatch(trimmed);
   if (match == null) {
-    return value;
+    return trimmed;
   }
 
-  final index = int.tryParse(match.group(1) ?? '') ?? 0;
-  if (index <= 0) {
-    return value;
+  final index = int.tryParse(match.group(1) ?? '');
+  if (index == null || index <= 0) {
+    return trimmed;
   }
 
-  const minutesPerDay = 24 * 60;
-  const slotMinutes = 60;
-  const baseMinutes = 7 * 60 + 30;
+  if (index <= _sectionShiftWindows.length) {
+    return _sectionShiftWindows[index - 1];
+  }
 
-  final startMinutes = baseMinutes + (index - 1) * slotMinutes;
-  final endMinutes = startMinutes + slotMinutes;
-
-  final startLabel = _formatMinutes(startMinutes % minutesPerDay);
-  final endLabel = _formatMinutes(endMinutes % minutesPerDay);
-  return '$startLabel - $endLabel';
-}
-
-String _formatMinutes(int totalMinutes) {
-  final hours = totalMinutes ~/ 60;
-  final minutes = totalMinutes % 60;
-  return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+  return trimmed;
 }
