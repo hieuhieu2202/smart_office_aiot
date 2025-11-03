@@ -1,5 +1,4 @@
 
-import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -86,19 +85,6 @@ double _resolveViewportHeight(BuildContext context, SizingInformation sizing) {
 
 double _clampDimension(double value, double min, double max) {
   return value.clamp(min, max).toDouble();
-}
-
-double _computeRangeChipWidth(double availableWidth) {
-  if (availableWidth <= 0) {
-    return 200;
-  }
-  if (availableWidth < 360) {
-    return math.max(120, availableWidth - 48);
-  }
-  if (availableWidth < 520) {
-    return math.max(140, availableWidth * 0.45);
-  }
-  return 280;
 }
 
 class TETop10ErrorCodeScreen extends StatefulWidget {
@@ -666,7 +652,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
       final selectedError = _controller.selectedError.value;
       final selectedDetail = _controller.selectedDetail.value;
       final lastUpdated = _controller.lastUpdated.value;
-      final rangeLabel = _controller.rangeLabel;
       final isRefreshing = _controller.isLoading.value;
 
       Widget buildBody() {
@@ -825,29 +810,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                   ),
                 );
 
-                final rangeChip = ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: _computeRangeChipWidth(constraints.maxWidth),
-                  ),
-                  child: Tooltip(
-                    message: rangeLabel,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _kSurfaceMuted.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: _kPanelBorderColor.withOpacity(0.8)),
-                      ),
-                      child: Text(
-                        rangeLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: _kTextSecondary, fontSize: 12),
-                      ),
-                    ),
-                  ),
-                );
-
                 final statusRow = Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -855,8 +817,6 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                       lastUpdated: lastUpdated,
                       isRefreshing: isRefreshing,
                     ),
-                    const SizedBox(width: 12),
-                    rangeChip,
                   ],
                 );
 
