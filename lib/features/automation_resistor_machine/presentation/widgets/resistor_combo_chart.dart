@@ -445,8 +445,8 @@ String _formatShiftLabel(
 ) {
   final formatter = DateFormat('HH:mm');
 
-  if (shiftStartTime != null && baseSection > 0) {
-    final offsetHours = section - baseSection;
+  if (shiftStartTime != null) {
+    final offsetHours = section - 1;
     final start = shiftStartTime.add(Duration(hours: offsetHours));
     final end = start.add(const Duration(hours: 1));
     return '${formatter.format(start)} - ${formatter.format(end)}';

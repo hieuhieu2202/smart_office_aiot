@@ -437,10 +437,8 @@ class AutomationResistorDashboardController extends GetxController {
 
   void _updateStartSection(List<ResistorMachineOutput> outputs) {
     try {
-      final sections = outputs.map((e) => e.section).whereType<int>().toList();
-      if (sections.isEmpty) {
+      if (outputs.isEmpty) {
         startSection.value = 1;
-        // fallback 07:30 if no data
         shiftStartTime.value = DateTime(
           selectedRange.value.start.year,
           selectedRange.value.start.month,
@@ -448,33 +446,43 @@ class AutomationResistorDashboardController extends GetxController {
           7,
           30,
         );
-        debugPrint(
-            '[ResistorDashboard] 🧮 startSection defaulted to 1, shiftStartTime 07:30');
+        debugPrint('[ResistorDashboard] 🧮 Default shiftStartTime 07:30');
         return;
       }
 
-      // ✅ detect the minimum section number
-      final minSection = sections.reduce((a, b) => a < b ? a : b);
-      startSection.value = minSection;
+      // find minimum section
+      final sections = outputs.map((e) => e.section).whereType<int>().toList();
+      startSection.value =
+          sections.isNotEmpty ? sections.reduce((a, b) => a < b ? a : b) : 1;
 
-      // ✅ if section=1 → shift started at 06:30, otherwise → 07:30
-      final baseHour = (minSection == 1) ? 6 : 7;
-      final baseMinute = 30;
-      final detected = DateTime(
-        selectedRange.value.start.year,
-        selectedRange.value.start.month,
-        selectedRange.value.start.day,
-        baseHour,
-        baseMinute,
-      );
-      shiftStartTime.value = detected;
+      // ✅ find earliest start time from API Outputs
+      final times = outputs
+          .map((e) => e.startTime)
+          .whereType<DateTime>()
+          .toList()
+        ..sort((a, b) => a.compareTo(b));
 
-      debugPrint(
-          '[ResistorDashboard] 🧮 startSection=$minSection, shiftStartTime=${DateFormat('HH:mm').format(detected)}');
+      if (times.isNotEmpty) {
+        shiftStartTime.value = times.first;
+        debugPrint(
+            '[ResistorDashboard] 🧭 shiftStartTime from API = ${DateFormat('HH:mm').format(times.first)}');
+      } else {
+        // fallback: estimate by section number
+        final baseHour = (startSection.value == 1) ? 6 : 7;
+        shiftStartTime.value = DateTime(
+          selectedRange.value.start.year,
+          selectedRange.value.start.month,
+          selectedRange.value.start.day,
+          baseHour,
+          30,
+        );
+        debugPrint(
+            '[ResistorDashboard] ⚙️ fallback shiftStartTime ${DateFormat('HH:mm').format(shiftStartTime.value)}');
+      }
     } catch (e) {
       startSection.value = 1;
       shiftStartTime.value = selectedRange.value.start;
-      debugPrint('[ResistorDashboard] ⚠️ startSection fallback: $e');
+      debugPrint('[ResistorDashboard] ⚠️ _updateStartSection error: $e');
     }
   }
 
