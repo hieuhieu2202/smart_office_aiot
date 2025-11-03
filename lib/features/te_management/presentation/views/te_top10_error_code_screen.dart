@@ -390,99 +390,109 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: _kSurfaceMuted,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(Icons.tune, color: _kAccentColor),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'Filters',
-                          style: TextStyle(
-                            color: _kTextPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: _kSurfaceMuted,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(Icons.tune, color: _kAccentColor),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'Filters',
+                                  style: TextStyle(
+                                    color: _kTextPrimary,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: _closeFilterPanel,
+                                icon: const Icon(Icons.close, color: _kTextSecondary),
+                                tooltip: 'Close filters',
+                              ),
+                            ],
                           ),
-                        ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Current selection',
+                            style: TextStyle(
+                              color: _kTextSecondary,
+                              fontSize: 12,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _InfoBadge(
+                            icon: Icons.memory_outlined,
+                            label: 'Model Serial',
+                            value: modelSerial,
+                          ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Date range',
+                            style: TextStyle(
+                              color: _kTextPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _RangeButton(
+                            label: 'Start · ${_rangeDisplayFormatter.format(start)}',
+                            onTap: () => _pickDateTime(isStart: true),
+                          ),
+                          const SizedBox(height: 10),
+                          _RangeButton(
+                            label: 'End · ${_rangeDisplayFormatter.format(end)}',
+                            onTap: () => _pickDateTime(isStart: false),
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              await _controller.shiftToTodayRange();
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: _kAccentColor,
+                              side: const BorderSide(color: _kAccentColor),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            icon: const Icon(Icons.calendar_today_outlined, size: 18),
+                            label: const Text(
+                              'Today 07:30 - 19:30',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Tip: use the cards or table rows to drill into weekly trends.',
+                            style: TextStyle(
+                              color: _kTextSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        onPressed: _closeFilterPanel,
-                        icon: const Icon(Icons.close, color: _kTextSecondary),
-                        tooltip: 'Close filters',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Current selection',
-                    style: TextStyle(
-                      color: _kTextSecondary,
-                      fontSize: 12,
-                      letterSpacing: 0.2,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _InfoBadge(
-                    icon: Icons.memory_outlined,
-                    label: 'Model Serial',
-                    value: modelSerial,
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Date range',
-                    style: TextStyle(
-                      color: _kTextPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _RangeButton(
-                    label: 'Start · ${_rangeDisplayFormatter.format(start)}',
-                    onTap: () => _pickDateTime(isStart: true),
-                  ),
-                  const SizedBox(height: 10),
-                  _RangeButton(
-                    label: 'End · ${_rangeDisplayFormatter.format(end)}',
-                    onTap: () => _pickDateTime(isStart: false),
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await _controller.shiftToTodayRange();
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _kAccentColor,
-                      side: const BorderSide(color: _kAccentColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                    label: const Text(
-                      'Today 07:30 - 19:30',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Tip: use the cards or table rows to drill into weekly trends.',
-                    style: TextStyle(
-                      color: _kTextSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const Spacer(),
+                  const SizedBox(height: 18),
                   FilledButton.icon(
                     onPressed: _closeFilterPanel,
                     style: FilledButton.styleFrom(
