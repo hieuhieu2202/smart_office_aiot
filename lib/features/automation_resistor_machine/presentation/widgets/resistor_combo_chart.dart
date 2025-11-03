@@ -1,8 +1,6 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-
 import '../viewmodels/resistor_dashboard_view_state.dart';
 
 class ResistorComboChart extends StatelessWidget {
@@ -11,11 +9,13 @@ class ResistorComboChart extends StatelessWidget {
     required this.title,
     required this.series,
     this.alignToShiftWindows = false,
+    this.startSection = 1,
   });
 
   final String title;
   final ResistorStackedSeries series;
   final bool alignToShiftWindows;
+  final int startSection;
 
   @override
   Widget build(BuildContext context) {
@@ -36,13 +36,11 @@ class ResistorComboChart extends StatelessWidget {
       math.min(pass.length, math.min(fail.length, yr.length)),
     );
 
-    if (itemCount == 0) {
-      return _buildEmptyState(context);
-    }
+    if (itemCount == 0) return _buildEmptyState(context);
 
     var points = List<_ComboPoint>.generate(
       itemCount,
-      (index) => _ComboPoint(
+          (index) => _ComboPoint(
         rawCategory: categories[index],
         displayCategory: _formatCategoryLabel(categories[index]),
         pass: pass[index],
@@ -50,12 +48,12 @@ class ResistorComboChart extends StatelessWidget {
         yr: yr[index],
         section: index < sections.length ? sections[index] : null,
         shiftStartMinutes:
-            index < shiftStartMinutes.length ? shiftStartMinutes[index] : null,
+        index < shiftStartMinutes.length ? shiftStartMinutes[index] : null,
       ),
     );
 
     if (alignToShiftWindows) {
-      points = _normalizeShiftWindows(points);
+      points = _normalizeShiftWindows(points, startSection);
     }
 
     final axisLabelStyle = TextStyle(
@@ -68,10 +66,7 @@ class ResistorComboChart extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF031A3C),
-            Color(0xFF020B24),
-          ],
+          colors: [Color(0xFF031A3C), Color(0xFF020B24)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -95,10 +90,10 @@ class ResistorComboChart extends StatelessWidget {
                 child: Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.1,
-                      ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                  ),
                 ),
               ),
             ],
@@ -118,15 +113,15 @@ class ResistorComboChart extends StatelessWidget {
                 axisLine: AxisLine(color: Colors.white.withOpacity(0.2)),
                 majorTickLines: const MajorTickLines(size: 4, color: Colors.white30),
                 labelRotation:
-                    alignToShiftWindows || points.length <= 6 ? 0 : -35,
+                alignToShiftWindows || points.length <= 6 ? 0 : -35,
                 labelIntersectAction: alignToShiftWindows
                     ? AxisLabelIntersectAction.wrap
                     : AxisLabelIntersectAction.hide,
                 axisLabelFormatter: alignToShiftWindows
                     ? (AxisLabelRenderDetails details) => ChartAxisLabel(
-                          _wrapShiftLabel(details.text),
-                          axisLabelStyle,
-                        )
+                  _wrapShiftLabel(details.text),
+                  axisLabelStyle,
+                )
                     : null,
                 maximumLabelWidth: alignToShiftWindows ? 64 : null,
               ),
@@ -199,8 +194,8 @@ class ResistorComboChart extends StatelessWidget {
                     end: Alignment.topCenter,
                   ),
                   dataSource: points,
-                  xValueMapper: (_ComboPoint point, _) => point.displayCategory,
-                  yValueMapper: (_ComboPoint point, _) => point.pass,
+                  xValueMapper: (_ComboPoint p, _) => p.displayCategory,
+                  yValueMapper: (_ComboPoint p, _) => p.pass,
                   dataLabelSettings: const DataLabelSettings(
                     isVisible: true,
                     labelAlignment: ChartDataLabelAlignment.outer,
@@ -221,8 +216,8 @@ class ResistorComboChart extends StatelessWidget {
                     end: Alignment.topCenter,
                   ),
                   dataSource: points,
-                  xValueMapper: (_ComboPoint point, _) => point.displayCategory,
-                  yValueMapper: (_ComboPoint point, _) => point.fail,
+                  xValueMapper: (_ComboPoint p, _) => p.displayCategory,
+                  yValueMapper: (_ComboPoint p, _) => p.fail,
                   dataLabelSettings: const DataLabelSettings(
                     isVisible: true,
                     labelAlignment: ChartDataLabelAlignment.outer,
@@ -245,9 +240,8 @@ class ResistorComboChart extends StatelessWidget {
                     color: Color(0xFF39FF14),
                     borderColor: Colors.white,
                   ),
-                  xValueMapper: (_ComboPoint point, _) => point.displayCategory,
-                  yValueMapper: (_ComboPoint point, _) => point.yr,
-                  dataLabelSettings: const DataLabelSettings(isVisible: false),
+                  xValueMapper: (_ComboPoint p, _) => p.displayCategory,
+                  yValueMapper: (_ComboPoint p, _) => p.yr,
                 ),
                 LineSeries<_ComboPoint, String>(
                   name: 'Target (98%)',
@@ -257,8 +251,8 @@ class ResistorComboChart extends StatelessWidget {
                   dashArray: const <double>[6, 4],
                   width: 2,
                   markerSettings: const MarkerSettings(isVisible: false),
-                  xValueMapper: (_ComboPoint point, _) => point.displayCategory,
-                  yValueMapper: (_ComboPoint point, _) => 98,
+                  xValueMapper: (_ComboPoint p, _) => p.displayCategory,
+                  yValueMapper: (_ComboPoint p, _) => 98,
                 ),
               ],
             ),
@@ -268,38 +262,33 @@ class ResistorComboChart extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF031A3C),
-            Color(0xFF020B24),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  Widget _buildEmptyState(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF031A3C), Color(0xFF020B24)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(22),
+      border: Border.all(color: Colors.cyanAccent.withOpacity(0.25), width: 1.3),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.cyanAccent.withOpacity(0.12),
+          blurRadius: 18,
+          offset: const Offset(0, 12),
         ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.25), width: 1.3),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.cyanAccent.withOpacity(0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 12),
-          ),
-        ],
+      ],
+    ),
+    padding: const EdgeInsets.all(16),
+    alignment: Alignment.center,
+    child: Text(
+      'No chart data',
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        color: Colors.white54,
+        fontWeight: FontWeight.w500,
       ),
-      padding: const EdgeInsets.all(16),
-      alignment: Alignment.center,
-      child: Text(
-        'No chart data',
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.white54,
-              fontWeight: FontWeight.w500,
-            ),
-      ),
-    );
-  }
+    ),
+  );
 }
 
 class _ComboPoint {
@@ -312,7 +301,6 @@ class _ComboPoint {
     this.section,
     this.shiftStartMinutes,
   });
-
   final String rawCategory;
   final String displayCategory;
   final int pass;
@@ -322,7 +310,8 @@ class _ComboPoint {
   final int? shiftStartMinutes;
 }
 
-const List<String> _sectionShiftWindows = <String>[
+const List<String> _sectionShiftWindows = [
+  '06:30 - 07:30',
   '07:30 - 08:30',
   '08:30 - 09:30',
   '09:30 - 10:30',
@@ -336,146 +325,85 @@ const List<String> _sectionShiftWindows = <String>[
   '17:30 - 18:30',
   '18:30 - 19:30',
 ];
-
-final List<int> _sectionStartMinutes = List<int>.unmodifiable(
-  List<int>.generate(
-    _sectionShiftWindows.length,
-    (index) => (7 + index) * 60 + 30,
-  ),
-);
-
 String _formatCategoryLabel(String value) {
   final trimmed = value.trim();
   final match = RegExp(r'^S(\d+)$').firstMatch(trimmed);
-  if (match == null) {
-    return trimmed;
-  }
+  if (match == null) return trimmed;
 
   final index = int.tryParse(match.group(1) ?? '');
-  if (index == null || index <= 0) {
-    return trimmed;
-  }
+  if (index == null || index <= 0) return trimmed;
 
   if (index <= _sectionShiftWindows.length) {
     return _sectionShiftWindows[index - 1];
   }
-
   return trimmed;
 }
 
-List<_ComboPoint> _normalizeShiftWindows(List<_ComboPoint> points) {
-  final buckets = List<_ShiftBucket>.generate(
-    _sectionShiftWindows.length,
-    (_) => _ShiftBucket(),
-  );
+List<_ComboPoint> _normalizeShiftWindows(List<_ComboPoint> points, int startSection) {
+  final buckets = <int, _ShiftBucket>{};
+  int? firstValidIndex;
 
-  for (final point in points) {
-    final slotIndex = _resolveShiftIndex(point);
-    if (slotIndex == null) {
-      continue;
+  for (final p in points) {
+    final idx = _resolveShiftIndex(p);
+    if (idx != null) {
+      final b = buckets.putIfAbsent(idx, () => _ShiftBucket());
+      b.pass += p.pass;
+      b.fail += p.fail;
+      firstValidIndex ??= idx; // ghi nhớ index đầu tiên có dữ liệu
     }
-    final bucket = buckets[slotIndex];
-    bucket.pass += point.pass;
-    bucket.fail += point.fail;
   }
 
-  return List<_ComboPoint>.generate(_sectionShiftWindows.length, (index) {
-    final bucket = buckets[index];
-    return _ComboPoint(
-      rawCategory: 'S${index + 1}',
-      displayCategory: _sectionShiftWindows[index],
-      pass: bucket.pass,
-      fail: bucket.fail,
-      yr: bucket.yr,
-      section: index + 1,
-      shiftStartMinutes: _sectionStartMinutes[index],
+  // nếu controller truyền startSection = 1 thì dùng index đầu tiên có data
+  final start = (startSection == 1 && firstValidIndex != null)
+      ? firstValidIndex!.clamp(0, _sectionShiftWindows.length - 1)
+      : (startSection - 1).clamp(0, _sectionShiftWindows.length - 1);
+
+  final end = math.min(start + 12, _sectionShiftWindows.length);
+
+  final normalized = <_ComboPoint>[];
+  for (var i = start; i < end; i++) {
+    final b = buckets[i];
+    normalized.add(
+      _ComboPoint(
+        rawCategory: 'S${i + 1}',
+        displayCategory: _sectionShiftWindows[i],
+        pass: b?.pass ?? 0,
+        fail: b?.fail ?? 0,
+        yr: b?.yr ?? 0,
+      ),
     );
-  });
+  }
+  return normalized;
 }
 
-int? _resolveShiftIndex(_ComboPoint point) {
-  final section = point.section;
-  if (section != null && section > 0 && section <= _sectionShiftWindows.length) {
-    return section - 1;
+int? _resolveShiftIndex(_ComboPoint p) {
+  final s = p.section;
+  if (s != null && s > 0 && s <= _sectionShiftWindows.length) return s - 1;
+
+  final raw = RegExp(r'^S(\d+)$').firstMatch(p.rawCategory.trim());
+  if (raw != null) {
+    final v = int.tryParse(raw.group(1) ?? '');
+    if (v != null && v > 0 && v <= _sectionShiftWindows.length) return v - 1;
   }
 
-  final minuteIndex = _indexForStartMinutes(point.shiftStartMinutes);
-  if (minuteIndex != null) {
-    return minuteIndex;
-  }
-
-  final rawMatch = RegExp(r'^S(\d+)$').firstMatch(point.rawCategory.trim());
-  if (rawMatch != null) {
-    final value = int.tryParse(rawMatch.group(1) ?? '');
-    if (value != null && value > 0 && value <= _sectionShiftWindows.length) {
-      return value - 1;
-    }
-  }
-
-  final normalizedDisplay = point.displayCategory.trim();
-  final displayIndex = _sectionShiftWindows
-      .indexWhere((element) => element.toLowerCase() == normalizedDisplay.toLowerCase());
-  if (displayIndex != -1) {
-    return displayIndex;
-  }
-
-  final pattern = RegExp(r'^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$');
-  final displayMatch = pattern.firstMatch(normalizedDisplay);
-  if (displayMatch != null) {
-    final normalized = '${displayMatch.group(1)} - ${displayMatch.group(2)}';
-    final idx = _sectionShiftWindows.indexOf(normalized);
-    if (idx != -1) {
-      return idx;
-    }
-  }
-
-  return null;
-}
-
-int? _indexForStartMinutes(int? minutes) {
-  if (minutes == null || _sectionStartMinutes.isEmpty) {
-    return null;
-  }
-
-  final base = _sectionStartMinutes.first;
-  final delta = minutes - base;
-  if (delta < 0) {
-    return null;
-  }
-
-  final index = delta ~/ 60;
-  if (index < 0 || index >= _sectionStartMinutes.length) {
-    return null;
-  }
-
-  final expected = _sectionStartMinutes[index];
-  if ((minutes - expected).abs() >= 60) {
-    return null;
-  }
-
-  return index;
+  final d = _sectionShiftWindows.indexWhere(
+        (e) => e.toLowerCase() == p.displayCategory.toLowerCase(),
+  );
+  return d != -1 ? d : null;
 }
 
 String _wrapShiftLabel(String label) {
   final parts = label.split(' - ');
-  if (parts.length == 2) {
-    return '${parts[0]}\n${parts[1]}';
-  }
-  return label;
+  return parts.length == 2 ? '${parts[0]}\n${parts[1]}' : label;
 }
 
 class _ShiftBucket {
   _ShiftBucket({this.pass = 0, this.fail = 0});
-
   int pass;
   int fail;
-
   double get yr {
     final total = pass + fail;
-    if (total == 0) {
-      return 0;
-    }
-    final ratio = pass / total * 100;
-    return double.parse(ratio.toStringAsFixed(2));
+    if (total == 0) return 0;
+    return double.parse((pass / total * 100).toStringAsFixed(2));
   }
 }

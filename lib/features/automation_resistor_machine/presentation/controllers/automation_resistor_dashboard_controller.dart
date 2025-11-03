@@ -24,9 +24,9 @@ class AutomationResistorDashboardController extends GetxController {
     GetResistorMachineRecordById? getRecordById,
     SearchResistorMachineSerialNumbers? searchSerialNumbers,
   }) : _repository = repository ??
-            ResistorMachineRepositoryImpl(
-              remoteDataSource: ResistorMachineRemoteDataSource(),
-            ) {
+      ResistorMachineRepositoryImpl(
+        remoteDataSource: ResistorMachineRemoteDataSource(),
+      ) {
     final repo = _repository;
     _getMachineNames = getMachineNames ?? GetResistorMachineNames(repo);
     _getTrackingData = getTrackingData ?? GetResistorMachineTrackingData(repo);
@@ -53,25 +53,28 @@ class AutomationResistorDashboardController extends GetxController {
   final RxString selectedShift = 'D'.obs;
   final RxString selectedStatus = 'ALL'.obs;
   final Rx<DateTimeRange> selectedRange =
-      Rx<DateTimeRange>(_defaultRange());
+  Rx<DateTimeRange>(_defaultRange());
 
   final Rxn<ResistorDashboardViewState> dashboardView =
-      Rxn<ResistorDashboardViewState>();
+  Rxn<ResistorDashboardViewState>();
   final Rx<ResistorMachineTrackingData?> rawTracking =
-      Rx<ResistorMachineTrackingData?>(null);
+  Rx<ResistorMachineTrackingData?>(null);
   final RxList<ResistorMachineStatus> statusEntries =
       <ResistorMachineStatus>[].obs;
   final RxList<ResistorMachineSerialMatch> serialMatches =
       <ResistorMachineSerialMatch>[].obs;
   final Rxn<ResistorMachineRecord> selectedRecord =
-      Rxn<ResistorMachineRecord>();
+  Rxn<ResistorMachineRecord>();
   final RxList<ResistorMachineTestResult> recordTestResults =
       <ResistorMachineTestResult>[].obs;
   final Rxn<ResistorMachineSerialMatch> selectedSerial =
-      Rxn<ResistorMachineSerialMatch>();
+  Rxn<ResistorMachineSerialMatch>();
   final Rxn<ResistorMachineTestResult> selectedTestResult =
-      Rxn<ResistorMachineTestResult>();
+  Rxn<ResistorMachineTestResult>();
   final RxBool isLoadingRecord = false.obs;
+
+  /// 🔹 Thêm biến startSection để xác định ca bắt đầu (dựa theo API)
+  final RxInt startSection = 1.obs;
 
   Timer? _autoRefresh;
   bool _isSilentRefreshing = false;
@@ -128,6 +131,22 @@ class AutomationResistorDashboardController extends GetxController {
         _logTrackingData(tracking);
         rawTracking.value = tracking;
         dashboardView.value = ResistorDashboardViewState.fromTracking(tracking);
+
+        // 🧭 Tự động xác định ca bắt đầu dựa theo dữ liệu API
+        try {
+          final sections = tracking.outputs.map((e) => e.section).whereType<int>().toList();
+          if (sections.isNotEmpty) {
+            final minSection = sections.reduce((a, b) => a < b ? a : b);
+            // API web dùng SECTION = 7 tương ứng 07:30, nên trừ 6 để đưa về index app (S1 = 06:30–07:30)
+            startSection.value = minSection > 6 ? (minSection - 6) : 1;
+            debugPrint('[ResistorDashboard] 🧮 startSection auto-calculated: ${startSection.value}');
+          } else {
+            startSection.value = 1;
+          }
+        } catch (e) {
+          startSection.value = 1;
+          debugPrint('[ResistorDashboard] ⚠️ startSection fallback to 1: $e');
+        }
       }
     } catch (e) {
       debugPrint('[ResistorDashboard] ❌ API error: $e — fallback to empty data');
@@ -229,7 +248,7 @@ class AutomationResistorDashboardController extends GetxController {
             .whereType<Map<String, dynamic>>()
             .map((Map<String, dynamic> item) {
           final detailsRaw =
-              (item['List_Result'] ?? const <dynamic>[]) as List<dynamic>;
+          (item['List_Result'] ?? const <dynamic>[]) as List<dynamic>;
           final details = detailsRaw
               .whereType<Map<String, dynamic>>()
               .map((Map<String, dynamic> detail) {
@@ -247,11 +266,11 @@ class AutomationResistorDashboardController extends GetxController {
               row: (detail['Row'] ?? 0) as int,
               column: (detail['Column'] ?? 0) as int,
               measurementValue:
-                  parseDouble(detail['Measurement_Value'] ?? detail['measurementValue']),
+              parseDouble(detail['Measurement_Value'] ?? detail['measurementValue']),
               lowSampleValue:
-                  parseDouble(detail['Low_Sample_Value'] ?? detail['lowSampleValue']),
+              parseDouble(detail['Low_Sample_Value'] ?? detail['lowSampleValue']),
               highSampleValue:
-                  parseDouble(detail['High_Sample_Value'] ?? detail['highSampleValue']),
+              parseDouble(detail['High_Sample_Value'] ?? detail['highSampleValue']),
               pass: (detail['Pass'] ?? false) as bool,
             );
           }).toList();
@@ -289,8 +308,8 @@ class AutomationResistorDashboardController extends GetxController {
     final dayAnchor = DateTime(current.year, current.month, current.day);
 
     if (shift == 'D') {
-      final start = dayAnchor.add(const Duration(hours: 7, minutes: 30));
-      final end = start.add(const Duration(hours: 12));
+      final start = dayAnchor.add(const Duration(hours: 6, minutes: 30));
+      final end = start.add(const Duration(hours: 13));
       return DateTimeRange(start: start, end: end);
     }
 
@@ -398,29 +417,29 @@ class AutomationResistorDashboardController extends GetxController {
         'yieldRate=${summary.yieldRate}');
     debugPrint('[ResistorDashboard] Outputs (${tracking.outputs.length} items): '
         '${tracking.outputs.map((e) => {
-              'label': e.displayLabel,
-              'pass': e.pass,
-              'fail': e.fail,
-              'yr': e.yieldRate
-            }).toList()}');
+      'label': e.displayLabel,
+      'pass': e.pass,
+      'fail': e.fail,
+      'yr': e.yieldRate
+    }).toList()}');
     debugPrint('[ResistorDashboard] Machines (${tracking.machines.length} items): '
         '${tracking.machines.map((e) => {
-              'name': e.name,
-              'pass': e.pass,
-              'fail': e.fail,
-              'yr': e.yieldRate
-            }).toList()}');
+      'name': e.name,
+      'pass': e.pass,
+      'fail': e.fail,
+      'yr': e.yieldRate
+    }).toList()}');
   }
 
   void _logStatusData(List<ResistorMachineStatus> list) {
     debugPrint('[ResistorDashboard] Status entries (${list.length} items) loaded');
     if (list.isNotEmpty) {
       final preview = list.take(5).map((entry) => {
-            'serial': entry.serialNumber,
-            'machine': entry.machineName,
-            'station': entry.stationSequence,
-            'time': entry.inStationTime.toIso8601String(),
-          });
+        'serial': entry.serialNumber,
+        'machine': entry.machineName,
+        'station': entry.stationSequence,
+        'time': entry.inStationTime.toIso8601String(),
+      });
       debugPrint('[ResistorDashboard] Status preview: ${preview.toList()}');
     }
   }
@@ -432,7 +451,7 @@ class AutomationResistorDashboardController extends GetxController {
 
   static DateTimeRange _defaultRange() {
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day, 7, 30);
+    final start = DateTime(now.year, now.month, now.day, 6, 30);
     final end = DateTime(now.year, now.month, now.day, 19, 30);
     return DateTimeRange(start: start, end: end);
   }
