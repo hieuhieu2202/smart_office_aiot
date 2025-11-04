@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../../domain/entities/kanban_entities.dart';
 
 class UpdTrackingRowView {
@@ -21,29 +23,26 @@ class UpdTrackingRowView {
 class UpdTrackingViewState {
   UpdTrackingViewState({
     required this.dates,
-    required this.models,
     required this.rows,
+    required this.modelsText,
   });
 
   final List<String> dates;
-  final List<String> models;
   final List<UpdTrackingRowView> rows;
+  final String modelsText;
 
-  int get totalWip => rows.fold<int>(0, (sum, row) => sum + row.wip);
-  int get totalPass => rows.fold<int>(0, (sum, row) => sum + row.totalPass);
-  double get avgProductivity {
-    final values = rows.expand((row) => row.productivitySeries).toList();
-    if (values.isEmpty) return 0;
-    final double total =
-        values.fold<double>(0, (sum, value) => sum + (value.isNaN ? 0 : value));
-    return values.isEmpty ? 0 : total / values.length;
-  }
+  bool get hasData => rows.isNotEmpty && dates.isNotEmpty;
 
   static UpdTrackingViewState fromEntity(UpdTrackingEntity entity) {
+    final dates = entity.dates
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
     final rows = entity.groups
         .map(
           (group) => UpdTrackingRowView(
-            station: group.groupName,
+            station: group.groupName.trim(),
             wip: group.wip,
             totalPass:
                 group.pass.fold<int>(0, (sum, value) => sum + value.round()),
@@ -52,12 +51,27 @@ class UpdTrackingViewState {
             productivitySeries: group.pr,
           ),
         )
+        .where((row) => row.station.isNotEmpty)
         .toList();
 
+    final modelsText = _buildModelsText(entity.models);
+
     return UpdTrackingViewState(
-      dates: entity.dates,
-      models: entity.models,
+      dates: dates,
       rows: rows,
+      modelsText: modelsText,
     );
+  }
+
+  static String _buildModelsText(List<String> models) {
+    final formatted = models
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .sorted((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    if (formatted.isEmpty) return '-';
+    if (formatted.length == 1) return formatted.first;
+    return formatted.join('\n');
   }
 }

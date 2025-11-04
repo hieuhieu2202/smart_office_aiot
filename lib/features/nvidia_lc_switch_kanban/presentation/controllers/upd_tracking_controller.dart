@@ -35,51 +35,60 @@ class UpdTrackingController extends GetxController {
   late final GetUpdTracking _getUpdTracking;
 
   final RxString modelSerial = 'SWITCH'.obs;
-  final Rx<DateTimeRange> dateRange =
-      DateTimeRange(
-        start: DateTime.now().subtract(const Duration(days: 6)),
-        end: DateTime.now(),
-      ).obs;
+  final Rx<DateTimeRange> range = DateTimeRange(
+    start: DateTime.now().subtract(const Duration(days: 6)),
+    end: DateTime.now(),
+  ).obs;
   final RxList<String> selectedGroups = <String>[].obs;
   final RxList<String> allGroups = <String>[].obs;
 
   final RxBool isLoading = false.obs;
-  final RxBool isLoadingGroups = false.obs;
+  final RxBool isLoadingModels = false.obs;
+  final RxBool isRefreshing = false.obs;
+  final RxBool hasLoadedOnce = false.obs;
   final RxnString error = RxnString();
   final Rxn<UpdTrackingViewState> viewState = Rxn<UpdTrackingViewState>();
+  final Rx<DateTime?> lastUpdatedAt = Rx<DateTime?>(null);
+  final RxBool showUpdateBadge = false.obs;
 
-  Timer? _autoRefreshTimer;
-  final RxBool autoRefresh = false.obs;
+  final RxBool isAutoRefreshEnabled = true.obs;
   final RxInt refreshSeconds = 60.obs;
+  Timer? _autoRefreshTimer;
+  Timer? _updateBadgeTimer;
 
-  Future<void> updateFilters({
+  Future<void> updateFilter({
     String? newModelSerial,
-    DateTimeRange? newDateRange,
+    DateTimeRange? newRange,
     List<String>? newGroups,
-    bool reload = true,
   }) async {
+    var shouldReloadModels = false;
+
     if (newModelSerial != null && newModelSerial != modelSerial.value) {
       modelSerial.value = newModelSerial;
-      await ensureModels(force: true, selectAll: true);
+      shouldReloadModels = true;
     }
-    if (newDateRange != null && !_isSameRange(newDateRange, dateRange.value)) {
-      dateRange.value = newDateRange;
-      await ensureModels(force: true, selectAll: selectedGroups.isEmpty);
+
+    if (newRange != null && !_isSameRange(newRange, range.value)) {
+      range.value = newRange;
+      shouldReloadModels = true;
     }
+
     if (newGroups != null) {
       selectedGroups
         ..clear()
         ..addAll(newGroups);
     }
 
-    if (reload) {
-      await loadData();
+    if (shouldReloadModels) {
+      await ensureModels(force: true, selectAll: selectedGroups.isEmpty);
     }
+
+    await loadAll();
   }
 
   Future<void> ensureModels({bool force = false, bool selectAll = false}) async {
     if (!force && allGroups.isNotEmpty) {
-      if ((selectAll || selectedGroups.isEmpty) && allGroups.isNotEmpty) {
+      if (selectAll && selectedGroups.isEmpty) {
         selectedGroups
           ..clear()
           ..addAll(allGroups);
@@ -87,9 +96,11 @@ class UpdTrackingController extends GetxController {
       return;
     }
 
-    isLoadingGroups.value = true;
+    isLoadingModels.value = true;
     try {
-      final list = await _getGroups(_currentRequest(groups: const <String>[]));
+      final List<String> list =
+          await _getGroups(_currentRequest(groups: const <String>[]));
+
       if (list.isNotEmpty) {
         allGroups.assignAll(list);
         if (selectAll || selectedGroups.isEmpty) {
@@ -101,12 +112,12 @@ class UpdTrackingController extends GetxController {
     } catch (e) {
       error.value = e.toString();
     } finally {
-      isLoadingGroups.value = false;
+      isLoadingModels.value = false;
     }
   }
 
-  Future<void> loadData() async {
-    final groups = selectedGroups.isEmpty
+  Future<void> loadAll() async {
+    final List<String> groups = selectedGroups.isEmpty
         ? allGroups.toList()
         : selectedGroups.toList();
     if (groups.isEmpty) {
@@ -115,34 +126,71 @@ class UpdTrackingController extends GetxController {
       return;
     }
 
+    final bool hadView = viewState.value != null;
     isLoading.value = true;
+    isRefreshing.value = hadView;
     error.value = null;
+    if (!hadView) {
+      viewState.value = null;
+    } else {
+      _updateBadgeTimer?.cancel();
+      showUpdateBadge.value = false;
+    }
+
     try {
-      final entity = await _getUpdTracking(_currentRequest(groups: groups));
-      viewState.value = UpdTrackingViewState.fromEntity(entity);
+      final request = _currentRequest(groups: groups);
+      final UpdTrackingEntity entity = await _getUpdTracking(request);
+      final view = UpdTrackingViewState.fromEntity(entity);
+      viewState.value = view;
+
+      if (view.hasData) {
+        _markUpdated(highlight: hadView);
+      }
     } catch (e) {
       error.value = e.toString();
-      viewState.value = null;
+      if (!hadView) {
+        viewState.value = null;
+      }
+      _updateBadgeTimer?.cancel();
+      showUpdateBadge.value = false;
     } finally {
       isLoading.value = false;
+      isRefreshing.value = false;
+      hasLoadedOnce.value = true;
+
+      if (isAutoRefreshEnabled.value) {
+        startAutoRefresh();
+      }
     }
   }
 
-  void toggleAutoRefresh(bool enabled) {
-    autoRefresh.value = enabled;
+  void startAutoRefresh() {
+    if (!isAutoRefreshEnabled.value) return;
     _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer.periodic(
+      Duration(seconds: refreshSeconds.value),
+      (_) => loadAll(),
+    );
+  }
+
+  void stopAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = null;
+  }
+
+  void toggleAutoRefresh(bool enabled) {
+    isAutoRefreshEnabled.value = enabled;
     if (enabled) {
-      _autoRefreshTimer = Timer.periodic(
-        Duration(seconds: refreshSeconds.value),
-        (_) => loadData(),
-      );
+      startAutoRefresh();
+    } else {
+      stopAutoRefresh();
     }
   }
 
   void updateRefreshInterval(int seconds) {
-    refreshSeconds.value = seconds;
-    if (autoRefresh.value) {
-      toggleAutoRefresh(true);
+    refreshSeconds.value = seconds.clamp(15, 600);
+    if (isAutoRefreshEnabled.value) {
+      startAutoRefresh();
     }
   }
 
@@ -151,35 +199,53 @@ class UpdTrackingController extends GetxController {
     super.onInit();
     Future.microtask(() async {
       await ensureModels(force: true, selectAll: true);
-      await loadData();
+      await loadAll();
     });
   }
 
   @override
   void onClose() {
-    _autoRefreshTimer?.cancel();
+    stopAutoRefresh();
+    _updateBadgeTimer?.cancel();
     super.onClose();
   }
 
   KanbanRequest _currentRequest({List<String>? groups}) {
+    final currentRange = range.value;
     return KanbanRequest(
       modelSerial: modelSerial.value,
-      date: _fmt(dateRange.value.end),
+      date: _formatDate(currentRange.end),
       shift: 'ALL',
-      dateRange: _fmtRange(dateRange.value),
+      dateRange: _formatRange(currentRange),
       groups: groups ?? selectedGroups.toList(),
     );
   }
+
+  void _markUpdated({required bool highlight}) {
+    final now = DateTime.now();
+    lastUpdatedAt.value = now;
+    if (!highlight) {
+      showUpdateBadge.value = false;
+      return;
+    }
+
+    showUpdateBadge.value = true;
+    _updateBadgeTimer?.cancel();
+    _updateBadgeTimer = Timer(const Duration(seconds: 6), () {
+      showUpdateBadge.value = false;
+    });
+  }
 }
 
-String _fmt(DateTime d) {
+String _formatDate(DateTime d) {
   final y = d.year.toString().padLeft(4, '0');
   final m = d.month.toString().padLeft(2, '0');
   final day = d.day.toString().padLeft(2, '0');
   return '$y-$m-$day';
 }
 
-String _fmtRange(DateTimeRange range) => '${_fmt(range.start)}~${_fmt(range.end)}';
+String _formatRange(DateTimeRange range) =>
+    '${_formatDate(range.start)}~${_formatDate(range.end)}';
 
 bool _isSameRange(DateTimeRange a, DateTimeRange b) {
   return _isSameDay(a.start, b.start) && _isSameDay(a.end, b.end);
