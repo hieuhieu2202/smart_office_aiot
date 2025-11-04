@@ -146,6 +146,20 @@ List<AppProject> appProjects = [
             icon: Icons.align_horizontal_left,
             screenType: "output_tracking_adapter",
           ),
+          AppProject(
+            name: "Uph Tracking (Adapter)",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.show_chart,
+            screenType: "uph_tracking_adapter",
+          ),
+          AppProject(
+            name: "Upd Tracking (Adapter)",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.show_chart,
+            screenType: "upd_tracking_adapter",
+          ),
         ],
       ),
       AppProject(
@@ -303,18 +317,18 @@ List<AppProject> appProjects = [
             screenType: "output_tracking_switch",
           ),
           AppProject(
-            name: "Uph Tracking",
+            name: "Uph Tracking (Switch)",
             progress: 1.0,
             status: "Ready",
             icon: Icons.show_chart,
-            screenType: "uph_tracking",
+            screenType: "uph_tracking_switch",
           ),
           AppProject(
-            name: "Upd Tracking",
+            name: "Upd Tracking (Switch)",
             progress: 1.0,
             status: "Ready",
             icon: Icons.show_chart,
-            screenType: "upd_tracking",
+            screenType: "upd_tracking_switch",
           ),
           AppProject(
             name: "Output Monitoring",
