@@ -51,59 +51,80 @@ class _AutomationResistorDashboardPageState
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: const Color(0xFF010A1B),
         body: SafeArea(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF001B3A), Color(0xFF020B1A)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: Column(
-              children: [
-                _buildHeader(context),
-                const TabBar(
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white60,
-                  indicatorColor: Colors.cyanAccent,
-                  labelStyle: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                  ),
-                  tabs: [
-                    Tab(text: 'DASHBOARD'),
-                    Tab(text: 'SN ANALYSIS'),
-                  ],
+          child: MediaQuery.removeViewInsets(
+            removeBottom: true,
+            context: context,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF001B3A), Color(0xFF020B1A)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
-                Expanded(
-                  child: TabBarView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      SizedBox.expand(
-                        child: Obx(() {
-                          if (controller.isLoading.value) {
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.cyanAccent,
-                              ),
-                            );
-                          }
-                          return _DashboardBody(controller: controller);
-                        }),
-                      ),
-                      SizedBox.expand(
-                        child: _SnAnalysisTab(
-                          controller: controller,
-                          searchController: searchController,
-                          searchFocusNode: searchFocusNode,
-                        ),
-                      ),
+              ),
+              child: Column(
+                children: [
+                  _buildHeader(context),
+                  const TabBar(
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white60,
+                    indicatorColor: Colors.cyanAccent,
+                    labelStyle: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
+                    ),
+                    tabs: [
+                      Tab(text: 'DASHBOARD'),
+                      Tab(text: 'SN ANALYSIS'),
                     ],
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: TabBarView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            return ConstrainedBox(
+                              constraints: BoxConstraints.tightFor(
+                                width: constraints.maxWidth,
+                                height: constraints.maxHeight,
+                              ),
+                              child: Obx(() {
+                                if (controller.isLoading.value) {
+                                  return const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Colors.cyanAccent,
+                                    ),
+                                  );
+                                }
+                                return _DashboardBody(controller: controller);
+                              }),
+                            );
+                          },
+                        ),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            return ConstrainedBox(
+                              constraints: BoxConstraints.tightFor(
+                                width: constraints.maxWidth,
+                                height: constraints.maxHeight,
+                              ),
+                              child: _SnAnalysisTab(
+                                controller: controller,
+                                searchController: searchController,
+                                searchFocusNode: searchFocusNode,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
