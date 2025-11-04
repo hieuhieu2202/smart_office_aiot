@@ -177,12 +177,25 @@ class AutomationResistorDashboardController extends GetxController {
     }
   }
 
+  Future<void> resetToTodayAndReload() async {
+    resetToToday();
+    await Future.wait([loadDashboard(), loadStatus()]);
+  }
+
   void resetToToday() {
     final range = _defaultRange();
     selectedRange.value = range;
     final inferredShift = _deriveShift(range.start);
     selectedShift.value = inferredShift;
+    isMultiDayRange.value = false;
     _resetShiftWindowAnchors();
+  }
+
+  DateTimeRange defaultRangeForShift(String shift) {
+    final range = _defaultRange();
+    return shift.trim().toUpperCase() == 'D'
+        ? range
+        : rangeForShift(range, shift);
   }
 
   Future<void> searchSerial(String query) async {
@@ -311,6 +324,7 @@ class AutomationResistorDashboardController extends GetxController {
     selectedRange.value = range;
     selectedMachine.value = machine;
     selectedStatus.value = status;
+    selectedShift.value = inferShiftFromRange(range);
     isMultiDayRange.value = _isMultiDayRange(range);
     loadDashboard();
     loadStatus();

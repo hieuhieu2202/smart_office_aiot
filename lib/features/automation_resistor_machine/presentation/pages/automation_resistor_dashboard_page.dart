@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -158,9 +160,7 @@ class _AutomationResistorDashboardPageState
                       IconButton(
                         onPressed: () {
                           if (tabController.index == 0) {
-                            controller.resetToToday();
-                            controller.loadDashboard();
-                            controller.loadStatus();
+                            unawaited(controller.resetToTodayAndReload());
                           } else {
                             searchController.clear();
                             controller.clearSerialSearch();
@@ -654,7 +654,7 @@ class _FilterDialogContentState extends State<_FilterDialogContent> {
       _machine = 'ALL';
       _status = 'ALL';
       _shift = 'D';
-      _range = widget.controller.rangeForShift(_range, 'D');
+      _range = widget.controller.defaultRangeForShift('D');
     });
   }
 
