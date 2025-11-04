@@ -2020,7 +2020,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         ),
         const SizedBox(height: 16),
         if (fillHeight)
-          Expanded(child: body)
+          Flexible(fit: FlexFit.loose, child: body)
         else
           body,
       ],
