@@ -8,6 +8,7 @@ import '../../domain/entities/te_report.dart';
 import '../models/te_report_models.dart';
 import '../models/te_retest_rate_models.dart';
 import '../models/te_top_error_models.dart';
+import '../models/te_yield_rate_models.dart';
 
 class TEManagementRemoteDataSource {
   static const String _baseUrl =
@@ -259,6 +260,30 @@ class TEManagementRemoteDataSource {
 
     final dynamic decoded = json.decode(response.body);
     return TERetestDetailModel.fromJson(decoded);
+  }
+
+  Future<TEYieldDetailModel> fetchYieldRateReport({
+    required String modelSerial,
+    required String range,
+    String model = '',
+  }) async {
+    final uri = _buildUri('YieldRateReport', {
+      'customer': modelSerial,
+      'range': range,
+      'model': model,
+    });
+    final response = await _performGet(uri);
+    if (response.statusCode == 204 || response.body.isEmpty) {
+      return TEYieldDetailModel(dates: const [], rows: const []);
+    }
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load TE yield rate report (${response.statusCode})',
+      );
+    }
+
+    final dynamic decoded = json.decode(response.body);
+    return TEYieldDetailModel.fromJson(decoded);
   }
 
   Future<List<TETopErrorModel>> fetchTopErrorCodes({

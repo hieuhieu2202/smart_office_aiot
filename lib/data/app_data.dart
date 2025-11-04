@@ -119,6 +119,13 @@ List<AppProject> appProjects = [
         screenType: "te_retest_rate_adapter",
       ),
       AppProject(
+        name: "TE YIELD RATE (ADAPTER)",
+        progress: 1.0,
+        status: "Ready",
+        icon: Icons.auto_graph,
+        screenType: "te_yield_rate_adapter",
+      ),
+      AppProject(
         name: "GLUE MACHINE",
         progress: 1.0,
         status: "Ready",
@@ -266,6 +273,13 @@ List<AppProject> appProjects = [
         status: "Ready",
         icon: Icons.query_stats,
         screenType: "te_retest_rate_switch",
+      ),
+      AppProject(
+        name: "TE YIELD RATE (SWITCH)",
+        progress: 1.0,
+        status: "Ready",
+        icon: Icons.auto_graph,
+        screenType: "te_yield_rate_switch",
       ),
       AppProject(
         name: "ROOM MONITORING",

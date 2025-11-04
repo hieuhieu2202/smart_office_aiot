@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../domain/entities/te_retest_rate.dart';
+import '../../domain/entities/te_yield_rate.dart';
 
 const double _kIndexBaseWidth = 58;
 const double _kIndexMinWidth = 46;
@@ -57,8 +57,8 @@ const Color _kHighlightBlendColor = Color(0xFF4F9BFF);
 const Color _kHighlightGlowColor = Color(0x332F64B8);
 const Color _kHighlightBorderColor = Color(0xFF64B5FF);
 
-class TERetestRateTable extends StatefulWidget {
-  const TERetestRateTable({
+class TEYieldRateTable extends StatefulWidget {
+  const TEYieldRateTable({
     super.key,
     required this.detail,
     required this.formattedDates,
@@ -67,17 +67,17 @@ class TERetestRateTable extends StatefulWidget {
     required this.highlightCells,
   });
 
-  final TERetestDetailEntity detail;
+  final TEYieldDetailEntity detail;
   final List<String> formattedDates;
-  final ValueChanged<TERetestCellDetail>? onCellTap;
-  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final ValueChanged<TEYieldCellDetail>? onCellTap;
+  final ValueChanged<TEYieldGroupDetail>? onGroupTap;
   final Set<String> highlightCells;
 
   @override
-  State<TERetestRateTable> createState() => _TERetestRateTableState();
+  State<TEYieldRateTable> createState() => _TEYieldRateTableState();
 }
 
-class _TERetestRateTableState extends State<TERetestRateTable> {
+class _TEYieldRateTableState extends State<TEYieldRateTable> {
   late final ScrollController _horizontalHeaderController;
   late final ScrollController _horizontalBodyController;
   late final ScrollController _verticalBodyController;
@@ -240,7 +240,7 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
                 return SizedBox(
                   width: availableWidth,
                   height: height,
-                  child: _CompactRetestRateView(
+                  child: _CompactYieldRateView(
                     detail: widget.detail,
                     formattedDates: widget.formattedDates,
                     rawDates: widget.detail.dates,
@@ -341,8 +341,8 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
   }
 }
 
-class _CompactRetestRateView extends StatelessWidget {
-  const _CompactRetestRateView({
+class _CompactYieldRateView extends StatelessWidget {
+  const _CompactYieldRateView({
     required this.detail,
     required this.formattedDates,
     required this.rawDates,
@@ -351,11 +351,11 @@ class _CompactRetestRateView extends StatelessWidget {
     required this.highlightCells,
   });
 
-  final TERetestDetailEntity detail;
+  final TEYieldDetailEntity detail;
   final List<String> formattedDates;
   final List<String> rawDates;
-  final ValueChanged<TERetestCellDetail>? onCellTap;
-  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final ValueChanged<TEYieldCellDetail>? onCellTap;
+  final ValueChanged<TEYieldGroupDetail>? onGroupTap;
   final Set<String> highlightCells;
 
   int get _totalColumns => formattedDates.length * 2;
@@ -425,19 +425,19 @@ class _CompactModelCard extends StatelessWidget {
   });
 
   final int index;
-  final TERetestDetailRowEntity row;
+  final TEYieldDetailRowEntity row;
   final List<String> formattedDates;
   final List<String> rawDates;
   final int totalColumns;
-  final ValueChanged<TERetestCellDetail>? onCellTap;
-  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final ValueChanged<TEYieldCellDetail>? onCellTap;
+  final ValueChanged<TEYieldGroupDetail>? onGroupTap;
   final Set<String> highlightCells;
 
-  List<TERetestCellDetail> _buildCells(String groupName) {
-    final rr = row.retestRate[groupName] ?? const <double?>[];
+  List<TEYieldCellDetail> _buildCells(String groupName) {
+    final rr = row.yieldRate[groupName] ?? const <double?>[];
     final input = row.input[groupName] ?? const <int?>[];
     final firstFail = row.firstFail[groupName] ?? const <int?>[];
-    final retestFail = row.retestFail[groupName] ?? const <int?>[];
+    final repairQty = row.repairQty[groupName] ?? const <int?>[];
     final pass = row.pass[groupName] ?? const <int?>[];
 
     return List.generate(totalColumns, (i) {
@@ -448,23 +448,23 @@ class _CompactModelCard extends StatelessWidget {
           : (formattedDates.isEmpty ? 0 : formattedDates.length - 1);
       final rawDate = safeIndex < rawDates.length ? rawDates[safeIndex] : '';
 
-      return TERetestCellDetail(
+      return TEYieldCellDetail(
         modelName: row.modelName,
         groupName: groupName,
         dateLabel: formattedDates[safeIndex],
         dateKey: rawDate,
         shiftLabel: isDay ? 'Day' : 'Night',
         isDayShift: isDay,
-        retestRate: i < rr.length ? rr[i] : null,
+        yieldRate: i < rr.length ? rr[i] : null,
         input: i < input.length ? input[i] : null,
         firstFail: i < firstFail.length ? firstFail[i] : null,
-        retestFail: i < retestFail.length ? retestFail[i] : null,
+        repairQty: i < repairQty.length ? repairQty[i] : null,
         pass: i < pass.length ? pass[i] : null,
       );
     });
   }
 
-  List<TERetestCellDetail> _buildPlaceholderCells() {
+  List<TEYieldCellDetail> _buildPlaceholderCells() {
     return List.generate(totalColumns, (i) {
       final dateIndex = i ~/ 2;
       final safeIndex = dateIndex < formattedDates.length
@@ -474,17 +474,17 @@ class _CompactModelCard extends StatelessWidget {
       final label = formattedDates.isEmpty ? '-' : formattedDates[safeIndex];
       final isDay = i.isEven;
 
-      return TERetestCellDetail(
+      return TEYieldCellDetail(
         modelName: row.modelName,
         groupName: '-',
         dateLabel: label,
         dateKey: rawDate,
         shiftLabel: isDay ? 'Day' : 'Night',
         isDayShift: isDay,
-        retestRate: null,
+        yieldRate: null,
         input: null,
         firstFail: null,
-        retestFail: null,
+        repairQty: null,
         pass: null,
       );
     });
@@ -577,9 +577,9 @@ class _CompactGroupSection extends StatelessWidget {
 
   final String modelName;
   final String groupName;
-  final List<TERetestCellDetail> cells;
-  final ValueChanged<TERetestCellDetail>? onCellTap;
-  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final List<TEYieldCellDetail> cells;
+  final ValueChanged<TEYieldCellDetail>? onCellTap;
+  final ValueChanged<TEYieldGroupDetail>? onGroupTap;
   final Set<String> highlightCells;
   final bool isPlaceholder;
 
@@ -588,7 +588,7 @@ class _CompactGroupSection extends StatelessWidget {
     final groupTap = onGroupTap == null || isPlaceholder
         ? null
         : () => onGroupTap!(
-              TERetestGroupDetail(
+              TEYieldGroupDetail(
                 modelName: modelName,
                 groupName: groupName,
                 cells: List.unmodifiable(cells),
@@ -667,8 +667,8 @@ class _DayNightPair {
     required this.nightColumnIndex,
   });
 
-  final TERetestCellDetail day;
-  final TERetestCellDetail? night;
+  final TEYieldCellDetail day;
+  final TEYieldCellDetail? night;
   final int dayColumnIndex;
   final int nightColumnIndex;
 }
@@ -682,7 +682,7 @@ class _CompactDayNightRow extends StatelessWidget {
 
   final _DayNightPair pair;
   final Set<String> highlightCells;
-  final ValueChanged<TERetestCellDetail>? onCellTap;
+  final ValueChanged<TEYieldCellDetail>? onCellTap;
 
   @override
   Widget build(BuildContext context) {
@@ -704,7 +704,7 @@ class _CompactDayNightRow extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Color(0xFFCFF1FF),
+              color: Color(0xFF1D4ED8),
               fontWeight: FontWeight.w700,
               fontSize: 13,
             ),
@@ -717,7 +717,7 @@ class _CompactDayNightRow extends StatelessWidget {
                   label: 'Day',
                   detail: day,
                   highlighted: highlightCells.contains(
-                    buildRetestCellKey(day.modelName, day.groupName, pair.dayColumnIndex),
+                    buildYieldCellKey(day.modelName, day.groupName, pair.dayColumnIndex),
                   ),
                   onTap: onCellTap,
                 ),
@@ -730,7 +730,7 @@ class _CompactDayNightRow extends StatelessWidget {
                         label: 'Night',
                         detail: night,
                         highlighted: highlightCells.contains(
-                          buildRetestCellKey(
+                          buildYieldCellKey(
                             night.modelName,
                             night.groupName,
                             pair.nightColumnIndex,
@@ -762,14 +762,14 @@ class _CompactShiftTile extends StatelessWidget {
         _isPlaceholder = true;
 
   final String label;
-  final TERetestCellDetail? detail;
+  final TEYieldCellDetail? detail;
   final bool highlighted;
-  final ValueChanged<TERetestCellDetail>? onTap;
+  final ValueChanged<TEYieldCellDetail>? onTap;
   final bool _isPlaceholder;
 
   @override
   Widget build(BuildContext context) {
-    final rate = detail?.retestRate;
+    final rate = detail?.yieldRate;
     final rateText = rate == null ? 'N/A' : '${rate.toStringAsFixed(2)}%';
       final rateColor = rate == null
           ? const Color(0xFF94A3B8)
@@ -777,7 +777,7 @@ class _CompactShiftTile extends StatelessWidget {
               ? const Color(0xFFE11D48)
               : (rate >= 3
                   ? const Color(0xFFF59E0B)
-                  : const Color(0xFF38BDF8)));
+                  : const Color(0xFF16A34A)));
 
     final tile = AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -1116,13 +1116,13 @@ class _ModelBlock extends StatelessWidget {
   });
 
   final int index;
-  final TERetestDetailRowEntity row;
+  final TEYieldDetailRowEntity row;
   final List<String> formattedDates;
   final List<String> rawDates;
   final int totalColumns;
   final bool isFirstBlock;
-  final ValueChanged<TERetestCellDetail>? onCellTap;
-  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final ValueChanged<TEYieldCellDetail>? onCellTap;
+  final ValueChanged<TEYieldGroupDetail>? onGroupTap;
   final _TableMetrics metrics;
   final Set<String> highlightCells;
 
@@ -1136,30 +1136,30 @@ class _ModelBlock extends StatelessWidget {
 
     for (var g = 0; g < groupCount; g++) {
       final groupName = row.groupNames[g];
-      final rr = row.retestRate[groupName] ?? const <double?>[];
+      final rr = row.yieldRate[groupName] ?? const <double?>[];
       final input = row.input[groupName] ?? const <int?>[];
       final firstFail = row.firstFail[groupName] ?? const <int?>[];
-      final retestFail = row.retestFail[groupName] ?? const <int?>[];
+      final repairQty = row.repairQty[groupName] ?? const <int?>[];
       final pass = row.pass[groupName] ?? const <int?>[];
 
-      final cells = List<TERetestCellDetail>.generate(
+      final cells = List<TEYieldCellDetail>.generate(
         totalColumns,
         (i) {
           final dateIndex = i ~/ 2;
           final isDay = i.isEven;
           final rawDate =
               dateIndex < rawDates.length ? rawDates[dateIndex] : '';
-          return TERetestCellDetail(
+          return TEYieldCellDetail(
             modelName: row.modelName,
             groupName: groupName,
             dateLabel: formattedDates[dateIndex],
             dateKey: rawDate,
             shiftLabel: isDay ? 'Day' : 'Night',
             isDayShift: isDay,
-            retestRate: i < rr.length ? rr[i] : null,
+            yieldRate: i < rr.length ? rr[i] : null,
             input: i < input.length ? input[i] : null,
             firstFail: i < firstFail.length ? firstFail[i] : null,
-            retestFail: i < retestFail.length ? retestFail[i] : null,
+            repairQty: i < repairQty.length ? repairQty[i] : null,
             pass: i < pass.length ? pass[i] : null,
           );
         },
@@ -1181,7 +1181,7 @@ class _ModelBlock extends StatelessWidget {
                 onTap: onGroupTap == null
                     ? null
                     : () => onGroupTap!(
-                          TERetestGroupDetail(
+                          TEYieldGroupDetail(
                             modelName: row.modelName,
                             groupName: groupName,
                             cells: List.unmodifiable(cells),
@@ -1192,14 +1192,14 @@ class _ModelBlock extends StatelessWidget {
               for (var i = 0; i < cells.length; i++)
                 SizedBox(
                   width: metrics.cellWidth,
-                  child: _RetestValueCell(
+                  child: _YieldValueCell(
                     detail: cells[i],
                     background: background,
                     onTap: onCellTap,
                     isFirstRow: isRowFirst,
                     showRightBorder: i < cells.length - 1,
                     highlighted: highlightCells.contains(
-                      buildRetestCellKey(row.modelName, groupName, i),
+                      buildYieldCellKey(row.modelName, groupName, i),
                     ),
                   ),
                 ),
@@ -1210,7 +1210,7 @@ class _ModelBlock extends StatelessWidget {
     }
 
     if (groupRows.isEmpty) {
-      final placeholderCells = List<TERetestCellDetail>.generate(
+      final placeholderCells = List<TEYieldCellDetail>.generate(
         totalColumns,
         (i) {
           final dateIndex = i ~/ 2;
@@ -1224,17 +1224,17 @@ class _ModelBlock extends StatelessWidget {
           final rawDate =
               safeIndex < rawDates.length ? rawDates[safeIndex] : '';
           final dateLabel = hasDates ? formattedDates[safeIndex] : '-';
-          return TERetestCellDetail(
+          return TEYieldCellDetail(
             modelName: row.modelName,
             groupName: '-',
             dateLabel: dateLabel,
             dateKey: rawDate,
             shiftLabel: isDay ? 'Day' : 'Night',
             isDayShift: isDay,
-            retestRate: null,
+            yieldRate: null,
             input: null,
             firstFail: null,
-            retestFail: null,
+            repairQty: null,
             pass: null,
           );
         },
@@ -1256,7 +1256,7 @@ class _ModelBlock extends StatelessWidget {
               for (var i = 0; i < placeholderCells.length; i++)
                 SizedBox(
                   width: metrics.cellWidth,
-                  child: _RetestValueCell(
+                  child: _YieldValueCell(
                     detail: placeholderCells[i],
                     background: background,
                     onTap: onCellTap,
@@ -1427,7 +1427,7 @@ class _GroupCell extends StatelessWidget {
       ),
       boxShadow: const [
         BoxShadow(
-          color: Color(0xFF2C4F7F),
+          color: Color(0xFFD3E7FF),
           blurRadius: 10,
           offset: Offset(0, 6),
         ),
@@ -1458,8 +1458,8 @@ class _GroupCell extends StatelessWidget {
   }
 }
 
-class _RetestValueCell extends StatelessWidget {
-  const _RetestValueCell({
+class _YieldValueCell extends StatelessWidget {
+  const _YieldValueCell({
     required this.detail,
     required this.background,
     this.onTap,
@@ -1468,36 +1468,39 @@ class _RetestValueCell extends StatelessWidget {
     required this.highlighted,
   });
 
-  final TERetestCellDetail detail;
+  final TEYieldCellDetail detail;
   final Color background;
-  final ValueChanged<TERetestCellDetail>? onTap;
+  final ValueChanged<TEYieldCellDetail>? onTap;
   final bool isFirstRow;
   final bool showRightBorder;
   final bool highlighted;
 
   static const Color _dangerColor = Color(0xFFFDA4AF);
   static const Color _warningColor = Color(0xFFFACF7F);
-  static const Color _normalColor = Color(0xFF38BDF8);
+  static const Color _normalColor = Color(0xFF4ADE80);
   static const Color _dangerFill = Color(0x55EF4444);
   static const Color _warningFill = Color(0x55F59E0B);
-  static const Color _normalFill = Color(0x5538BDF8);
+  static const Color _normalFill = Color(0x5534D399);
   static const Color _naFill = Color(0x55325674);
 
   @override
   Widget build(BuildContext context) {
-    final value = detail.retestRate;
+    final value = detail.yieldRate;
     Color fillColor = _naFill;
     Color textColor = _kSecondaryTextColor;
     if (value != null) {
-      if (value >= 5) {
-        fillColor = _dangerFill;
-        textColor = _dangerColor;
-      } else if (value >= 3) {
-        fillColor = _warningFill;
-        textColor = _warningColor;
-      } else {
-        fillColor = _normalFill;
-        textColor = _normalColor;
+      final double normalized = value.clamp(0, 100);
+      fillColor = _normalFill;
+      textColor = _normalColor;
+
+      if (normalized != 0) {
+        if (normalized < 85) {
+          fillColor = _dangerFill;
+          textColor = _dangerColor;
+        } else if (normalized < 90) {
+          fillColor = _warningFill;
+          textColor = _warningColor;
+        }
       }
     } else {
       textColor = _kSecondaryTextColor;
@@ -1569,31 +1572,31 @@ class _RetestValueCell extends StatelessWidget {
     return cell;
   }
 
-  String _buildTooltip(TERetestCellDetail detail) {
+  String _buildTooltip(TEYieldCellDetail detail) {
     final buffer = StringBuffer()
       ..writeln('${detail.dateLabel} (${detail.shiftLabel})')
       ..writeln(
-          'Retest Rate: ${detail.retestRate == null ? 'N/A' : '${detail.retestRate!.toStringAsFixed(2)}%'}')
+          'Yield Rate: ${detail.yieldRate == null ? 'N/A' : '${detail.yieldRate!.toStringAsFixed(2)}%'}')
       ..writeln('WIP Qty: ${detail.input ?? 0}')
       ..writeln('First Fail: ${detail.firstFail ?? 0}')
-      ..writeln('Retest Fail: ${detail.retestFail ?? 0}')
+      ..writeln('Repair Qty: ${detail.repairQty ?? 0}')
       ..writeln('Pass Qty: ${detail.pass ?? 0}');
     return buffer.toString();
   }
 }
 
-class TERetestCellDetail {
-  const TERetestCellDetail({
+class TEYieldCellDetail {
+  const TEYieldCellDetail({
     required this.modelName,
     required this.groupName,
     required this.dateLabel,
     required this.dateKey,
     required this.shiftLabel,
     required this.isDayShift,
-    required this.retestRate,
+    required this.yieldRate,
     required this.input,
     required this.firstFail,
-    required this.retestFail,
+    required this.repairQty,
     required this.pass,
   });
 
@@ -1603,15 +1606,15 @@ class TERetestCellDetail {
   final String dateKey;
   final String shiftLabel;
   final bool isDayShift;
-  final double? retestRate;
+  final double? yieldRate;
   final int? input;
   final int? firstFail;
-  final int? retestFail;
+  final int? repairQty;
   final int? pass;
 }
 
-class TERetestGroupDetail {
-  const TERetestGroupDetail({
+class TEYieldGroupDetail {
+  const TEYieldGroupDetail({
     required this.modelName,
     required this.groupName,
     required this.cells,
@@ -1619,5 +1622,5 @@ class TERetestGroupDetail {
 
   final String modelName;
   final String groupName;
-  final List<TERetestCellDetail> cells;
+  final List<TEYieldCellDetail> cells;
 }
