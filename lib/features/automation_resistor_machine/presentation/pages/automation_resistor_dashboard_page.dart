@@ -81,20 +81,24 @@ class _AutomationResistorDashboardPageState
                   child: TabBarView(
                     physics: const NeverScrollableScrollPhysics(),
                     children: [
-                      Obx(() {
-                        if (controller.isLoading.value) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.cyanAccent,
-                            ),
-                          );
-                        }
-                        return _DashboardBody(controller: controller);
-                      }),
-                      _SnAnalysisTab(
-                        controller: controller,
-                        searchController: searchController,
-                        searchFocusNode: searchFocusNode,
+                      SizedBox.expand(
+                        child: Obx(() {
+                          if (controller.isLoading.value) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.cyanAccent,
+                              ),
+                            );
+                          }
+                          return _DashboardBody(controller: controller);
+                        }),
+                      ),
+                      SizedBox.expand(
+                        child: _SnAnalysisTab(
+                          controller: controller,
+                          searchController: searchController,
+                          searchFocusNode: searchFocusNode,
+                        ),
                       ),
                     ],
                   ),
@@ -2060,13 +2064,14 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
   Widget _buildMeasurementGrid(ResistorMachineTestResult test) {
     final Map<int, Map<int, List<ResistorMachineResultDetail>>> matrix = {};
     for (final detail in test.details) {
-      matrix.putIfAbsent(detail.row, () => {});
-      matrix[detail.row]!.putIfAbsent(detail.column, () => <ResistorMachineResultDetail>[]);
-      matrix[detail.row]![detail.column]!.add(detail);
+      matrix.putIfAbsent(detail.row, () => <int, List<ResistorMachineResultDetail>>{});
+      matrix[detail.row]!
+          .putIfAbsent(detail.column, () => <ResistorMachineResultDetail>[])
+          .add(detail);
     }
 
-    final rows = matrix.keys.toList()..sort();
-    final columns = test.details
+    final List<int> rows = matrix.keys.toList()..sort();
+    final List<int> columns = test.details
         .map((detail) => detail.column)
         .toSet()
         .toList()
@@ -2075,17 +2080,19 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     final table = Table(
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       border: TableBorder.all(color: Colors.white12, width: 1),
-      columnWidths: <int, TableColumnWidth>{
-        0: const FixedColumnWidth(72),
+      columnWidths: {
+        0: const FixedColumnWidth(60),
+        for (int i = 1; i <= columns.length; i++)
+          i: const FixedColumnWidth(130),
       },
       children: [
         TableRow(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFF004C8C), // xanh lam đậm
-                Color(0xFF007B8A), // xanh ngọc nhẹ
-                Color(0xFF001F3F), // xanh navy
+                Color(0xFF004C8C),
+                Color(0xFF007B8A),
+                Color(0xFF001F3F),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -2094,23 +2101,15 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
           children: [
             _buildTableHeaderCell('#'),
             ...columns.map(
-                  (col) => Center(
+              (col) => Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     'COL $col',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13.5,
-                      letterSpacing: 0.3,
-                      shadows: [
-                        Shadow(
-                          offset: Offset(0, 1.2),
-                          blurRadius: 2,
-                          color: Colors.black54,
-                        ),
-                      ],
+                      fontSize: 13,
                     ),
                   ),
                 ),
@@ -2119,16 +2118,16 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
           ],
         ),
         ...rows.map(
-              (row) => TableRow(
+          (row) => TableRow(
             children: [
               _buildRowHeaderCell(row),
               ...columns.map(
-                    (col) => SizedBox(
-                  width: 120,
+                (col) => SizedBox(
+                  width: 130,
                   child: _buildMeasurementCell(
                     matrix[row]?[col] ?? const <ResistorMachineResultDetail>[],
-                    row, // truyền thêm row
-                    col, // truyền thêm col
+                    row,
+                    col,
                   ),
                 ),
               ),
@@ -2138,104 +2137,23 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       ],
     );
 
-    return Expanded(
-      child: Scrollbar(
+    return Scrollbar(
+      controller: _gridHorizontalController,
+      thumbVisibility: true,
+      notificationPredicate: (notification) =>
+          notification.metrics.axis == Axis.horizontal,
+      child: SingleChildScrollView(
         controller: _gridHorizontalController,
-        thumbVisibility: true,
-        notificationPredicate: (notification) =>
-        notification.metrics.axis == Axis.horizontal,
-        child: SingleChildScrollView(
-          controller: _gridHorizontalController,
-          scrollDirection: Axis.horizontal,
-          child: IntrinsicWidth(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Table(
-                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                  border: TableBorder.all(color: Colors.white12, width: 1),
-                  columnWidths: {
-                    0: const FixedColumnWidth(60),
-                    for (int i = 1; i <= columns.length; i++)
-                      i: const FixedColumnWidth(130),
-                  },
-                  children: [
-                    TableRow(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Color(0xFF004C8C),
-                            Color(0xFF007B8A),
-                            Color(0xFF001F3F),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      children: [
-                        _buildTableHeaderCell('#'),
-                        ...columns.map(
-                              (col) => Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Text(
-                                'COL $col',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                Expanded(
-                  child: Scrollbar(
-                    controller: _gridVerticalController,
-                    thumbVisibility: true,
-                    notificationPredicate: (n) => n.metrics.axis == Axis.vertical,
-                    child: SingleChildScrollView(
-                      controller: _gridVerticalController,
-                      scrollDirection: Axis.vertical,
-                      child: Table(
-                        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                        border: TableBorder.all(color: Colors.white12, width: 1),
-                        columnWidths: {
-                          0: const FixedColumnWidth(60),
-                          for (int i = 1; i <= columns.length; i++)
-                            i: const FixedColumnWidth(130),
-                        },
-                        children: [
-                          ...rows.map(
-                                (row) => TableRow(
-                              children: [
-                                _buildRowHeaderCell(row),
-                                ...columns.map(
-                                      (col) => SizedBox(
-                                    width: 130,
-                                    child: _buildMeasurementCell(
-                                      matrix[row]?[col] ??
-                                          const <ResistorMachineResultDetail>[],
-                                      row,
-                                      col,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        scrollDirection: Axis.horizontal,
+        child: Scrollbar(
+          controller: _gridVerticalController,
+          thumbVisibility: true,
+          notificationPredicate: (notification) =>
+              notification.metrics.axis == Axis.vertical,
+          child: SingleChildScrollView(
+            controller: _gridVerticalController,
+            scrollDirection: Axis.vertical,
+            child: table,
           ),
         ),
       ),
