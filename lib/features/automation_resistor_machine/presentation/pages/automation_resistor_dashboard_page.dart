@@ -1105,15 +1105,28 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   AutomationResistorDashboardController get controller => widget.controller;
 
+  late final ScrollController _searchResultsController;
+  late final ScrollController _addressListController;
+  late final ScrollController _gridHorizontalController;
+  late final ScrollController _gridVerticalController;
+
   @override
   void initState() {
     super.initState();
+    _searchResultsController = ScrollController();
+    _addressListController = ScrollController();
+    _gridHorizontalController = ScrollController();
+    _gridVerticalController = ScrollController();
     widget.searchFocusNode.addListener(_handleFocusChange);
   }
 
   @override
   void dispose() {
     widget.searchFocusNode.removeListener(_handleFocusChange);
+    _searchResultsController.dispose();
+    _addressListController.dispose();
+    _gridHorizontalController.dispose();
+    _gridVerticalController.dispose();
     super.dispose();
   }
 
@@ -1199,34 +1212,44 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
+    final bool enableVerticalScroll = constraints.maxHeight < 720;
+    final bool fillHeight = !enableVerticalScroll;
+
+    final row = Row(
+      crossAxisAlignment:
+          fillHeight ? CrossAxisAlignment.stretch : CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 360,
+          child: _buildSerialAnalysisCard(
+            matches: matches,
+            isSearching: isSearching,
+            isLoadingRecord: isLoadingRecord,
+            tests: tests,
+            selectedTest: selectedTest,
+            selectedSerial: selectedSerial,
+            fillHeight: fillHeight,
+          ),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: _buildDetailColumn(
+            record: record,
+            selectedTest: selectedTest,
+            isLoadingRecord: isLoadingRecord,
+            fillHeight: fillHeight,
+          ),
+        ),
+      ],
+    );
+
+    if (enableVerticalScroll) {
+      return SingleChildScrollView(child: row);
+    }
+
     return SizedBox(
       height: constraints.maxHeight,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 360,
-            child: _buildSerialAnalysisCard(
-              matches: matches,
-              isSearching: isSearching,
-              isLoadingRecord: isLoadingRecord,
-              tests: tests,
-              selectedTest: selectedTest,
-              selectedSerial: selectedSerial,
-              fillHeight: true,
-            ),
-          ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: _buildDetailColumn(
-              record: record,
-              selectedTest: selectedTest,
-              isLoadingRecord: isLoadingRecord,
-              fillHeight: true,
-            ),
-          ),
-        ],
-      ),
+      child: row,
     );
   }
 
@@ -1370,16 +1393,33 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     List<ResistorMachineSerialMatch> matches,
     bool isSearching,
   ) {
+    final bool hasResults = matches.isNotEmpty;
+
     Widget child;
-    if (isSearching && matches.isEmpty) {
-      child = const Center(
-        child: Padding(
+    if (!hasResults) {
+      if (isSearching) {
+        child = const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: CircularProgressIndicator(color: Colors.cyanAccent),
+          ),
+        );
+      } else {
+        child = const Padding(
           padding: EdgeInsets.symmetric(vertical: 16),
-          child: CircularProgressIndicator(color: Colors.cyanAccent),
-        ),
-      );
+          child: Text(
+            'No serial numbers match your search.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white60),
+          ),
+        );
+      }
     } else {
       child = ListView.separated(
+        controller: _searchResultsController,
+        primary: false,
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
         itemCount: matches.length,
         separatorBuilder: (_, __) => const Divider(
           height: 1,
@@ -1434,10 +1474,13 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         border: Border.all(color: Colors.white12),
       ),
       constraints: const BoxConstraints(maxHeight: 280),
-      child: Scrollbar(
-        thumbVisibility: true,
-        child: child,
-      ),
+      child: hasResults
+          ? Scrollbar(
+              controller: _searchResultsController,
+              thumbVisibility: true,
+              child: child,
+            )
+          : child,
     );
   }
 
@@ -1529,7 +1572,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     }
 
     if (constrainHeight) {
-      return SizedBox(height: 360, child: content);
+      return ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 360),
+        child: content,
+      );
     }
     return content;
   }
@@ -1539,8 +1585,13 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     ResistorMachineTestResult? selectedTest,
   ) {
     return Scrollbar(
+      controller: _addressListController,
       thumbVisibility: true,
       child: ListView.separated(
+        controller: _addressListController,
+        primary: false,
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
         itemCount: tests.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
@@ -1905,14 +1956,22 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     );
 
     return Scrollbar(
+      controller: _gridHorizontalController,
       thumbVisibility: true,
+      notificationPredicate: (notification) =>
+          notification.metrics.axis == Axis.horizontal,
       child: SingleChildScrollView(
+        controller: _gridHorizontalController,
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
           constraints: BoxConstraints(minWidth: columns.length * 120.0 + 72),
           child: Scrollbar(
+            controller: _gridVerticalController,
             thumbVisibility: true,
+            notificationPredicate: (notification) =>
+                notification.metrics.axis == Axis.vertical,
             child: SingleChildScrollView(
+              controller: _gridVerticalController,
               child: table,
             ),
           ),
@@ -2002,7 +2061,6 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     final String value = _numberFormat.format(detail.measurementValue);
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           '$label:',
@@ -2011,11 +2069,16 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            color: isFail ? Colors.redAccent : Colors.white,
-            fontWeight: FontWeight.w700,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isFail ? Colors.redAccent : Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
