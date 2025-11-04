@@ -1174,6 +1174,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
           final EdgeInsets padding = isWide
               ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
               : const EdgeInsets.all(16);
+          final double viewportHeight = constraints.maxHeight;
 
           final Widget content = isWide
               ? _buildWideLayout(
@@ -1187,6 +1188,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
                   selectedSerial: selectedSerial,
                 )
               : _buildStackedLayout(
+                  viewportHeight: viewportHeight,
                   matches: matches,
                   isSearching: isSearching,
                   isLoadingRecord: isLoadingRecord,
@@ -1249,7 +1251,12 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     );
 
     if (enableVerticalScroll) {
-      return SingleChildScrollView(child: row);
+      return SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: row,
+        ),
+      );
     }
 
     return SizedBox(
@@ -1259,6 +1266,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
   }
 
   Widget _buildStackedLayout({
+    required double viewportHeight,
     required List<ResistorMachineSerialMatch> matches,
     required bool isSearching,
     required bool isLoadingRecord,
@@ -1268,26 +1276,29 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
     return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildSerialAnalysisCard(
-            matches: matches,
-            isSearching: isSearching,
-            isLoadingRecord: isLoadingRecord,
-            tests: tests,
-            selectedTest: selectedTest,
-            selectedSerial: selectedSerial,
-            fillHeight: false,
-          ),
-          const SizedBox(height: 20),
-          _buildDetailColumn(
-            record: record,
-            selectedTest: selectedTest,
-            isLoadingRecord: isLoadingRecord,
-            fillHeight: false,
-          ),
-        ],
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: viewportHeight),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildSerialAnalysisCard(
+              matches: matches,
+              isSearching: isSearching,
+              isLoadingRecord: isLoadingRecord,
+              tests: tests,
+              selectedTest: selectedTest,
+              selectedSerial: selectedSerial,
+              fillHeight: false,
+            ),
+            const SizedBox(height: 20),
+            _buildDetailColumn(
+              record: record,
+              selectedTest: selectedTest,
+              isLoadingRecord: isLoadingRecord,
+              fillHeight: false,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1620,9 +1631,9 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   Widget _buildAddressList(
     List<ResistorMachineTestResult> tests,
-    ResistorMachineTestResult? selectedTest,
-    {required bool shrinkWrap},
-  ) {
+    ResistorMachineTestResult? selectedTest, {
+    required bool shrinkWrap,
+  }) {
     return Scrollbar(
       controller: _addressListController,
       thumbVisibility: true,
