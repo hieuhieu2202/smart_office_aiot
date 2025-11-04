@@ -6,8 +6,8 @@ import '../../domain/entities/te_retest_rate.dart';
 
 const double _kIndexBaseWidth = 58;
 const double _kIndexMinWidth = 46;
-const double _kModelBaseWidth = 220;
-const double _kModelMinWidth = 160;
+const double _kModelBaseWidth = 211.2;
+const double _kModelMinWidth = 153.6;
 const double _kGroupBaseWidth = 307.8;
 const double _kGroupMinWidth = 205.2;
 const double _kCellBaseWidth = 108;
@@ -1284,9 +1284,9 @@ class _ModelBlock extends StatelessWidget {
             width: metrics.modelWidth,
             height: blockHeight,
             label: row.modelName,
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.center,
             isFirst: isFirstBlock,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             textStyle: const TextStyle(
               color: _kModelTextColor,
               fontWeight: FontWeight.w700,
