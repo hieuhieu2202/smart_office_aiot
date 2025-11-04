@@ -28,7 +28,8 @@ class ResistorComboChart extends StatelessWidget {
     final yr = series.yieldRate;
     final sections = series.sections;
     final shiftStartMinutes = series.shiftStartMinutes;
-    final showYieldTarget = title.toLowerCase().contains('yield rate');
+    final showYieldTarget = title.toLowerCase().contains('yield rate') ||
+        title.toLowerCase().contains('machine distribution');
 
     if (categories.isEmpty || pass.isEmpty || fail.isEmpty || yr.isEmpty) {
       return _buildEmptyState(context);
@@ -43,7 +44,7 @@ class ResistorComboChart extends StatelessWidget {
 
     var points = List<_ComboPoint>.generate(
       itemCount,
-      (index) => _ComboPoint(
+          (index) => _ComboPoint(
         rawCategory: categories[index],
         displayCategory: _formatCategoryLabel(
           categories[index],
@@ -56,7 +57,7 @@ class ResistorComboChart extends StatelessWidget {
         yr: yr[index],
         section: index < sections.length ? sections[index] : null,
         shiftStartMinutes:
-            index < shiftStartMinutes.length ? shiftStartMinutes[index] : null,
+        index < shiftStartMinutes.length ? shiftStartMinutes[index] : null,
       ),
     );
 
@@ -79,7 +80,8 @@ class ResistorComboChart extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.25), width: 1.3),
+        border:
+        Border.all(color: Colors.cyanAccent.withOpacity(0.25), width: 1.3),
         boxShadow: [
           BoxShadow(
             color: Colors.cyanAccent.withOpacity(0.12),
@@ -111,6 +113,7 @@ class ResistorComboChart extends StatelessWidget {
             child: SfCartesianChart(
               backgroundColor: Colors.transparent,
               plotAreaBorderWidth: 0,
+              margin: const EdgeInsets.only(top: 29, right: 12, left: 4),
               legend: const Legend(
                 isVisible: true,
                 textStyle: TextStyle(color: Colors.white70),
@@ -119,7 +122,8 @@ class ResistorComboChart extends StatelessWidget {
                 labelStyle: axisLabelStyle,
                 majorGridLines: const MajorGridLines(width: 0),
                 axisLine: AxisLine(color: Colors.white.withOpacity(0.2)),
-                majorTickLines: const MajorTickLines(size: 4, color: Colors.white30),
+                majorTickLines:
+                const MajorTickLines(size: 4, color: Colors.white30),
                 labelRotation:
                 alignToShiftWindows || points.length <= 6 ? 0 : -35,
                 labelIntersectAction: alignToShiftWindows
@@ -146,7 +150,7 @@ class ResistorComboChart extends StatelessWidget {
                   name: 'yrAxis',
                   opposedPosition: true,
                   minimum: 0,
-                  maximum: 110,
+                  maximum: 108,
                   interval: 10,
                   labelFormat: '{value}%',
                   labelStyle: const TextStyle(color: Colors.cyanAccent),
@@ -156,14 +160,32 @@ class ResistorComboChart extends StatelessWidget {
                       ChartAxisLabel('', const TextStyle()),
                 ),
               ],
-              tooltipBehavior: TooltipBehavior(enable: true),
+
+              tooltipBehavior: TooltipBehavior(
+                enable: true,
+                color: const Color(0xFF061C2F),
+                borderColor: Colors.cyanAccent.withOpacity(0.3),
+                borderWidth: 1,
+                canShowMarker: true,
+                header: '',
+                textStyle: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+                tooltipPosition: TooltipPosition.pointer,
+                animationDuration: 150,
+                opacity: 0.98,
+              ),
+
               annotations: <CartesianChartAnnotation>[
                 if (showYieldTarget && points.isNotEmpty)
                   CartesianChartAnnotation(
                     widget: Transform.translate(
-                      offset: const Offset(14, -8),
+                      offset: const Offset(8, 1),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: Colors.cyanAccent.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(6),
@@ -187,7 +209,7 @@ class ResistorComboChart extends StatelessWidget {
                     yAxisName: 'yrAxis',
                     coordinateUnit: CoordinateUnit.point,
                     horizontalAlignment: ChartAlignment.far,
-                    verticalAlignment: ChartAlignment.center,
+                    verticalAlignment: ChartAlignment.far,
                   ),
               ],
               series: <CartesianSeries<_ComboPoint, String>>[
@@ -195,7 +217,8 @@ class ResistorComboChart extends StatelessWidget {
                   name: 'PASS',
                   width: 0.65,
                   spacing: 0.15,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                  borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(6)),
                   gradient: const LinearGradient(
                     colors: [Color(0xFF00FFE7), Color(0xFF008BFF)],
                     begin: Alignment.bottomCenter,
@@ -217,7 +240,8 @@ class ResistorComboChart extends StatelessWidget {
                   name: 'FAIL',
                   width: 0.65,
                   spacing: 0.15,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                  borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(6)),
                   gradient: const LinearGradient(
                     colors: [Color(0xFFFF597A), Color(0xFFFF004F)],
                     begin: Alignment.bottomCenter,
@@ -235,12 +259,27 @@ class ResistorComboChart extends StatelessWidget {
                     ),
                   ),
                 ),
-                SplineSeries<_ComboPoint, String>(
+
+                AreaSeries<_ComboPoint, String>(
+                  name: 'YR Area',
+                  dataSource: points,
+                  yAxisName: 'yrAxis',
+                  color: const Color(0xFF97F386).withOpacity(0.15),
+                  borderWidth: 0,
+                  xValueMapper: (_ComboPoint p, _) => p.displayCategory,
+                  yValueMapper: (_ComboPoint p, _) =>
+                      double.parse(p.yr.toStringAsFixed(2)),
+                ),
+
+
+                LineSeries<_ComboPoint, String>(
                   name: 'YR',
                   dataSource: points,
                   yAxisName: 'yrAxis',
                   color: const Color(0xFF39FF14),
                   width: 3,
+                  opacity: 0.95,
+                  animationDuration: 0,
                   markerSettings: const MarkerSettings(
                     isVisible: true,
                     width: 8,
@@ -249,7 +288,8 @@ class ResistorComboChart extends StatelessWidget {
                     borderColor: Colors.white,
                   ),
                   xValueMapper: (_ComboPoint p, _) => p.displayCategory,
-                  yValueMapper: (_ComboPoint p, _) => p.yr,
+                  yValueMapper: (_ComboPoint p, _) =>
+                      double.parse(p.yr.toStringAsFixed(2)),
                 ),
                 LineSeries<_ComboPoint, String>(
                   name: 'Target (98%)',
@@ -278,7 +318,8 @@ class ResistorComboChart extends StatelessWidget {
         end: Alignment.bottomRight,
       ),
       borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: Colors.cyanAccent.withOpacity(0.25), width: 1.3),
+      border:
+      Border.all(color: Colors.cyanAccent.withOpacity(0.25), width: 1.3),
       boxShadow: [
         BoxShadow(
           color: Colors.cyanAccent.withOpacity(0.12),
@@ -322,11 +363,11 @@ const int _minutesPerSection = 60;
 const int _sectionsPerShift = 12;
 
 String _formatCategoryLabel(
-  String value,
-  int? section, {
-  int? baseStartSection,
-  DateTime? shiftStartTime,
-}) {
+    String value,
+    int? section, {
+      int? baseStartSection,
+      DateTime? shiftStartTime,
+    }) {
   final trimmed = value.trim();
   final match = RegExp(r'^S(\d+)$').firstMatch(trimmed);
   final parsedSection = section ?? int.tryParse(match?.group(1) ?? '');
@@ -340,10 +381,10 @@ String _formatCategoryLabel(
 }
 
 List<_ComboPoint> _normalizeShiftWindows(
-  List<_ComboPoint> points,
-  int startSectionHint,
-  DateTime? shiftStartTime,
-) {
+    List<_ComboPoint> points,
+    int startSectionHint,
+    DateTime? shiftStartTime,
+    ) {
   if (points.isEmpty) return points;
 
   final sectionBuckets = <int, _ShiftBucket>{};
@@ -351,9 +392,7 @@ List<_ComboPoint> _normalizeShiftWindows(
 
   for (final point in points) {
     final section = _extractSectionNumber(point);
-    if (section == null) {
-      continue;
-    }
+    if (section == null) continue;
 
     final bucket = sectionBuckets.putIfAbsent(section, () => _ShiftBucket());
     bucket.pass += point.pass;
@@ -365,12 +404,11 @@ List<_ComboPoint> _normalizeShiftWindows(
     }
   }
 
-  if (sectionBuckets.isEmpty) {
-    return points;
-  }
+  if (sectionBuckets.isEmpty) return points;
 
   final sortedSections = sectionBuckets.keys.toList()..sort();
-  final baseSection = startSectionHint > 0 ? startSectionHint : sortedSections.first;
+  final baseSection =
+  startSectionHint > 0 ? startSectionHint : sortedSections.first;
   final normalizedStart = baseSection;
   final offset = sortedSections.first - normalizedStart;
 
@@ -404,10 +442,7 @@ List<_ComboPoint> _normalizeShiftWindows(
 }
 
 int _minutesFromNormalizedSection(int section) {
-  if (section <= 0) {
-    return 7 * 60 + 30;
-  }
-
+  if (section <= 0) return 7 * 60 + 30;
   final normalizedIndex =
       ((section - 1) % _sectionsPerShift + _sectionsPerShift) % _sectionsPerShift;
   final blockIndex = ((section - 1) ~/ _sectionsPerShift);
@@ -418,31 +453,22 @@ int _minutesFromNormalizedSection(int section) {
 
 int? _extractSectionNumber(_ComboPoint point) {
   final section = point.section;
-  if (section != null && section > 0) {
-    return section;
-  }
-
+  if (section != null && section > 0) return section;
   final raw = RegExp(r'^S(\d+)$', caseSensitive: false)
       .firstMatch(point.rawCategory.trim());
-  if (raw != null) {
-    return int.tryParse(raw.group(1)!);
-  }
-
+  if (raw != null) return int.tryParse(raw.group(1)!);
   final display = RegExp(r'^S(\d+)$', caseSensitive: false)
       .firstMatch(point.displayCategory.trim());
-  if (display != null) {
-    return int.tryParse(display.group(1)!);
-  }
-
+  if (display != null) return int.tryParse(display.group(1)!);
   return null;
 }
 
 String _formatShiftLabel(
-  int section,
-  int? startMinutes,
-  int baseSection,
-  DateTime? shiftStartTime,
-) {
+    int section,
+    int? startMinutes,
+    int baseSection,
+    DateTime? shiftStartTime,
+    ) {
   final formatter = DateFormat('HH:mm');
   if (shiftStartTime != null && baseSection > 0) {
     final offsetHours = section - baseSection;
@@ -450,13 +476,11 @@ String _formatShiftLabel(
     final end = start.add(const Duration(hours: 1));
     return '${formatter.format(start)} - ${formatter.format(end)}';
   }
-
   if (startMinutes != null) {
     final start = _dateFromMinutes(startMinutes);
     final end = start.add(const Duration(hours: 1));
     return '${formatter.format(start)} - ${formatter.format(end)}';
   }
-
   final fallbackMinutes = _minutesFromNormalizedSection(section);
   final fallbackStart = _dateFromMinutes(fallbackMinutes);
   final fallbackEnd = fallbackStart.add(const Duration(hours: 1));

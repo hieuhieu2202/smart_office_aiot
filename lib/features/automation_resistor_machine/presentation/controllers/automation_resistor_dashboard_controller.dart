@@ -282,7 +282,6 @@ class AutomationResistorDashboardController extends GetxController {
     required String status,
   }) {
     selectedRange.value = range;
-    selectedShift.value = _deriveShift(range.start);
     selectedMachine.value = machine;
     selectedStatus.value = status;
     loadDashboard();
@@ -437,52 +436,38 @@ class AutomationResistorDashboardController extends GetxController {
 
   void _updateStartSection(List<ResistorMachineOutput> outputs) {
     try {
-      final rangeStart = selectedRange.value.start;
-      final baseAnchor = DateTime(
-        rangeStart.year,
-        rangeStart.month,
-        rangeStart.day,
-        6,
+      final base = DateTime(
+        selectedRange.value.start.year,
+        selectedRange.value.start.month,
+        selectedRange.value.start.day,
+        7,
         30,
       );
 
       if (outputs.isEmpty) {
-        startSection.value = 1;
-        shiftStartTime.value = baseAnchor;
-        debugPrint(
-            "[ResistorDashboard] 🧮 No output data — using base anchor ${DateFormat('HH:mm').format(baseAnchor)}");
+        startSection.value = 9;
+        shiftStartTime.value = base;
+        debugPrint('[ResistorDashboard] ⚠️ outputs empty -> default section=9, startTime=07:30');
         return;
       }
 
       final sections = outputs.map((e) => e.section).whereType<int>().toList();
       if (sections.isEmpty) {
-        startSection.value = 1;
-        shiftStartTime.value = baseAnchor;
-        debugPrint(
-            "[ResistorDashboard] 🧮 No section info — using base anchor ${DateFormat('HH:mm').format(baseAnchor)}");
+        startSection.value = 9;
+        shiftStartTime.value = base;
         return;
       }
 
       final minSection = sections.reduce((a, b) => a < b ? a : b);
       startSection.value = minSection;
+      final offset = minSection - 8;
 
-      final detectedStart = baseAnchor.add(Duration(hours: minSection - 1));
-      shiftStartTime.value = detectedStart;
+      shiftStartTime.value = base.add(Duration(hours: offset));
 
-      debugPrint(
-        "[ResistorDashboard] 🧭 startSection=$minSection, anchor=${DateFormat('HH:mm').format(baseAnchor)}, sectionStart=${DateFormat('HH:mm').format(detectedStart)}",
-      );
+      debugPrint('[ResistorDashboard] ✅ startSection=$minSection, anchor=07:30, '
+          'sectionStart=${DateFormat('HH:mm').format(shiftStartTime.value)}');
     } catch (e) {
-      startSection.value = 1;
-      final rangeStart = selectedRange.value.start;
-      shiftStartTime.value = DateTime(
-        rangeStart.year,
-        rangeStart.month,
-        rangeStart.day,
-        6,
-        30,
-      );
-      debugPrint('[ResistorDashboard] ⚠️ _updateStartSection error: $e');
+      debugPrint('[ResistorDashboard] _updateStartSection error: $e');
     }
   }
 
@@ -501,7 +486,7 @@ class AutomationResistorDashboardController extends GetxController {
 
   static DateTimeRange _defaultRange() {
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day, 6, 30);
+    final start = DateTime(now.year, now.month, now.day, 7, 30);
     final end = DateTime(now.year, now.month, now.day, 19, 30);
     return DateTimeRange(start: start, end: end);
   }

@@ -121,7 +121,7 @@ class _AutomationResistorDashboardPageState
             builder: (context, _) {
               final bool showFilters = tabController.index == 0;
               final String title = tabController.index == 0
-                  ? 'AUTOMATION RESISTOR MACHINE DASHBOARD'
+                  ? 'RESISTOR MACHINE '
                   : 'SERIAL NUMBER ANALYSIS';
 
               return Column(
