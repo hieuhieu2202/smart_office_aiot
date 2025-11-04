@@ -1468,10 +1468,10 @@ class _RetestValueCell extends StatelessWidget {
   static const Color _dangerColor = Color(0xFFE11D48);
   static const Color _warningColor = Color(0xFFF59E0B);
   static const Color _normalColor = Color(0xFF0EA5E9);
-  static const Color _dangerFill = Color(0xFFFFD9E1);
-  static const Color _warningFill = Color(0xFFFFEDC7);
-  static const Color _normalFill = Color(0xFFD1F7FF);
-  static const Color _naFill = Color(0xFFE9F2FF);
+  static const Color _dangerFill = Color(0xFFFFF1F3);
+  static const Color _warningFill = Color(0xFFFFF7E8);
+  static const Color _normalFill = Color(0xFFE6F9FF);
+  static const Color _naFill = Color(0xFFF2F7FF);
 
   @override
   Widget build(BuildContext context) {
