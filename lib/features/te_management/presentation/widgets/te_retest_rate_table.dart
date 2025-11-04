@@ -53,6 +53,9 @@ const Color _kPrimaryTextColor = Color(0xFFE2F1FF);
 const Color _kSecondaryTextColor = Color(0xFFA5C7F5);
 const Color _kModelTextColor = Color(0xFFE5F1FF);
 const Color _kGroupTextColor = Color(0xFFEBF6FF);
+const Color _kHighlightBlendColor = Color(0xFF4F9BFF);
+const Color _kHighlightGlowColor = Color(0x332F64B8);
+const Color _kHighlightBorderColor = Color(0xFF64B5FF);
 
 class TERetestRateTable extends StatefulWidget {
   const TERetestRateTable({
@@ -783,16 +786,16 @@ class _CompactShiftTile extends StatelessWidget {
         color: _isPlaceholder ? const Color(0xFF1B314F) : _kCompactChipBackground,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-        color: highlighted ? const Color(0xFF38BDF8) : _kCompactChipBorder,
-          width: highlighted ? 1.6 : 1.0,
+          color: highlighted ? _kHighlightBorderColor : _kCompactChipBorder,
+          width: highlighted ? 1.2 : 1.0,
         ),
         boxShadow: highlighted
             ? const [
                 BoxShadow(
-                  color: Color(0xFF2C4F7F),
-                  blurRadius: 16,
-                  spreadRadius: 1.5,
-                  offset: Offset(0, 8),
+                  color: _kHighlightGlowColor,
+                  blurRadius: 20,
+                  spreadRadius: 0.6,
+                  offset: Offset(0, 10),
                 ),
               ]
             : const [],
@@ -1504,10 +1507,10 @@ class _RetestValueCell extends StatelessWidget {
     final tooltip = _buildTooltip(detail);
 
     final animatedColor = highlighted
-        ? Color.lerp(fillColor, const Color(0xFF38BDF8), 0.45) ?? fillColor
+        ? Color.lerp(fillColor, _kHighlightBlendColor, 0.22) ?? fillColor
         : fillColor;
     final effectiveTextColor = highlighted
-        ? Color.lerp(textColor, _kPrimaryTextColor, 0.35) ?? textColor
+        ? Color.lerp(textColor, _kPrimaryTextColor, 0.2) ?? textColor
         : textColor;
 
     Widget cell = AnimatedContainer(
@@ -1524,9 +1527,10 @@ class _RetestValueCell extends StatelessWidget {
         boxShadow: highlighted
             ? const [
                 BoxShadow(
-                  color: Color(0xFF2C4F7F),
-                  blurRadius: 16,
-                  spreadRadius: 1.1,
+                  color: _kHighlightGlowColor,
+                  blurRadius: 22,
+                  spreadRadius: 0.8,
+                  offset: Offset(0, 10),
                 ),
               ]
             : null,
