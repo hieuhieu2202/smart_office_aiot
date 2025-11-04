@@ -2062,17 +2062,24 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
     return Row(
       children: [
-        Text(
-          '$label:',
-          style: const TextStyle(
-            color: Color(0xFFB388FF),
-            fontWeight: FontWeight.w700,
+        Expanded(
+          flex: 3,
+          child: Text(
+            '$label:',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFFB388FF),
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
+          flex: 4,
           child: Text(
             value,
+            maxLines: 1,
             textAlign: TextAlign.right,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
