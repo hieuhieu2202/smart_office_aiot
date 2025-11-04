@@ -1170,68 +1170,47 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       final selectedTest = controller.selectedTestResult.value;
       final selectedSerial = controller.selectedSerial.value;
 
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isWide = constraints.maxWidth >= 1100;
-          final EdgeInsets padding = isWide
-              ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
-              : const EdgeInsets.all(16);
+      return SizedBox.expand(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isWide = constraints.maxWidth >= 1100;
+            final EdgeInsets padding = isWide
+                ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
+                : const EdgeInsets.all(16);
 
-          final double? availableHeight = constraints.hasBoundedHeight
-              ? math.max(0, constraints.maxHeight - padding.vertical)
-              : null;
+            final bool hasFiniteHeight = constraints.maxHeight.isFinite;
+            final double? availableHeight = hasFiniteHeight
+                ? math.max(0, constraints.maxHeight - padding.vertical)
+                : null;
 
-          final Widget content = isWide
-              ? _buildWideLayout(
-                  maxHeight: availableHeight,
-                  matches: matches,
-                  isSearching: isSearching,
-                  isLoadingRecord: isLoadingRecord,
-                  record: record,
-                  tests: tests,
-                  selectedTest: selectedTest,
-                  selectedSerial: selectedSerial,
-                )
-              : _buildStackedLayout(
-                  maxHeight: availableHeight,
-                  matches: matches,
-                  isSearching: isSearching,
-                  isLoadingRecord: isLoadingRecord,
-                  record: record,
-                  tests: tests,
-                  selectedTest: selectedTest,
-                  selectedSerial: selectedSerial,
-                );
+            final Widget content = isWide
+                ? _buildWideLayout(
+                    maxHeight: availableHeight,
+                    matches: matches,
+                    isSearching: isSearching,
+                    isLoadingRecord: isLoadingRecord,
+                    record: record,
+                    tests: tests,
+                    selectedTest: selectedTest,
+                    selectedSerial: selectedSerial,
+                  )
+                : _buildStackedLayout(
+                    maxHeight: availableHeight,
+                    matches: matches,
+                    isSearching: isSearching,
+                    isLoadingRecord: isLoadingRecord,
+                    record: record,
+                    tests: tests,
+                    selectedTest: selectedTest,
+                    selectedSerial: selectedSerial,
+                  );
 
-          final Widget padded = Padding(
-            padding: padding,
-            child: content,
-          );
-
-          if (constraints.hasBoundedWidth && constraints.hasBoundedHeight) {
-            return SizedBox(
-              width: constraints.maxWidth,
-              height: constraints.maxHeight,
-              child: padded,
+            return Padding(
+              padding: padding,
+              child: content,
             );
-          }
-
-          if (constraints.hasBoundedWidth) {
-            return SizedBox(
-              width: constraints.maxWidth,
-              child: padded,
-            );
-          }
-
-          if (constraints.hasBoundedHeight) {
-            return SizedBox(
-              height: constraints.maxHeight,
-              child: padded,
-            );
-          }
-
-          return padded;
-        },
+          },
+        ),
       );
     });
   }
