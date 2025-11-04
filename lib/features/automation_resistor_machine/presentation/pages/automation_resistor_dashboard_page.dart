@@ -1196,9 +1196,11 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
                   selectedSerial: selectedSerial,
                 );
 
-          return Padding(
-            padding: padding,
-            child: content,
+          return SizedBox.expand(
+            child: Padding(
+              padding: padding,
+              child: content,
+            ),
           );
         },
       );
