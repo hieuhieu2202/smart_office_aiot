@@ -233,6 +233,7 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
                                 searchText: _searchCtl.text,
                                 onSearchChanged: handleSearchChanged,
                                 onClearSearch: handleClearSearch,
+                                showShiftField: false,
                               ),
                             ),
                           ),
@@ -361,6 +362,17 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
               ? 'Đã cập nhật lúc ${_formatTime(lastUpdatedAt)}'
               : null;
 
+          void handleBack() {
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+              return;
+            }
+            if (Get.key.currentState?.canPop() ?? false) {
+              Get.back();
+            }
+          }
+
           return Scaffold(
             backgroundColor: _pageBackground,
             appBar: OtTopBar(
@@ -370,7 +382,8 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
               useCompactHeader: useCompactChrome,
               showInlineFilters: showInlineFilters,
               useFullWidthFilters: isPhone,
-              onBack: Get.back,
+              onBack: handleBack,
+              showShiftField: false,
               statusText: statusText,
               statusHighlight: statusHighlight,
               isRefreshing: isRefreshing,

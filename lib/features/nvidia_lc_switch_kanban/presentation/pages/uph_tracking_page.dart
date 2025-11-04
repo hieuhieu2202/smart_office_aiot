@@ -370,6 +370,17 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
               ? 'Đã cập nhật lúc ${_formatTime(lastUpdatedAt)}'
               : null;
 
+          void handleBack() {
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+              return;
+            }
+            if (Get.key.currentState?.canPop() ?? false) {
+              Get.back();
+            }
+          }
+
           return Scaffold(
             backgroundColor: _pageBackground,
             appBar: OtTopBar(
@@ -379,7 +390,7 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
               useCompactHeader: useCompactChrome,
               showInlineFilters: showInlineFilters,
               useFullWidthFilters: isPhone,
-              onBack: Get.back,
+              onBack: handleBack,
               statusText: statusText,
               statusHighlight: statusHighlight,
               isRefreshing: isRefreshing,

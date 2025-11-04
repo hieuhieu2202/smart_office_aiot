@@ -245,7 +245,7 @@ String _formatDate(DateTime d) {
 }
 
 String _formatRange(DateTimeRange range) =>
-    '${_formatDate(range.start)}~${_formatDate(range.end)}';
+    '${_formatDate(range.start)} - ${_formatDate(range.end)}';
 
 bool _isSameRange(DateTimeRange a, DateTimeRange b) {
   return _isSameDay(a.start, b.start) && _isSameDay(a.end, b.end);
