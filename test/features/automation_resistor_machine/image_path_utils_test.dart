@@ -4,13 +4,23 @@ import 'package:smart_office_aiot/features/automation_resistor_machine/data/util
 
 void main() {
   group('normalizeResistorMachineImagePath', () {
+    const proxyBase = 'https://10.220.130.117/newweb/api/image/raw';
+
     test('returns empty when input is empty', () {
       expect(normalizeResistorMachineImagePath(''), isEmpty);
       expect(normalizeResistorMachineImagePath('   '), isEmpty);
     });
 
-    test('keeps absolute urls intact', () {
+    test('wraps default host absolute urls with proxy endpoint', () {
       const url = 'https://10.220.130.117/newweb/Upload/image.png';
+      expect(
+        normalizeResistorMachineImagePath(url),
+        '$proxyBase/Upload/image.png',
+      );
+    });
+
+    test('leaves unrelated absolute urls untouched', () {
+      const url = 'https://example.com/assets/image.png';
       expect(normalizeResistorMachineImagePath(url), url);
     });
 
@@ -18,7 +28,7 @@ void main() {
       const raw = r"\\\\10.220.130.117\\newweb\\Upload\\image.png";
       expect(
         normalizeResistorMachineImagePath(raw),
-        'https://10.220.130.117/newweb/Upload/image.png',
+        '$proxyBase/Upload/image.png',
       );
     });
 
@@ -26,7 +36,7 @@ void main() {
       const raw = '//10.220.130.117/newweb/Upload/image.png';
       expect(
         normalizeResistorMachineImagePath(raw),
-        'https://10.220.130.117/newweb/Upload/image.png',
+        '$proxyBase/Upload/image.png',
       );
     });
 
@@ -34,7 +44,7 @@ void main() {
       const raw = 'Upload/image.png';
       expect(
         normalizeResistorMachineImagePath(raw),
-        'https://10.220.130.117/newweb/Upload/image.png',
+        '$proxyBase/Upload/image.png',
       );
     });
 
@@ -42,8 +52,27 @@ void main() {
       const raw = 'newweb/Upload/image.png';
       expect(
         normalizeResistorMachineImagePath(raw),
-        'https://10.220.130.117/newweb/Upload/image.png',
+        '$proxyBase/Upload/image.png',
       );
+    });
+
+    test('encodes spaces within path segments', () {
+      const raw = 'Upload/Test Folder/Image 01.png';
+      expect(
+        normalizeResistorMachineImagePath(raw),
+        '$proxyBase/Upload/Test%20Folder/Image%2001.png',
+      );
+    });
+
+    test('keeps already proxied paths intact while ensuring absolute url', () {
+      const raw = 'api/image/raw/Upload/image.png';
+      expect(
+        normalizeResistorMachineImagePath(raw),
+        '$proxyBase/Upload/image.png',
+      );
+
+      const absolute = 'https://10.220.130.117/newweb/api/image/raw/Upload/image.png';
+      expect(normalizeResistorMachineImagePath(absolute), absolute);
     });
   });
 }
