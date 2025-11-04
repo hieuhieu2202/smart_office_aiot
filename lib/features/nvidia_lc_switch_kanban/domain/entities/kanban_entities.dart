@@ -206,6 +206,40 @@ class UphGroupEntity extends Equatable {
   List<Object?> get props => <Object?>[groupName, pass, pr, wip, uph];
 }
 
+class UpdTrackingEntity extends Equatable {
+  const UpdTrackingEntity({
+    required this.dates,
+    required this.models,
+    required this.groups,
+  });
+
+  final List<String> dates;
+  final List<String> models;
+  final List<UpdGroupEntity> groups;
+
+  @override
+  List<Object?> get props => <Object?>[dates, models, groups];
+}
+
+class UpdGroupEntity extends Equatable {
+  const UpdGroupEntity({
+    required this.groupName,
+    required this.pass,
+    required this.pr,
+    required this.wip,
+    required this.upd,
+  });
+
+  final String groupName;
+  final List<double> pass;
+  final List<double> pr;
+  final int wip;
+  final double upd;
+
+  @override
+  List<Object?> get props => <Object?>[groupName, pass, pr, wip, upd];
+}
+
 class OutputTrackingDetailParams extends Equatable {
   const OutputTrackingDetailParams({
     required this.modelSerial,
