@@ -1109,6 +1109,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
   late final ScrollController _addressListController;
   late final ScrollController _gridHorizontalController;
   late final ScrollController _gridVerticalController;
+  late final ScrollController _productInfoScrollController;
 
   @override
   void initState() {
@@ -1117,6 +1118,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     _addressListController = ScrollController();
     _gridHorizontalController = ScrollController();
     _gridVerticalController = ScrollController();
+    _productInfoScrollController = ScrollController();
     widget.searchFocusNode.addListener(_handleFocusChange);
   }
 
@@ -1127,6 +1129,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     _addressListController.dispose();
     _gridHorizontalController.dispose();
     _gridVerticalController.dispose();
+    _productInfoScrollController.dispose();
     super.dispose();
   }
 
@@ -1667,37 +1670,36 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
             ),
             Expanded(
               flex: 4,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (hasOpen)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 8),
-                      child: Text(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    if (hasOpen)
+                      const Text(
                         '⚠️ OPEN',
                         style: TextStyle(
                           color: Color(0xFFFFAF56),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ),
-                  if (hasShort)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 8),
-                      child: Text(
+                    if (hasShort)
+                      const Text(
                         '⛔ SHORT',
                         style: TextStyle(
                           color: Color(0xFFFF4C62),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ),
-                  if (!hasOpen && !hasShort)
-                    const Text(
-                      '-',
-                      style: TextStyle(color: Colors.white54),
-                    ),
-                ],
+                    if (!hasOpen && !hasShort)
+                      const Text(
+                        '-',
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -1805,17 +1807,24 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         _InfoEntry('Validator', record.employeeId ?? '-'),
       ];
 
-      child = Column(
-        children: entries
-            .map(
-              (entry) => _InfoRow(
-                label: entry.label,
-                value: entry.value,
-                isStatus: entry.label == 'Status',
-                isPass: record.isPass,
-              ),
-            )
-            .toList(),
+      child = Scrollbar(
+        controller: _productInfoScrollController,
+        thumbVisibility: false,
+        child: SingleChildScrollView(
+          controller: _productInfoScrollController,
+          child: Column(
+            children: entries
+                .map(
+                  (entry) => _InfoRow(
+                    label: entry.label,
+                    value: entry.value,
+                    isStatus: entry.label == 'Status',
+                    isPass: record.isPass,
+                  ),
+                )
+                .toList(),
+          ),
+        ),
       );
     }
 
