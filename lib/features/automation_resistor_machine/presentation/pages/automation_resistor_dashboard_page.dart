@@ -1107,8 +1107,6 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   late final ScrollController _searchResultsController;
   late final ScrollController _addressListController;
-  late final ScrollController _gridHorizontalController;
-  late final ScrollController _gridVerticalController;
   late final ScrollController _productInfoScrollController;
 
   static const LinearGradient _dataDetailsTitleGradient = LinearGradient(
@@ -1123,13 +1121,14 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     colors: [Color(0xFFFFE082), Color(0xFFFFB74D)],
   );
 
+  static const double _rowHeaderWidth = 72;
+  static const double _measurementColumnWidth = 168;
+
   @override
   void initState() {
     super.initState();
     _searchResultsController = ScrollController();
     _addressListController = ScrollController();
-    _gridHorizontalController = ScrollController();
-    _gridVerticalController = ScrollController();
     _productInfoScrollController = ScrollController();
     widget.searchFocusNode.addListener(_handleFocusChange);
   }
@@ -1139,8 +1138,6 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     widget.searchFocusNode.removeListener(_handleFocusChange);
     _searchResultsController.dispose();
     _addressListController.dispose();
-    _gridHorizontalController.dispose();
-    _gridVerticalController.dispose();
     _productInfoScrollController.dispose();
     super.dispose();
   }
@@ -1945,64 +1942,64 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         .toList()
       ..sort();
 
-    final Map<int, TableColumnWidth> widths = {
-      0: const FixedColumnWidth(72),
-    };
-    for (int index = 0; index < columns.length; index++) {
-      widths[index + 1] = const FixedColumnWidth(168);
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final Map<int, TableColumnWidth> widths = {
+          0: const FixedColumnWidth(_rowHeaderWidth),
+        };
+        for (int index = 0; index < columns.length; index++) {
+          widths[index + 1] = const FixedColumnWidth(_measurementColumnWidth);
+        }
 
-    final table = Table(
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      border: TableBorder.all(color: Colors.white12, width: 1),
-      columnWidths: widths,
-      children: [
-        TableRow(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-          ),
+        final table = Table(
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          border: TableBorder.all(color: Colors.white12, width: 1),
+          columnWidths: widths,
           children: [
-            _buildTableHeaderCell('#'),
-            ...columns.map((column) => _buildTableHeaderCell('COL $column')),
-          ],
-        ),
-        ...rows.map(
-          (row) => TableRow(
-            children: [
-              _buildRowHeaderCell(row),
-              ...columns.map(
-                (column) => _buildMeasurementCell(
-                  matrix[row]?[column] ?? const <ResistorMachineResultDetail>[],
-                ),
+            TableRow(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
               ),
-            ],
-          ),
-        ),
-      ],
-    );
-
-    return Scrollbar(
-      controller: _gridHorizontalController,
-      thumbVisibility: true,
-      notificationPredicate: (notification) =>
-          notification.metrics.axis == Axis.horizontal,
-      child: SingleChildScrollView(
-        controller: _gridHorizontalController,
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: columns.length * 168.0 + 72),
-          child: Scrollbar(
-            controller: _gridVerticalController,
-            thumbVisibility: true,
-            notificationPredicate: (notification) =>
-                notification.metrics.axis == Axis.vertical,
-            child: SingleChildScrollView(
-              controller: _gridVerticalController,
-              child: table,
+              children: [
+                _buildTableHeaderCell('#'),
+                ...columns.map((column) => _buildTableHeaderCell('COL $column')),
+              ],
             ),
-          ),
-        ),
-      ),
+            ...rows.map(
+              (row) => TableRow(
+                children: [
+                  _buildRowHeaderCell(row),
+                  ...columns.map(
+                    (column) => _buildMeasurementCell(
+                      matrix[row]?[column] ?? const <ResistorMachineResultDetail>[],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+        final double naturalWidth =
+            _rowHeaderWidth + columns.length * _measurementColumnWidth;
+
+        if (!constraints.hasBoundedWidth) {
+          return SizedBox(width: naturalWidth, child: table);
+        }
+
+        if (constraints.maxWidth >= naturalWidth) {
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(width: naturalWidth, child: table),
+          );
+        }
+
+        return FittedBox(
+          alignment: Alignment.topLeft,
+          fit: BoxFit.scaleDown,
+          child: SizedBox(width: naturalWidth, child: table),
+        );
+      },
     );
   }
 
@@ -2106,6 +2103,8 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
           child: Text(
             value,
             textAlign: TextAlign.right,
+            softWrap: true,
+            overflow: TextOverflow.visible,
             style: TextStyle(
               color: isFail ? Colors.redAccent : Colors.white,
               fontWeight: FontWeight.w700,
