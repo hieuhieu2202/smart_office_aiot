@@ -1139,6 +1139,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
             matches: matches,
             isSearching: isSearching,
             selectedSerial: selectedSerial,
+            expandResults: isWide,
           );
 
           final detailSection = _buildDetailSection(
@@ -1148,23 +1149,22 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
             selectedTest: selectedTest,
             isLoading: isLoadingRecord,
             isTablet: isTablet,
+            isWide: isWide,
           );
 
           if (isWide) {
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(width: 340, child: searchSection),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: detailSection,
-                    ),
-                  ),
-                ],
+              child: SizedBox(
+                height: constraints.maxHeight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(width: 340, child: searchSection),
+                    const SizedBox(width: 24),
+                    Expanded(child: detailSection),
+                  ],
+                ),
               ),
             );
           }
@@ -1182,133 +1182,175 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     });
   }
 
+
   Widget _buildSearchSection({
     required List<ResistorMachineSerialMatch> matches,
     required bool isSearching,
     required ResistorMachineSerialMatch? selectedSerial,
+    bool expandResults = false,
   }) {
     final query = widget.searchController.text.trim();
 
+    Widget buildMatchesList() {
+      if (isSearching) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: CircularProgressIndicator(color: Colors.cyanAccent),
+          ),
+        );
+      }
+
+      if (matches.isEmpty) {
+        final helper = query.length >= 3
+            ? 'No serial numbers matched your search.'
+            : 'Type at least 3 characters to start searching.';
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            helper,
+            style: const TextStyle(color: Colors.white60),
+          ),
+        );
+      }
+
+      final listView = ListView.separated(
+        itemCount: matches.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final match = matches[index];
+          final bool isSelected =
+              selectedSerial?.serialNumber == match.serialNumber;
+          return ListTile(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            tileColor: isSelected
+                ? Colors.cyanAccent.withOpacity(0.18)
+                : Colors.white.withOpacity(0.04),
+            title: Text(
+              match.serialNumber,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              'Sequence ${match.sequence}',
+              style: const TextStyle(color: Colors.white60),
+            ),
+            trailing: const Icon(Icons.chevron_right, color: Colors.cyanAccent),
+            onTap: () => _onSerialTap(match),
+          );
+        },
+      );
+
+      final list = Scrollbar(
+        thumbVisibility: true,
+        child: listView,
+      );
+
+      if (expandResults) {
+        return Expanded(child: list);
+      }
+
+      return SizedBox(height: 220, child: list);
+    }
+
+    final children = <Widget>[
+      Text(
+        'Search Serial Number',
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+            ),
+      ),
+      const SizedBox(height: 12),
+      TextField(
+        controller: widget.searchController,
+        focusNode: widget.searchFocusNode,
+        onChanged: _onSearchChanged,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: 'Enter at least 3 characters to search...',
+          hintStyle: const TextStyle(color: Colors.white54),
+          prefixIcon: const Icon(Icons.search, color: Colors.cyanAccent),
+          suffixIcon: query.isEmpty
+              ? null
+              : IconButton(
+                  onPressed: () {
+                    widget.searchController.clear();
+                    widget.searchFocusNode.requestFocus();
+                    controller.clearSerialSearch();
+                  },
+                  icon: const Icon(Icons.clear, color: Colors.white60),
+                ),
+          filled: true,
+          fillColor: const Color(0xFF03132D),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.white24),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.cyanAccent),
+          ),
+        ),
+      ),
+      const SizedBox(height: 16),
+      if (selectedSerial != null)
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.cyanAccent.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                selectedSerial.serialNumber,
+                style: const TextStyle(
+                  color: Colors.cyanAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Sequence ${selectedSerial.sequence}',
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+      if (selectedSerial != null) const SizedBox(height: 12),
+      if (!isSearching && matches.isNotEmpty)
+        const Text(
+          'Serial Matches',
+          style: TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.8,
+          ),
+        ),
+      if (!isSearching && matches.isNotEmpty) const SizedBox(height: 8),
+      buildMatchesList(),
+    ];
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF021024).withOpacity(0.9),
+        color: const Color(0xFF021024).withOpacity(0.92),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.blueGrey.shade900),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Search Serial Number',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
-                ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: widget.searchController,
-            focusNode: widget.searchFocusNode,
-            onChanged: _onSearchChanged,
-            decoration: InputDecoration(
-              hintText: 'Enter at least 3 characters to search...',
-              hintStyle: const TextStyle(color: Colors.white54),
-              prefixIcon: const Icon(Icons.search, color: Colors.cyanAccent),
-              filled: true,
-              fillColor: const Color(0xFF03132D),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.white24),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.white24),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.cyanAccent),
-              ),
-            ),
-            style: const TextStyle(color: Colors.white),
-          ),
-          const SizedBox(height: 12),
-          if (selectedSerial != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.cyanAccent.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    selectedSerial.serialNumber,
-                    style: const TextStyle(
-                      color: Colors.cyanAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Sequence ${selectedSerial.sequence}',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-          if (isSearching)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: CircularProgressIndicator(color: Colors.cyanAccent),
-              ),
-            )
-          else if (matches.isNotEmpty)
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 320),
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: matches.length,
-                separatorBuilder: (_, __) => const Divider(color: Colors.white12),
-                itemBuilder: (context, index) {
-                  final item = matches[index];
-                  return ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    leading: const Icon(Icons.confirmation_number,
-                        color: Colors.cyanAccent),
-                    title: Text(
-                      item.serialNumber,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    subtitle: Text(
-                      'Sequence ${item.sequence}',
-                      style: const TextStyle(color: Colors.white54),
-                    ),
-                    trailing:
-                        const Icon(Icons.chevron_right, color: Colors.cyanAccent),
-                    onTap: () => _onSerialTap(item),
-                  );
-                },
-              ),
-            )
-          else
-            Text(
-              query.length >= 3
-                  ? 'No serial numbers matched your search.'
-                  : 'Type at least 3 characters to start searching.',
-              style: const TextStyle(color: Colors.white54),
-            ),
-        ],
+        mainAxisSize: expandResults ? MainAxisSize.max : MainAxisSize.min,
+        children: children,
       ),
     );
   }
@@ -1320,6 +1362,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     required ResistorMachineTestResult? selectedTest,
     required bool isLoading,
     required bool isTablet,
+    required bool isWide,
   }) {
     if (isLoading) {
       return Container(
@@ -1343,14 +1386,57 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       );
     }
 
+    final recordHeader = _buildInfoCard(record, isTablet);
+    final testPanel = _buildTestList(
+      tests,
+      selectedTest,
+      expandList: isWide,
+    );
+    final imagePanel = _buildImageCard(selectedTest, fillHeight: isWide);
+    final measurementPanel = _buildMeasurementCard(
+      selectedTest,
+      expandTable: isWide,
+    );
+
+    if (isWide) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          recordHeader,
+          const SizedBox(height: 20),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(width: 320, child: testPanel),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: 260, child: imagePanel),
+                      const SizedBox(height: 20),
+                      Expanded(child: measurementPanel),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildInfoCard(record, isTablet),
+        recordHeader,
         const SizedBox(height: 16),
-        _buildTestList(tests, selectedTest),
+        testPanel,
         const SizedBox(height: 16),
-        _buildMeasurementCard(selectedTest),
+        imagePanel,
+        const SizedBox(height: 16),
+        measurementPanel,
       ],
     );
   }
@@ -1370,7 +1456,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
     return Container(
       decoration: _cardDecoration(),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1379,21 +1465,33 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
                 ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 16,
-            runSpacing: 12,
-            children: info
-                .map(
-                  (entry) => _InfoChip(
-                    label: entry.key,
-                    value: entry.value,
-                    width: isTablet ? 220 : null,
-                  ),
-                )
-                .toList(),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = isTablet
+                  ? ((constraints.maxWidth ~/ 220).clamp(1, 4)).toInt()
+                  : 1;
+              final width = columns > 1
+                  ? (constraints.maxWidth - (columns - 1) * 16) / columns
+                  : constraints.maxWidth;
+
+              return Wrap(
+                spacing: 16,
+                runSpacing: 14,
+                children: info
+                    .map(
+                      (entry) => _InfoChip(
+                        label: entry.key,
+                        value: entry.value,
+                        width: width,
+                      ),
+                    )
+                    .toList(),
+              );
+            },
           ),
         ],
       ),
@@ -1402,11 +1500,106 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   Widget _buildTestList(
     List<ResistorMachineTestResult> tests,
-    ResistorMachineTestResult? selectedTest,
-  ) {
+    ResistorMachineTestResult? selectedTest, {
+    bool expandList = false,
+  }) {
+    Widget buildRows() {
+      if (tests.isEmpty) {
+        final message = const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Text(
+              'No test data available for this serial number.',
+              style: TextStyle(color: Colors.white60),
+            ),
+          ),
+        );
+
+        if (expandList) {
+          return Expanded(child: message);
+        }
+
+        return SizedBox(height: 240, child: message);
+      }
+
+      final list = Scrollbar(
+        thumbVisibility: true,
+        child: ListView.separated(
+          itemCount: tests.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (context, index) {
+            final item = tests[index];
+            final bool isSelected = selectedTest?.address == item.address;
+            final statusText = item.result ? 'PASS' : 'FAIL';
+            final statusColor =
+                item.result ? Colors.greenAccent : Colors.redAccent;
+
+            return InkWell(
+              onTap: () => controller.selectTestResult(item),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.cyanAccent.withOpacity(0.18)
+                      : Colors.white.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? Colors.cyanAccent.withOpacity(0.4)
+                        : Colors.white10,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Text(
+                        'Position ${item.address}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        statusText,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        item.result ? '-' : 'Check parameters',
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+
+      if (expandList) {
+        return Expanded(child: list);
+      }
+
+      return SizedBox(height: 260, child: list);
+    }
+
     return Container(
       decoration: _cardDecoration(),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1415,89 +1608,165 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
                 ),
           ),
-          const SizedBox(height: 12),
-          if (tests.isEmpty)
-            const Text(
-              'No test data available for this serial number.',
-              style: TextStyle(color: Colors.white60),
-            )
-          else
-            SizedBox(
-              height: 220,
-              child: ListView.separated(
-                itemCount: tests.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final item = tests[index];
-                  final bool isSelected = selectedTest?.address == item.address;
-                  return ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    tileColor: isSelected
-                        ? Colors.cyanAccent.withOpacity(0.15)
-                        : Colors.transparent,
-                    title: Text(
-                      'Address ${item.address}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    subtitle: Text(
-                      item.result ? 'PASS' : 'FAIL',
-                      style: TextStyle(
-                        color: item.result ? Colors.greenAccent : Colors.redAccent,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    trailing: const Icon(Icons.chevron_right,
-                        color: Colors.white54),
-                    onTap: () => controller.selectTestResult(item),
-                  );
-                },
-              ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white10),
             ),
+            child: const Row(
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: Text(
+                    'Location',
+                    style: TextStyle(
+                      color: Colors.white60,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Status',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white60,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Error',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: Colors.white60,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          buildRows(),
         ],
       ),
     );
   }
 
-  Widget _buildMeasurementCard(ResistorMachineTestResult? test) {
+
+  Widget _buildImageCard(
+    ResistorMachineTestResult? test, {
+    bool fillHeight = false,
+  }) {
+    Widget buildContent() {
+      if (test == null || test.imagePath.isEmpty) {
+        return const Center(
+          child: Text(
+            'Select a test to view the captured image.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white60),
+          ),
+        );
+      }
+
+      return _buildImagePreview(test);
+    }
+
+    final body = buildContent();
+
     return Container(
       decoration: _cardDecoration(),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Measurement Details',
+            'Inspection Image',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
                 ),
           ),
-          const SizedBox(height: 12),
-          if (test == null)
-            const Text(
-              'Select a test address to view measurement details.',
-              style: TextStyle(color: Colors.white60),
-            )
-          else ...[
-            _buildMeasurementsTable(test),
-            const SizedBox(height: 16),
-            _buildImagePreview(test),
-          ],
+          const SizedBox(height: 16),
+          if (fillHeight)
+            Expanded(child: body)
+          else
+            SizedBox(height: 220, child: body),
         ],
       ),
     );
   }
 
-  Widget _buildMeasurementsTable(ResistorMachineTestResult test) {
+  Widget _buildMeasurementCard(
+    ResistorMachineTestResult? test, {
+    bool expandTable = false,
+  }) {
+    Widget buildContent() {
+      if (test == null) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Text(
+              'Select a test address to view measurement details.',
+              style: TextStyle(color: Colors.white60),
+            ),
+          ),
+        );
+      }
+
+      return _buildMeasurementsTable(test, expand: expandTable);
+    }
+
+    final content = buildContent();
+
+    return Container(
+      decoration: _cardDecoration(),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Measurement Matrix',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+          ),
+          const SizedBox(height: 16),
+          if (expandTable)
+            Expanded(child: content)
+          else
+            content,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeasurementsTable(
+    ResistorMachineTestResult test, {
+    bool expand = false,
+  }) {
     final rows = test.details
         .map(
           (detail) => DataRow(
             cells: [
-              DataCell(Text(detail.name, style: const TextStyle(color: Colors.white))),
+              DataCell(Text(detail.name,
+                  style: const TextStyle(color: Colors.white))),
               DataCell(Text('${detail.row}',
                   style: const TextStyle(color: Colors.white70))),
               DataCell(Text('${detail.column}',
@@ -1526,48 +1795,67 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         )
         .toList();
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowColor: MaterialStateProperty.all(Colors.white10),
-        dataRowColor: MaterialStateProperty.all(Colors.white10.withOpacity(0.05)),
-        columnSpacing: 24,
-        columns: const [
-          DataColumn(
-            label: Text('Name', style: TextStyle(color: Colors.white70)),
-          ),
-          DataColumn(
-            label: Text('Row', style: TextStyle(color: Colors.white70)),
-          ),
-          DataColumn(
-            label: Text('Column', style: TextStyle(color: Colors.white70)),
-          ),
-          DataColumn(
-            label: Text('Measurement', style: TextStyle(color: Colors.white70)),
-          ),
-          DataColumn(
-            label: Text('Low Sample', style: TextStyle(color: Colors.white70)),
-          ),
-          DataColumn(
-            label: Text('High Sample', style: TextStyle(color: Colors.white70)),
-          ),
-          DataColumn(
-            label: Text('Status', style: TextStyle(color: Colors.white70)),
-          ),
-        ],
-        rows: rows,
+    Widget buildTable() {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: MaterialStateProperty.all(Colors.white10),
+          dataRowColor:
+              MaterialStateProperty.all(Colors.white10.withOpacity(0.05)),
+          columnSpacing: 24,
+          columns: const [
+            DataColumn(
+              label: Text('Name', style: TextStyle(color: Colors.white70)),
+            ),
+            DataColumn(
+              label: Text('Row', style: TextStyle(color: Colors.white70)),
+            ),
+            DataColumn(
+              label: Text('Column', style: TextStyle(color: Colors.white70)),
+            ),
+            DataColumn(
+              label: Text('Measurement', style: TextStyle(color: Colors.white70)),
+            ),
+            DataColumn(
+              label: Text('Low Sample', style: TextStyle(color: Colors.white70)),
+            ),
+            DataColumn(
+              label: Text('High Sample', style: TextStyle(color: Colors.white70)),
+            ),
+            DataColumn(
+              label: Text('Status', style: TextStyle(color: Colors.white70)),
+            ),
+          ],
+          rows: rows,
+        ),
+      );
+    }
+
+    if (expand) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return Scrollbar(
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: buildTable(),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return Scrollbar(
+      thumbVisibility: true,
+      child: SingleChildScrollView(
+        child: buildTable(),
       ),
     );
   }
 
   Widget _buildImagePreview(ResistorMachineTestResult test) {
-    if (test.imagePath.isEmpty) {
-      return const Text(
-        'No inspection image provided.',
-        style: TextStyle(color: Colors.white60),
-      );
-    }
-
     return GestureDetector(
       onTap: () {
         showDialog<void>(
