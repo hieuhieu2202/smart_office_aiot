@@ -1985,7 +1985,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         message: 'No measurement data available for this test.',
       );
     } else {
-      body = _buildMeasurementGrid(selectedTest);
+      body = _buildMeasurementGrid(
+        selectedTest,
+        fillHeight: fillHeight,
+      );
     }
 
     final column = Column(
@@ -2026,7 +2029,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     );
   }
 
-  Widget _buildMeasurementGrid(ResistorMachineTestResult test) {
+  Widget _buildMeasurementGrid(
+    ResistorMachineTestResult test, {
+    required bool fillHeight,
+  }) {
     final Map<int, Map<int, List<ResistorMachineResultDetail>>> matrix = {};
     for (final detail in test.details) {
       matrix.putIfAbsent(detail.row, () => {});
@@ -2041,173 +2047,115 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         .toList()
       ..sort();
 
-    final table = Table(
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      border: TableBorder.all(color: Colors.white12, width: 1),
-      columnWidths: <int, TableColumnWidth>{
-        0: const FixedColumnWidth(72),
-      },
-      children: [
-        TableRow(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF004C8C), // xanh lam đậm
-                Color(0xFF007B8A), // xanh ngọc nhẹ
-                Color(0xFF001F3F), // xanh navy
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+    final verticalGrid = Scrollbar(
+      controller: _gridVerticalController,
+      thumbVisibility: true,
+      notificationPredicate: (n) => n.metrics.axis == Axis.vertical,
+      child: SingleChildScrollView(
+        controller: _gridVerticalController,
+        scrollDirection: Axis.vertical,
+        child: Table(
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          border: TableBorder.all(color: Colors.white12, width: 1),
+          columnWidths: {
+            0: const FixedColumnWidth(60),
+            for (int i = 1; i <= columns.length; i++)
+              i: const FixedColumnWidth(130),
+          },
           children: [
-            _buildTableHeaderCell('#'),
-            ...columns.map(
-                  (col) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    'COL $col',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13.5,
-                      letterSpacing: 0.3,
-                      shadows: [
-                        Shadow(
-                          offset: Offset(0, 1.2),
-                          blurRadius: 2,
-                          color: Colors.black54,
-                        ),
-                      ],
+            ...rows.map(
+              (row) => TableRow(
+                children: [
+                  _buildRowHeaderCell(row),
+                  ...columns.map(
+                    (col) => SizedBox(
+                      width: 130,
+                      child: _buildMeasurementCell(
+                        matrix[row]?[col] ?? const <ResistorMachineResultDetail>[],
+                        row,
+                        col,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ],
         ),
-        ...rows.map(
-              (row) => TableRow(
-            children: [
-              _buildRowHeaderCell(row),
-              ...columns.map(
-                    (col) => SizedBox(
-                  width: 120,
-                  child: _buildMeasurementCell(
-                    matrix[row]?[col] ?? const <ResistorMachineResultDetail>[],
-                    row, // truyền thêm row
-                    col, // truyền thêm col
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
 
-    return Expanded(
-      child: Scrollbar(
+    final horizontalGrid = Scrollbar(
+      controller: _gridHorizontalController,
+      thumbVisibility: true,
+      notificationPredicate: (notification) =>
+          notification.metrics.axis == Axis.horizontal,
+      child: SingleChildScrollView(
         controller: _gridHorizontalController,
-        thumbVisibility: true,
-        notificationPredicate: (notification) =>
-        notification.metrics.axis == Axis.horizontal,
-        child: SingleChildScrollView(
-          controller: _gridHorizontalController,
-          scrollDirection: Axis.horizontal,
-          child: IntrinsicWidth(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Table(
-                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                  border: TableBorder.all(color: Colors.white12, width: 1),
-                  columnWidths: {
-                    0: const FixedColumnWidth(60),
-                    for (int i = 1; i <= columns.length; i++)
-                      i: const FixedColumnWidth(130),
-                  },
-                  children: [
-                    TableRow(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Color(0xFF004C8C),
-                            Color(0xFF007B8A),
-                            Color(0xFF001F3F),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+        scrollDirection: Axis.horizontal,
+        child: IntrinsicWidth(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Table(
+                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                border: TableBorder.all(color: Colors.white12, width: 1),
+                columnWidths: {
+                  0: const FixedColumnWidth(60),
+                  for (int i = 1; i <= columns.length; i++)
+                    i: const FixedColumnWidth(130),
+                },
+                children: [
+                  TableRow(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF004C8C),
+                          Color(0xFF007B8A),
+                          Color(0xFF001F3F),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      children: [
-                        _buildTableHeaderCell('#'),
-                        ...columns.map(
-                              (col) => Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Text(
-                                'COL $col',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
+                    ),
+                    children: [
+                      _buildTableHeaderCell('#'),
+                      ...columns.map(
+                        (col) => Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              'COL $col',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                Expanded(
-                  child: Scrollbar(
-                    controller: _gridVerticalController,
-                    thumbVisibility: true,
-                    notificationPredicate: (n) => n.metrics.axis == Axis.vertical,
-                    child: SingleChildScrollView(
-                      controller: _gridVerticalController,
-                      scrollDirection: Axis.vertical,
-                      child: Table(
-                        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                        border: TableBorder.all(color: Colors.white12, width: 1),
-                        columnWidths: {
-                          0: const FixedColumnWidth(60),
-                          for (int i = 1; i <= columns.length; i++)
-                            i: const FixedColumnWidth(130),
-                        },
-                        children: [
-                          ...rows.map(
-                                (row) => TableRow(
-                              children: [
-                                _buildRowHeaderCell(row),
-                                ...columns.map(
-                                      (col) => SizedBox(
-                                    width: 130,
-                                    child: _buildMeasurementCell(
-                                      matrix[row]?[col] ??
-                                          const <ResistorMachineResultDetail>[],
-                                      row,
-                                      col,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
+                    ],
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+              if (fillHeight)
+                Expanded(child: verticalGrid)
+              else
+                verticalGrid,
+            ],
           ),
         ),
       ),
+    );
+
+    if (fillHeight) {
+      return horizontalGrid;
+    }
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 460),
+      child: horizontalGrid,
     );
   }
 
