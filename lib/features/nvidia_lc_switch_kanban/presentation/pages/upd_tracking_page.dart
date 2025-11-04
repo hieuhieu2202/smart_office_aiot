@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -112,6 +113,10 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
         _selectedModels = result.toList()
           ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       });
+      developer.log(
+        'UPD model selection -> ${_selectedModels.join(', ')}',
+        name: 'UpdTrackingPage',
+      );
     }
   }
 
@@ -120,6 +125,12 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
         ? _controller.selectedGroups.toList()
         : List<String>.from(_selectedModels);
     try {
+      developer.log(
+        'UPD query triggered | modelSerial=${_controller.modelSerial.value} '
+        'range=${_formatRange(_selectedRange)} '
+        'groups=${groups.join(', ')}',
+        name: 'UpdTrackingPage',
+      );
       await _controller.updateFilter(
         newRange: _selectedRange,
         newGroups: groups,
@@ -537,6 +548,15 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
       }
     }
 
+    if (view == null) {
+      return const [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: _EmptyNotice(),
+        ),
+      ];
+    }
+
     return [
       if (showUpdateBanner && updateBannerLabel != null)
         SliverToBoxAdapter(child: buildUpdateBanner()),
@@ -593,7 +613,7 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
                 rows.length,
               ),
               child: UpdTrackingTable(
-                view: view!,
+                view: view,
                 rows: rows,
                 onStationTap: (row) {
                   // Placeholder for potential station detail actions.

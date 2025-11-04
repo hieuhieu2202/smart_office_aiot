@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -66,17 +67,20 @@ class UpdTrackingController extends GetxController {
     if (newModelSerial != null && newModelSerial != modelSerial.value) {
       modelSerial.value = newModelSerial;
       shouldReloadModels = true;
+      _log('Changed model serial -> $newModelSerial');
     }
 
     if (newRange != null && !_isSameRange(newRange, range.value)) {
       range.value = newRange;
       shouldReloadModels = true;
+      _log('Changed range -> ${_formatRange(newRange)}');
     }
 
     if (newGroups != null) {
       selectedGroups
         ..clear()
         ..addAll(newGroups);
+      _log('Selected groups -> ${selectedGroups.join(', ')}');
     }
 
     if (shouldReloadModels) {
@@ -98,6 +102,8 @@ class UpdTrackingController extends GetxController {
 
     isLoadingModels.value = true;
     try {
+      final rangeText = _formatRange(range.value);
+      _log('Fetching model groups for ${modelSerial.value} range $rangeText');
       final List<String> list =
           await _getGroups(_currentRequest(groups: const <String>[]));
 
@@ -107,10 +113,12 @@ class UpdTrackingController extends GetxController {
           selectedGroups
             ..clear()
             ..addAll(list);
+          _log('Auto-selected ${selectedGroups.length} groups');
         }
       }
     } catch (e) {
       error.value = e.toString();
+      _log('Failed to fetch UPD groups -> $e');
     } finally {
       isLoadingModels.value = false;
     }
@@ -139,6 +147,9 @@ class UpdTrackingController extends GetxController {
 
     try {
       final request = _currentRequest(groups: groups);
+      _log('Requesting UPD tracking | '
+          'range=${request.dateRange} endDate=${request.date} '
+          'groups=${groups.join(', ')}');
       final UpdTrackingEntity entity = await _getUpdTracking(request);
       final view = UpdTrackingViewState.fromEntity(entity);
       viewState.value = view;
@@ -153,6 +164,7 @@ class UpdTrackingController extends GetxController {
       }
       _updateBadgeTimer?.cancel();
       showUpdateBadge.value = false;
+      _log('Failed to load UPD tracking -> $e');
     } finally {
       isLoading.value = false;
       isRefreshing.value = false;
@@ -234,6 +246,10 @@ class UpdTrackingController extends GetxController {
     _updateBadgeTimer = Timer(const Duration(seconds: 6), () {
       showUpdateBadge.value = false;
     });
+  }
+
+  void _log(String message) {
+    developer.log(message, name: 'UpdTrackingController');
   }
 }
 

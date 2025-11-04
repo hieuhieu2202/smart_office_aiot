@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -113,6 +114,10 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
         _selectedModels = result.toList()
           ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       });
+      developer.log(
+        'UPH model selection -> ${_selectedModels.join(', ')}',
+        name: 'UphTrackingPage',
+      );
     }
   }
 
@@ -126,6 +131,12 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
         ? _controller.selectedGroups.toList()
         : List<String>.from(_selectedModels);
     try {
+      developer.log(
+        'UPH query triggered | modelSerial=${_controller.modelSerial.value} '
+        'date=${_formatDate(_selectedDate)} shift=$_selectedShift '
+        'groups=${groups.join(', ')}',
+        name: 'UphTrackingPage',
+      );
       await _controller.updateFilter(
         newDate: _selectedDate,
         newShift: _selectedShift,
@@ -544,6 +555,15 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
       }
     }
 
+    if (view == null) {
+      return const [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: _EmptyNotice(),
+        ),
+      ];
+    }
+
     return [
       if (showUpdateBanner && updateBannerLabel != null)
         SliverToBoxAdapter(child: buildUpdateBanner()),
@@ -600,7 +620,7 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
                 rows.length,
               ),
               child: UphTrackingTable(
-                view: view!,
+                view: view,
                 rows: rows,
                 onStationTap: (row) {
                   // Placeholder for potential station detail actions.
