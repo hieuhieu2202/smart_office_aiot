@@ -72,6 +72,7 @@ class AutomationResistorDashboardController extends GetxController {
   final Rxn<ResistorMachineTestResult> selectedTestResult =
   Rxn<ResistorMachineTestResult>();
   final RxBool isLoadingRecord = false.obs;
+  final RxBool isMultiDayRange = false.obs;
 
   /// 🔹 Thêm biến startSection để xác định ca bắt đầu (dựa theo API)
   final RxInt startSection = 1.obs;
@@ -114,6 +115,8 @@ class AutomationResistorDashboardController extends GetxController {
     isLoading.value = true;
     error.value = null;
     try {
+      final multiDay = _isMultiDayRange(selectedRange.value);
+      isMultiDayRange.value = multiDay;
       final request = _buildTrackingRequest();
       _logRequest('Tracking', request);
 
@@ -127,18 +130,31 @@ class AutomationResistorDashboardController extends GetxController {
         debugPrint('[ResistorDashboard] ⚠️ No data from API — using empty dataset');
         final empty = ResistorMachineTrackingData.empty();
         rawTracking.value = empty;
-        dashboardView.value = ResistorDashboardViewState.fromTracking(empty);
+        dashboardView.value = ResistorDashboardViewState.fromTracking(
+          empty,
+          aggregateOutputsByDay: multiDay,
+        );
       } else {
         _logTrackingData(tracking);
         rawTracking.value = tracking;
-        _updateStartSection(tracking.outputs);
-        dashboardView.value = ResistorDashboardViewState.fromTracking(tracking);
+        if (multiDay) {
+          _resetShiftWindowAnchors();
+        } else {
+          _updateStartSection(tracking.outputs);
+        }
+        dashboardView.value = ResistorDashboardViewState.fromTracking(
+          tracking,
+          aggregateOutputsByDay: multiDay,
+        );
       }
     } catch (e) {
       debugPrint('[ResistorDashboard] ❌ API error: $e — fallback to empty data');
       final empty = ResistorMachineTrackingData.empty();
       rawTracking.value = empty;
-      dashboardView.value = ResistorDashboardViewState.fromTracking(empty);
+      dashboardView.value = ResistorDashboardViewState.fromTracking(
+        empty,
+        aggregateOutputsByDay: isMultiDayRange.value,
+      );
       error.value = e.toString();
     } finally {
       isLoading.value = false;
@@ -284,6 +300,7 @@ class AutomationResistorDashboardController extends GetxController {
     selectedRange.value = range;
     selectedMachine.value = machine;
     selectedStatus.value = status;
+    isMultiDayRange.value = _isMultiDayRange(range);
     loadDashboard();
     loadStatus();
   }
@@ -382,8 +399,17 @@ class AutomationResistorDashboardController extends GetxController {
     final tracking = await _getTrackingData(request);
     _logTrackingData(tracking);
     rawTracking.value = tracking;
-    dashboardView.value =
-        ResistorDashboardViewState.fromTracking(tracking);
+    final multiDay = _isMultiDayRange(selectedRange.value);
+    isMultiDayRange.value = multiDay;
+    if (multiDay) {
+      _resetShiftWindowAnchors();
+    } else {
+      _updateStartSection(tracking.outputs);
+    }
+    dashboardView.value = ResistorDashboardViewState.fromTracking(
+      tracking,
+      aggregateOutputsByDay: multiDay,
+    );
   }
 
   Future<void> _silentRefreshStatus() async {
@@ -471,6 +497,11 @@ class AutomationResistorDashboardController extends GetxController {
     }
   }
 
+  void _resetShiftWindowAnchors() {
+    startSection.value = 1;
+    shiftStartTime.value = _resolveShiftBase();
+  }
+
   DateTime _resolveShiftBase() {
     final rangeStart = selectedRange.value.start;
     final shiftCode = selectedShift.value.trim().toUpperCase();
@@ -489,6 +520,12 @@ class AutomationResistorDashboardController extends GetxController {
     final start = DateTime(now.year, now.month, now.day, 7, 30);
     final end = DateTime(now.year, now.month, now.day, 19, 30);
     return DateTimeRange(start: start, end: end);
+  }
+
+  bool _isMultiDayRange(DateTimeRange range) {
+    final startDate = DateTime(range.start.year, range.start.month, range.start.day);
+    final endDate = DateTime(range.end.year, range.end.month, range.end.day);
+    return !startDate.isAtSameMomentAs(endDate);
   }
 
   String _deriveShift(DateTime date) {

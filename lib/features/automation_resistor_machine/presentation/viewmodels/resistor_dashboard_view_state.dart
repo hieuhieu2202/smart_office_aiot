@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 import '../../domain/entities/resistor_machine_entities.dart';
 
 class ResistorSummaryTileData {
@@ -96,9 +98,12 @@ class ResistorDashboardViewState {
   }
 
   factory ResistorDashboardViewState.fromTracking(
-    ResistorMachineTrackingData tracking,
-  ) {
+    ResistorMachineTrackingData tracking, {
+    bool aggregateOutputsByDay = false,
+  }) {
     final summary = tracking.summary;
+    final outputs =
+        aggregateOutputsByDay ? _aggregateOutputsByDay(tracking.outputs) : tracking.outputs;
 
     final summaryTiles = <ResistorSummaryTileData>[
       ResistorSummaryTileData(
@@ -220,7 +225,7 @@ class ResistorDashboardViewState {
       );
     }
 
-    final sectionSeries = _buildSeries(tracking.outputs, false);
+    final sectionSeries = _buildSeries(outputs, false);
     final machineSeries = _buildSeries(tracking.machines, true);
 
     return ResistorDashboardViewState(
@@ -270,4 +275,128 @@ int? _computeShiftStartMinutes(ResistorMachineOutput output) {
   }
 
   return null;
+}
+
+List<ResistorMachineOutput> _aggregateOutputsByDay(
+  List<ResistorMachineOutput> outputs,
+) {
+  if (outputs.isEmpty) return outputs;
+
+  final buckets = <String, _DailyBucket>{};
+
+  for (final output in outputs) {
+    final resolved = _resolveOutputDateInfo(output);
+    final key = resolved.label;
+    final bucket = buckets.putIfAbsent(
+      key,
+      () => _DailyBucket(label: resolved.label, sortKey: resolved.date),
+    );
+
+    bucket.pass += output.pass;
+    bucket.fail += output.fail;
+    bucket.firstFail += output.firstFail;
+    bucket.retest += output.retest;
+  }
+
+  final sortedBuckets = buckets.values.toList()
+    ..sort((a, b) {
+      final aDate = a.sortKey;
+      final bDate = b.sortKey;
+      if (aDate != null && bDate != null) {
+        return aDate.compareTo(bDate);
+      }
+      if (aDate != null) return -1;
+      if (bDate != null) return 1;
+      return a.label.compareTo(b.label);
+    });
+
+  return sortedBuckets.map((bucket) {
+    final total = bucket.pass + bucket.fail;
+    final yieldRate = total == 0 ? 0.0 : bucket.pass / total * 100;
+    final retestRate = total == 0 ? 0.0 : bucket.retest / total * 100;
+    return ResistorMachineOutput(
+      section: null,
+      workDate: bucket.label,
+      startTime: bucket.sortKey,
+      pass: bucket.pass,
+      fail: bucket.fail,
+      firstFail: bucket.firstFail,
+      retest: bucket.retest,
+      yieldRate: double.parse(yieldRate.toStringAsFixed(2)),
+      retestRate: double.parse(retestRate.toStringAsFixed(2)),
+    );
+  }).toList();
+}
+
+_ResolvedDateInfo _resolveOutputDateInfo(ResistorMachineOutput output) {
+  final startTime = output.startTime;
+  if (startTime != null) {
+    final date = DateTime(startTime.year, startTime.month, startTime.day);
+    final label = DateFormat('yyyy-MM-dd').format(date);
+    return _ResolvedDateInfo(label: label, date: date);
+  }
+
+  final parsed = _parseDateString(output.workDate);
+  if (parsed != null) {
+    final date = DateTime(parsed.year, parsed.month, parsed.day);
+    final label = DateFormat('yyyy-MM-dd').format(date);
+    return _ResolvedDateInfo(label: label, date: date);
+  }
+
+  final fallback = (output.workDate ?? output.displayLabel).trim();
+  if (fallback.isNotEmpty) {
+    return _ResolvedDateInfo(label: fallback, date: null);
+  }
+  return const _ResolvedDateInfo(label: 'N/A', date: null);
+}
+
+DateTime? _parseDateString(String? raw) {
+  if (raw == null) return null;
+  final value = raw.trim();
+  if (value.isEmpty) return null;
+
+  DateTime? parsed = DateTime.tryParse(value);
+  if (parsed == null && value.contains(' ')) {
+    parsed = DateTime.tryParse(value.replaceFirst(' ', 'T'));
+  }
+  if (parsed == null && value.contains('/')) {
+    final normalized = value.replaceAll('/', '-');
+    parsed = DateTime.tryParse(normalized);
+    if (parsed == null && normalized.contains(' ')) {
+      parsed = DateTime.tryParse(normalized.replaceFirst(' ', 'T'));
+    }
+  }
+  if (parsed != null) {
+    return parsed;
+  }
+
+  final match = RegExp(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})').firstMatch(value);
+  if (match != null) {
+    final year = int.tryParse(match.group(1)!);
+    final month = int.tryParse(match.group(2)!);
+    final day = int.tryParse(match.group(3)!);
+    if (year != null && month != null && day != null) {
+      return DateTime(year, month, day);
+    }
+  }
+
+  return null;
+}
+
+class _DailyBucket {
+  _DailyBucket({required this.label, required this.sortKey});
+
+  final String label;
+  final DateTime? sortKey;
+  int pass = 0;
+  int fail = 0;
+  int firstFail = 0;
+  int retest = 0;
+}
+
+class _ResolvedDateInfo {
+  const _ResolvedDateInfo({required this.label, required this.date});
+
+  final String label;
+  final DateTime? date;
 }

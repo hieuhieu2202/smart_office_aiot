@@ -882,13 +882,16 @@ class _DesktopLayout extends StatelessWidget {
                   child: Column(
                     children: [
                       Expanded(
-                        child: Obx(() => ResistorComboChart(
-                              title: 'YIELD RATE AND OUTPUT',
-                              series: view.sectionSeries,
-                              alignToShiftWindows: true,
-                              startSection: controller.startSection.value,
-                              shiftStartTime: controller.shiftStartTime.value,
-                            )),
+                        child: Obx(() {
+                          final alignToShift = !controller.isMultiDayRange.value;
+                          return ResistorComboChart(
+                            title: 'YIELD RATE AND OUTPUT',
+                            series: view.sectionSeries,
+                            alignToShiftWindows: alignToShift,
+                            startSection: controller.startSection.value,
+                            shiftStartTime: controller.shiftStartTime.value,
+                          );
+                        }),
                       ),
                       const SizedBox(height: 24),
                       Expanded(
@@ -934,13 +937,16 @@ class _TabletLayout extends StatelessWidget {
         const SizedBox(height: 20),
         SizedBox(
           height: 420,
-          child: Obx(() => ResistorComboChart(
-                title: 'YIELD RATE AND OUTPUT',
-                series: view.sectionSeries,
-                alignToShiftWindows: true,
-                startSection: controller.startSection.value,
-                shiftStartTime: controller.shiftStartTime.value,
-              )),
+          child: Obx(() {
+            final alignToShift = !controller.isMultiDayRange.value;
+            return ResistorComboChart(
+              title: 'YIELD RATE AND OUTPUT',
+              series: view.sectionSeries,
+              alignToShiftWindows: alignToShift,
+              startSection: controller.startSection.value,
+              shiftStartTime: controller.shiftStartTime.value,
+            );
+          }),
         ),
         const SizedBox(height: 20),
         SizedBox(
@@ -980,13 +986,16 @@ class _MobileLayout extends StatelessWidget {
         const SizedBox(height: 16),
         SizedBox(
           height: 340,
-          child: Obx(() => ResistorComboChart(
-                title: 'YIELD RATE AND OUTPUT',
-                series: view.sectionSeries,
-                alignToShiftWindows: true,
-                startSection: controller.startSection.value,
-                shiftStartTime: controller.shiftStartTime.value,
-              )),
+          child: Obx(() {
+            final alignToShift = !controller.isMultiDayRange.value;
+            return ResistorComboChart(
+              title: 'YIELD RATE AND OUTPUT',
+              series: view.sectionSeries,
+              alignToShiftWindows: alignToShift,
+              startSection: controller.startSection.value,
+              shiftStartTime: controller.shiftStartTime.value,
+            );
+          }),
         ),
         const SizedBox(height: 16),
         SizedBox(
