@@ -1097,9 +1097,31 @@ class _SnAnalysisTab extends StatefulWidget {
 }
 
 class _SnAnalysisTabState extends State<_SnAnalysisTab> {
+  _SnAnalysisTabState();
+
+  final NumberFormat _numberFormat = NumberFormat('0.###');
   String _lastQuery = '';
+  bool _isSearchFocused = false;
 
   AutomationResistorDashboardController get controller => widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.searchFocusNode.addListener(_handleFocusChange);
+  }
+
+  @override
+  void dispose() {
+    widget.searchFocusNode.removeListener(_handleFocusChange);
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    setState(() {
+      _isSearchFocused = widget.searchFocusNode.hasFocus;
+    });
+  }
 
   void _onSearchChanged(String value) {
     final query = value.trim();
@@ -1133,713 +1155,271 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       return LayoutBuilder(
         builder: (context, constraints) {
           final bool isWide = constraints.maxWidth >= 1100;
-          final bool isTablet = constraints.maxWidth >= 720;
+          final EdgeInsets padding = isWide
+              ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
+              : const EdgeInsets.all(16);
 
-          final searchSection = _buildSearchSection(
-            matches: matches,
-            isSearching: isSearching,
-            selectedSerial: selectedSerial,
-            expandResults: isWide,
-          );
+          final Widget content = isWide
+              ? _buildWideLayout(
+                  constraints: constraints,
+                  matches: matches,
+                  isSearching: isSearching,
+                  isLoadingRecord: isLoadingRecord,
+                  record: record,
+                  tests: tests,
+                  selectedTest: selectedTest,
+                  selectedSerial: selectedSerial,
+                )
+              : _buildStackedLayout(
+                  matches: matches,
+                  isSearching: isSearching,
+                  isLoadingRecord: isLoadingRecord,
+                  record: record,
+                  tests: tests,
+                  selectedTest: selectedTest,
+                  selectedSerial: selectedSerial,
+                );
 
-          final detailSection = _buildDetailSection(
-            context: context,
-            record: record,
-            tests: tests,
-            selectedTest: selectedTest,
-            isLoading: isLoadingRecord,
-            isTablet: isTablet,
-            isWide: isWide,
-          );
-
-          if (isWide) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: SizedBox(
-                height: constraints.maxHeight,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(width: 340, child: searchSection),
-                    const SizedBox(width: 24),
-                    Expanded(child: detailSection),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              searchSection,
-              const SizedBox(height: 16),
-              detailSection,
-            ],
+          return Padding(
+            padding: padding,
+            child: content,
           );
         },
       );
     });
   }
 
-
-  Widget _buildSearchSection({
+  Widget _buildWideLayout({
+    required BoxConstraints constraints,
     required List<ResistorMachineSerialMatch> matches,
     required bool isSearching,
+    required bool isLoadingRecord,
+    required ResistorMachineRecord? record,
+    required List<ResistorMachineTestResult> tests,
+    required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
-    bool expandResults = false,
   }) {
-    final query = widget.searchController.text.trim();
-
-    Widget buildMatchesList() {
-      if (isSearching) {
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: CircularProgressIndicator(color: Colors.cyanAccent),
+    return SizedBox(
+      height: constraints.maxHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 360,
+            child: _buildSerialAnalysisCard(
+              matches: matches,
+              isSearching: isSearching,
+              isLoadingRecord: isLoadingRecord,
+              tests: tests,
+              selectedTest: selectedTest,
+              selectedSerial: selectedSerial,
+              fillHeight: true,
+            ),
           ),
-        );
-      }
-
-      if (matches.isEmpty) {
-        final helper = query.length >= 3
-            ? 'No serial numbers matched your search.'
-            : 'Type at least 3 characters to start searching.';
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(
-            helper,
-            style: const TextStyle(color: Colors.white60),
+          const SizedBox(width: 24),
+          Expanded(
+            child: _buildDetailColumn(
+              record: record,
+              selectedTest: selectedTest,
+              isLoadingRecord: isLoadingRecord,
+              fillHeight: true,
+            ),
           ),
-        );
-      }
-
-      final listView = ListView.separated(
-        itemCount: matches.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          final match = matches[index];
-          final bool isSelected =
-              selectedSerial?.serialNumber == match.serialNumber;
-          return ListTile(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            tileColor: isSelected
-                ? Colors.cyanAccent.withOpacity(0.18)
-                : Colors.white.withOpacity(0.04),
-            title: Text(
-              match.serialNumber,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            subtitle: Text(
-              'Sequence ${match.sequence}',
-              style: const TextStyle(color: Colors.white60),
-            ),
-            trailing: const Icon(Icons.chevron_right, color: Colors.cyanAccent),
-            onTap: () => _onSerialTap(match),
-          );
-        },
-      );
-
-      final list = Scrollbar(
-        thumbVisibility: true,
-        child: listView,
-      );
-
-      if (expandResults) {
-        return Expanded(child: list);
-      }
-
-      return SizedBox(height: 220, child: list);
-    }
-
-    final children = <Widget>[
-      Text(
-        'Search Serial Number',
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1,
-            ),
+        ],
       ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: widget.searchController,
-        focusNode: widget.searchFocusNode,
-        onChanged: _onSearchChanged,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: 'Enter at least 3 characters to search...',
-          hintStyle: const TextStyle(color: Colors.white54),
-          prefixIcon: const Icon(Icons.search, color: Colors.cyanAccent),
-          suffixIcon: query.isEmpty
-              ? null
-              : IconButton(
-                  onPressed: () {
-                    widget.searchController.clear();
-                    widget.searchFocusNode.requestFocus();
-                    controller.clearSerialSearch();
-                  },
-                  icon: const Icon(Icons.clear, color: Colors.white60),
-                ),
-          filled: true,
-          fillColor: const Color(0xFF03132D),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.white24),
+    );
+  }
+
+  Widget _buildStackedLayout({
+    required List<ResistorMachineSerialMatch> matches,
+    required bool isSearching,
+    required bool isLoadingRecord,
+    required ResistorMachineRecord? record,
+    required List<ResistorMachineTestResult> tests,
+    required ResistorMachineTestResult? selectedTest,
+    required ResistorMachineSerialMatch? selectedSerial,
+  }) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildSerialAnalysisCard(
+            matches: matches,
+            isSearching: isSearching,
+            isLoadingRecord: isLoadingRecord,
+            tests: tests,
+            selectedTest: selectedTest,
+            selectedSerial: selectedSerial,
+            fillHeight: false,
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.cyanAccent),
+          const SizedBox(height: 20),
+          _buildDetailColumn(
+            record: record,
+            selectedTest: selectedTest,
+            isLoadingRecord: isLoadingRecord,
+            fillHeight: false,
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSerialAnalysisCard({
+    required List<ResistorMachineSerialMatch> matches,
+    required bool isSearching,
+    required bool isLoadingRecord,
+    required List<ResistorMachineTestResult> tests,
+    required ResistorMachineTestResult? selectedTest,
+    required ResistorMachineSerialMatch? selectedSerial,
+    required bool fillHeight,
+  }) {
+    final List<Widget> children = [
+      Text(
+        'Serial Number Analysis'
+        '${selectedSerial != null ? ' ${selectedSerial.serialNumber}' : ''}',
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Colors.cyanAccent,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+            ),
       ),
       const SizedBox(height: 16),
-      if (selectedSerial != null)
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.cyanAccent.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
-          ),
+      _buildSearchField(),
+    ];
+
+    final bool showSearchResults =
+        (matches.isNotEmpty || isSearching) &&
+        (_isSearchFocused || widget.searchController.text.trim().length >= 3);
+
+    if (showSearchResults) {
+      children
+        ..add(const SizedBox(height: 8))
+        ..add(_buildSearchResults(matches, isSearching));
+    }
+
+    children.add(const SizedBox(height: 16));
+
+    if (fillHeight) {
+      children.add(
+        Expanded(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                selectedSerial.serialNumber,
-                style: const TextStyle(
-                  color: Colors.cyanAccent,
-                  fontWeight: FontWeight.bold,
+              _buildAddressHeaderRow(),
+              const SizedBox(height: 12),
+              Expanded(
+                child: _buildAddressTable(
+                  isLoadingRecord: isLoadingRecord,
+                  selectedSerial: selectedSerial,
+                  tests: tests,
+                  selectedTest: selectedTest,
+                  constrainHeight: false,
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Sequence ${selectedSerial.sequence}',
-                style: const TextStyle(color: Colors.white70),
               ),
             ],
           ),
         ),
-      if (selectedSerial != null) const SizedBox(height: 12),
-      if (!isSearching && matches.isNotEmpty)
-        const Text(
-          'Serial Matches',
-          style: TextStyle(
-            color: Colors.white70,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.8,
+      );
+    } else {
+      children
+        ..add(_buildAddressHeaderRow())
+        ..add(const SizedBox(height: 12))
+        ..add(
+          _buildAddressTable(
+            isLoadingRecord: isLoadingRecord,
+            selectedSerial: selectedSerial,
+            tests: tests,
+            selectedTest: selectedTest,
+            constrainHeight: true,
           ),
-        ),
-      if (!isSearching && matches.isNotEmpty) const SizedBox(height: 8),
-      buildMatchesList(),
-    ];
+        );
+    }
 
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF021024).withOpacity(0.92),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.blueGrey.shade900),
-      ),
-      padding: const EdgeInsets.all(16),
+      height: fillHeight ? double.infinity : null,
+      decoration: _cardDecoration(),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: expandResults ? MainAxisSize.max : MainAxisSize.min,
         children: children,
       ),
     );
   }
 
-  Widget _buildDetailSection({
-    required BuildContext context,
-    required ResistorMachineRecord? record,
-    required List<ResistorMachineTestResult> tests,
-    required ResistorMachineTestResult? selectedTest,
-    required bool isLoading,
-    required bool isTablet,
-    required bool isWide,
-  }) {
-    if (isLoading) {
-      return Container(
-        decoration: _cardDecoration(),
-        padding: const EdgeInsets.all(24),
-        alignment: Alignment.center,
-        child: const CircularProgressIndicator(color: Colors.cyanAccent),
-      );
-    }
+  Widget _buildSearchField() {
+    return TextField(
+      controller: widget.searchController,
+      focusNode: widget.searchFocusNode,
+      onChanged: _onSearchChanged,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.06),
+        hintText: 'Serial Number Search',
+        hintStyle: const TextStyle(color: Colors.white54),
+        prefixIcon: const Icon(Icons.search, color: Colors.cyanAccent),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
 
-    if (record == null) {
-      return Container(
-        decoration: _cardDecoration(),
-        padding: const EdgeInsets.all(24),
-        alignment: Alignment.center,
-        child: const Text(
-          'Select a serial number from the list to view tracking details.',
-          style: TextStyle(color: Colors.white60),
-          textAlign: TextAlign.center,
+  Widget _buildSearchResults(
+    List<ResistorMachineSerialMatch> matches,
+    bool isSearching,
+  ) {
+    Widget child;
+    if (isSearching && matches.isEmpty) {
+      child = const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: CircularProgressIndicator(color: Colors.cyanAccent),
         ),
       );
-    }
-
-    final recordHeader = _buildInfoCard(record, isTablet);
-    final testPanel = _buildTestList(
-      tests,
-      selectedTest,
-      expandList: isWide,
-    );
-    final imagePanel = _buildImageCard(selectedTest, fillHeight: isWide);
-    final measurementPanel = _buildMeasurementCard(
-      selectedTest,
-      expandTable: isWide,
-    );
-
-    if (isWide) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          recordHeader,
-          const SizedBox(height: 20),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(width: 320, child: testPanel),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(height: 260, child: imagePanel),
-                      const SizedBox(height: 20),
-                      Expanded(child: measurementPanel),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        recordHeader,
-        const SizedBox(height: 16),
-        testPanel,
-        const SizedBox(height: 16),
-        imagePanel,
-        const SizedBox(height: 16),
-        measurementPanel,
-      ],
-    );
-  }
-
-  Widget _buildInfoCard(ResistorMachineRecord record, bool isTablet) {
-    final info = <MapEntry<String, String>>[
-      MapEntry('Machine', record.machineName),
-      MapEntry('Serial', record.serialNumber ?? '-'),
-      MapEntry('Work Date', record.workDate),
-      MapEntry('Work Section', '${record.workSection}'),
-      MapEntry('Station', '${record.stationSequence}'),
-      MapEntry('Pass Qty', '${record.passQty}'),
-      MapEntry('Fail Qty', '${record.failQty}'),
-      MapEntry('Employee', record.employeeId ?? '-'),
-      MapEntry('Error Code', record.errorCode ?? '-'),
-    ];
-
-    return Container(
-      decoration: _cardDecoration(),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Record Details',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
-                ),
-          ),
-          const SizedBox(height: 18),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final columns = isTablet
-                  ? ((constraints.maxWidth ~/ 220).clamp(1, 4)).toInt()
-                  : 1;
-              final width = columns > 1
-                  ? (constraints.maxWidth - (columns - 1) * 16) / columns
-                  : constraints.maxWidth;
-
-              return Wrap(
-                spacing: 16,
-                runSpacing: 14,
-                children: info
-                    .map(
-                      (entry) => _InfoChip(
-                        label: entry.key,
-                        value: entry.value,
-                        width: width,
-                      ),
-                    )
-                    .toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTestList(
-    List<ResistorMachineTestResult> tests,
-    ResistorMachineTestResult? selectedTest, {
-    bool expandList = false,
-  }) {
-    Widget buildRows() {
-      if (tests.isEmpty) {
-        final message = const Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Text(
-              'No test data available for this serial number.',
-              style: TextStyle(color: Colors.white60),
-            ),
-          ),
-        );
-
-        if (expandList) {
-          return Expanded(child: message);
-        }
-
-        return SizedBox(height: 240, child: message);
-      }
-
-      final list = Scrollbar(
-        thumbVisibility: true,
-        child: ListView.separated(
-          itemCount: tests.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (context, index) {
-            final item = tests[index];
-            final bool isSelected = selectedTest?.address == item.address;
-            final statusText = item.result ? 'PASS' : 'FAIL';
-            final statusColor =
-                item.result ? Colors.greenAccent : Colors.redAccent;
-
-            return InkWell(
-              onTap: () => controller.selectTestResult(item),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.cyanAccent.withOpacity(0.18)
-                      : Colors.white.withOpacity(0.03),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected
-                        ? Colors.cyanAccent.withOpacity(0.4)
-                        : Colors.white10,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: Text(
-                        'Position ${item.address}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        statusText,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        item.result ? '-' : 'Check parameters',
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+    } else {
+      child = ListView.separated(
+        itemCount: matches.length,
+        separatorBuilder: (_, __) => const Divider(
+          height: 1,
+          color: Color(0x22FFFFFF),
         ),
-      );
-
-      if (expandList) {
-        return Expanded(child: list);
-      }
-
-      return SizedBox(height: 260, child: list);
-    }
-
-    return Container(
-      decoration: _cardDecoration(),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Test Addresses',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: const Row(
-              children: [
-                Expanded(
-                  flex: 4,
-                  child: Text(
-                    'Location',
-                    style: TextStyle(
-                      color: Colors.white60,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
+        itemBuilder: (context, index) {
+          final match = matches[index];
+          return InkWell(
+            onTap: () => _onSerialTap(match),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      match.serialNumber,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Status',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white60,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0E2B4F),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '#${match.sequence}',
+                      style: const TextStyle(
+                        color: Colors.cyanAccent,
+                        fontFamily: 'SourceCodePro',
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'Error',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      color: Colors.white60,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          buildRows(),
-        ],
-      ),
-    );
-  }
-
-
-  Widget _buildImageCard(
-    ResistorMachineTestResult? test, {
-    bool fillHeight = false,
-  }) {
-    Widget buildContent() {
-      if (test == null || test.imagePath.isEmpty) {
-        return const Center(
-          child: Text(
-            'Select a test to view the captured image.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white60),
-          ),
-        );
-      }
-
-      return _buildImagePreview(test);
-    }
-
-    final body = buildContent();
-
-    return Container(
-      decoration: _cardDecoration(),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Inspection Image',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-          ),
-          const SizedBox(height: 16),
-          if (fillHeight)
-            Expanded(child: body)
-          else
-            SizedBox(height: 220, child: body),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMeasurementCard(
-    ResistorMachineTestResult? test, {
-    bool expandTable = false,
-  }) {
-    Widget buildContent() {
-      if (test == null) {
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Text(
-              'Select a test address to view measurement details.',
-              style: TextStyle(color: Colors.white60),
-            ),
-          ),
-        );
-      }
-
-      return _buildMeasurementsTable(test, expand: expandTable);
-    }
-
-    final content = buildContent();
-
-    return Container(
-      decoration: _cardDecoration(),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Measurement Matrix',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-          ),
-          const SizedBox(height: 16),
-          if (expandTable)
-            Expanded(child: content)
-          else
-            content,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMeasurementsTable(
-    ResistorMachineTestResult test, {
-    bool expand = false,
-  }) {
-    final rows = test.details
-        .map(
-          (detail) => DataRow(
-            cells: [
-              DataCell(Text(detail.name,
-                  style: const TextStyle(color: Colors.white))),
-              DataCell(Text('${detail.row}',
-                  style: const TextStyle(color: Colors.white70))),
-              DataCell(Text('${detail.column}',
-                  style: const TextStyle(color: Colors.white70))),
-              DataCell(Text(
-                detail.measurementValue.toStringAsFixed(3),
-                style: const TextStyle(color: Colors.white),
-              )),
-              DataCell(Text(
-                detail.lowSampleValue.toStringAsFixed(3),
-                style: const TextStyle(color: Colors.white70),
-              )),
-              DataCell(Text(
-                detail.highSampleValue.toStringAsFixed(3),
-                style: const TextStyle(color: Colors.white70),
-              )),
-              DataCell(Text(
-                detail.pass ? 'PASS' : 'FAIL',
-                style: TextStyle(
-                  color: detail.pass ? Colors.greenAccent : Colors.redAccent,
-                  fontWeight: FontWeight.w600,
-                ),
-              )),
-            ],
-          ),
-        )
-        .toList();
-
-    Widget buildTable() {
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: MaterialStateProperty.all(Colors.white10),
-          dataRowColor:
-              MaterialStateProperty.all(Colors.white10.withOpacity(0.05)),
-          columnSpacing: 24,
-          columns: const [
-            DataColumn(
-              label: Text('Name', style: TextStyle(color: Colors.white70)),
-            ),
-            DataColumn(
-              label: Text('Row', style: TextStyle(color: Colors.white70)),
-            ),
-            DataColumn(
-              label: Text('Column', style: TextStyle(color: Colors.white70)),
-            ),
-            DataColumn(
-              label: Text('Measurement', style: TextStyle(color: Colors.white70)),
-            ),
-            DataColumn(
-              label: Text('Low Sample', style: TextStyle(color: Colors.white70)),
-            ),
-            DataColumn(
-              label: Text('High Sample', style: TextStyle(color: Colors.white70)),
-            ),
-            DataColumn(
-              label: Text('Status', style: TextStyle(color: Colors.white70)),
-            ),
-          ],
-          rows: rows,
-        ),
-      );
-    }
-
-    if (expand) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return Scrollbar(
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: buildTable(),
+                ],
               ),
             ),
           );
@@ -1847,10 +1427,627 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       );
     }
 
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF04142D),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12),
+      ),
+      constraints: const BoxConstraints(maxHeight: 280),
+      child: Scrollbar(
+        thumbVisibility: true,
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildAddressHeaderRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: const [
+          SizedBox(
+            width: 52,
+            child: Text(
+              '#',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white60,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 5,
+            child: Text(
+              'Location',
+              style: TextStyle(
+                color: Colors.white60,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              'Status',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white60,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Text(
+              'Error',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: Colors.white60,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddressTable({
+    required bool isLoadingRecord,
+    required ResistorMachineSerialMatch? selectedSerial,
+    required List<ResistorMachineTestResult> tests,
+    required ResistorMachineTestResult? selectedTest,
+    required bool constrainHeight,
+  }) {
+    Widget content;
+    if (isLoadingRecord) {
+      content = _buildCardPlaceholder(
+        message: 'Loading serial details…',
+        showLoader: true,
+      );
+    } else if (selectedSerial == null) {
+      content = _buildCardPlaceholder(
+        message: 'Select a serial number to view the test positions.',
+      );
+    } else if (tests.isEmpty) {
+      content = _buildCardPlaceholder(
+        message: 'No test data available for this serial number.',
+      );
+    } else {
+      content = _buildAddressList(tests, selectedTest);
+    }
+
+    if (constrainHeight) {
+      return SizedBox(height: 360, child: content);
+    }
+    return content;
+  }
+
+  Widget _buildAddressList(
+    List<ResistorMachineTestResult> tests,
+    ResistorMachineTestResult? selectedTest,
+  ) {
+    return Scrollbar(
+      thumbVisibility: true,
+      child: ListView.separated(
+        itemCount: tests.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final result = tests[index];
+          final bool isSelected = selectedTest?.address == result.address;
+          return _buildAddressRow(result, isSelected);
+        },
+      ),
+    );
+  }
+
+  Widget _buildAddressRow(
+    ResistorMachineTestResult result,
+    bool isSelected,
+  ) {
+    final bool hasOpen = result.details.any(
+      (detail) => detail.measurementValue > detail.highSampleValue,
+    );
+    final bool hasShort = result.details.any(
+      (detail) => detail.measurementValue < detail.lowSampleValue,
+    );
+
+    final Color borderColor = isSelected
+        ? Colors.cyanAccent.withOpacity(0.5)
+        : Colors.white12;
+    final Color background = isSelected
+        ? Colors.cyanAccent.withOpacity(0.12)
+        : Colors.white.withOpacity(0.02);
+
+    return InkWell(
+      onTap: () => controller.selectTestResult(result),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 52,
+              child: Text(
+                '${result.address}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 5,
+              child: Text(
+                'Paladin ${result.address}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(
+                result.result ? 'PASS' : 'FAIL',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: result.result ? Colors.greenAccent : Colors.redAccent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 4,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (hasOpen)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Text(
+                        '⚠️ OPEN',
+                        style: TextStyle(
+                          color: Color(0xFFFFAF56),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  if (hasShort)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Text(
+                        '⛔ SHORT',
+                        style: TextStyle(
+                          color: Color(0xFFFF4C62),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  if (!hasOpen && !hasShort)
+                    const Text(
+                      '-',
+                      style: TextStyle(color: Colors.white54),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailColumn({
+    required ResistorMachineRecord? record,
+    required ResistorMachineTestResult? selectedTest,
+    required bool isLoadingRecord,
+    required bool fillHeight,
+  }) {
+    final children = <Widget>[
+      _buildTopInfoRow(
+        record: record,
+        selectedTest: selectedTest,
+        isLoadingRecord: isLoadingRecord,
+        fillHeight: fillHeight,
+      ),
+      const SizedBox(height: 16),
+    ];
+
+    final dataCard = _buildDataDetailsCard(
+      selectedTest: selectedTest,
+      isLoadingRecord: isLoadingRecord,
+      fillHeight: fillHeight,
+    );
+
+    if (fillHeight) {
+      children.add(Expanded(child: dataCard));
+    } else {
+      children.add(dataCard);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
+  }
+
+  Widget _buildTopInfoRow({
+    required ResistorMachineRecord? record,
+    required ResistorMachineTestResult? selectedTest,
+    required bool isLoadingRecord,
+    required bool fillHeight,
+  }) {
+    final row = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _buildProductInfoCard(
+            record: record,
+            isLoadingRecord: isLoadingRecord,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildImageCard(
+            selectedTest: selectedTest,
+            isLoadingRecord: isLoadingRecord,
+          ),
+        ),
+      ],
+    );
+
+    if (fillHeight) {
+      return SizedBox(height: 260, child: row);
+    }
+    return row;
+  }
+
+  Widget _buildProductInfoCard({
+    required ResistorMachineRecord? record,
+    required bool isLoadingRecord,
+  }) {
+    Widget child;
+    if (isLoadingRecord) {
+      child = _buildCardPlaceholder(
+        message: 'Loading record information…',
+        showLoader: true,
+      );
+    } else if (record == null) {
+      child = _buildCardPlaceholder(
+        message: 'Select a serial number to view its information.',
+      );
+    } else {
+      final entries = <_InfoEntry>[
+        _InfoEntry('Product SN', record.serialNumber ?? '-'),
+        _InfoEntry('Sequence', record.stationSequence.toString()),
+        _InfoEntry('Machine Name', record.machineName),
+        _InfoEntry('Model Name', record.modelName ?? '-'),
+        _InfoEntry(
+          'Inspection Time',
+          DateFormat('yyyy-MM-dd HH:mm:ss').format(record.inStationTime),
+        ),
+        _InfoEntry('Status', record.isPass ? 'PASS' : 'FAIL'),
+        _InfoEntry(
+          'Cycle Time',
+          record.cycleTime != null
+              ? '${_numberFormat.format(record.cycleTime)} (second)'
+              : '-',
+        ),
+        _InfoEntry('Validator', record.employeeId ?? '-'),
+      ];
+
+      child = Column(
+        children: entries
+            .map(
+              (entry) => _InfoRow(
+                label: entry.label,
+                value: entry.value,
+                isStatus: entry.label == 'Status',
+                isPass: record.isPass,
+              ),
+            )
+            .toList(),
+      );
+    }
+
+    return Container(
+      decoration: _cardDecoration(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      child: child,
+    );
+  }
+
+  Widget _buildImageCard({
+    required ResistorMachineTestResult? selectedTest,
+    required bool isLoadingRecord,
+  }) {
+    Widget content;
+    if (isLoadingRecord) {
+      content = _buildCardPlaceholder(
+        message: 'Preparing image…',
+        showLoader: true,
+      );
+    } else if (selectedTest == null || selectedTest.imagePath.isEmpty) {
+      content = const Center(
+        child: Text(
+          'Select a test to view the captured image.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white60),
+        ),
+      );
+    } else {
+      content = _buildImagePreview(selectedTest);
+    }
+
+    return Container(
+      decoration: _cardDecoration(),
+      padding: const EdgeInsets.all(18),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: content,
+      ),
+    );
+  }
+
+  Widget _buildDataDetailsCard({
+    required ResistorMachineTestResult? selectedTest,
+    required bool isLoadingRecord,
+    required bool fillHeight,
+  }) {
+    Widget body;
+    if (isLoadingRecord) {
+      body = _buildCardPlaceholder(
+        message: 'Loading measurement data…',
+        showLoader: true,
+      );
+    } else if (selectedTest == null) {
+      body = _buildCardPlaceholder(
+        message: 'Select a test row to inspect the measurements.',
+      );
+    } else if (selectedTest.details.isEmpty) {
+      body = _buildCardPlaceholder(
+        message: 'No measurement data available for this test.',
+      );
+    } else {
+      body = _buildMeasurementGrid(selectedTest);
+    }
+
+    final column = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'DATA DETAILS',
+          style: TextStyle(
+            color: Colors.cyanAccent,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
+            fontSize: 18,
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (fillHeight)
+          Expanded(child: body)
+        else
+          body,
+      ],
+    );
+
+    return Container(
+      height: fillHeight ? double.infinity : null,
+      decoration: _cardDecoration(),
+      padding: const EdgeInsets.all(20),
+      child: column,
+    );
+  }
+
+  Widget _buildMeasurementGrid(ResistorMachineTestResult test) {
+    final Map<int, Map<int, List<ResistorMachineResultDetail>>> matrix = {};
+    for (final detail in test.details) {
+      matrix.putIfAbsent(detail.row, () => {});
+      matrix[detail.row]!.putIfAbsent(detail.column, () => <ResistorMachineResultDetail>[]);
+      matrix[detail.row]![detail.column]!.add(detail);
+    }
+
+    final rows = matrix.keys.toList()..sort();
+    final columns = test.details
+        .map((detail) => detail.column)
+        .toSet()
+        .toList()
+      ..sort();
+
+    final table = Table(
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+      border: TableBorder.all(color: Colors.white12, width: 1),
+      columnWidths: <int, TableColumnWidth>{
+        0: const FixedColumnWidth(72),
+      },
+      children: [
+        TableRow(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+          ),
+          children: [
+            _buildTableHeaderCell('#'),
+            ...columns.map((column) => _buildTableHeaderCell('COL $column')),
+          ],
+        ),
+        ...rows.map(
+          (row) => TableRow(
+            children: [
+              _buildRowHeaderCell(row),
+              ...columns.map(
+                (column) => _buildMeasurementCell(
+                  matrix[row]?[column] ?? const <ResistorMachineResultDetail>[],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
     return Scrollbar(
       thumbVisibility: true,
       child: SingleChildScrollView(
-        child: buildTable(),
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: columns.length * 120.0 + 72),
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              child: table,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTableHeaderCell(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white70,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRowHeaderCell(int row) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      alignment: Alignment.center,
+      child: Text(
+        '$row',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMeasurementCell(List<ResistorMachineResultDetail> details) {
+    if (details.isEmpty) {
+      return Container(
+        height: 72,
+        alignment: Alignment.center,
+        child: const Text(
+          '-',
+          style: TextStyle(color: Colors.white38),
+        ),
+      );
+    }
+
+    final sorted = List<ResistorMachineResultDetail>.from(details)
+      ..sort((a, b) => b.name.compareTo(a.name));
+    final top = sorted.isNotEmpty ? sorted.first : null;
+    final bottom = sorted.length > 1 ? sorted[1] : null;
+
+    bool isFail(ResistorMachineResultDetail? detail) {
+      if (detail == null) return false;
+      return detail.measurementValue > detail.highSampleValue ||
+          detail.measurementValue < detail.lowSampleValue;
+    }
+
+    final bool topFail = isFail(top);
+    final bool bottomFail = isFail(bottom);
+    final bool hasFail = topFail || bottomFail;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      color: hasFail ? Colors.red.withOpacity(0.18) : Colors.transparent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (top != null)
+            _buildMeasurementLine(top, topFail),
+          if (bottom != null) ...[
+            const Divider(height: 8, color: Colors.white12),
+            _buildMeasurementLine(bottom, bottomFail),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeasurementLine(
+    ResistorMachineResultDetail detail,
+    bool isFail,
+  ) {
+    final String label = _resolvePinLabel(detail.name);
+    final String value = _numberFormat.format(detail.measurementValue);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          '$label:',
+          style: const TextStyle(
+            color: Color(0xFFB388FF),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: isFail ? Colors.redAccent : Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _resolvePinLabel(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return '-';
+    return trimmed[0].toUpperCase();
+  }
+
+  Widget _buildCardPlaceholder({
+    required String message,
+    bool showLoader = false,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showLoader) ...[
+            const SizedBox(height: 8),
+            const CircularProgressIndicator(color: Colors.cyanAccent),
+            const SizedBox(height: 16),
+          ],
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white60),
+          ),
+        ],
       ),
     );
   }
@@ -1876,45 +2073,26 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
           },
         );
       },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
+      child: Image.network(
+        test.imagePath,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            color: const Color(0xFF010A1B),
+            alignment: Alignment.center,
+            child: const CircularProgressIndicator(
+              color: Colors.cyanAccent,
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => Container(
+          color: const Color(0xFF010A1B),
           alignment: Alignment.center,
-          children: [
-            AspectRatio(
-              aspectRatio: 4 / 3,
-              child: Image.network(
-                test.imagePath,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return Container(
-                    color: const Color(0xFF010A1B),
-                    alignment: Alignment.center,
-                    child: const CircularProgressIndicator(
-                      color: Colors.cyanAccent,
-                    ),
-                  );
-                },
-                errorBuilder: (_, __, ___) => Container(
-                  color: const Color(0xFF010A1B),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'Unable to load image',
-                    style: TextStyle(color: Colors.white60),
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.35),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: const Icon(Icons.zoom_in, color: Colors.white70),
-            ),
-          ],
+          child: const Text(
+            'Unable to load image',
+            style: TextStyle(color: Colors.white60),
+          ),
         ),
       ),
     );
@@ -1922,57 +2100,64 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
-      color: const Color(0xFF021024).withOpacity(0.9),
+      color: const Color(0xFF021024).withOpacity(0.92),
       borderRadius: BorderRadius.circular(18),
       border: Border.all(color: Colors.blueGrey.shade900),
     );
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({
+class _InfoEntry {
+  const _InfoEntry(this.label, this.value);
+  final String label;
+  final String value;
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
     required this.label,
     required this.value,
-    this.width,
+    this.isStatus = false,
+    this.isPass = true,
   });
 
   final String label;
   final String value;
-  final double? width;
+  final bool isStatus;
+  final bool isPass;
 
   @override
   Widget build(BuildContext context) {
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white60,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.8,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
+    final Color valueColor;
+    if (isStatus) {
+      valueColor = isPass ? Colors.greenAccent : Colors.redAccent;
+    } else {
+      valueColor = Colors.white;
+    }
 
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
-      child: content,
     );
   }
 }
