@@ -1107,17 +1107,28 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   late final ScrollController _searchResultsController;
   late final ScrollController _addressListController;
-  late final ScrollController _gridHorizontalController;
-  late final ScrollController _gridVerticalController;
   late final ScrollController _productInfoScrollController;
+
+  static const LinearGradient _dataDetailsTitleGradient = LinearGradient(
+    colors: [Color(0xFF7F5CFF), Color(0xFF2AF4FF)],
+  );
+
+  static const LinearGradient _topPinGradient = LinearGradient(
+    colors: [Color(0xFFB388FF), Color(0xFF7C8BFF)],
+  );
+
+  static const LinearGradient _bottomPinGradient = LinearGradient(
+    colors: [Color(0xFFFFE082), Color(0xFFFFB74D)],
+  );
+
+  static const double _rowHeaderWidth = 72;
+  static const double _measurementColumnWidth = 168;
 
   @override
   void initState() {
     super.initState();
     _searchResultsController = ScrollController();
     _addressListController = ScrollController();
-    _gridHorizontalController = ScrollController();
-    _gridVerticalController = ScrollController();
     _productInfoScrollController = ScrollController();
     widget.searchFocusNode.addListener(_handleFocusChange);
   }
@@ -1127,8 +1138,6 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     widget.searchFocusNode.removeListener(_handleFocusChange);
     _searchResultsController.dispose();
     _addressListController.dispose();
-    _gridHorizontalController.dispose();
-    _gridVerticalController.dispose();
     _productInfoScrollController.dispose();
     super.dispose();
   }
@@ -1893,10 +1902,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     final column = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        _GradientText(
           'DATA DETAILS',
-          style: TextStyle(
-            color: Colors.cyanAccent,
+          gradient: _dataDetailsTitleGradient,
+          style: const TextStyle(
             fontWeight: FontWeight.w800,
             letterSpacing: 1.2,
             fontSize: 18,
@@ -1933,72 +1942,98 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         .toList()
       ..sort();
 
-    final table = Table(
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      border: TableBorder.all(color: Colors.white12, width: 1),
-      columnWidths: <int, TableColumnWidth>{
-        0: const FixedColumnWidth(72),
-      },
-      children: [
-        TableRow(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-          ),
+    final List<TableRow> tableRows = [
+      TableRow(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+        ),
+        children: [
+          _buildTableHeaderCell('#'),
+          ...columns.map((column) => _buildTableHeaderCell('COL $column')),
+        ],
+      ),
+      ...rows.map(
+        (row) => TableRow(
           children: [
-            _buildTableHeaderCell('#'),
-            ...columns.map((column) => _buildTableHeaderCell('COL $column')),
+            _buildRowHeaderCell(row),
+            ...columns.map(
+              (column) => _buildMeasurementCell(
+                matrix[row]?[column] ?? const <ResistorMachineResultDetail>[],
+              ),
+            ),
           ],
         ),
-        ...rows.map(
-          (row) => TableRow(
-            children: [
-              _buildRowHeaderCell(row),
-              ...columns.map(
-                (column) => _buildMeasurementCell(
-                  matrix[row]?[column] ?? const <ResistorMachineResultDetail>[],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-
-    return Scrollbar(
-      controller: _gridHorizontalController,
-      thumbVisibility: true,
-      notificationPredicate: (notification) =>
-          notification.metrics.axis == Axis.horizontal,
-      child: SingleChildScrollView(
-        controller: _gridHorizontalController,
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: columns.length * 120.0 + 72),
-          child: Scrollbar(
-            controller: _gridVerticalController,
-            thumbVisibility: true,
-            notificationPredicate: (notification) =>
-                notification.metrics.axis == Axis.vertical,
-            child: SingleChildScrollView(
-              controller: _gridVerticalController,
-              child: table,
-            ),
-          ),
-        ),
       ),
+    ];
+
+    Table _buildFixedWidthTable() {
+      final Map<int, TableColumnWidth> widths = {
+        0: const FixedColumnWidth(_rowHeaderWidth),
+      };
+      for (int index = 0; index < columns.length; index++) {
+        widths[index + 1] = const FixedColumnWidth(_measurementColumnWidth);
+      }
+
+      return Table(
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        border: TableBorder.all(color: Colors.white12, width: 1),
+        columnWidths: widths,
+        children: tableRows,
+      );
+    }
+
+    Table _buildExpandedTable() {
+      final Map<int, TableColumnWidth> widths = {
+        0: const FixedColumnWidth(_rowHeaderWidth),
+      };
+      for (int index = 0; index < columns.length; index++) {
+        widths[index + 1] = const FlexColumnWidth(1);
+      }
+
+      return Table(
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        border: TableBorder.all(color: Colors.white12, width: 1),
+        columnWidths: widths,
+        children: tableRows,
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double naturalWidth =
+            _rowHeaderWidth + columns.length * _measurementColumnWidth;
+
+        if (!constraints.hasBoundedWidth) {
+          return SizedBox(width: naturalWidth, child: _buildFixedWidthTable());
+        }
+
+        if (constraints.maxWidth >= naturalWidth) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            child: _buildExpandedTable(),
+          );
+        }
+
+        return FittedBox(
+          alignment: Alignment.topLeft,
+          fit: BoxFit.scaleDown,
+          child: SizedBox(width: naturalWidth, child: _buildFixedWidthTable()),
+        );
+      },
     );
   }
 
   Widget _buildTableHeaderCell(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       alignment: Alignment.center,
       child: Text(
         label,
         style: const TextStyle(
-          color: Colors.white70,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          letterSpacing: 1,
         ),
       ),
     );
@@ -2006,13 +2041,14 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   Widget _buildRowHeaderCell(int row) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       alignment: Alignment.center,
       child: Text(
         '$row',
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
         ),
       ),
     );
@@ -2046,7 +2082,8 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     final bool hasFail = topFail || bottomFail;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       color: hasFail ? Colors.red.withOpacity(0.18) : Colors.transparent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2069,31 +2106,32 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     final String label = _resolvePinLabel(detail.name);
     final String value = _numberFormat.format(detail.measurementValue);
 
+    final Gradient gradient = label == 'B'
+        ? _bottomPinGradient
+        : _topPinGradient;
+
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          flex: 3,
-          child: Text(
-            '$label:',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFFB388FF),
-              fontWeight: FontWeight.w700,
-            ),
+        _GradientText(
+          '$label:',
+          gradient: gradient,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
-          flex: 4,
           child: Text(
             value,
-            maxLines: 1,
-            textAlign: TextAlign.right,
-            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.left,
+            softWrap: true,
+            overflow: TextOverflow.visible,
             style: TextStyle(
               color: isFail ? Colors.redAccent : Colors.white,
               fontWeight: FontWeight.w700,
+              fontSize: 16,
             ),
           ),
         ),
@@ -2236,6 +2274,38 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _GradientText extends StatelessWidget {
+  const _GradientText(
+    this.text, {
+    super.key,
+    required this.gradient,
+    required this.style,
+    this.textAlign,
+  });
+
+  final String text;
+  final Gradient gradient;
+  final TextStyle style;
+  final TextAlign? textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (Rect bounds) {
+        return gradient.createShader(
+          Rect.fromLTWH(0, 0, bounds.width == 0 ? 1 : bounds.width, bounds.height == 0 ? style.fontSize ?? 16 : bounds.height),
+        );
+      },
+      blendMode: BlendMode.srcIn,
+      child: Text(
+        text,
+        textAlign: textAlign,
+        style: style.copyWith(color: Colors.white),
       ),
     );
   }
