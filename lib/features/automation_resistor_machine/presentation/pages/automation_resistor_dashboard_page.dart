@@ -1174,11 +1174,13 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
           final EdgeInsets padding = isWide
               ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
               : const EdgeInsets.all(16);
-          final double viewportHeight = constraints.maxHeight;
+
+          final BoxConstraints contentConstraints =
+              constraints.deflate(padding).loosen();
 
           final Widget content = isWide
               ? _buildWideLayout(
-                  constraints: constraints,
+                  constraints: contentConstraints,
                   matches: matches,
                   isSearching: isSearching,
                   isLoadingRecord: isLoadingRecord,
@@ -1188,7 +1190,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
                   selectedSerial: selectedSerial,
                 )
               : _buildStackedLayout(
-                  viewportHeight: viewportHeight,
+                  constraints: contentConstraints,
                   matches: matches,
                   isSearching: isSearching,
                   isLoadingRecord: isLoadingRecord,
@@ -1198,11 +1200,9 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
                   selectedSerial: selectedSerial,
                 );
 
-          return SizedBox.expand(
-            child: Padding(
-              padding: padding,
-              child: content,
-            ),
+          return Padding(
+            padding: padding,
+            child: content,
           );
         },
       );
@@ -1219,8 +1219,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
-    final bool enableVerticalScroll = constraints.maxHeight < 720;
-    final bool fillHeight = !enableVerticalScroll;
+    final bool hasBoundedHeight = constraints.hasBoundedHeight;
+    final bool enableVerticalScroll =
+        hasBoundedHeight && constraints.maxHeight < 720;
+    final bool fillHeight = hasBoundedHeight && !enableVerticalScroll;
 
     final row = Row(
       crossAxisAlignment:
@@ -1250,7 +1252,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       ],
     );
 
-    if (enableVerticalScroll) {
+    if (enableVerticalScroll && hasBoundedHeight) {
       return SingleChildScrollView(
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -1259,14 +1261,18 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       );
     }
 
-    return SizedBox(
-      height: constraints.maxHeight,
-      child: row,
-    );
+    if (fillHeight) {
+      return SizedBox(
+        height: constraints.maxHeight,
+        child: row,
+      );
+    }
+
+    return row;
   }
 
   Widget _buildStackedLayout({
-    required double viewportHeight,
+    required BoxConstraints constraints,
     required List<ResistorMachineSerialMatch> matches,
     required bool isSearching,
     required bool isLoadingRecord,
@@ -1275,9 +1281,12 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
+    final bool hasBoundedHeight = constraints.hasBoundedHeight;
+    final double minHeight = hasBoundedHeight ? constraints.maxHeight : 0;
+
     return SingleChildScrollView(
       child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: viewportHeight),
+        constraints: BoxConstraints(minHeight: minHeight),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1613,11 +1622,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         message: 'No test data available for this serial number.',
       );
     } else {
-      content = _buildAddressList(
-        tests,
-        selectedTest,
-        shrinkWrap: constrainHeight,
-      );
+      content = _buildAddressList(tests, selectedTest);
     }
 
     if (constrainHeight) {
@@ -1631,16 +1636,15 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   Widget _buildAddressList(
     List<ResistorMachineTestResult> tests,
-    ResistorMachineTestResult? selectedTest, {
-    required bool shrinkWrap,
-  }) {
+    ResistorMachineTestResult? selectedTest,
+  ) {
     return Scrollbar(
       controller: _addressListController,
       thumbVisibility: true,
       child: ListView.separated(
         controller: _addressListController,
         primary: false,
-        shrinkWrap: shrinkWrap,
+        shrinkWrap: true,
         padding: EdgeInsets.zero,
         itemCount: tests.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
