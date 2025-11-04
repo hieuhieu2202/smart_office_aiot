@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:smart_office_aiot/features/automation_resistor_machine/data/utils/image_path_utils.dart';
+import 'package:smart_factory/features/automation_resistor_machine/data/utils/image_path_utils.dart';
 
 void main() {
   group('normalizeResistorMachineImagePath', () {
