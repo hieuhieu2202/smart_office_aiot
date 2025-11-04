@@ -16,6 +16,7 @@ const Color _textSecondary = Colors.white70;
 const double _headerHeight = 56;
 const double _subHeaderHeight = 36;
 const double _rowHeight = 52;
+const double _sectionWidth = 120;
 
 class UphTrackingTable extends StatefulWidget {
   const UphTrackingTable({
@@ -37,7 +38,6 @@ class _UphTrackingTableState extends State<UphTrackingTable> {
   static const double _modelWidth = 220;
   static const double _stationWidth = 160;
   static const double _metricWidth = 110;
-  static const double _sectionWidth = 120;
 
   final ScrollController _horizontalCtrl = ScrollController();
   final ScrollController _verticalCtrl = ScrollController();
@@ -260,7 +260,6 @@ class _UpdTrackingTableState extends State<UpdTrackingTable> {
   static const double _modelWidth = 220;
   static const double _stationWidth = 160;
   static const double _metricWidth = 110;
-  static const double _sectionWidth = 120;
 
   final ScrollController _horizontalCtrl = ScrollController();
   final ScrollController _verticalCtrl = ScrollController();
@@ -620,7 +619,7 @@ Widget _seriesCell(
   required double width,
   required String Function(double value) formatter,
   required Color Function(double value) colorBuilder,
-  Color Function(double value)? backgroundBuilder,
+  Color? Function(double value)? backgroundBuilder,
 }) {
   final double value = index < values.length ? values[index] : 0;
   final Color color = colorBuilder(value);
