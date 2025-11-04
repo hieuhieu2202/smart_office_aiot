@@ -1111,6 +1111,18 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
   late final ScrollController _gridVerticalController;
   late final ScrollController _productInfoScrollController;
 
+  static const LinearGradient _dataDetailsTitleGradient = LinearGradient(
+    colors: [Color(0xFF7F5CFF), Color(0xFF2AF4FF)],
+  );
+
+  static const LinearGradient _topPinGradient = LinearGradient(
+    colors: [Color(0xFFB388FF), Color(0xFF7C8BFF)],
+  );
+
+  static const LinearGradient _bottomPinGradient = LinearGradient(
+    colors: [Color(0xFFFFE082), Color(0xFFFFB74D)],
+  );
+
   @override
   void initState() {
     super.initState();
@@ -1893,10 +1905,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     final column = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        _GradientText(
           'DATA DETAILS',
-          style: TextStyle(
-            color: Colors.cyanAccent,
+          gradient: _dataDetailsTitleGradient,
+          style: const TextStyle(
             fontWeight: FontWeight.w800,
             letterSpacing: 1.2,
             fontSize: 18,
@@ -1933,12 +1945,17 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         .toList()
       ..sort();
 
+    final Map<int, TableColumnWidth> widths = {
+      0: const FixedColumnWidth(72),
+    };
+    for (int index = 0; index < columns.length; index++) {
+      widths[index + 1] = const FixedColumnWidth(168);
+    }
+
     final table = Table(
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       border: TableBorder.all(color: Colors.white12, width: 1),
-      columnWidths: <int, TableColumnWidth>{
-        0: const FixedColumnWidth(72),
-      },
+      columnWidths: widths,
       children: [
         TableRow(
           decoration: BoxDecoration(
@@ -1973,7 +1990,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         controller: _gridHorizontalController,
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: columns.length * 120.0 + 72),
+          constraints: BoxConstraints(minWidth: columns.length * 168.0 + 72),
           child: Scrollbar(
             controller: _gridVerticalController,
             thumbVisibility: true,
@@ -2069,28 +2086,26 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     final String label = _resolvePinLabel(detail.name);
     final String value = _numberFormat.format(detail.measurementValue);
 
+    final Gradient gradient = label == 'B'
+        ? _bottomPinGradient
+        : _topPinGradient;
+
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          flex: 3,
-          child: Text(
-            '$label:',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFFB388FF),
-              fontWeight: FontWeight.w700,
-            ),
+        _GradientText(
+          '$label:',
+          gradient: gradient,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         Expanded(
-          flex: 4,
           child: Text(
             value,
-            maxLines: 1,
             textAlign: TextAlign.right,
-            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: isFail ? Colors.redAccent : Colors.white,
               fontWeight: FontWeight.w700,
@@ -2236,6 +2251,38 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _GradientText extends StatelessWidget {
+  const _GradientText(
+    this.text, {
+    super.key,
+    required this.gradient,
+    required this.style,
+    this.textAlign,
+  });
+
+  final String text;
+  final Gradient gradient;
+  final TextStyle style;
+  final TextAlign? textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (Rect bounds) {
+        return gradient.createShader(
+          Rect.fromLTWH(0, 0, bounds.width == 0 ? 1 : bounds.width, bounds.height == 0 ? style.fontSize ?? 16 : bounds.height),
+        );
+      },
+      blendMode: BlendMode.srcIn,
+      child: Text(
+        text,
+        textAlign: textAlign,
+        style: style.copyWith(color: Colors.white),
       ),
     );
   }
