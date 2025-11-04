@@ -1300,14 +1300,28 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     required bool fillHeight,
   }) {
     final List<Widget> children = [
-      Text(
-        'Serial Number Analysis'
-        '${selectedSerial != null ? ' ${selectedSerial.serialNumber}' : ''}',
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.cyanAccent,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-            ),
+      ShaderMask(
+        shaderCallback: (bounds) => const LinearGradient(
+          colors: [
+            Color(0xFF00FFFF), // xanh sáng
+            Color(0xFFADFF2F), // xanh lá vàng nhạt
+            Color(0xFFFFD700), // vàng tươi
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ).createShader(bounds),
+        child: Text(
+          'Serial Number Analysis'
+              '${selectedSerial != null ? '\n${selectedSerial.serialNumber}' : ''}',
+          textAlign: TextAlign.left,
+          style: const TextStyle(
+            color: Colors.white, // bị ShaderMask override
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.3,
+            fontSize: 16.5,
+            height: 1.3,
+          ),
+        ),
       ),
       const SizedBox(height: 16),
       _buildSearchField(),
@@ -1491,9 +1505,24 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF003366), // xanh navy đậm
+            Color(0xFF005C97), // xanh lam trung
+            Color(0xFF00A8C8), // xanh ngọc sáng
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Colors.cyanAccent.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.cyanAccent.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: const [
@@ -1777,61 +1806,130 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     required ResistorMachineRecord? record,
     required bool isLoadingRecord,
   }) {
-    Widget child;
+    final _numberFormat = NumberFormat("#,##0.###");
+
     if (isLoadingRecord) {
-      child = _buildCardPlaceholder(
+      return _buildCardPlaceholder(
         message: 'Loading record information…',
         showLoader: true,
       );
-    } else if (record == null) {
-      child = _buildCardPlaceholder(
+    }
+    if (record == null) {
+      return _buildCardPlaceholder(
         message: 'Select a serial number to view its information.',
-      );
-    } else {
-      final entries = <_InfoEntry>[
-        _InfoEntry('Product SN', record.serialNumber ?? '-'),
-        _InfoEntry('Sequence', record.stationSequence.toString()),
-        _InfoEntry('Machine Name', record.machineName),
-        _InfoEntry('Model Name', record.modelName ?? '-'),
-        _InfoEntry(
-          'Inspection Time',
-          DateFormat('yyyy-MM-dd HH:mm:ss').format(record.inStationTime),
-        ),
-        _InfoEntry('Status', record.isPass ? 'PASS' : 'FAIL'),
-        _InfoEntry(
-          'Cycle Time',
-          record.cycleTime != null
-              ? '${_numberFormat.format(record.cycleTime)} (second)'
-              : '-',
-        ),
-        _InfoEntry('Validator', record.employeeId ?? '-'),
-      ];
-
-      child = Scrollbar(
-        controller: _productInfoScrollController,
-        thumbVisibility: false,
-        child: SingleChildScrollView(
-          controller: _productInfoScrollController,
-          child: Column(
-            children: entries
-                .map(
-                  (entry) => _InfoRow(
-                    label: entry.label,
-                    value: entry.value,
-                    isStatus: entry.label == 'Status',
-                    isPass: record.isPass,
-                  ),
-                )
-                .toList(),
-          ),
-        ),
       );
     }
 
+    final infoItems = [
+      _InfoEntry(Icons.qr_code_2, 'PRODUCT SN', record.serialNumber ?? '-'),
+      _InfoEntry(Icons.confirmation_num, 'SEQUENCE', record.stationSequence.toString()),
+      _InfoEntry(Icons.precision_manufacturing, 'MACHINE NAME', record.machineName),
+      _InfoEntry(Icons.memory, 'MODEL NAME', record.modelName ?? '-'),
+      _InfoEntry(
+        Icons.access_time,
+        'INSPECTION TIME',
+        DateFormat('yyyy-MM-dd HH:mm:ss').format(record.inStationTime),
+      ),
+      _InfoEntry(
+        Icons.verified,
+        'STATUS',
+        record.isPass ? 'PASS' : 'FAIL',
+        color: record.isPass ? Colors.greenAccent : Colors.redAccent,
+      ),
+      _InfoEntry(
+        Icons.timer,
+        'CYCLE TIME',
+        record.cycleTime != null
+            ? '${_numberFormat.format(record.cycleTime)} (second)'
+            : '-',
+      ),
+      _InfoEntry(Icons.person, 'VALIDATOR', record.employeeId ?? '-'),
+    ];
+
     return Container(
-      decoration: _cardDecoration(),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: child,
+      height: 265,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        // 🌈 Gradient nền “luxury” kiểu web NVIDIA
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF021426),
+            Color(0xFF043C52),
+            Color(0xFF045E60),
+            Color(0xFF022638),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.cyanAccent.withOpacity(0.25),
+          width: 1.1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.cyanAccent.withOpacity(0.12),
+            blurRadius: 14,
+            spreadRadius: 1,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Table(
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        border: const TableBorder(
+          horizontalInside: BorderSide(
+            color: Color(0xFF0E354B),
+            width: 1,
+          ),
+        ),
+        columnWidths: const {
+          0: FixedColumnWidth(24),
+          1: FlexColumnWidth(2.4),
+          2: FlexColumnWidth(3),
+        },
+        children: infoItems.map((e) {
+          return TableRow(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Icon(
+                  e.icon,
+                  color: Colors.cyanAccent.withOpacity(0.9),
+                  size: 15,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  e.label,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11.5,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  e.value,
+                  textAlign: TextAlign.right,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: e.color ?? Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12.5,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -1893,13 +1991,23 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     final column = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'DATA DETAILS',
-          style: TextStyle(
-            color: Colors.cyanAccent,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.2,
-            fontSize: 18,
+        ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [
+              Color(0xFF00FFFF), // Cyan
+              Color(0xFFFFD700), // Vàng
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ).createShader(bounds),
+          child: const Text(
+            'DATA DETAILS',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.3,
+              fontSize: 18,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -1941,21 +2049,56 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       },
       children: [
         TableRow(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF004C8C), // xanh lam đậm
+                Color(0xFF007B8A), // xanh ngọc nhẹ
+                Color(0xFF001F3F), // xanh navy
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
           children: [
             _buildTableHeaderCell('#'),
-            ...columns.map((column) => _buildTableHeaderCell('COL $column')),
+            ...columns.map(
+                  (col) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Text(
+                    'COL $col',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13.5,
+                      letterSpacing: 0.3,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(0, 1.2),
+                          blurRadius: 2,
+                          color: Colors.black54,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
         ...rows.map(
-          (row) => TableRow(
+              (row) => TableRow(
             children: [
               _buildRowHeaderCell(row),
               ...columns.map(
-                (column) => _buildMeasurementCell(
-                  matrix[row]?[column] ?? const <ResistorMachineResultDetail>[],
+                    (col) => SizedBox(
+                  width: 120,
+                  child: _buildMeasurementCell(
+                    matrix[row]?[col] ?? const <ResistorMachineResultDetail>[],
+                    row, // truyền thêm row
+                    col, // truyền thêm col
+                  ),
                 ),
               ),
             ],
@@ -1964,24 +2107,103 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       ],
     );
 
-    return Scrollbar(
-      controller: _gridHorizontalController,
-      thumbVisibility: true,
-      notificationPredicate: (notification) =>
-          notification.metrics.axis == Axis.horizontal,
-      child: SingleChildScrollView(
+    return Expanded(
+      child: Scrollbar(
         controller: _gridHorizontalController,
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: columns.length * 120.0 + 72),
-          child: Scrollbar(
-            controller: _gridVerticalController,
-            thumbVisibility: true,
-            notificationPredicate: (notification) =>
-                notification.metrics.axis == Axis.vertical,
-            child: SingleChildScrollView(
-              controller: _gridVerticalController,
-              child: table,
+        thumbVisibility: true,
+        notificationPredicate: (notification) =>
+        notification.metrics.axis == Axis.horizontal,
+        child: SingleChildScrollView(
+          controller: _gridHorizontalController,
+          scrollDirection: Axis.horizontal,
+          child: IntrinsicWidth(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Table(
+                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                  border: TableBorder.all(color: Colors.white12, width: 1),
+                  columnWidths: {
+                    0: const FixedColumnWidth(60),
+                    for (int i = 1; i <= columns.length; i++)
+                      i: const FixedColumnWidth(130),
+                  },
+                  children: [
+                    TableRow(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFF004C8C),
+                            Color(0xFF007B8A),
+                            Color(0xFF001F3F),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      children: [
+                        _buildTableHeaderCell('#'),
+                        ...columns.map(
+                              (col) => Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                'COL $col',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                Expanded(
+                  child: Scrollbar(
+                    controller: _gridVerticalController,
+                    thumbVisibility: true,
+                    notificationPredicate: (n) => n.metrics.axis == Axis.vertical,
+                    child: SingleChildScrollView(
+                      controller: _gridVerticalController,
+                      scrollDirection: Axis.vertical,
+                      child: Table(
+                        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                        border: TableBorder.all(color: Colors.white12, width: 1),
+                        columnWidths: {
+                          0: const FixedColumnWidth(60),
+                          for (int i = 1; i <= columns.length; i++)
+                            i: const FixedColumnWidth(130),
+                        },
+                        children: [
+                          ...rows.map(
+                                (row) => TableRow(
+                              children: [
+                                _buildRowHeaderCell(row),
+                                ...columns.map(
+                                      (col) => SizedBox(
+                                    width: 130,
+                                    child: _buildMeasurementCell(
+                                      matrix[row]?[col] ??
+                                          const <ResistorMachineResultDetail>[],
+                                      row,
+                                      col,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1993,16 +2215,46 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       alignment: Alignment.center,
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white70,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF004C8C),
+            Color(0xFF007B8A),
+            Color(0xFF001F3F),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: ShaderMask(
+        shaderCallback: (bounds) => const LinearGradient(
+          colors: [
+            Color(0xFFB3ECFF),
+            Color(0xFFFFFFFF),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(bounds),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 13.5,
+            letterSpacing: 0.8,
+            shadows: [
+              Shadow(
+                offset: Offset(0, 1.2),
+                blurRadius: 2,
+                color: Colors.black54,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
 
   Widget _buildRowHeaderCell(int row) {
     return Container(
@@ -2018,15 +2270,198 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     );
   }
 
-  Widget _buildMeasurementCell(List<ResistorMachineResultDetail> details) {
+  OverlayEntry? _popupEntry;
+
+  void _showDetailPopup(
+      Offset position,
+      int? row,
+      int? col,
+      ResistorMachineResultDetail? top,
+      ResistorMachineResultDetail? bottom,
+      ) {
+    _removePopup();
+    final overlay = Overlay.of(context);
+    if (overlay == null) return;
+
+    _popupEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        left: position.dx + 12,
+        top: position.dy + 12,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 230,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF071E3D), Color(0xFF021124)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.cyanAccent.withOpacity(0.35), width: 0.8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.cyanAccent.withOpacity(0.25),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header ROW - COL
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00E0FF), Color(0xFF0078FF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'ROW $row - COL $col',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                if (top != null)
+                  _buildPinSection(
+                    title: 'TOP PIN',
+                    titleGradient: const LinearGradient(
+                      colors: [Color(0xFF6A00F4), Color(0xFF00F0FF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    bgGradient: const LinearGradient(
+                      colors: [Color(0xFF1E0E43), Color(0xFF09264A)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    detail: top,
+                  ),
+                if (bottom != null) ...[
+                  const SizedBox(height: 10),
+                  _buildPinSection(
+                    title: 'BOT PIN',
+                    titleGradient: const LinearGradient(
+                      colors: [Color(0xFFFFC300), Color(0xFFFF5733)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    bgGradient: const LinearGradient(
+                      colors: [Color(0xFF3A2500), Color(0xFF5A3D00)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    detail: bottom,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(_popupEntry!);
+  }
+
+  void _removePopup() {
+    _popupEntry?.remove();
+    _popupEntry = null;
+  }
+
+  Widget _buildPinSection({
+    required String title,
+    required LinearGradient titleGradient,
+    required LinearGradient bgGradient,
+    required ResistorMachineResultDetail detail,
+  }) {
+    String _fmt(num? v) {
+      if (v == null) return '-';
+      final str = v.toStringAsFixed(3);
+      return str.replaceFirst(RegExp(r'\.?0+$'), ''); // ✂️ bỏ số 0 dư
+    }
+
+    Widget buildLine(String label, num? value) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$label:',
+            style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+          ),
+          Text(
+            _fmt(value),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        gradient: bgGradient,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white24, width: 0.6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ShaderMask(
+            shaderCallback: (bounds) => titleGradient.createShader(bounds),
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13.5,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          buildLine('HIGH SAMPLE', detail.highSampleValue),
+          buildLine('LOW SAMPLE', detail.lowSampleValue),
+          buildLine('MEASUREMENT', detail.measurementValue),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeasurementCell(List<ResistorMachineResultDetail> details,
+      [int? row, int? col]) {
     if (details.isEmpty) {
       return Container(
         height: 72,
         alignment: Alignment.center,
-        child: const Text(
-          '-',
-          style: TextStyle(color: Colors.white38),
-        ),
+        child: const Text('-', style: TextStyle(color: Colors.white38)),
       );
     }
 
@@ -2035,65 +2470,111 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     final top = sorted.isNotEmpty ? sorted.first : null;
     final bottom = sorted.length > 1 ? sorted[1] : null;
 
-    bool isFail(ResistorMachineResultDetail? detail) {
-      if (detail == null) return false;
-      return detail.measurementValue > detail.highSampleValue ||
-          detail.measurementValue < detail.lowSampleValue;
-    }
+    bool isFail(ResistorMachineResultDetail? d) =>
+        d != null &&
+            (d.measurementValue > d.highSampleValue ||
+                d.measurementValue < d.lowSampleValue);
 
-    final bool topFail = isFail(top);
-    final bool bottomFail = isFail(bottom);
-    final bool hasFail = topFail || bottomFail;
+    final bool hasFail = isFail(top) || isFail(bottom);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      color: hasFail ? Colors.red.withOpacity(0.18) : Colors.transparent,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (top != null)
-            _buildMeasurementLine(top, topFail),
-          if (bottom != null) ...[
-            const Divider(height: 8, color: Colors.white12),
-            _buildMeasurementLine(bottom, bottomFail),
-          ],
-        ],
+    return GestureDetector(
+      onTapDown: (detailsTap) =>
+          _showDetailPopup(detailsTap.globalPosition, row, col, top, bottom),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (event) =>
+            _showDetailPopup(event.position, row, col, top, bottom),
+        onExit: (_) => _removePopup(),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: hasFail ? Colors.red.withOpacity(0.18) : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (top != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildMeasurementLine(top, isFail(top)),
+                ),
+              if (bottom != null) _buildMeasurementLine(bottom, isFail(bottom)),
+            ],
+          ),
+        ),
       ),
     );
   }
 
+
   Widget _buildMeasurementLine(
-    ResistorMachineResultDetail detail,
-    bool isFail,
-  ) {
+      ResistorMachineResultDetail detail,
+      bool isFail,
+      ) {
     final String label = _resolvePinLabel(detail.name);
-    final String value = _numberFormat.format(detail.measurementValue);
+
+    String _fmt(num? v) {
+      if (v == null) return '-';
+      if (v.abs() >= 100000 || v.abs() < 0.001) {
+        return v.toStringAsExponential(1);
+      }
+      final str = v.toStringAsFixed(3);
+      return str.replaceFirst(RegExp(r'\.?0+$'), '');
+    }
+
+    final String value = _fmt(detail.measurementValue);
 
     return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
-          flex: 3,
+        ShaderMask(
+          shaderCallback: (bounds) {
+            if (detail.name.trim().toUpperCase().startsWith('T')) {
+              return const LinearGradient(
+                colors: [Color(0xFF00FFFF), Color(0xFFB388FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds);
+            } else {
+              return const LinearGradient(
+                colors: [Color(0xFFFFD700), Color(0xFFFF9900)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds);
+            }
+          },
           child: Text(
-            '$label:',
+            '${detail.name.trim().toUpperCase()[0]}:',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Color(0xFFB388FF),
-              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+              letterSpacing: 0.2,
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 4,
-          child: Text(
-            value,
-            maxLines: 1,
-            textAlign: TextAlign.right,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: isFail ? Colors.redAccent : Colors.white,
-              fontWeight: FontWeight.w700,
+        const SizedBox(width: 4),
+        Flexible(
+          child: Tooltip(
+            message: value,
+            child: Text(
+              value,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                fontSize: 15.5,
+                fontWeight: FontWeight.w700,
+                color: isFail ? Colors.redAccent : Colors.white,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
         ),
@@ -2187,11 +2668,12 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 }
 
 class _InfoEntry {
-  const _InfoEntry(this.label, this.value);
+  const _InfoEntry(this.icon, this.label, this.value, {this.color});
+  final IconData icon;
   final String label;
   final String value;
+  final Color? color;
 }
-
 class _InfoRow extends StatelessWidget {
   const _InfoRow({
     required this.label,
