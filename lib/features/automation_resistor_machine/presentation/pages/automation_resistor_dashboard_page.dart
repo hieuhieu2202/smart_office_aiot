@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -1175,8 +1177,19 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
               ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
               : const EdgeInsets.all(16);
 
-          final BoxConstraints contentConstraints =
-              constraints.deflate(padding).loosen();
+          final double maxContentWidth = constraints.hasBoundedWidth
+              ? math.max(0, constraints.maxWidth - padding.horizontal)
+              : double.infinity;
+          final double maxContentHeight = constraints.hasBoundedHeight
+              ? math.max(0, constraints.maxHeight - padding.vertical)
+              : double.infinity;
+
+          final BoxConstraints contentConstraints = BoxConstraints(
+            minWidth: 0,
+            maxWidth: maxContentWidth,
+            minHeight: 0,
+            maxHeight: maxContentHeight,
+          );
 
           final Widget content = isWide
               ? _buildWideLayout(
@@ -1200,10 +1213,32 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
                   selectedSerial: selectedSerial,
                 );
 
-          return Padding(
+          final Widget padded = Padding(
             padding: padding,
-            child: content,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: constraints.hasBoundedWidth ? maxContentWidth : 0,
+                maxWidth:
+                    constraints.hasBoundedWidth ? maxContentWidth : double.infinity,
+                minHeight:
+                    constraints.hasBoundedHeight ? maxContentHeight : 0,
+                maxHeight: constraints.hasBoundedHeight
+                    ? maxContentHeight
+                    : double.infinity,
+              ),
+              child: content,
+            ),
           );
+
+          if (constraints.hasBoundedWidth && constraints.hasBoundedHeight) {
+            return SizedBox(
+              width: constraints.maxWidth,
+              height: constraints.maxHeight,
+              child: padded,
+            );
+          }
+
+          return padded;
         },
       );
     });
