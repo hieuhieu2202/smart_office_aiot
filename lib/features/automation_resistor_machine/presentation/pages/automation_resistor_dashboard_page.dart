@@ -1942,62 +1942,82 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         .toList()
       ..sort();
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final Map<int, TableColumnWidth> widths = {
-          0: const FixedColumnWidth(_rowHeaderWidth),
-        };
-        for (int index = 0; index < columns.length; index++) {
-          widths[index + 1] = const FixedColumnWidth(_measurementColumnWidth);
-        }
-
-        final table = Table(
-          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          border: TableBorder.all(color: Colors.white12, width: 1),
-          columnWidths: widths,
+    final List<TableRow> tableRows = [
+      TableRow(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+        ),
+        children: [
+          _buildTableHeaderCell('#'),
+          ...columns.map((column) => _buildTableHeaderCell('COL $column')),
+        ],
+      ),
+      ...rows.map(
+        (row) => TableRow(
           children: [
-            TableRow(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-              ),
-              children: [
-                _buildTableHeaderCell('#'),
-                ...columns.map((column) => _buildTableHeaderCell('COL $column')),
-              ],
-            ),
-            ...rows.map(
-              (row) => TableRow(
-                children: [
-                  _buildRowHeaderCell(row),
-                  ...columns.map(
-                    (column) => _buildMeasurementCell(
-                      matrix[row]?[column] ?? const <ResistorMachineResultDetail>[],
-                    ),
-                  ),
-                ],
+            _buildRowHeaderCell(row),
+            ...columns.map(
+              (column) => _buildMeasurementCell(
+                matrix[row]?[column] ?? const <ResistorMachineResultDetail>[],
               ),
             ),
           ],
-        );
+        ),
+      ),
+    ];
 
+    Table _buildFixedWidthTable() {
+      final Map<int, TableColumnWidth> widths = {
+        0: const FixedColumnWidth(_rowHeaderWidth),
+      };
+      for (int index = 0; index < columns.length; index++) {
+        widths[index + 1] = const FixedColumnWidth(_measurementColumnWidth);
+      }
+
+      return Table(
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        border: TableBorder.all(color: Colors.white12, width: 1),
+        columnWidths: widths,
+        children: tableRows,
+      );
+    }
+
+    Table _buildExpandedTable() {
+      final Map<int, TableColumnWidth> widths = {
+        0: const FixedColumnWidth(_rowHeaderWidth),
+      };
+      for (int index = 0; index < columns.length; index++) {
+        widths[index + 1] = const FlexColumnWidth(1);
+      }
+
+      return Table(
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        border: TableBorder.all(color: Colors.white12, width: 1),
+        columnWidths: widths,
+        children: tableRows,
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
         final double naturalWidth =
             _rowHeaderWidth + columns.length * _measurementColumnWidth;
 
         if (!constraints.hasBoundedWidth) {
-          return SizedBox(width: naturalWidth, child: table);
+          return SizedBox(width: naturalWidth, child: _buildFixedWidthTable());
         }
 
         if (constraints.maxWidth >= naturalWidth) {
-          return Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(width: naturalWidth, child: table),
+          return SizedBox(
+            width: constraints.maxWidth,
+            child: _buildExpandedTable(),
           );
         }
 
         return FittedBox(
           alignment: Alignment.topLeft,
           fit: BoxFit.scaleDown,
-          child: SizedBox(width: naturalWidth, child: table),
+          child: SizedBox(width: naturalWidth, child: _buildFixedWidthTable()),
         );
       },
     );
@@ -2005,14 +2025,15 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   Widget _buildTableHeaderCell(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       alignment: Alignment.center,
       child: Text(
         label,
         style: const TextStyle(
-          color: Colors.white70,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          letterSpacing: 1,
         ),
       ),
     );
@@ -2020,13 +2041,14 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   Widget _buildRowHeaderCell(int row) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       alignment: Alignment.center,
       child: Text(
         '$row',
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
         ),
       ),
     );
@@ -2060,7 +2082,8 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     final bool hasFail = topFail || bottomFail;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       color: hasFail ? Colors.red.withOpacity(0.18) : Colors.transparent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2095,19 +2118,20 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
           gradient: gradient,
           style: const TextStyle(
             fontWeight: FontWeight.w800,
-            fontSize: 15,
+            fontSize: 16,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 6),
         Expanded(
           child: Text(
             value,
-            textAlign: TextAlign.right,
+            textAlign: TextAlign.left,
             softWrap: true,
             overflow: TextOverflow.visible,
             style: TextStyle(
               color: isFail ? Colors.redAccent : Colors.white,
               fontWeight: FontWeight.w700,
+              fontSize: 16,
             ),
           ),
         ),
