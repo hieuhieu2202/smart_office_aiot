@@ -1158,7 +1158,12 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
                 children: [
                   SizedBox(width: 340, child: searchSection),
                   const SizedBox(width: 24),
-                  Expanded(child: detailSection),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: detailSection,
+                    ),
+                  ),
                 ],
               ),
             );
