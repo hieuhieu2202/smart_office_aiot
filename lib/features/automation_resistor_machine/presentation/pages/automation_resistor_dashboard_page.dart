@@ -1602,7 +1602,11 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
         message: 'No test data available for this serial number.',
       );
     } else {
-      content = _buildAddressList(tests, selectedTest);
+      content = _buildAddressList(
+        tests,
+        selectedTest,
+        shrinkWrap: constrainHeight,
+      );
     }
 
     if (constrainHeight) {
@@ -1617,6 +1621,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
   Widget _buildAddressList(
     List<ResistorMachineTestResult> tests,
     ResistorMachineTestResult? selectedTest,
+    {required bool shrinkWrap},
   ) {
     return Scrollbar(
       controller: _addressListController,
@@ -1624,7 +1629,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       child: ListView.separated(
         controller: _addressListController,
         primary: false,
-        shrinkWrap: true,
+        shrinkWrap: shrinkWrap,
         padding: EdgeInsets.zero,
         itemCount: tests.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
