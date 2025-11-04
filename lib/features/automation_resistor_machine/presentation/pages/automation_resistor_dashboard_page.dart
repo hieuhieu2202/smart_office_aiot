@@ -1177,23 +1177,13 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
               ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
               : const EdgeInsets.all(16);
 
-          final double maxContentWidth = constraints.hasBoundedWidth
-              ? math.max(0, constraints.maxWidth - padding.horizontal)
-              : double.infinity;
-          final double maxContentHeight = constraints.hasBoundedHeight
+          final double? availableHeight = constraints.hasBoundedHeight
               ? math.max(0, constraints.maxHeight - padding.vertical)
-              : double.infinity;
-
-          final BoxConstraints contentConstraints = BoxConstraints(
-            minWidth: 0,
-            maxWidth: maxContentWidth,
-            minHeight: 0,
-            maxHeight: maxContentHeight,
-          );
+              : null;
 
           final Widget content = isWide
               ? _buildWideLayout(
-                  constraints: contentConstraints,
+                  maxHeight: availableHeight,
                   matches: matches,
                   isSearching: isSearching,
                   isLoadingRecord: isLoadingRecord,
@@ -1203,7 +1193,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
                   selectedSerial: selectedSerial,
                 )
               : _buildStackedLayout(
-                  constraints: contentConstraints,
+                  maxHeight: availableHeight,
                   matches: matches,
                   isSearching: isSearching,
                   isLoadingRecord: isLoadingRecord,
@@ -1215,24 +1205,26 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
           final Widget padded = Padding(
             padding: padding,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: constraints.hasBoundedWidth ? maxContentWidth : 0,
-                maxWidth:
-                    constraints.hasBoundedWidth ? maxContentWidth : double.infinity,
-                minHeight:
-                    constraints.hasBoundedHeight ? maxContentHeight : 0,
-                maxHeight: constraints.hasBoundedHeight
-                    ? maxContentHeight
-                    : double.infinity,
-              ),
-              child: content,
-            ),
+            child: content,
           );
 
           if (constraints.hasBoundedWidth && constraints.hasBoundedHeight) {
             return SizedBox(
               width: constraints.maxWidth,
+              height: constraints.maxHeight,
+              child: padded,
+            );
+          }
+
+          if (constraints.hasBoundedWidth) {
+            return SizedBox(
+              width: constraints.maxWidth,
+              child: padded,
+            );
+          }
+
+          if (constraints.hasBoundedHeight) {
+            return SizedBox(
               height: constraints.maxHeight,
               child: padded,
             );
@@ -1245,7 +1237,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
   }
 
   Widget _buildWideLayout({
-    required BoxConstraints constraints,
+    required double? maxHeight,
     required List<ResistorMachineSerialMatch> matches,
     required bool isSearching,
     required bool isLoadingRecord,
@@ -1254,10 +1246,11 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
-    final bool hasBoundedHeight = constraints.hasBoundedHeight;
+    final bool hasMaxHeight =
+        maxHeight != null && maxHeight.isFinite && maxHeight > 0;
     final bool enableVerticalScroll =
-        hasBoundedHeight && constraints.maxHeight < 720;
-    final bool fillHeight = hasBoundedHeight && !enableVerticalScroll;
+        hasMaxHeight && maxHeight! < 720;
+    final bool fillHeight = hasMaxHeight && !enableVerticalScroll;
 
     final row = Row(
       crossAxisAlignment:
@@ -1287,10 +1280,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       ],
     );
 
-    if (enableVerticalScroll && hasBoundedHeight) {
+    if (enableVerticalScroll) {
       return SingleChildScrollView(
         child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          constraints: BoxConstraints(minHeight: maxHeight!),
           child: row,
         ),
       );
@@ -1298,7 +1291,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
     if (fillHeight) {
       return SizedBox(
-        height: constraints.maxHeight,
+        height: maxHeight!,
         child: row,
       );
     }
@@ -1307,7 +1300,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
   }
 
   Widget _buildStackedLayout({
-    required BoxConstraints constraints,
+    required double? maxHeight,
     required List<ResistorMachineSerialMatch> matches,
     required bool isSearching,
     required bool isLoadingRecord,
@@ -1316,8 +1309,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
-    final bool hasBoundedHeight = constraints.hasBoundedHeight;
-    final double minHeight = hasBoundedHeight ? constraints.maxHeight : 0;
+    final double minHeight =
+        (maxHeight != null && maxHeight.isFinite && maxHeight > 0)
+            ? maxHeight!
+            : 0;
 
     return SingleChildScrollView(
       child: ConstrainedBox(
