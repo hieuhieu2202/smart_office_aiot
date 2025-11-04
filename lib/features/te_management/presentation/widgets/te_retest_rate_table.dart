@@ -18,6 +18,9 @@ const double _kRowHeight = 54;
 
 const Color _kHeaderColor = Color(0xFF1E40AF);
 const Color _kHeaderAccent = Color(0xFF1D4ED8);
+const Color _kHeaderLabelTextColor = Color(0xFFE9F3FF);
+const Color _kHeaderDateTextColor = Color(0xFFF3F8FF);
+const Color _kHeaderShiftTextColor = Color(0xFFD6E8FF);
 const LinearGradient _kTableBackgroundGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
@@ -48,6 +51,8 @@ const Color _kCompactChipBackground = Color(0xFF1B2F4C);
 const Color _kCompactChipBorder = Color(0xFF4B82C5);
 const Color _kPrimaryTextColor = Color(0xFFE2F1FF);
 const Color _kSecondaryTextColor = Color(0xFFA5C7F5);
+const Color _kModelTextColor = Color(0xFFE5F1FF);
+const Color _kGroupTextColor = Color(0xFFEBF6FF);
 
 class TERetestRateTable extends StatefulWidget {
   const TERetestRateTable({
@@ -955,7 +960,7 @@ class _HeaderRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Color(0xFFCBE8FF),
+                        color: _kHeaderDateTextColor,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.45,
@@ -1042,7 +1047,7 @@ class _HeaderLabel extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            color: Color(0xFFD6F0FF),
+            color: _kHeaderLabelTextColor,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.45,
           ),
@@ -1081,7 +1086,7 @@ class _HeaderShiftCell extends StatelessWidget {
         child: Text(
           label,
           style: const TextStyle(
-            color: Color(0xFF9EDBFF),
+            color: _kHeaderShiftTextColor,
             fontSize: 12,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.25,
@@ -1283,7 +1288,7 @@ class _ModelBlock extends StatelessWidget {
             isFirst: isFirstBlock,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             textStyle: const TextStyle(
-              color: Color(0xFFF4FCFF),
+              color: _kModelTextColor,
               fontWeight: FontWeight.w700,
               fontSize: 14,
               letterSpacing: 0.3,
@@ -1392,7 +1397,7 @@ class _GroupCell extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFF1554A1),
+              color: _kGroupTextColor,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.25,
             ),
