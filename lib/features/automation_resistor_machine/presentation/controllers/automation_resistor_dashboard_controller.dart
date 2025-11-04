@@ -177,6 +177,14 @@ class AutomationResistorDashboardController extends GetxController {
     }
   }
 
+  void resetToToday() {
+    final range = _defaultRange();
+    selectedRange.value = range;
+    final inferredShift = _deriveShift(range.start);
+    selectedShift.value = inferredShift;
+    _resetShiftWindowAnchors();
+  }
+
   Future<void> searchSerial(String query) async {
     if (query.trim().isEmpty) {
       serialMatches.clear();

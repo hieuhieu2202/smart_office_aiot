@@ -158,6 +158,7 @@ class _AutomationResistorDashboardPageState
                       IconButton(
                         onPressed: () {
                           if (tabController.index == 0) {
+                            controller.resetToToday();
                             controller.loadDashboard();
                             controller.loadStatus();
                           } else {
