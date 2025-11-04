@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../data/datasources/resistor_machine_remote_data_source.dart';
 import '../../data/repositories/resistor_machine_repository_impl.dart';
+import '../../data/utils/image_path_utils.dart';
 import '../../domain/entities/resistor_machine_entities.dart';
 import '../../domain/usecases/get_machine_names.dart';
 import '../../domain/usecases/get_record_by_id.dart';
@@ -280,7 +281,9 @@ class AutomationResistorDashboardController extends GetxController {
           return ResistorMachineTestResult(
             address: (item['Address'] ?? 0) as int,
             result: (item['Result'] ?? false) as bool,
-            imagePath: (item['ImagePath'] ?? '') as String,
+            imagePath: normalizeResistorMachineImagePath(
+              (item['ImagePath'] ?? '') as String,
+            ),
             details: details,
           );
         }).toList();

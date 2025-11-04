@@ -1,4 +1,5 @@
 import '../../domain/entities/resistor_machine_entities.dart';
+import '../utils/image_path_utils.dart';
 
 class ResistorMachineTestResultModel extends ResistorMachineTestResult {
   ResistorMachineTestResultModel({
@@ -17,7 +18,9 @@ class ResistorMachineTestResultModel extends ResistorMachineTestResult {
     return ResistorMachineTestResultModel(
       address: (json['Address'] ?? json['address'] ?? 0) as int,
       result: (json['Result'] ?? json['result'] ?? false) as bool,
-      imagePath: (json['ImagePath'] ?? json['imagePath'] ?? '') as String,
+      imagePath: normalizeResistorMachineImagePath(
+        (json['ImagePath'] ?? json['imagePath'] ?? '') as String,
+      ),
       details: details,
     );
   }
