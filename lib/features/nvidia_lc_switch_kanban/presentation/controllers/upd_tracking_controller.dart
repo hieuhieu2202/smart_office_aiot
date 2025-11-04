@@ -227,7 +227,7 @@ class UpdTrackingController extends GetxController {
     return KanbanRequest(
       modelSerial: modelSerial.value,
       date: _formatDate(currentRange.end),
-      shift: 'ALL',
+      shift: '',
       dateRange: _formatRange(currentRange),
       groups: groups ?? selectedGroups.toList(),
     );

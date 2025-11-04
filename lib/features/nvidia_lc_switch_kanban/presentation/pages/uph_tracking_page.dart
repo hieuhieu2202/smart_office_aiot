@@ -32,7 +32,7 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
   late final TextEditingController _searchCtl;
   Worker? _groupsWorker;
 
-  static const List<String> _shiftOptions = ['ALL', 'DAY', 'NIGHT'];
+  static const List<String> _shiftOptions = ['DAY', 'NIGHT', 'ALL'];
   static const Color _pageBackground = Color(0xFF0B1422);
 
   @override
@@ -130,6 +130,13 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
     final groups = _selectedModels.isEmpty
         ? _controller.selectedGroups.toList()
         : List<String>.from(_selectedModels);
+    if (groups.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn ít nhất một model.')),
+      );
+      return;
+    }
     try {
       developer.log(
         'UPH query triggered | modelSerial=${_controller.modelSerial.value} '
@@ -555,7 +562,8 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
       }
     }
 
-    if (view == null) {
+    final safeView = view;
+    if (safeView == null) {
       return const [
         SliverFillRemaining(
           hasScrollBody: false,
@@ -590,7 +598,7 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  view?.modelsText ?? '-',
+                  safeView.modelsText,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.white70,
                       ),
@@ -620,7 +628,7 @@ class _UphTrackingPageState extends State<UphTrackingPage> {
                 rows.length,
               ),
               child: UphTrackingTable(
-                view: view,
+                view: safeView,
                 rows: rows,
                 onStationTap: (row) {
                   // Placeholder for potential station detail actions.

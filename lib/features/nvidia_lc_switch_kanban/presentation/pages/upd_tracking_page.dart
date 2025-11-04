@@ -124,6 +124,13 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
     final groups = _selectedModels.isEmpty
         ? _controller.selectedGroups.toList()
         : List<String>.from(_selectedModels);
+    if (groups.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn ít nhất một model.')),
+      );
+      return;
+    }
     try {
       developer.log(
         'UPD query triggered | modelSerial=${_controller.modelSerial.value} '
@@ -548,7 +555,8 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
       }
     }
 
-    if (view == null) {
+    final safeView = view;
+    if (safeView == null) {
       return const [
         SliverFillRemaining(
           hasScrollBody: false,
@@ -583,7 +591,7 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  view?.modelsText ?? '-',
+                  safeView.modelsText,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.white70,
                       ),
@@ -613,7 +621,7 @@ class _UpdTrackingPageState extends State<UpdTrackingPage> {
                 rows.length,
               ),
               child: UpdTrackingTable(
-                view: view,
+                view: safeView,
                 rows: rows,
                 onStationTap: (row) {
                   // Placeholder for potential station detail actions.

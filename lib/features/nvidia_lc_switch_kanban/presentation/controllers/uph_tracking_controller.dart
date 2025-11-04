@@ -36,7 +36,7 @@ class UphTrackingController extends GetxController {
 
   final RxString modelSerial = 'SWITCH'.obs;
   final Rx<DateTime> date = DateTime.now().obs;
-  final RxString shift = 'ALL'.obs;
+  final RxString shift = 'DAY'.obs;
   final RxList<String> selectedGroups = <String>[].obs;
   final RxList<String> allGroups = <String>[].obs;
 
@@ -74,10 +74,10 @@ class UphTrackingController extends GetxController {
       _log('Changed date -> ${_formatDate(newDate)}');
     }
 
-    if (newShift != null && newShift != shift.value) {
-      shift.value = newShift;
+    if (newShift != null && newShift.toUpperCase() != shift.value) {
+      shift.value = newShift.toUpperCase();
       shouldReloadModels = true;
-      _log('Changed shift -> $newShift');
+      _log('Changed shift -> ${shift.value}');
     }
 
     if (newGroups != null) {
