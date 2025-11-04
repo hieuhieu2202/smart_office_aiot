@@ -81,20 +81,24 @@ class _AutomationResistorDashboardPageState
                   child: TabBarView(
                     physics: const NeverScrollableScrollPhysics(),
                     children: [
-                      Obx(() {
-                        if (controller.isLoading.value) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.cyanAccent,
-                            ),
-                          );
-                        }
-                        return _DashboardBody(controller: controller);
-                      }),
-                      _SnAnalysisTab(
-                        controller: controller,
-                        searchController: searchController,
-                        searchFocusNode: searchFocusNode,
+                      SizedBox.expand(
+                        child: Obx(() {
+                          if (controller.isLoading.value) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.cyanAccent,
+                              ),
+                            );
+                          }
+                          return _DashboardBody(controller: controller);
+                        }),
+                      ),
+                      SizedBox.expand(
+                        child: _SnAnalysisTab(
+                          controller: controller,
+                          searchController: searchController,
+                          searchFocusNode: searchFocusNode,
+                        ),
                       ),
                     ],
                   ),
