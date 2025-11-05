@@ -1123,7 +1123,8 @@ class _SnAnalysisTab extends StatefulWidget {
   State<_SnAnalysisTab> createState() => _SnAnalysisTabState();
 }
 
-class _SnAnalysisTabState extends State<_SnAnalysisTab> {
+class _SnAnalysisTabState extends State<_SnAnalysisTab>
+    with AutomaticKeepAliveClientMixin {
   _SnAnalysisTabState();
 
   final NumberFormat _numberFormat = NumberFormat('0.###');
@@ -1137,6 +1138,9 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
   late final ScrollController _gridHorizontalController;
   late final ScrollController _gridVerticalController;
   late final ScrollController _productInfoScrollController;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -1186,9 +1190,14 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        return SizedBox.expand(
+        return ConstrainedBox(
+          constraints: BoxConstraints.tightFor(
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+          ),
           child: Obx(() {
             final matches = controller.serialMatches;
             final isSearching = controller.isSearchingSerial.value;
