@@ -2578,12 +2578,13 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
       }
     }
 
-    final lower = normalized.toLowerCase();
-    if (lower.startsWith('http://') || lower.startsWith('https://')) {
-      return NetworkImage(normalized);
-    }
+    const baseImageUrl =
+        'https://10.220.130.117/newweb/api/image/raw';
+    final sanitizedPath = normalized.startsWith('/')
+        ? normalized
+        : '/$normalized';
 
-    return placeholder;
+    return NetworkImage('$baseImageUrl$sanitizedPath');
   }
 
   Widget _buildCardPlaceholder({
