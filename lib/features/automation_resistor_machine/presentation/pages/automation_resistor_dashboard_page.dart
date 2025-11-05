@@ -2558,6 +2558,34 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
     return trimmed[0].toUpperCase();
   }
 
+  ImageProvider _resolveTestImage(String? rawPath) {
+    const placeholder = AssetImage('assets/images/logo.png');
+    if (rawPath == null) {
+      return placeholder;
+    }
+
+    final trimmed = rawPath.trim();
+    if (trimmed.isEmpty) {
+      return placeholder;
+    }
+
+    final normalized = trimmed.replaceAll('\\', '/');
+    final uri = Uri.tryParse(normalized);
+    if (uri != null && uri.hasScheme) {
+      final scheme = uri.scheme.toLowerCase();
+      if ((scheme == 'http' || scheme == 'https') && uri.host.isNotEmpty) {
+        return NetworkImage(uri.toString());
+      }
+    }
+
+    final lower = normalized.toLowerCase();
+    if (lower.startsWith('http://') || lower.startsWith('https://')) {
+      return NetworkImage(normalized);
+    }
+
+    return placeholder;
+  }
+
   Widget _buildCardPlaceholder({
     required String message,
     bool showLoader = false,
@@ -2583,6 +2611,8 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
   }
 
   Widget _buildImagePreview(ResistorMachineTestResult test) {
+    final imageProvider = _resolveTestImage(test.imagePath);
+
     return GestureDetector(
       onTap: () {
         showDialog<void>(
@@ -2594,7 +2624,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
               child: AspectRatio(
                 aspectRatio: 4 / 3,
                 child: PhotoView(
-                  imageProvider: NetworkImage(test.imagePath),
+                  imageProvider: imageProvider,
                   backgroundDecoration:
                       const BoxDecoration(color: Colors.transparent),
                 ),
@@ -2603,19 +2633,9 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
           },
         );
       },
-      child: Image.network(
-        test.imagePath,
+      child: Image(
+        image: imageProvider,
         fit: BoxFit.cover,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return Container(
-            color: const Color(0xFF010A1B),
-            alignment: Alignment.center,
-            child: const CircularProgressIndicator(
-              color: Colors.cyanAccent,
-            ),
-          );
-        },
         errorBuilder: (_, __, ___) => Container(
           color: const Color(0xFF010A1B),
           alignment: Alignment.center,
