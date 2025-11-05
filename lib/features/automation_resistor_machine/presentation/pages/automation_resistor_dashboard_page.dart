@@ -1186,24 +1186,25 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final matches = controller.serialMatches;
-      final isSearching = controller.isSearchingSerial.value;
-      final isLoadingRecord = controller.isLoadingRecord.value;
-      final record = controller.selectedRecord.value;
-      final tests = controller.recordTestResults;
-      final selectedTest = controller.selectedTestResult.value;
-      final selectedSerial = controller.selectedSerial.value;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox.expand(
+          child: Obx(() {
+            final matches = controller.serialMatches;
+            final isSearching = controller.isSearchingSerial.value;
+            final isLoadingRecord = controller.isLoadingRecord.value;
+            final record = controller.selectedRecord.value;
+            final tests = controller.recordTestResults;
+            final selectedTest = controller.selectedTestResult.value;
+            final selectedSerial = controller.selectedSerial.value;
 
-      return SizedBox.expand(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
             final bool isWide = constraints.maxWidth >= 1100;
             final EdgeInsets padding = isWide
                 ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
                 : const EdgeInsets.all(16);
 
-            final bool hasFiniteHeight = constraints.maxHeight.isFinite;
+            final bool hasFiniteHeight =
+                constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
             final double? availableHeight = hasFiniteHeight
                 ? math.max(0, constraints.maxHeight - padding.vertical)
                 : null;
@@ -1234,10 +1235,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab> {
               padding: padding,
               child: content,
             );
-          },
-        ),
-      );
-    });
+          }),
+        );
+      },
+    );
   }
 
   Widget _buildWideLayout({
