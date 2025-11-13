@@ -82,45 +82,47 @@ class _AutomationResistorDashboardPageState
                     ],
                   ),
                   Expanded(
-                    child: TabBarView(
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            return ConstrainedBox(
-                              constraints: BoxConstraints.tightFor(
-                                width: constraints.maxWidth,
-                                height: constraints.maxHeight,
-                              ),
-                              child: Obx(() {
-                                if (controller.isLoading.value) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(
-                                      color: Colors.cyanAccent,
-                                    ),
-                                  );
-                                }
-                                return _DashboardBody(controller: controller);
-                              }),
-                            );
-                          },
-                        ),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            return ConstrainedBox(
-                              constraints: BoxConstraints.tightFor(
-                                width: constraints.maxWidth,
-                                height: constraints.maxHeight,
-                              ),
-                              child: _SnAnalysisTab(
-                                controller: controller,
-                                searchController: searchController,
-                                searchFocusNode: searchFocusNode,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                    child: SizedBox.expand(
+                      child: TabBarView(
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              return ConstrainedBox(
+                                constraints: BoxConstraints.tightFor(
+                                  width: constraints.maxWidth,
+                                  height: constraints.maxHeight,
+                                ),
+                                child: Obx(() {
+                                  if (controller.isLoading.value) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.cyanAccent,
+                                      ),
+                                    );
+                                  }
+                                  return _DashboardBody(controller: controller);
+                                }),
+                              );
+                            },
+                          ),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              return ConstrainedBox(
+                                constraints: BoxConstraints.tightFor(
+                                  width: constraints.maxWidth,
+                                  height: constraints.maxHeight,
+                                ),
+                                child: _SnAnalysisTab(
+                                  controller: controller,
+                                  searchController: searchController,
+                                  searchFocusNode: searchFocusNode,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -1191,62 +1193,64 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return ConstrainedBox(
-          constraints: BoxConstraints.tightFor(
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-          ),
-          child: Obx(() {
-            final matches = controller.serialMatches;
-            final isSearching = controller.isSearchingSerial.value;
-            final isLoadingRecord = controller.isLoadingRecord.value;
-            final record = controller.selectedRecord.value;
-            final tests = controller.recordTestResults;
-            final selectedTest = controller.selectedTestResult.value;
-            final selectedSerial = controller.selectedSerial.value;
+    return SizedBox.expand(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return ConstrainedBox(
+            constraints: BoxConstraints.tightFor(
+              width: constraints.maxWidth,
+              height: constraints.maxHeight,
+            ),
+            child: Obx(() {
+              final matches = controller.serialMatches;
+              final isSearching = controller.isSearchingSerial.value;
+              final isLoadingRecord = controller.isLoadingRecord.value;
+              final record = controller.selectedRecord.value;
+              final tests = controller.recordTestResults;
+              final selectedTest = controller.selectedTestResult.value;
+              final selectedSerial = controller.selectedSerial.value;
 
-            final bool isWide = constraints.maxWidth >= 1100;
-            final EdgeInsets padding = isWide
-                ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
-                : const EdgeInsets.all(16);
+              final bool isWide = constraints.maxWidth >= 1100;
+              final EdgeInsets padding = isWide
+                  ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
+                  : const EdgeInsets.all(16);
 
-            final bool hasFiniteHeight =
-                constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            final double? availableHeight = hasFiniteHeight
-                ? math.max(0, constraints.maxHeight - padding.vertical)
-                : null;
+              final bool hasFiniteHeight = constraints.hasBoundedHeight &&
+                  constraints.maxHeight.isFinite;
+              final double? availableHeight = hasFiniteHeight
+                  ? math.max(0, constraints.maxHeight - padding.vertical)
+                  : null;
 
-            final Widget content = isWide
-                ? _buildWideLayout(
-                    maxHeight: availableHeight,
-                    matches: matches,
-                    isSearching: isSearching,
-                    isLoadingRecord: isLoadingRecord,
-                    record: record,
-                    tests: tests,
-                    selectedTest: selectedTest,
-                    selectedSerial: selectedSerial,
-                  )
-                : _buildStackedLayout(
-                    maxHeight: availableHeight,
-                    matches: matches,
-                    isSearching: isSearching,
-                    isLoadingRecord: isLoadingRecord,
-                    record: record,
-                    tests: tests,
-                    selectedTest: selectedTest,
-                    selectedSerial: selectedSerial,
-                  );
+              final Widget content = isWide
+                  ? _buildWideLayout(
+                      maxHeight: availableHeight,
+                      matches: matches,
+                      isSearching: isSearching,
+                      isLoadingRecord: isLoadingRecord,
+                      record: record,
+                      tests: tests,
+                      selectedTest: selectedTest,
+                      selectedSerial: selectedSerial,
+                    )
+                  : _buildStackedLayout(
+                      maxHeight: availableHeight,
+                      matches: matches,
+                      isSearching: isSearching,
+                      isLoadingRecord: isLoadingRecord,
+                      record: record,
+                      tests: tests,
+                      selectedTest: selectedTest,
+                      selectedSerial: selectedSerial,
+                    );
 
-            return Padding(
-              padding: padding,
-              child: content,
-            );
-          }),
-        );
-      },
+              return Padding(
+                padding: padding,
+                child: content,
+              );
+            }),
+          );
+        },
+      ),
     );
   }
 
