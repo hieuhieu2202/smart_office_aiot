@@ -82,71 +82,72 @@ class _AutomationResistorDashboardPageState
               ),
               child: Column(
                 children: [
-                _buildHeader(context),
-                TabBar(
-                  controller: _tabController,
-                  onTap: (index) {
-                    if (_currentTabIndex != index) {
-                      setState(() {
-                        _currentTabIndex = index;
-                      });
-                    }
-                  },
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white60,
-                  indicatorColor: Colors.cyanAccent,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                  ),
-                  tabs: const [
-                    Tab(text: 'DASHBOARD'),
-                    Tab(text: 'SN ANALYSIS'),
-                  ],
-                ),
-                Expanded(
-                  child: IndexedStack(
-                    index: _currentTabIndex,
-                    children: [
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          return ConstrainedBox(
-                            constraints: BoxConstraints.tightFor(
-                              width: constraints.maxWidth,
-                              height: constraints.maxHeight,
-                            ),
-                            child: Obx(() {
-                              if (controller.isLoading.value) {
-                                return const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.cyanAccent,
-                                  ),
-                                );
-                              }
-                              return _DashboardBody(controller: controller);
-                            }),
-                          );
-                        },
-                      ),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          return ConstrainedBox(
-                            constraints: BoxConstraints.tightFor(
-                              width: constraints.maxWidth,
-                              height: constraints.maxHeight,
-                            ),
-                            child: _SnAnalysisTab(
-                              controller: controller,
-                              searchController: searchController,
-                              searchFocusNode: searchFocusNode,
-                            ),
-                          );
-                        },
-                      ),
+                  _buildHeader(context),
+                  TabBar(
+                    controller: _tabController,
+                    onTap: (index) {
+                      if (_currentTabIndex != index) {
+                        setState(() {
+                          _currentTabIndex = index;
+                        });
+                      }
+                    },
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white60,
+                    indicatorColor: Colors.cyanAccent,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
+                    ),
+                    tabs: const [
+                      Tab(text: 'DASHBOARD'),
+                      Tab(text: 'SN ANALYSIS'),
                     ],
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: IndexedStack(
+                      index: _currentTabIndex,
+                      children: [
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            return ConstrainedBox(
+                              constraints: BoxConstraints.tightFor(
+                                width: constraints.maxWidth,
+                                height: constraints.maxHeight,
+                              ),
+                              child: Obx(() {
+                                if (controller.isLoading.value) {
+                                  return const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Colors.cyanAccent,
+                                    ),
+                                  );
+                                }
+                                return _DashboardBody(controller: controller);
+                              }),
+                            );
+                          },
+                        ),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            return ConstrainedBox(
+                              constraints: BoxConstraints.tightFor(
+                                width: constraints.maxWidth,
+                                height: constraints.maxHeight,
+                              ),
+                              child: _SnAnalysisTab(
+                                controller: controller,
+                                searchController: searchController,
+                                searchFocusNode: searchFocusNode,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
