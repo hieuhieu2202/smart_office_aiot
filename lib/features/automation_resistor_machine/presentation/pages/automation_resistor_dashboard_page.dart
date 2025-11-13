@@ -1197,25 +1197,25 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
         final bool hasFiniteWidth =
             constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
-        final double? constrainedHeight =
-            hasFiniteHeight ? constraints.maxHeight : null;
-        final double? constrainedWidth =
-            hasFiniteWidth ? constraints.maxWidth : null;
+        final double fallbackHeight = MediaQuery.sizeOf(context).height;
+        final double fallbackWidth = MediaQuery.sizeOf(context).width;
+        final double constrainedHeight =
+            hasFiniteHeight ? constraints.maxHeight : fallbackHeight;
+        final double constrainedWidth =
+            hasFiniteWidth ? constraints.maxWidth : fallbackWidth;
 
         return SizedBox(
           width: constrainedWidth,
           height: constrainedHeight,
-          child: CustomScrollView(
+          child: SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constrainedHeight ?? 0,
-                    minWidth: constrainedWidth ?? 0,
-                  ),
-                  child: IntrinsicHeight(
-                    child: Obx(() {
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constrainedHeight,
+                minWidth: constrainedWidth,
+              ),
+              child: IntrinsicHeight(
+                child: Obx(() {
                   final matches = controller.serialMatches;
                   final isSearching = controller.isSearchingSerial.value;
                   final isLoadingRecord = controller.isLoadingRecord.value;
@@ -1231,39 +1231,37 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
 
                   final double? availableHeight = hasFiniteHeight
                       ? math.max(0, constraints.maxHeight - padding.vertical)
-                    : null;
+                      : null;
 
-                final Widget content = isWide
-                    ? _buildWideLayout(
-                        maxHeight: availableHeight,
-                        matches: matches,
-                        isSearching: isSearching,
-                        isLoadingRecord: isLoadingRecord,
-                        record: record,
-                        tests: tests,
-                        selectedTest: selectedTest,
-                        selectedSerial: selectedSerial,
-                      )
-                    : _buildStackedLayout(
-                        maxHeight: availableHeight,
-                        matches: matches,
-                        isSearching: isSearching,
-                        isLoadingRecord: isLoadingRecord,
-                        record: record,
-                        tests: tests,
-                        selectedTest: selectedTest,
-                        selectedSerial: selectedSerial,
-                      );
+                  final Widget content = isWide
+                      ? _buildWideLayout(
+                          maxHeight: availableHeight,
+                          matches: matches,
+                          isSearching: isSearching,
+                          isLoadingRecord: isLoadingRecord,
+                          record: record,
+                          tests: tests,
+                          selectedTest: selectedTest,
+                          selectedSerial: selectedSerial,
+                        )
+                      : _buildStackedLayout(
+                          maxHeight: availableHeight,
+                          matches: matches,
+                          isSearching: isSearching,
+                          isLoadingRecord: isLoadingRecord,
+                          record: record,
+                          tests: tests,
+                          selectedTest: selectedTest,
+                          selectedSerial: selectedSerial,
+                        );
 
-                      return Padding(
-                        padding: padding,
-                        child: content,
-                      );
-                    }),
-                  ),
-                ),
+                  return Padding(
+                    padding: padding,
+                    child: content,
+                  );
+                }),
               ),
-            ],
+            ),
           ),
         );
       },
