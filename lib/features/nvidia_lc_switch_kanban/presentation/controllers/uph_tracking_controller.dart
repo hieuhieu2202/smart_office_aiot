@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:get/get.dart';
 
@@ -35,7 +36,7 @@ class UphTrackingController extends GetxController {
 
   final RxString modelSerial = 'SWITCH'.obs;
   final Rx<DateTime> date = DateTime.now().obs;
-  final RxString shift = 'ALL'.obs;
+  final RxString shift = 'DAY'.obs;
   final RxList<String> selectedGroups = <String>[].obs;
   final RxList<String> allGroups = <String>[].obs;
 
@@ -64,22 +65,26 @@ class UphTrackingController extends GetxController {
     if (newModelSerial != null && newModelSerial != modelSerial.value) {
       modelSerial.value = newModelSerial;
       shouldReloadModels = true;
+      _log('Changed model serial -> $newModelSerial');
     }
 
     if (newDate != null && !_isSameDay(newDate, date.value)) {
       date.value = newDate;
       shouldReloadModels = true;
+      _log('Changed date -> ${_formatDate(newDate)}');
     }
 
-    if (newShift != null && newShift != shift.value) {
-      shift.value = newShift;
+    if (newShift != null && newShift.toUpperCase() != shift.value) {
+      shift.value = newShift.toUpperCase();
       shouldReloadModels = true;
+      _log('Changed shift -> ${shift.value}');
     }
 
     if (newGroups != null) {
       selectedGroups
         ..clear()
         ..addAll(newGroups);
+      _log('Selected groups -> ${selectedGroups.join(', ')}');
     }
 
     if (shouldReloadModels) {
@@ -101,6 +106,8 @@ class UphTrackingController extends GetxController {
 
     isLoadingModels.value = true;
     try {
+      _log('Fetching model groups for ${modelSerial.value} '
+          'on ${_formatDate(date.value)} shift ${shift.value}');
       final List<String> list =
           await _getGroups(_currentRequest(groups: const <String>[]));
 
@@ -110,10 +117,12 @@ class UphTrackingController extends GetxController {
           selectedGroups
             ..clear()
             ..addAll(list);
+          _log('Auto-selected ${selectedGroups.length} groups');
         }
       }
     } catch (e) {
       error.value = e.toString();
+      _log('Failed to fetch model groups -> $e');
     } finally {
       isLoadingModels.value = false;
     }
@@ -142,6 +151,9 @@ class UphTrackingController extends GetxController {
 
     try {
       final request = _currentRequest(groups: groups);
+      _log('Requesting UPH tracking | '
+          'date=${request.date} shift=${request.shift} '
+          'groups=${groups.join(', ')}');
       final UphTrackingEntity entity = await _getUphTracking(request);
       final view = UphTrackingViewState.fromEntity(entity);
       viewState.value = view;
@@ -156,6 +168,7 @@ class UphTrackingController extends GetxController {
       }
       _updateBadgeTimer?.cancel();
       showUpdateBadge.value = false;
+      _log('Failed to load UPH tracking -> $e');
     } finally {
       isLoading.value = false;
       isRefreshing.value = false;
@@ -236,6 +249,10 @@ class UphTrackingController extends GetxController {
     _updateBadgeTimer = Timer(const Duration(seconds: 6), () {
       showUpdateBadge.value = false;
     });
+  }
+
+  void _log(String message) {
+    developer.log(message, name: 'UphTrackingController');
   }
 }
 
