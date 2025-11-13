@@ -87,12 +87,8 @@ class _AutomationResistorDashboardPageState
                         physics: const NeverScrollableScrollPhysics(),
                         children: [
                           LayoutBuilder(
-                            builder: (context, constraints) {
-                              return ConstrainedBox(
-                                constraints: BoxConstraints.tightFor(
-                                  width: constraints.maxWidth,
-                                  height: constraints.maxHeight,
-                                ),
+                            builder: (context, _) {
+                              return SizedBox.expand(
                                 child: Obx(() {
                                   if (controller.isLoading.value) {
                                     return const Center(
@@ -107,12 +103,8 @@ class _AutomationResistorDashboardPageState
                             },
                           ),
                           LayoutBuilder(
-                            builder: (context, constraints) {
-                              return ConstrainedBox(
-                                constraints: BoxConstraints.tightFor(
-                                  width: constraints.maxWidth,
-                                  height: constraints.maxHeight,
-                                ),
+                            builder: (context, _) {
+                              return SizedBox.expand(
                                 child: _SnAnalysisTab(
                                   controller: controller,
                                   searchController: searchController,
