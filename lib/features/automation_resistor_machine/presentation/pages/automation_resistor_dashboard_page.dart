@@ -71,16 +71,17 @@ class _AutomationResistorDashboardPageState
         child: MediaQuery.removeViewInsets(
           removeBottom: true,
           context: context,
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF001B3A), Color(0xFF020B1A)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+          child: SizedBox.expand(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF001B3A), Color(0xFF020B1A)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
-            ),
-            child: Column(
-              children: [
+              child: Column(
+                children: [
                 _buildHeader(context),
                 TabBar(
                   controller: _tabController,
