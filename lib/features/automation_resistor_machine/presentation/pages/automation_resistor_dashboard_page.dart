@@ -1196,17 +1196,27 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
     return SizedBox.expand(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          return ConstrainedBox(
-            constraints: BoxConstraints.tightFor(
-              width: constraints.maxWidth,
-              height: constraints.maxHeight,
-            ),
-            child: Obx(() {
-              final matches = controller.serialMatches;
-              final isSearching = controller.isSearchingSerial.value;
-              final isLoadingRecord = controller.isLoadingRecord.value;
-              final record = controller.selectedRecord.value;
-              final tests = controller.recordTestResults;
+          final double minHeight = (constraints.hasBoundedHeight &&
+                  constraints.maxHeight.isFinite)
+              ? constraints.maxHeight
+              : 0;
+          final double minWidth = (constraints.hasBoundedWidth &&
+                  constraints.maxWidth.isFinite)
+              ? constraints.maxWidth
+              : 0;
+          return SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: minHeight,
+                minWidth: minWidth,
+              ),
+              child: Obx(() {
+                final matches = controller.serialMatches;
+                final isSearching = controller.isSearchingSerial.value;
+                final isLoadingRecord = controller.isLoadingRecord.value;
+                final record = controller.selectedRecord.value;
+                final tests = controller.recordTestResults;
               final selectedTest = controller.selectedTestResult.value;
               final selectedSerial = controller.selectedSerial.value;
 
@@ -1243,11 +1253,12 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
                       selectedSerial: selectedSerial,
                     );
 
-              return Padding(
-                padding: padding,
-                child: content,
-              );
-            }),
+                return Padding(
+                  padding: padding,
+                  child: content,
+                );
+              }),
+            ),
           );
         },
       ),
@@ -1300,6 +1311,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
 
     if (enableVerticalScroll) {
       return SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: maxHeight!),
           child: row,
@@ -1333,6 +1345,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
             : 0;
 
     return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: minHeight),
         child: Column(
@@ -1506,6 +1519,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
         controller: _searchResultsController,
         primary: false,
         shrinkWrap: true,
+        physics: const ClampingScrollPhysics(),
         padding: EdgeInsets.zero,
         itemCount: matches.length,
         separatorBuilder: (_, __) => const Divider(
@@ -1693,6 +1707,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
         controller: _addressListController,
         primary: false,
         shrinkWrap: true,
+        physics: const ClampingScrollPhysics(),
         padding: EdgeInsets.zero,
         itemCount: tests.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -2180,6 +2195,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
       child: SingleChildScrollView(
         controller: _gridHorizontalController,
         scrollDirection: Axis.horizontal,
+        physics: const ClampingScrollPhysics(),
         child: Scrollbar(
           controller: _gridVerticalController,
           thumbVisibility: true,
@@ -2188,6 +2204,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
           child: SingleChildScrollView(
             controller: _gridVerticalController,
             scrollDirection: Axis.vertical,
+            physics: const ClampingScrollPhysics(),
             child: table,
           ),
         ),
