@@ -949,43 +949,49 @@ class _TabletLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      children: [
-        _SummarySection(view: view),
-        const SizedBox(height: 20),
-        SizedBox(
-          height: 360,
-          child: _DashboardPanel(
-            child: ResistorFailDistributionChart(
-              slices: view.failDistributionSlices,
-              total: view.failTotal,
+    return SizedBox.expand(
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _SummarySection(view: view),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 360,
+              child: _DashboardPanel(
+                child: ResistorFailDistributionChart(
+                  slices: view.failDistributionSlices,
+                  total: view.failTotal,
+                ),
+              ),
             ),
-          ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 420,
+              child: Obx(() {
+                final alignToShift = !controller.isMultiDayRange.value;
+                return ResistorComboChart(
+                  title: 'YIELD RATE AND OUTPUT',
+                  series: view.sectionSeries,
+                  alignToShiftWindows: alignToShift,
+                  startSection: controller.startSection.value,
+                  shiftStartTime: controller.shiftStartTime.value,
+                );
+              }),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 420,
+              child: ResistorComboChart(
+                title: 'MACHINE DISTRIBUTION',
+                series: view.machineSeries,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 20),
-        SizedBox(
-          height: 420,
-          child: Obx(() {
-            final alignToShift = !controller.isMultiDayRange.value;
-            return ResistorComboChart(
-              title: 'YIELD RATE AND OUTPUT',
-              series: view.sectionSeries,
-              alignToShiftWindows: alignToShift,
-              startSection: controller.startSection.value,
-              shiftStartTime: controller.shiftStartTime.value,
-            );
-          }),
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          height: 420,
-          child: ResistorComboChart(
-            title: 'MACHINE DISTRIBUTION',
-            series: view.machineSeries,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
