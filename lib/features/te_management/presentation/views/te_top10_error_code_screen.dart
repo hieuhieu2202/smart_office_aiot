@@ -282,8 +282,14 @@ class _TETop10ErrorCodeScreenState extends State<TETop10ErrorCodeScreen> {
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 titleSpacing: 0,
-                centerTitle: false,
+                centerTitle: true,
                 systemOverlayStyle: overlay,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  color: _kAccentColor,
+                  onPressed: () => Get.offAllNamed('/navbar'),
+                  tooltip: 'Back to home',
+                ),
                 title: Obx(() {
                   final modelSerial = _controller.modelSerial.value;
                   final titleText = widget.title ?? '$modelSerial · Top 10 Error Codes';
