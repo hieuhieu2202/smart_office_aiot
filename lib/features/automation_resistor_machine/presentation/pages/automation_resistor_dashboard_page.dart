@@ -1208,8 +1208,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
           child: CustomScrollView(
             physics: const ClampingScrollPhysics(),
             slivers: [
-              SliverFillRemaining(
-                hasScrollBody: false,
+              SliverToBoxAdapter(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight: constrainedHeight ?? 0,
@@ -1283,9 +1282,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
   }) {
     final bool hasMaxHeight =
         maxHeight != null && maxHeight.isFinite && maxHeight > 0;
-    final bool enableVerticalScroll =
-        hasMaxHeight && maxHeight! < 720;
-    final bool fillHeight = hasMaxHeight && !enableVerticalScroll;
+    final bool fillHeight = hasMaxHeight;
 
     final row = Row(
       crossAxisAlignment:
@@ -1315,16 +1312,6 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
       ],
     );
 
-    if (enableVerticalScroll) {
-      return SingleChildScrollView(
-        physics: const ClampingScrollPhysics(),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: maxHeight!),
-          child: row,
-        ),
-      );
-    }
-
     if (fillHeight) {
       return SizedBox(
         height: maxHeight!,
@@ -1350,31 +1337,28 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
             ? maxHeight!
             : 0;
 
-    return SingleChildScrollView(
-      physics: const ClampingScrollPhysics(),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: minHeight),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildSerialAnalysisCard(
-              matches: matches,
-              isSearching: isSearching,
-              isLoadingRecord: isLoadingRecord,
-              tests: tests,
-              selectedTest: selectedTest,
-              selectedSerial: selectedSerial,
-              fillHeight: false,
-            ),
-            const SizedBox(height: 20),
-            _buildDetailColumn(
-              record: record,
-              selectedTest: selectedTest,
-              isLoadingRecord: isLoadingRecord,
-              fillHeight: false,
-            ),
-          ],
-        ),
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: minHeight),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildSerialAnalysisCard(
+            matches: matches,
+            isSearching: isSearching,
+            isLoadingRecord: isLoadingRecord,
+            tests: tests,
+            selectedTest: selectedTest,
+            selectedSerial: selectedSerial,
+            fillHeight: false,
+          ),
+          const SizedBox(height: 20),
+          _buildDetailColumn(
+            record: record,
+            selectedTest: selectedTest,
+            isLoadingRecord: isLoadingRecord,
+            fillHeight: false,
+          ),
+        ],
       ),
     );
   }
