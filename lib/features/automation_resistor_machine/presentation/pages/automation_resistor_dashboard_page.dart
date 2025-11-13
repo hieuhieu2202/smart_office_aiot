@@ -22,11 +22,14 @@ class AutomationResistorDashboardPage extends StatefulWidget {
 }
 
 class _AutomationResistorDashboardPageState
-    extends State<AutomationResistorDashboardPage> {
+    extends State<AutomationResistorDashboardPage>
+    with SingleTickerProviderStateMixin {
   late final AutomationResistorDashboardController controller;
   late final TextEditingController searchController;
   late final FocusNode searchFocusNode;
   final GlobalKey _filterButtonKey = GlobalKey();
+  late final TabController _tabController;
+  int _currentTabIndex = 0;
 
   @override
   void initState() {
@@ -37,94 +40,112 @@ class _AutomationResistorDashboardPageState
     );
     searchController = TextEditingController();
     searchFocusNode = FocusNode();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_handleTabChange);
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     searchController.dispose();
     searchFocusNode.dispose();
+    _tabController.dispose();
     super.dispose();
+  }
+
+  void _handleTabChange() {
+    if (!_tabController.indexIsChanging &&
+        _currentTabIndex != _tabController.index) {
+      setState(() {
+        _currentTabIndex = _tabController.index;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: const Color(0xFF010A1B),
-        body: SafeArea(
-          child: MediaQuery.removeViewInsets(
-            removeBottom: true,
-            context: context,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF001B3A), Color(0xFF020B1A)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: const Color(0xFF010A1B),
+      body: SafeArea(
+        child: MediaQuery.removeViewInsets(
+          removeBottom: true,
+          context: context,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF001B3A), Color(0xFF020B1A)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-              child: Column(
-                children: [
-                  _buildHeader(context),
-                  const TabBar(
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white60,
-                    indicatorColor: Colors.cyanAccent,
-                    labelStyle: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.1,
-                    ),
-                    tabs: [
-                      Tab(text: 'DASHBOARD'),
-                      Tab(text: 'SN ANALYSIS'),
+            ),
+            child: Column(
+              children: [
+                _buildHeader(context),
+                TabBar(
+                  controller: _tabController,
+                  onTap: (index) {
+                    if (_currentTabIndex != index) {
+                      setState(() {
+                        _currentTabIndex = index;
+                      });
+                    }
+                  },
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white60,
+                  indicatorColor: Colors.cyanAccent,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
+                  tabs: const [
+                    Tab(text: 'DASHBOARD'),
+                    Tab(text: 'SN ANALYSIS'),
+                  ],
+                ),
+                Expanded(
+                  child: IndexedStack(
+                    index: _currentTabIndex,
+                    children: [
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          return ConstrainedBox(
+                            constraints: BoxConstraints.tightFor(
+                              width: constraints.maxWidth,
+                              height: constraints.maxHeight,
+                            ),
+                            child: Obx(() {
+                              if (controller.isLoading.value) {
+                                return const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.cyanAccent,
+                                  ),
+                                );
+                              }
+                              return _DashboardBody(controller: controller);
+                            }),
+                          );
+                        },
+                      ),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          return ConstrainedBox(
+                            constraints: BoxConstraints.tightFor(
+                              width: constraints.maxWidth,
+                              height: constraints.maxHeight,
+                            ),
+                            child: _SnAnalysisTab(
+                              controller: controller,
+                              searchController: searchController,
+                              searchFocusNode: searchFocusNode,
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
-                  Expanded(
-                    child: TabBarView(
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            return ConstrainedBox(
-                              constraints: BoxConstraints.tightFor(
-                                width: constraints.maxWidth,
-                                height: constraints.maxHeight,
-                              ),
-                              child: Obx(() {
-                                if (controller.isLoading.value) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(
-                                      color: Colors.cyanAccent,
-                                    ),
-                                  );
-                                }
-                                return _DashboardBody(controller: controller);
-                              }),
-                            );
-                          },
-                        ),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            return ConstrainedBox(
-                              constraints: BoxConstraints.tightFor(
-                                width: constraints.maxWidth,
-                                height: constraints.maxHeight,
-                              ),
-                              child: _SnAnalysisTab(
-                                controller: controller,
-                                searchController: searchController,
-                                searchFocusNode: searchFocusNode,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -138,69 +159,58 @@ class _AutomationResistorDashboardPageState
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 900;
-          final tabController = DefaultTabController.of(context);
-          if (tabController == null) {
-            return const SizedBox.shrink();
-          }
+          final bool showFilters = _currentTabIndex == 0;
+          final String title = showFilters
+              ? 'RESISTOR MACHINE '
+              : 'SERIAL NUMBER ANALYSIS';
 
-          return AnimatedBuilder(
-            animation: tabController,
-            builder: (context, _) {
-              final bool showFilters = tabController.index == 0;
-              final String title = tabController.index == 0
-                  ? 'RESISTOR MACHINE '
-                  : 'SERIAL NUMBER ANALYSIS';
-
-              return Column(
-                crossAxisAlignment: isCompact
-                    ? CrossAxisAlignment.start
-                    : CrossAxisAlignment.stretch,
+          return Column(
+            crossAxisAlignment: isCompact
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: _handleBack,
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new,
-                          color: Colors.cyanAccent,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 2,
-                              ),
-                        ),
-                      ),
-                      if (showFilters) ...[
-                        const SizedBox(width: 12),
-                        _buildFilterButton(() => _showFiltersSheet(context)),
-                      ],
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: () {
-                          if (tabController.index == 0) {
-                            controller.loadDashboard();
-                            controller.loadStatus();
-                          } else {
-                            searchController.clear();
-                            controller.clearSerialSearch();
-                            controller.clearSelectedSerial();
-                          }
-                        },
-                        icon:
-                            const Icon(Icons.refresh, color: Colors.cyanAccent),
-                      ),
-                    ],
+                  IconButton(
+                    onPressed: _handleBack,
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.cyanAccent,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2,
+                          ),
+                    ),
+                  ),
+                  if (showFilters) ...[
+                    const SizedBox(width: 12),
+                    _buildFilterButton(() => _showFiltersSheet(context)),
+                  ],
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () {
+                      if (_currentTabIndex == 0) {
+                        controller.loadDashboard();
+                        controller.loadStatus();
+                      } else {
+                        searchController.clear();
+                        controller.clearSerialSearch();
+                        controller.clearSelectedSerial();
+                      }
+                    },
+                    icon: const Icon(Icons.refresh, color: Colors.cyanAccent),
                   ),
                 ],
-              );
-            },
+              ),
+            ],
           );
         },
       ),
