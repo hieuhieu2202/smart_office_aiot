@@ -1207,61 +1207,69 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
         return SizedBox(
           width: constrainedWidth,
           height: constrainedHeight,
-          child: SingleChildScrollView(
+          child: CustomScrollView(
             physics: const ClampingScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constrainedHeight,
-                minWidth: constrainedWidth,
+            slivers: [
+              SliverToBoxAdapter(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constrainedHeight,
+                      minWidth: constrainedWidth,
+                    ),
+                    child: Obx(() {
+                      final matches = controller.serialMatches;
+                      final isSearching = controller.isSearchingSerial.value;
+                      final isLoadingRecord = controller.isLoadingRecord.value;
+                      final record = controller.selectedRecord.value;
+                      final tests = controller.recordTestResults;
+                      final selectedTest =
+                          controller.selectedTestResult.value;
+                      final selectedSerial = controller.selectedSerial.value;
+
+                      final bool isWide = constraints.maxWidth >= 1100;
+                      final EdgeInsets padding = isWide
+                          ? const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 20)
+                          : const EdgeInsets.all(16);
+
+                      final double? availableHeight = hasFiniteHeight
+                          ? math.max(
+                              0, constraints.maxHeight - padding.vertical)
+                          : null;
+
+                      final Widget content = isWide
+                          ? _buildWideLayout(
+                              maxHeight: availableHeight,
+                              matches: matches,
+                              isSearching: isSearching,
+                              isLoadingRecord: isLoadingRecord,
+                              record: record,
+                              tests: tests,
+                              selectedTest: selectedTest,
+                              selectedSerial: selectedSerial,
+                            )
+                          : _buildStackedLayout(
+                              maxHeight: availableHeight,
+                              matches: matches,
+                              isSearching: isSearching,
+                              isLoadingRecord: isLoadingRecord,
+                              record: record,
+                              tests: tests,
+                              selectedTest: selectedTest,
+                              selectedSerial: selectedSerial,
+                            );
+
+                      return Padding(
+                        padding: padding,
+                        child: content,
+                      );
+                    }),
+                  ),
+                ),
               ),
-              child: IntrinsicHeight(
-                child: Obx(() {
-                  final matches = controller.serialMatches;
-                  final isSearching = controller.isSearchingSerial.value;
-                  final isLoadingRecord = controller.isLoadingRecord.value;
-                  final record = controller.selectedRecord.value;
-                  final tests = controller.recordTestResults;
-                  final selectedTest = controller.selectedTestResult.value;
-                  final selectedSerial = controller.selectedSerial.value;
-
-                  final bool isWide = constraints.maxWidth >= 1100;
-                  final EdgeInsets padding = isWide
-                      ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
-                      : const EdgeInsets.all(16);
-
-                  final double? availableHeight = hasFiniteHeight
-                      ? math.max(0, constraints.maxHeight - padding.vertical)
-                      : null;
-
-                  final Widget content = isWide
-                      ? _buildWideLayout(
-                          maxHeight: availableHeight,
-                          matches: matches,
-                          isSearching: isSearching,
-                          isLoadingRecord: isLoadingRecord,
-                          record: record,
-                          tests: tests,
-                          selectedTest: selectedTest,
-                          selectedSerial: selectedSerial,
-                        )
-                      : _buildStackedLayout(
-                          maxHeight: availableHeight,
-                          matches: matches,
-                          isSearching: isSearching,
-                          isLoadingRecord: isLoadingRecord,
-                          record: record,
-                          tests: tests,
-                          selectedTest: selectedTest,
-                          selectedSerial: selectedSerial,
-                        );
-
-                  return Padding(
-                    padding: padding,
-                    child: content,
-                  );
-                }),
-              ),
-            ),
+            ],
           ),
         );
       },
