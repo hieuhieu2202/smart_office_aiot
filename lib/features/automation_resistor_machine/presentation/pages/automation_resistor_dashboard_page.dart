@@ -1197,25 +1197,26 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
         final bool hasFiniteWidth =
             constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
-        final double? constrainedHeight = hasFiniteHeight
-            ? constraints.maxHeight
-            : null;
-        final double? constrainedWidth = hasFiniteWidth
-            ? constraints.maxWidth
-            : null;
+        final double? constrainedHeight =
+            hasFiniteHeight ? constraints.maxHeight : null;
+        final double? constrainedWidth =
+            hasFiniteWidth ? constraints.maxWidth : null;
 
         return SizedBox(
           width: constrainedWidth,
           height: constrainedHeight,
-          child: SingleChildScrollView(
+          child: CustomScrollView(
             physics: const ClampingScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constrainedHeight ?? 0,
-                minWidth: constrainedWidth ?? 0,
-              ),
-              child: IntrinsicHeight(
-                child: Obx(() {
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constrainedHeight ?? 0,
+                    minWidth: constrainedWidth ?? 0,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Obx(() {
                   final matches = controller.serialMatches;
                   final isSearching = controller.isSearchingSerial.value;
                   final isLoadingRecord = controller.isLoadingRecord.value;
@@ -1255,13 +1256,15 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
                         selectedSerial: selectedSerial,
                       );
 
-                return Padding(
-                  padding: padding,
-                  child: content,
-                );
-                }),
+                      return Padding(
+                        padding: padding,
+                        child: content,
+                      );
+                    }),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         );
       },
