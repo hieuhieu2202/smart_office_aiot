@@ -1193,12 +1193,14 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
     super.build(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double? constrainedHeight = (constraints.hasBoundedHeight &&
-                constraints.maxHeight.isFinite)
+        final bool hasFiniteHeight =
+            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+        final bool hasFiniteWidth =
+            constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
+        final double? constrainedHeight = hasFiniteHeight
             ? constraints.maxHeight
             : null;
-        final double? constrainedWidth = (constraints.hasBoundedWidth &&
-                constraints.maxWidth.isFinite)
+        final double? constrainedWidth = hasFiniteWidth
             ? constraints.maxWidth
             : null;
 
@@ -1212,24 +1214,23 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
                 minHeight: constrainedHeight ?? 0,
                 minWidth: constrainedWidth ?? 0,
               ),
-              child: Obx(() {
-                final matches = controller.serialMatches;
-                final isSearching = controller.isSearchingSerial.value;
-                final isLoadingRecord = controller.isLoadingRecord.value;
-                final record = controller.selectedRecord.value;
-                final tests = controller.recordTestResults;
-                final selectedTest = controller.selectedTestResult.value;
-                final selectedSerial = controller.selectedSerial.value;
+              child: IntrinsicHeight(
+                child: Obx(() {
+                  final matches = controller.serialMatches;
+                  final isSearching = controller.isSearchingSerial.value;
+                  final isLoadingRecord = controller.isLoadingRecord.value;
+                  final record = controller.selectedRecord.value;
+                  final tests = controller.recordTestResults;
+                  final selectedTest = controller.selectedTestResult.value;
+                  final selectedSerial = controller.selectedSerial.value;
 
-                final bool isWide = constraints.maxWidth >= 1100;
-                final EdgeInsets padding = isWide
-                    ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
-                    : const EdgeInsets.all(16);
+                  final bool isWide = constraints.maxWidth >= 1100;
+                  final EdgeInsets padding = isWide
+                      ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
+                      : const EdgeInsets.all(16);
 
-                final bool hasFiniteHeight = constraints.hasBoundedHeight &&
-                    constraints.maxHeight.isFinite;
-                final double? availableHeight = hasFiniteHeight
-                    ? math.max(0, constraints.maxHeight - padding.vertical)
+                  final double? availableHeight = hasFiniteHeight
+                      ? math.max(0, constraints.maxHeight - padding.vertical)
                     : null;
 
                 final Widget content = isWide
@@ -1258,7 +1259,8 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
                   padding: padding,
                   child: content,
                 );
-              }),
+                }),
+              ),
             ),
           ),
         );
