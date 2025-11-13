@@ -174,8 +174,8 @@ class _UphTrackingTableState extends State<UphTrackingTable> {
           children: [
             SizedBox(width: _modelWidth + _stationWidth + (_metricWidth * 4)),
             for (int i = 0; i < sections.length; i++) ...[
-              _subHeaderCell('PASS'),
-              _subHeaderCell('PRODUCTIVITY'),
+              _subHeaderCell('PASS', width: _sectionWidth),
+              _subHeaderCell('PRODUCTIVITY', width: _sectionWidth),
             ],
           ],
         ),
@@ -395,8 +395,8 @@ class _UpdTrackingTableState extends State<UpdTrackingTable> {
           children: [
             SizedBox(width: _modelWidth + _stationWidth + (_metricWidth * 3)),
             for (int i = 0; i < dates.length; i++) ...[
-              _subHeaderCell('PASS'),
-              _subHeaderCell('PRODUCTIVITY'),
+              _subHeaderCell('PASS', width: _sectionWidth),
+              _subHeaderCell('PRODUCTIVITY', width: _sectionWidth),
             ],
           ],
         ),
@@ -484,9 +484,9 @@ Widget _headerCell(String label,
   );
 }
 
-Widget _subHeaderCell(String label) {
+Widget _subHeaderCell(String label, {required double width}) {
   return Container(
-    width: _sectionWidth,
+    width: width,
     height: _subHeaderHeight,
     decoration: const BoxDecoration(
       color: _headerBackground,
@@ -620,7 +620,7 @@ Widget _seriesCell(
   required double width,
   required String Function(double value) formatter,
   required Color Function(double value) colorBuilder,
-  Color Function(double value)? backgroundBuilder,
+  Color? Function(double value)? backgroundBuilder,
 }) {
   final double value = index < values.length ? values[index] : 0;
   final Color color = colorBuilder(value);
