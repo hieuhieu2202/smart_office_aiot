@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/lcr_entities.dart';
@@ -49,18 +51,17 @@ class LcrRecordDetail extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white10),
       ),
-      child: GridView.builder(
-        itemCount: entries.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 3.4,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 12,
-        ),
-        physics: const BouncingScrollPhysics(),
-        itemBuilder: (context, index) {
-          final entry = entries[index];
-          return _DetailTile(entry: entry, theme: theme);
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final viewportWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : MediaQuery.of(context).size.width;
+
+          return _DetailGrid(
+            entries: entries,
+            theme: theme,
+            maxWidth: viewportWidth,
+          );
         },
       ),
     );
@@ -80,11 +81,91 @@ class _DetailEntry {
   final String value;
 }
 
+class _DetailGrid extends StatelessWidget {
+  const _DetailGrid({
+    required this.entries,
+    required this.theme,
+    required this.maxWidth,
+  });
+
+  final List<_DetailEntry> entries;
+  final ThemeData theme;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    const crossAxisSpacing = 14.0;
+    const runSpacing = 12.0;
+    const baseAspectRatio = 2.25;
+    const minTileHeight = 96.0;
+
+    final double availableWidth = maxWidth.isFinite && maxWidth > 0
+        ? maxWidth
+        : MediaQuery.of(context).size.width;
+
+    final int crossAxisCount = availableWidth >= 1160
+        ? 5
+        : availableWidth >= 940
+            ? 4
+            : 3;
+
+    final spacingWidth = crossAxisSpacing * (crossAxisCount - 1);
+    final tileWidth = (availableWidth - spacingWidth) / crossAxisCount;
+    final idealTileHeight = tileWidth / baseAspectRatio;
+    final tileHeight = idealTileHeight < minTileHeight ? minTileHeight : idealTileHeight;
+    final bool compactTile = tileWidth < 150;
+    final int? valueMaxLines = compactTile ? 6 : null;
+    final labelFontSize = compactTile ? 11.0 : 12.5;
+    final valueFontSize = compactTile ? 13.0 : 15.0;
+    final verticalGap = compactTile ? 4.0 : 6.0;
+
+    return SizedBox(
+      width: availableWidth,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.zero,
+        physics: const BouncingScrollPhysics(),
+        child: Wrap(
+          spacing: crossAxisSpacing,
+          runSpacing: runSpacing,
+          children: [
+            for (final entry in entries)
+              SizedBox(
+                width: tileWidth,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: tileHeight),
+                  child: _DetailTile(
+                    entry: entry,
+                    theme: theme,
+                    maxLines: valueMaxLines,
+                    labelFontSize: labelFontSize,
+                    valueFontSize: valueFontSize,
+                    verticalGap: verticalGap,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DetailTile extends StatelessWidget {
-  const _DetailTile({required this.entry, required this.theme});
+  const _DetailTile({
+    required this.entry,
+    required this.theme,
+    required this.maxLines,
+    required this.labelFontSize,
+    required this.valueFontSize,
+    required this.verticalGap,
+  });
 
   final _DetailEntry entry;
   final ThemeData theme;
+  final int? maxLines;
+  final double labelFontSize;
+  final double valueFontSize;
+  final double verticalGap;
 
   @override
   Widget build(BuildContext context) {
@@ -102,26 +183,39 @@ class _DetailTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            entry.label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: Colors.white60,
-              fontWeight: FontWeight.w600,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              entry.label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: Colors.white70,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                fontSize: labelFontSize,
+                height: 1.1,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: verticalGap),
           Text(
             entry.value,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            maxLines: maxLines,
+            overflow: maxLines != null ? TextOverflow.ellipsis : TextOverflow.visible,
+            softWrap: true,
             style: theme.textTheme.titleSmall?.copyWith(
               color: isImportant
                   ? (entry.label == 'STATUS' && entry.value == 'FAIL'
                       ? Colors.redAccent
                       : Colors.cyanAccent)
                   : Colors.white,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.4,
+              fontSize: valueFontSize,
+              height: 1.25,
             ),
           ),
         ],

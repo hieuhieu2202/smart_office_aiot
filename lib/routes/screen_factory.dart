@@ -19,10 +19,12 @@ import '../features/nvidia_lc_switch_kanban/presentation/pages/output_tracking_p
 import '../features/nvidia_lc_switch_kanban/presentation/pages/uph_tracking_page.dart';
 import '../features/nvidia_lc_switch_kanban/presentation/pages/upd_tracking_page.dart';
 import '../features/lcr_machine/presentation/pages/lcr_dashboard_page.dart';
+import '../features/automation_resistor_machine/presentation/pages/automation_resistor_dashboard_page.dart';
 import '../screen/home/widget/project_list_page.dart';
 
 final Map<String, Widget Function(AppProject)> screenBuilderMap = {
   'pth_dashboard': (project) => AOIVIDashboardScreen(),
+  'resistor_analysis': (project) => AutomationResistorDashboardPage(),
   'racks_monitor': (project) => GroupMonitorScreen(),
   'yield_report': (project) => YieldReportScreen(
         title: project.name,

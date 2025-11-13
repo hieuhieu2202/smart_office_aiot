@@ -33,6 +33,13 @@ List<AppProject> appProjects = [
         screenType: 'pcba_line_dashboard',
       ),
       AppProject(
+        name: "RESISTOR ANALYSIS",
+        progress: 1.0,
+        status: "Running",
+        icon: Icons.analytics,
+        screenType: 'resistor_analysis',
+      ),
+      AppProject(
         name: "Clean Room",
         progress: 1.0,
         status: "Running",
