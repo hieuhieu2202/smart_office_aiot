@@ -27,26 +27,26 @@ class StationOverviewRemoteDataSource {
     required String modelSerial,
   }) async {
     final uri = Uri.parse('$_base/GetSfcProductAndModelNames');
-    final Map<String, dynamic> body = <String, dynamic>{
+    final Map<String, dynamic> payload = <String, dynamic>{
       'MODEL_SERIAL': modelSerial,
     };
     final http.Response res = await _http
         .post(
           uri,
           headers: _headers(),
-          body: jsonEncode(body),
+          body: jsonEncode(payload),
           timeout: _timeout,
         )
         .catchError((error) => throw Exception('GetSfcProductAndModelNames: $error'));
 
     _ensureSuccess(res, 'GetSfcProductAndModelNames');
 
-    final dynamic body = jsonDecode(res.body);
-    if (body is List) {
-      return body
-          .whereType<Map<String, dynamic>>()
-          .map(StationProductModel.fromJson)
-          .toList();
+    final dynamic decoded = jsonDecode(res.body);
+    if (decoded is List) {
+      final Iterable<Map<String, dynamic>> items = decoded
+          .where((element) => element is Map<String, dynamic>)
+          .cast<Map<String, dynamic>>();
+      return items.map(StationProductModel.fromJson).toList();
     }
 
     throw Exception('GetSfcProductAndModelNames: unexpected payload');
@@ -56,7 +56,7 @@ class StationOverviewRemoteDataSource {
     required StationOverviewFilter filter,
   }) async {
     final uri = Uri.parse('$_base/GetStationOverviewDatas');
-    final Map<String, dynamic> body = <String, dynamic>{
+    final Map<String, dynamic> payload = <String, dynamic>{
       'DateRange': (filter.dateRange == null || filter.dateRange!.isEmpty)
           ? ''
           : filter.dateRange!,
@@ -74,19 +74,19 @@ class StationOverviewRemoteDataSource {
         .post(
           uri,
           headers: _headers(),
-          body: jsonEncode(body),
+          body: jsonEncode(payload),
           timeout: _timeout,
         )
         .catchError((error) => throw Exception('GetStationOverviewDatas: $error'));
 
     _ensureSuccess(res, 'GetStationOverviewDatas');
 
-    final dynamic body = jsonDecode(res.body);
-    if (body is List) {
-      return body
-          .whereType<Map<String, dynamic>>()
-          .map(StationOverviewDataModel.fromJson)
-          .toList();
+    final dynamic decoded = jsonDecode(res.body);
+    if (decoded is List) {
+      final Iterable<Map<String, dynamic>> items = decoded
+          .where((element) => element is Map<String, dynamic>)
+          .cast<Map<String, dynamic>>();
+      return items.map(StationOverviewDataModel.fromJson).toList();
     }
 
     throw Exception('GetStationOverviewDatas: unexpected payload');
@@ -96,7 +96,7 @@ class StationOverviewRemoteDataSource {
     required StationOverviewFilter filter,
   }) async {
     final uri = Uri.parse('$_base/GetStationAnalysisDatas');
-    final Map<String, dynamic> body = <String, dynamic>{
+    final Map<String, dynamic> payload = <String, dynamic>{
       'DateRange': (filter.dateRange == null || filter.dateRange!.isEmpty)
           ? ''
           : filter.dateRange!,
@@ -109,19 +109,19 @@ class StationOverviewRemoteDataSource {
         .post(
           uri,
           headers: _headers(),
-          body: jsonEncode(body),
+          body: jsonEncode(payload),
           timeout: _timeout,
         )
         .catchError((error) => throw Exception('GetStationAnalysisDatas: $error'));
 
     _ensureSuccess(res, 'GetStationAnalysisDatas');
 
-    final dynamic body = jsonDecode(res.body);
-    if (body is List) {
-      return body
-          .whereType<Map<String, dynamic>>()
-          .map(StationAnalysisDataModel.fromJson)
-          .toList();
+    final dynamic decoded = jsonDecode(res.body);
+    if (decoded is List) {
+      final Iterable<Map<String, dynamic>> items = decoded
+          .where((element) => element is Map<String, dynamic>)
+          .cast<Map<String, dynamic>>();
+      return items.map(StationAnalysisDataModel.fromJson).toList();
     }
 
     throw Exception('GetStationAnalysisDatas: unexpected payload');
@@ -131,7 +131,7 @@ class StationOverviewRemoteDataSource {
     required StationOverviewFilter filter,
   }) async {
     final uri = Uri.parse('$_base/GetStationDetailDatas');
-    final Map<String, dynamic> body = <String, dynamic>{
+    final Map<String, dynamic> payload = <String, dynamic>{
       'DateRange': (filter.dateRange == null || filter.dateRange!.isEmpty)
           ? ''
           : filter.dateRange!,
@@ -141,25 +141,25 @@ class StationOverviewRemoteDataSource {
       'STATION_NAME': filter.stationName ?? '',
     };
     if (filter.detailType != null) {
-      body['DETAIL_TYPE'] = filter.detailType!.apiKey;
+      payload['DETAIL_TYPE'] = filter.detailType!.apiKey;
     }
     final http.Response res = await _http
         .post(
           uri,
           headers: _headers(),
-          body: jsonEncode(body),
+          body: jsonEncode(payload),
           timeout: _timeout,
         )
         .catchError((error) => throw Exception('GetStationDetailDatas: $error'));
 
     _ensureSuccess(res, 'GetStationDetailDatas');
 
-    final dynamic body = jsonDecode(res.body);
-    if (body is List) {
-      return body
-          .whereType<Map<String, dynamic>>()
-          .map(StationDetailDataModel.fromJson)
-          .toList();
+    final dynamic decoded = jsonDecode(res.body);
+    if (decoded is List) {
+      final Iterable<Map<String, dynamic>> items = decoded
+          .where((element) => element is Map<String, dynamic>)
+          .cast<Map<String, dynamic>>();
+      return items.map(StationDetailDataModel.fromJson).toList();
     }
 
     throw Exception('GetStationDetailDatas: unexpected payload');
