@@ -1212,17 +1212,16 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
           return SizedBox(
             width: constrainedWidth,
             height: constrainedHeight,
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constrainedHeight,
-                    minWidth: constrainedWidth,
-                  ),
-                  child: analysisContent,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: constrainedWidth,
+                  maxWidth: constrainedWidth,
+                  minHeight: constrainedHeight,
+                  maxHeight: constrainedHeight,
                 ),
+                child: analysisContent,
               ),
             ),
           );
