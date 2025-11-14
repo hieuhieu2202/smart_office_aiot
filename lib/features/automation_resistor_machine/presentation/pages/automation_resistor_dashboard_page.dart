@@ -1191,28 +1191,30 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool hasBoundedHeight =
-            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-        final bool hasBoundedWidth =
-            constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
+    return Obx(() {
+      final matches = controller.serialMatches;
+      final bool isSearching = controller.isSearchingSerial.value;
+      final bool isLoadingRecord = controller.isLoadingRecord.value;
+      final ResistorMachineRecord? record = controller.selectedRecord.value;
+      final List<ResistorMachineTestResult> tests = controller.recordTestResults;
+      final ResistorMachineTestResult? selectedTest =
+          controller.selectedTestResult.value;
+      final ResistorMachineSerialMatch? selectedSerial =
+          controller.selectedSerial.value;
 
-        return Obx(() {
-          final matches = controller.serialMatches;
-          final bool isSearching = controller.isSearchingSerial.value;
-          final bool isLoadingRecord = controller.isLoadingRecord.value;
-          final ResistorMachineRecord? record = controller.selectedRecord.value;
-          final List<ResistorMachineTestResult> tests =
-              controller.recordTestResults;
-          final ResistorMachineTestResult? selectedTest =
-              controller.selectedTestResult.value;
-          final ResistorMachineSerialMatch? selectedSerial =
-              controller.selectedSerial.value;
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final bool hasBoundedHeight =
+              constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+          final bool hasBoundedWidth =
+              constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
+          final bool hasDesktopWidth = constraints.maxWidth >= 1280;
+          final bool fillHeight = hasDesktopWidth && hasBoundedHeight;
+          final bool needsScrollableShell = !hasDesktopWidth || !hasBoundedHeight;
 
           final Widget analysis = _buildAnalysisContent(
             constraints: constraints,
-            fillHeight: hasBoundedHeight,
+            fillHeight: fillHeight,
             matches: matches,
             isSearching: isSearching,
             isLoadingRecord: isLoadingRecord,
@@ -1222,24 +1224,28 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
             selectedSerial: selectedSerial,
           );
 
-          if (hasBoundedHeight) {
+          if (!needsScrollableShell) {
             return analysis;
           }
 
           final double minWidth = hasBoundedWidth
               ? constraints.maxWidth
               : MediaQuery.of(context).size.width;
+          final double minHeight = hasBoundedHeight ? constraints.maxHeight : 0;
 
           return SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
             child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: minWidth),
+              constraints: BoxConstraints(
+                minWidth: minWidth,
+                minHeight: minHeight,
+              ),
               child: analysis,
             ),
           );
-        });
-      },
-    );
+        },
+      );
+    });
   }
 
   Widget _buildAnalysisContent({
@@ -1253,7 +1259,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
     required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
-    final bool isWide = constraints.maxWidth >= 1100;
+    final bool isWide = constraints.maxWidth >= 1280;
     final EdgeInsets padding = isWide
         ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
         : const EdgeInsets.all(16);
