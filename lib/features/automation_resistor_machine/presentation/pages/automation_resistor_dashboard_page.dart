@@ -82,45 +82,35 @@ class _AutomationResistorDashboardPageState
                     ],
                   ),
                   Expanded(
-                    child: TabBarView(
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            return ConstrainedBox(
-                              constraints: BoxConstraints.tightFor(
-                                width: constraints.maxWidth,
-                                height: constraints.maxHeight,
-                              ),
-                              child: Obx(() {
-                                if (controller.isLoading.value) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(
-                                      color: Colors.cyanAccent,
-                                    ),
-                                  );
-                                }
-                                return _DashboardBody(controller: controller);
-                              }),
-                            );
-                          },
-                        ),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            return ConstrainedBox(
-                              constraints: BoxConstraints.tightFor(
-                                width: constraints.maxWidth,
-                                height: constraints.maxHeight,
-                              ),
-                              child: _SnAnalysisTab(
-                                controller: controller,
-                                searchController: searchController,
-                                searchFocusNode: searchFocusNode,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                    child: SizedBox.expand(
+                      child: TabBarView(
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          LayoutBuilder(
+                            builder: (context, _) {
+                              return SizedBox.expand(
+                                child: Obx(() {
+                                  if (controller.isLoading.value) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.cyanAccent,
+                                      ),
+                                    );
+                                  }
+                                  return _DashboardBody(controller: controller);
+                                }),
+                              );
+                            },
+                          ),
+                          SizedBox.expand(
+                            child: _SnAnalysisTab(
+                              controller: controller,
+                              searchController: searchController,
+                              searchFocusNode: searchFocusNode,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -947,43 +937,49 @@ class _TabletLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      children: [
-        _SummarySection(view: view),
-        const SizedBox(height: 20),
-        SizedBox(
-          height: 360,
-          child: _DashboardPanel(
-            child: ResistorFailDistributionChart(
-              slices: view.failDistributionSlices,
-              total: view.failTotal,
+    return SizedBox.expand(
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _SummarySection(view: view),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 360,
+              child: _DashboardPanel(
+                child: ResistorFailDistributionChart(
+                  slices: view.failDistributionSlices,
+                  total: view.failTotal,
+                ),
+              ),
             ),
-          ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 420,
+              child: Obx(() {
+                final alignToShift = !controller.isMultiDayRange.value;
+                return ResistorComboChart(
+                  title: 'YIELD RATE AND OUTPUT',
+                  series: view.sectionSeries,
+                  alignToShiftWindows: alignToShift,
+                  startSection: controller.startSection.value,
+                  shiftStartTime: controller.shiftStartTime.value,
+                );
+              }),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 420,
+              child: ResistorComboChart(
+                title: 'MACHINE DISTRIBUTION',
+                series: view.machineSeries,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 20),
-        SizedBox(
-          height: 420,
-          child: Obx(() {
-            final alignToShift = !controller.isMultiDayRange.value;
-            return ResistorComboChart(
-              title: 'YIELD RATE AND OUTPUT',
-              series: view.sectionSeries,
-              alignToShiftWindows: alignToShift,
-              startSection: controller.startSection.value,
-              shiftStartTime: controller.shiftStartTime.value,
-            );
-          }),
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          height: 420,
-          child: ResistorComboChart(
-            title: 'MACHINE DISTRIBUTION',
-            series: view.machineSeries,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -1191,67 +1187,71 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return ConstrainedBox(
-          constraints: BoxConstraints.tightFor(
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-          ),
-          child: Obx(() {
-            final matches = controller.serialMatches;
-            final isSearching = controller.isSearchingSerial.value;
-            final isLoadingRecord = controller.isLoadingRecord.value;
-            final record = controller.selectedRecord.value;
-            final tests = controller.recordTestResults;
-            final selectedTest = controller.selectedTestResult.value;
-            final selectedSerial = controller.selectedSerial.value;
+    return SizedBox.expand(
+      child: Obx(() {
+        final matches = controller.serialMatches;
+        final bool isSearching = controller.isSearchingSerial.value;
+        final bool isLoadingRecord = controller.isLoadingRecord.value;
+        final ResistorMachineRecord? record = controller.selectedRecord.value;
+        final List<ResistorMachineTestResult> tests =
+            controller.recordTestResults;
+        final ResistorMachineTestResult? selectedTest =
+            controller.selectedTestResult.value;
+        final ResistorMachineSerialMatch? selectedSerial =
+            controller.selectedSerial.value;
 
-            final bool isWide = constraints.maxWidth >= 1100;
-            final EdgeInsets padding = isWide
-                ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
-                : const EdgeInsets.all(16);
-
-            final bool hasFiniteHeight =
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final bool hasBoundedHeight =
                 constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            final double? availableHeight = hasFiniteHeight
-                ? math.max(0, constraints.maxHeight - padding.vertical)
-                : null;
+            final bool hasBoundedWidth =
+                constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
+            final bool hasDesktopWidth = constraints.maxWidth >= 1280;
+            final bool fillHeight = hasDesktopWidth && hasBoundedHeight;
+            final bool needsScrollableShell =
+                !hasDesktopWidth || !hasBoundedHeight;
 
-            final Widget content = isWide
-                ? _buildWideLayout(
-                    maxHeight: availableHeight,
-                    matches: matches,
-                    isSearching: isSearching,
-                    isLoadingRecord: isLoadingRecord,
-                    record: record,
-                    tests: tests,
-                    selectedTest: selectedTest,
-                    selectedSerial: selectedSerial,
-                  )
-                : _buildStackedLayout(
-                    maxHeight: availableHeight,
-                    matches: matches,
-                    isSearching: isSearching,
-                    isLoadingRecord: isLoadingRecord,
-                    record: record,
-                    tests: tests,
-                    selectedTest: selectedTest,
-                    selectedSerial: selectedSerial,
-                  );
-
-            return Padding(
-              padding: padding,
-              child: content,
+            final Widget analysis = _buildAnalysisContent(
+              constraints: constraints,
+              fillHeight: fillHeight,
+              matches: matches,
+              isSearching: isSearching,
+              isLoadingRecord: isLoadingRecord,
+              record: record,
+              tests: tests,
+              selectedTest: selectedTest,
+              selectedSerial: selectedSerial,
             );
-          }),
+
+            if (!needsScrollableShell) {
+              return analysis;
+            }
+
+            final Size screenSize = MediaQuery.of(context).size;
+            final double minWidth =
+                hasBoundedWidth ? constraints.maxWidth : screenSize.width;
+            final double minHeight =
+                hasBoundedHeight ? constraints.maxHeight : screenSize.height;
+
+            return SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: minWidth,
+                  minHeight: minHeight,
+                ),
+                child: analysis,
+              ),
+            );
+          },
         );
-      },
+      }),
     );
   }
 
-  Widget _buildWideLayout({
-    required double? maxHeight,
+  Widget _buildAnalysisContent({
+    required BoxConstraints constraints,
+    required bool fillHeight,
     required List<ResistorMachineSerialMatch> matches,
     required bool isSearching,
     required bool isLoadingRecord,
@@ -1260,12 +1260,50 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
     required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
-    final bool hasMaxHeight =
-        maxHeight != null && maxHeight.isFinite && maxHeight > 0;
-    final bool enableVerticalScroll =
-        hasMaxHeight && maxHeight! < 720;
-    final bool fillHeight = hasMaxHeight && !enableVerticalScroll;
+    final bool isWide = constraints.maxWidth >= 1280;
+    final EdgeInsets padding = isWide
+        ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
+        : const EdgeInsets.all(16);
 
+    final bool stretchPanels = fillHeight && isWide;
+
+    final Widget content = isWide
+        ? _buildWideLayout(
+            fillHeight: stretchPanels,
+            matches: matches,
+            isSearching: isSearching,
+            isLoadingRecord: isLoadingRecord,
+            record: record,
+            tests: tests,
+            selectedTest: selectedTest,
+            selectedSerial: selectedSerial,
+          )
+        : _buildStackedLayout(
+            matches: matches,
+            isSearching: isSearching,
+            isLoadingRecord: isLoadingRecord,
+            record: record,
+            tests: tests,
+            selectedTest: selectedTest,
+            selectedSerial: selectedSerial,
+          );
+
+    return Padding(
+      padding: padding,
+      child: content,
+    );
+  }
+
+  Widget _buildWideLayout({
+    required bool fillHeight,
+    required List<ResistorMachineSerialMatch> matches,
+    required bool isSearching,
+    required bool isLoadingRecord,
+    required ResistorMachineRecord? record,
+    required List<ResistorMachineTestResult> tests,
+    required ResistorMachineTestResult? selectedTest,
+    required ResistorMachineSerialMatch? selectedSerial,
+  }) {
     final row = Row(
       crossAxisAlignment:
           fillHeight ? CrossAxisAlignment.stretch : CrossAxisAlignment.start,
@@ -1293,28 +1331,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
         ),
       ],
     );
-
-    if (enableVerticalScroll) {
-      return SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: maxHeight!),
-          child: row,
-        ),
-      );
-    }
-
-    if (fillHeight) {
-      return SizedBox(
-        height: maxHeight!,
-        child: row,
-      );
-    }
-
     return row;
   }
 
   Widget _buildStackedLayout({
-    required double? maxHeight,
     required List<ResistorMachineSerialMatch> matches,
     required bool isSearching,
     required bool isLoadingRecord,
@@ -1323,36 +1343,26 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
     required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
-    final double minHeight =
-        (maxHeight != null && maxHeight.isFinite && maxHeight > 0)
-            ? maxHeight!
-            : 0;
-
-    return SingleChildScrollView(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: minHeight),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildSerialAnalysisCard(
-              matches: matches,
-              isSearching: isSearching,
-              isLoadingRecord: isLoadingRecord,
-              tests: tests,
-              selectedTest: selectedTest,
-              selectedSerial: selectedSerial,
-              fillHeight: false,
-            ),
-            const SizedBox(height: 20),
-            _buildDetailColumn(
-              record: record,
-              selectedTest: selectedTest,
-              isLoadingRecord: isLoadingRecord,
-              fillHeight: false,
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSerialAnalysisCard(
+          matches: matches,
+          isSearching: isSearching,
+          isLoadingRecord: isLoadingRecord,
+          tests: tests,
+          selectedTest: selectedTest,
+          selectedSerial: selectedSerial,
+          fillHeight: false,
         ),
-      ),
+        const SizedBox(height: 20),
+        _buildDetailColumn(
+          record: record,
+          selectedTest: selectedTest,
+          isLoadingRecord: isLoadingRecord,
+          fillHeight: false,
+        ),
+      ],
     );
   }
 
@@ -1502,6 +1512,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
         controller: _searchResultsController,
         primary: false,
         shrinkWrap: true,
+        physics: const ClampingScrollPhysics(),
         padding: EdgeInsets.zero,
         itemCount: matches.length,
         separatorBuilder: (_, __) => const Divider(
@@ -1689,6 +1700,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
         controller: _addressListController,
         primary: false,
         shrinkWrap: true,
+        physics: const ClampingScrollPhysics(),
         padding: EdgeInsets.zero,
         itemCount: tests.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -2176,6 +2188,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
       child: SingleChildScrollView(
         controller: _gridHorizontalController,
         scrollDirection: Axis.horizontal,
+        physics: const ClampingScrollPhysics(),
         child: Scrollbar(
           controller: _gridVerticalController,
           thumbVisibility: true,
@@ -2184,6 +2197,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
           child: SingleChildScrollView(
             controller: _gridVerticalController,
             scrollDirection: Axis.vertical,
+            physics: const ClampingScrollPhysics(),
             child: table,
           ),
         ),
