@@ -12,7 +12,7 @@ class StationAnalysisSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final ThemeData theme = Theme.of(context);
     return Obx(() {
       final StationOverviewDashboardViewState? state = controller.dashboard.value;
       if (state == null) {
@@ -26,44 +26,23 @@ class StationAnalysisSection extends StatelessWidget {
           hasStationSelection ? state.analysisTrendByDate() : const <StationTrendPoint>[];
 
       return LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isVertical = constraints.maxWidth < 900;
-          final children = <Widget>[
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final bool isVertical = constraints.maxWidth < 1100;
+          final List<Widget> panels = <Widget>[
             _ChartCard(
               title: 'Fail quantity by station',
-              child: SfCartesianChart(
-                primaryXAxis: CategoryAxis(),
-                tooltipBehavior: TooltipBehavior(enable: true),
-                series: <CartesianSeries<StationChartPoint, String>>[
-                  ColumnSeries<StationChartPoint, String>(
-                    dataSource: failSeries,
-                    xValueMapper: (StationChartPoint point, _) => point.category,
-                    yValueMapper: (StationChartPoint point, _) => point.value,
-                    dataLabelSettings: const DataLabelSettings(isVisible: true),
-                  ),
-                ],
-              ),
+              child: _buildColumnChart(failSeries, theme),
             ),
             _ChartCard(
-              title: 'Error codes (${hasStationSelection ? controller.highlightedStation.value!.data.stationName : 'select station'})',
+              title:
+                  'Error codes (${hasStationSelection ? controller.highlightedStation.value!.data.stationName : 'select station'})',
               child: errorSeries.isEmpty
                   ? _EmptyChartPlaceholder(
                       message: hasStationSelection
                           ? 'No error codes for selected station'
                           : 'Select a station to view error codes',
                     )
-                  : SfCartesianChart(
-                      primaryXAxis: CategoryAxis(),
-                      tooltipBehavior: TooltipBehavior(enable: true),
-                      series: <CartesianSeries<StationChartPoint, String>>[
-                        ColumnSeries<StationChartPoint, String>(
-                          dataSource: errorSeries,
-                          xValueMapper: (StationChartPoint point, _) => point.category,
-                          yValueMapper: (StationChartPoint point, _) => point.value,
-                          dataLabelSettings: const DataLabelSettings(isVisible: true),
-                        ),
-                      ],
-                    ),
+                  : _buildColumnChart(errorSeries, theme, paletteColor: const Color(0xFFFF7043)),
             ),
             _ChartCard(
               title: 'Fail trend',
@@ -73,46 +52,101 @@ class StationAnalysisSection extends StatelessWidget {
                           ? 'No trend data available'
                           : 'Select a station to view fail trend',
                     )
-                  : SfCartesianChart(
-                      primaryXAxis: CategoryAxis(),
-                      tooltipBehavior: TooltipBehavior(enable: true),
-                      series: <CartesianSeries<StationTrendPoint, String>>[
-                        LineSeries<StationTrendPoint, String>(
-                          dataSource: trendSeries,
-                          xValueMapper: (StationTrendPoint point, _) => point.category,
-                          yValueMapper: (StationTrendPoint point, _) => point.value,
-                          markerSettings: const MarkerSettings(isVisible: true),
-                        ),
-                      ],
-                    ),
+                  : _buildLineChart(trendSeries, theme),
             ),
           ];
 
           if (isVertical) {
             return Column(
-              children: children
-                  .map((widget) => Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: widget,
-                      ))
+              children: panels
+                  .map(
+                    (Widget widget) => Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: widget,
+                    ),
+                  )
                   .toList(),
             );
           }
 
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: children
-                .map((widget) => Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 16),
-                        child: widget,
-                      ),
-                    ))
-                .toList(),
+            children: List<Widget>.generate(panels.length, (int index) {
+              final Widget panel = panels[index];
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: index == panels.length - 1 ? 0 : 20),
+                  child: panel,
+                ),
+              );
+            }),
           );
         },
       );
     });
+  }
+
+  Widget _buildColumnChart(List<StationChartPoint> series, ThemeData theme,
+      {Color paletteColor = const Color(0xFF64B5F6)}) {
+    return SfCartesianChart(
+      backgroundColor: Colors.transparent,
+      plotAreaBackgroundColor: Colors.transparent,
+      primaryXAxis: CategoryAxis(
+        axisLine: const AxisLine(color: Colors.white30),
+        labelStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+        majorGridLines: const MajorGridLines(width: 0),
+      ),
+      primaryYAxis: NumericAxis(
+        axisLine: const AxisLine(color: Colors.white30),
+        labelStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+        majorGridLines: const MajorGridLines(color: Color(0x33FFFFFF)),
+      ),
+      tooltipBehavior: TooltipBehavior(enable: true),
+      series: <CartesianSeries<StationChartPoint, String>>[
+        ColumnSeries<StationChartPoint, String>(
+          dataSource: series,
+          xValueMapper: (StationChartPoint point, _) => point.category,
+          yValueMapper: (StationChartPoint point, _) => point.value,
+          color: paletteColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+          dataLabelSettings: DataLabelSettings(
+            isVisible: true,
+            textStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLineChart(List<StationTrendPoint> series, ThemeData theme) {
+    return SfCartesianChart(
+      backgroundColor: Colors.transparent,
+      plotAreaBackgroundColor: Colors.transparent,
+      primaryXAxis: CategoryAxis(
+        axisLine: const AxisLine(color: Colors.white30),
+        labelStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+        majorGridLines: const MajorGridLines(width: 0),
+      ),
+      primaryYAxis: NumericAxis(
+        axisLine: const AxisLine(color: Colors.white30),
+        labelStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+        majorGridLines: const MajorGridLines(color: Color(0x33FFFFFF)),
+      ),
+      tooltipBehavior: TooltipBehavior(enable: true),
+      series: <CartesianSeries<StationTrendPoint, String>>[
+        LineSeries<StationTrendPoint, String>(
+          color: const Color(0xFF42A5F5),
+          dataSource: series,
+          xValueMapper: (StationTrendPoint point, _) => point.category,
+          yValueMapper: (StationTrendPoint point, _) => point.value,
+          markerSettings: const MarkerSettings(isVisible: true),
+          dataLabelSettings: DataLabelSettings(
+            isVisible: true,
+            textStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -124,25 +158,42 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 260,
-              child: child,
-            ),
+    final ThemeData theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        gradient: LinearGradient(
+          colors: <Color>[
+            Colors.white.withOpacity(0.07),
+            Colors.white.withOpacity(0.02),
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 18,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(height: 260, child: child),
+        ],
       ),
     );
   }
@@ -155,11 +206,10 @@ class _EmptyChartPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Center(
       child: Text(
         message,
-        style: theme.textTheme.bodyMedium,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
         textAlign: TextAlign.center,
       ),
     );
