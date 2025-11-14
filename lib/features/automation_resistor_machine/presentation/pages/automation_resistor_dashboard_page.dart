@@ -102,16 +102,12 @@ class _AutomationResistorDashboardPageState
                               );
                             },
                           ),
-                          LayoutBuilder(
-                            builder: (context, _) {
-                              return SizedBox.expand(
-                                child: _SnAnalysisTab(
-                                  controller: controller,
-                                  searchController: searchController,
-                                  searchFocusNode: searchFocusNode,
-                                ),
-                              );
-                            },
+                          SizedBox.expand(
+                            child: _SnAnalysisTab(
+                              controller: controller,
+                              searchController: searchController,
+                              searchFocusNode: searchFocusNode,
+                            ),
                           ),
                         ],
                       ),
@@ -1191,61 +1187,66 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Obx(() {
-      final matches = controller.serialMatches;
-      final bool isSearching = controller.isSearchingSerial.value;
-      final bool isLoadingRecord = controller.isLoadingRecord.value;
-      final ResistorMachineRecord? record = controller.selectedRecord.value;
-      final List<ResistorMachineTestResult> tests = controller.recordTestResults;
-      final ResistorMachineTestResult? selectedTest =
-          controller.selectedTestResult.value;
-      final ResistorMachineSerialMatch? selectedSerial =
-          controller.selectedSerial.value;
+    return SizedBox.expand(
+      child: Obx(() {
+        final matches = controller.serialMatches;
+        final bool isSearching = controller.isSearchingSerial.value;
+        final bool isLoadingRecord = controller.isLoadingRecord.value;
+        final ResistorMachineRecord? record = controller.selectedRecord.value;
+        final List<ResistorMachineTestResult> tests =
+            controller.recordTestResults;
+        final ResistorMachineTestResult? selectedTest =
+            controller.selectedTestResult.value;
+        final ResistorMachineSerialMatch? selectedSerial =
+            controller.selectedSerial.value;
 
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final bool hasBoundedHeight =
-              constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-          final bool hasBoundedWidth =
-              constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
-          final bool hasDesktopWidth = constraints.maxWidth >= 1280;
-          final bool fillHeight = hasDesktopWidth && hasBoundedHeight;
-          final bool needsScrollableShell = !hasDesktopWidth || !hasBoundedHeight;
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final bool hasBoundedHeight =
+                constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+            final bool hasBoundedWidth =
+                constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
+            final bool hasDesktopWidth = constraints.maxWidth >= 1280;
+            final bool fillHeight = hasDesktopWidth && hasBoundedHeight;
+            final bool needsScrollableShell =
+                !hasDesktopWidth || !hasBoundedHeight;
 
-          final Widget analysis = _buildAnalysisContent(
-            constraints: constraints,
-            fillHeight: fillHeight,
-            matches: matches,
-            isSearching: isSearching,
-            isLoadingRecord: isLoadingRecord,
-            record: record,
-            tests: tests,
-            selectedTest: selectedTest,
-            selectedSerial: selectedSerial,
-          );
+            final Widget analysis = _buildAnalysisContent(
+              constraints: constraints,
+              fillHeight: fillHeight,
+              matches: matches,
+              isSearching: isSearching,
+              isLoadingRecord: isLoadingRecord,
+              record: record,
+              tests: tests,
+              selectedTest: selectedTest,
+              selectedSerial: selectedSerial,
+            );
 
-          if (!needsScrollableShell) {
-            return analysis;
-          }
+            if (!needsScrollableShell) {
+              return analysis;
+            }
 
-          final double minWidth = hasBoundedWidth
-              ? constraints.maxWidth
-              : MediaQuery.of(context).size.width;
-          final double minHeight = hasBoundedHeight ? constraints.maxHeight : 0;
+            final Size screenSize = MediaQuery.of(context).size;
+            final double minWidth =
+                hasBoundedWidth ? constraints.maxWidth : screenSize.width;
+            final double minHeight =
+                hasBoundedHeight ? constraints.maxHeight : screenSize.height;
 
-          return SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: minWidth,
-                minHeight: minHeight,
+            return SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: minWidth,
+                  minHeight: minHeight,
+                ),
+                child: analysis,
               ),
-              child: analysis,
-            ),
-          );
-        },
-      );
-    });
+            );
+          },
+        );
+      }),
+    );
   }
 
   Widget _buildAnalysisContent({
