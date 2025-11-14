@@ -1193,41 +1193,12 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
     super.build(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bool hasFiniteHeight =
+        final bool canFillHeight =
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-        final bool hasFiniteWidth =
-            constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
-        final Size screenSize = MediaQuery.sizeOf(context);
-        final double constrainedHeight =
-            hasFiniteHeight ? constraints.maxHeight : screenSize.height;
-        final double constrainedWidth =
-            hasFiniteWidth ? constraints.maxWidth : screenSize.width;
 
-        final Widget analysisContent = _buildAnalysisContent(
+        return _buildAnalysisContent(
           constraints: constraints,
-          hasFiniteHeight: hasFiniteHeight,
-        );
-
-        if (hasFiniteHeight) {
-          return SizedBox(
-            width: constrainedWidth,
-            height: constrainedHeight,
-            child: analysisContent,
-          );
-        }
-
-        return SizedBox(
-          width: constrainedWidth,
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: constrainedWidth),
-                child: analysisContent,
-              ),
-            ),
-          ),
+          fillHeight: canFillHeight,
         );
       },
     );
@@ -1235,7 +1206,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
 
   Widget _buildAnalysisContent({
     required BoxConstraints constraints,
-    required bool hasFiniteHeight,
+    required bool fillHeight,
   }) {
     return Obx(() {
       final matches = controller.serialMatches;
@@ -1251,13 +1222,11 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
           ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
           : const EdgeInsets.all(16);
 
-      final double? availableHeight = hasFiniteHeight
-          ? math.max(0, constraints.maxHeight - padding.vertical)
-          : null;
+      final bool stretchPanels = fillHeight && isWide;
 
       final Widget content = isWide
           ? _buildWideLayout(
-              maxHeight: availableHeight,
+              fillHeight: stretchPanels,
               matches: matches,
               isSearching: isSearching,
               isLoadingRecord: isLoadingRecord,
@@ -1267,7 +1236,6 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
               selectedSerial: selectedSerial,
             )
           : _buildStackedLayout(
-              maxHeight: availableHeight,
               matches: matches,
               isSearching: isSearching,
               isLoadingRecord: isLoadingRecord,
@@ -1285,7 +1253,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
   }
 
   Widget _buildWideLayout({
-    required double? maxHeight,
+    required bool fillHeight,
     required List<ResistorMachineSerialMatch> matches,
     required bool isSearching,
     required bool isLoadingRecord,
@@ -1294,10 +1262,6 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
     required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
-    final bool hasMaxHeight =
-        maxHeight != null && maxHeight.isFinite && maxHeight > 0;
-    final bool fillHeight = hasMaxHeight;
-
     final row = Row(
       crossAxisAlignment:
           fillHeight ? CrossAxisAlignment.stretch : CrossAxisAlignment.start,
@@ -1325,19 +1289,10 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
         ),
       ],
     );
-
-    if (fillHeight) {
-      return SizedBox(
-        height: maxHeight!,
-        child: row,
-      );
-    }
-
     return row;
   }
 
   Widget _buildStackedLayout({
-    required double? maxHeight,
     required List<ResistorMachineSerialMatch> matches,
     required bool isSearching,
     required bool isLoadingRecord,
@@ -1346,34 +1301,26 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
     required ResistorMachineTestResult? selectedTest,
     required ResistorMachineSerialMatch? selectedSerial,
   }) {
-    final double minHeight =
-        (maxHeight != null && maxHeight.isFinite && maxHeight > 0)
-            ? maxHeight!
-            : 0;
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: minHeight),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildSerialAnalysisCard(
-            matches: matches,
-            isSearching: isSearching,
-            isLoadingRecord: isLoadingRecord,
-            tests: tests,
-            selectedTest: selectedTest,
-            selectedSerial: selectedSerial,
-            fillHeight: false,
-          ),
-          const SizedBox(height: 20),
-          _buildDetailColumn(
-            record: record,
-            selectedTest: selectedTest,
-            isLoadingRecord: isLoadingRecord,
-            fillHeight: false,
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSerialAnalysisCard(
+          matches: matches,
+          isSearching: isSearching,
+          isLoadingRecord: isLoadingRecord,
+          tests: tests,
+          selectedTest: selectedTest,
+          selectedSerial: selectedSerial,
+          fillHeight: false,
+        ),
+        const SizedBox(height: 20),
+        _buildDetailColumn(
+          record: record,
+          selectedTest: selectedTest,
+          isLoadingRecord: isLoadingRecord,
+          fillHeight: false,
+        ),
+      ],
     );
   }
 
