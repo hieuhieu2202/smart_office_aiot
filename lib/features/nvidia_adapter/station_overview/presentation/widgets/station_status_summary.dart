@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../domain/entities/station_overview_entities.dart';
 import '../controllers/station_overview_controller.dart';
 import '../viewmodels/station_overview_view_state.dart';
-import '../../domain/entities/station_overview_entities.dart';
+import 'station_analysis_section.dart';
 
 class StationStatusSummary extends StatelessWidget {
   const StationStatusSummary({super.key, required this.controller});
@@ -12,175 +13,202 @@ class StationStatusSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
     return Obx(() {
       final StationOverviewDashboardViewState? state = controller.dashboard.value;
       if (state == null) {
         return const SizedBox.shrink();
       }
+
       final Map<StationStatus, int> counts = state.statusCounts;
-      final List<_StatusInfo> items = <_StatusInfo>[
-        _StatusInfo(
-          status: StationStatus.error,
-          label: 'Error',
-          gradient: const LinearGradient(
-            colors: <Color>[Color(0xFFE53935), Color(0xFFB71C1C)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        _StatusInfo(
-          status: StationStatus.warning,
-          label: 'Warning',
-          gradient: const LinearGradient(
-            colors: <Color>[Color(0xFFFFCA28), Color(0xFFF57F17)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        _StatusInfo(
-          status: StationStatus.normal,
-          label: 'Normal',
-          gradient: const LinearGradient(
-            colors: <Color>[Color(0xFF43A047), Color(0xFF1B5E20)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        _StatusInfo(
-          status: StationStatus.offline,
-          label: 'Offline',
-          gradient: LinearGradient(
-            colors: <Color>[
-              Colors.blueGrey.shade400,
-              Colors.blueGrey.shade700,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      ];
+      final int total = state.totalStations;
+      final int warning = counts[StationStatus.warning] ?? 0;
+      final int error = counts[StationStatus.error] ?? 0;
+      final int normal = counts[StationStatus.normal] ?? 0;
+      final int offline = counts[StationStatus.offline] ?? 0;
 
-      return LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          final bool isStacked = constraints.maxWidth < 720;
-          final Iterable<Widget> cards = items.map(
-            (_StatusInfo info) => _StatusCard(
-              info: info,
-              count: counts[info.status] ?? 0,
-              total: state.totalStations,
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          color: const Color(0xFF04152C).withOpacity(0.9),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x33000000),
+              blurRadius: 18,
+              offset: Offset(0, 12),
             ),
-          );
-
-          if (isStacked) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: cards
-                  .map(
-                    (Widget card) => Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: card,
-                    ),
-                  )
-                  .toList(),
-            );
-          }
-
-          final List<Widget> cardList = cards.toList();
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: List<Widget>.generate(cardList.length, (int index) {
-              final Widget card = cardList[index];
-              final EdgeInsets padding = EdgeInsets.only(right: index == cardList.length - 1 ? 0 : 14);
-              return Expanded(
-                child: Padding(
-                  padding: padding,
-                  child: card,
-                ),
-              );
-            }),
-          );
-        },
+          ],
+        ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: <Widget>[
+              _FooterChip(
+                label: 'ANALYSIS',
+                color: const Color(0xFFA770FF),
+                onTap: () => _openAnalysis(context),
+              ),
+              _FooterChip(
+                label: 'TOTAL',
+                color: const Color(0xFF00E5FF),
+                value: total,
+                percentage: total == 0 ? 0 : 100,
+              ),
+              _FooterChip(
+                label: 'NORMAL',
+                color: const Color(0xFF4CAF50),
+                value: normal,
+                percentage: total == 0 ? 0 : (normal / total * 100),
+              ),
+              _FooterChip(
+                label: 'WARNING',
+                color: const Color(0xFFFFC107),
+                value: warning,
+                percentage: total == 0 ? 0 : (warning / total * 100),
+              ),
+              _FooterChip(
+                label: 'ERROR',
+                color: const Color(0xFFF44336),
+                value: error,
+                percentage: total == 0 ? 0 : (error / total * 100),
+              ),
+              _FooterChip(
+                label: 'OFFLINE',
+                color: Colors.blueGrey.shade300,
+                value: offline,
+                percentage: total == 0 ? 0 : (offline / total * 100),
+              ),
+            ],
+          ),
+        ),
       );
     });
   }
+
+  void _openAnalysis(BuildContext context) {
+    if (controller.highlightedStation.value == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Select a station to view analysis'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        final double height = MediaQuery.of(context).size.height * 0.75;
+        return Container(
+          height: height,
+          decoration: BoxDecoration(
+            color: const Color(0xFF041023),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: StationAnalysisSection(controller: controller),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
-class _StatusInfo {
-  const _StatusInfo({
-    required this.status,
+class _FooterChip extends StatelessWidget {
+  const _FooterChip({
     required this.label,
-    required this.gradient,
+    required this.color,
+    this.value,
+    this.percentage,
+    this.onTap,
   });
 
-  final StationStatus status;
   final String label;
-  final Gradient gradient;
-}
-
-class _StatusCard extends StatelessWidget {
-  const _StatusCard({
-    required this.info,
-    required this.count,
-    required this.total,
-  });
-
-  final _StatusInfo info;
-  final int count;
-  final int total;
+  final Color color;
+  final int? value;
+  final double? percentage;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final double percentage = total == 0 ? 0 : (count / total) * 100;
-
-    return Container(
-      height: 130,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: info.gradient,
-        boxShadow: const <BoxShadow>[
-          BoxShadow(
-            color: Color(0x55000000),
-            blurRadius: 18,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
+    final bool isAction = onTap != null && value == null;
+    final Widget content = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(Icons.circle, color: color, size: 12),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+              ),
+        ),
+        if (value != null) ...<Widget>[
+          const SizedBox(width: 8),
           Text(
-            info.label.toUpperCase(),
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: Colors.white,
-              letterSpacing: 1.4,
-              fontWeight: FontWeight.w700,
+            '$value',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          if (percentage != null) ...<Widget>[
+            const SizedBox(width: 4),
+            Text(
+              '(${percentage!.toStringAsFixed(1)}%)',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white70,
+                  ),
             ),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              Text(
-                '$count',
-                style: theme.textTheme.displaySmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '${percentage.toStringAsFixed(1)}%',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+          ],
         ],
+      ],
+    );
+
+    final EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 10);
+    final BorderRadius radius = BorderRadius.circular(16);
+
+    if (isAction) {
+      return Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              color: Colors.white.withOpacity(0.05),
+              border: Border.all(color: color.withOpacity(0.6)),
+            ),
+            child: content,
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          color: Colors.black.withOpacity(0.35),
+          border: Border.all(color: color.withOpacity(0.45)),
+        ),
+        child: content,
       ),
     );
   }

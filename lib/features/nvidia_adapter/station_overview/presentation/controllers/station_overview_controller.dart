@@ -45,6 +45,7 @@ class StationOverviewController extends GetxController {
   final RxString selectedModel = 'ALL'.obs;
   final RxString selectedGroup = 'ALL'.obs;
   final Rx<StationDetailType> selectedDetailType = StationDetailType.input.obs;
+  final RxString stationSearch = ''.obs;
 
   final RxList<StationProduct> products = <StationProduct>[].obs;
   final RxList<String> models = <String>[].obs;
@@ -252,6 +253,10 @@ class StationOverviewController extends GetxController {
     selectedGroup.value = value;
     highlightedStation.value = null;
     unawaited(loadOverview());
+  }
+
+  void updateStationSearch(String value) {
+    stationSearch.value = value.trim().toUpperCase();
   }
 
   void changeDetailType(StationDetailType type) {
