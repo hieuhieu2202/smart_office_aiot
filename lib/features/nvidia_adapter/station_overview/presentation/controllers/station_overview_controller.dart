@@ -56,7 +56,7 @@ class StationOverviewController extends GetxController {
   final StationRateConfig rateConfig = const StationRateConfig.defaults();
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm');
 
-  DateTimeRange? selectedRange;
+  final Rxn<DateTimeRange> selectedRange = Rxn<DateTimeRange>();
   String? _dateRangeString;
 
   List<StationOverviewData> _overview = <StationOverviewData>[];
@@ -257,7 +257,7 @@ class StationOverviewController extends GetxController {
   }
 
   Future<void> updateDateRange(DateTimeRange? range) async {
-    selectedRange = range;
+    selectedRange.value = range;
     if (range == null) {
       _dateRangeString = null;
     } else {

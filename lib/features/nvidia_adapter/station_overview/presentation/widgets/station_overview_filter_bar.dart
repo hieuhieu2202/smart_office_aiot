@@ -104,7 +104,7 @@ class _DateRangeButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colors = theme.colorScheme;
     return Obx(() {
-      final DateTimeRange? range = controller.selectedRange;
+      final DateTimeRange? range = controller.selectedRange.value;
       final String label = range == null
           ? 'Auto refresh (last 24h)'
           : '${_format(range.start)} - ${_format(range.end)}';
