@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../controllers/station_overview_controller.dart';
 import '../viewmodels/station_overview_view_state.dart';
+import '../../domain/entities/station_overview_entities.dart';
 
 class StationDetailSection extends StatelessWidget {
   StationDetailSection({super.key, required this.controller});

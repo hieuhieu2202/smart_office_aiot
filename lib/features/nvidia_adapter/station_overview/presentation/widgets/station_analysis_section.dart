@@ -34,7 +34,7 @@ class StationAnalysisSection extends StatelessWidget {
               child: SfCartesianChart(
                 primaryXAxis: CategoryAxis(),
                 tooltipBehavior: TooltipBehavior(enable: true),
-                series: <ChartSeries<StationChartPoint, String>>[
+                series: <CartesianSeries<StationChartPoint, String>>[
                   ColumnSeries<StationChartPoint, String>(
                     dataSource: failSeries,
                     xValueMapper: (StationChartPoint point, _) => point.category,
@@ -55,7 +55,7 @@ class StationAnalysisSection extends StatelessWidget {
                   : SfCartesianChart(
                       primaryXAxis: CategoryAxis(),
                       tooltipBehavior: TooltipBehavior(enable: true),
-                      series: <ChartSeries<StationChartPoint, String>>[
+                      series: <CartesianSeries<StationChartPoint, String>>[
                         ColumnSeries<StationChartPoint, String>(
                           dataSource: errorSeries,
                           xValueMapper: (StationChartPoint point, _) => point.category,
@@ -76,7 +76,7 @@ class StationAnalysisSection extends StatelessWidget {
                   : SfCartesianChart(
                       primaryXAxis: CategoryAxis(),
                       tooltipBehavior: TooltipBehavior(enable: true),
-                      series: <ChartSeries<StationTrendPoint, String>>[
+                      series: <CartesianSeries<StationTrendPoint, String>>[
                         LineSeries<StationTrendPoint, String>(
                           dataSource: trendSeries,
                           xValueMapper: (StationTrendPoint point, _) => point.category,

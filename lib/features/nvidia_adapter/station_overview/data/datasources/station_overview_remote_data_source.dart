@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../../../../service/http_helper.dart';
+import '../../../../../service/http_helper.dart';
 import '../../domain/entities/station_overview_entities.dart';
 import '../models/station_overview_models.dart';
 

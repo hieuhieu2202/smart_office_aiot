@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../controllers/station_overview_controller.dart';
 import '../viewmodels/station_overview_view_state.dart';
+import '../../domain/entities/station_overview_entities.dart';
 
 class StationStatusSummary extends StatelessWidget {
   const StationStatusSummary({super.key, required this.controller});
