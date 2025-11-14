@@ -27,11 +27,14 @@ class StationOverviewRemoteDataSource {
     required String modelSerial,
   }) async {
     final uri = Uri.parse('$_base/GetSfcProductAndModelNames');
+    final Map<String, dynamic> body = <String, dynamic>{
+      'MODEL_SERIAL': modelSerial,
+    };
     final http.Response res = await _http
         .post(
           uri,
           headers: _headers(),
-          body: jsonEncode(<String, dynamic>{'MODEL_SERIAL': modelSerial}),
+          body: jsonEncode(body),
           timeout: _timeout,
         )
         .catchError((error) => throw Exception('GetSfcProductAndModelNames: $error'));
@@ -53,11 +56,25 @@ class StationOverviewRemoteDataSource {
     required StationOverviewFilter filter,
   }) async {
     final uri = Uri.parse('$_base/GetStationOverviewDatas');
+    final Map<String, dynamic> body = <String, dynamic>{
+      'DateRange': (filter.dateRange == null || filter.dateRange!.isEmpty)
+          ? ''
+          : filter.dateRange!,
+      'MODEL_SERIAL': filter.modelSerial,
+      'PRODUCT_NAME':
+          (filter.productName == null || filter.productName!.isEmpty)
+              ? 'ALL'
+              : filter.productName!,
+      'MODEL_NAME': (filter.modelName == null || filter.modelName!.isEmpty)
+          ? 'ALL'
+          : filter.modelName!,
+      'GROUP_NAMES': filter.groupNames,
+    };
     final http.Response res = await _http
         .post(
           uri,
           headers: _headers(),
-          body: jsonEncode(filter.toBody()),
+          body: jsonEncode(body),
           timeout: _timeout,
         )
         .catchError((error) => throw Exception('GetStationOverviewDatas: $error'));
@@ -79,11 +96,20 @@ class StationOverviewRemoteDataSource {
     required StationOverviewFilter filter,
   }) async {
     final uri = Uri.parse('$_base/GetStationAnalysisDatas');
+    final Map<String, dynamic> body = <String, dynamic>{
+      'DateRange': (filter.dateRange == null || filter.dateRange!.isEmpty)
+          ? ''
+          : filter.dateRange!,
+      'MODEL_SERIAL': filter.modelSerial,
+      'PRODUCT_NAME': filter.productName ?? '',
+      'GROUP_NAMES': filter.groupNames,
+      'STATION_NAME': filter.stationName ?? '',
+    };
     final http.Response res = await _http
         .post(
           uri,
           headers: _headers(),
-          body: jsonEncode(filter.toBody()),
+          body: jsonEncode(body),
           timeout: _timeout,
         )
         .catchError((error) => throw Exception('GetStationAnalysisDatas: $error'));
@@ -105,11 +131,23 @@ class StationOverviewRemoteDataSource {
     required StationOverviewFilter filter,
   }) async {
     final uri = Uri.parse('$_base/GetStationDetailDatas');
+    final Map<String, dynamic> body = <String, dynamic>{
+      'DateRange': (filter.dateRange == null || filter.dateRange!.isEmpty)
+          ? ''
+          : filter.dateRange!,
+      'MODEL_SERIAL': filter.modelSerial,
+      'PRODUCT_NAME': filter.productName ?? '',
+      'GROUP_NAMES': filter.groupNames,
+      'STATION_NAME': filter.stationName ?? '',
+    };
+    if (filter.detailType != null) {
+      body['DETAIL_TYPE'] = filter.detailType!.apiKey;
+    }
     final http.Response res = await _http
         .post(
           uri,
           headers: _headers(),
-          body: jsonEncode(filter.toBody()),
+          body: jsonEncode(body),
           timeout: _timeout,
         )
         .catchError((error) => throw Exception('GetStationDetailDatas: $error'));

@@ -19,20 +19,6 @@ class StationOverviewFilter extends Equatable {
   final String? stationName;
   final StationDetailType? detailType;
 
-  Map<String, dynamic> toBody() {
-    return <String, dynamic>{
-      'MODEL_SERIAL': modelSerial,
-      if (dateRange != null && dateRange!.isNotEmpty) 'DateRange': dateRange,
-      if (productName != null && productName!.isNotEmpty)
-        'PRODUCT_NAME': productName,
-      if (modelName != null && modelName!.isNotEmpty) 'MODEL_NAME': modelName,
-      if (groupNames.isNotEmpty) 'GROUP_NAMES': groupNames,
-      if (stationName != null && stationName!.isNotEmpty)
-        'STATION_NAME': stationName,
-      if (detailType != null) 'DETAIL_TYPE': detailType!.apiKey,
-    };
-  }
-
   StationOverviewFilter copyWith({
     String? modelSerial,
     String? dateRange,

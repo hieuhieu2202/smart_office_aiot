@@ -57,7 +57,7 @@ class StationOverviewController extends GetxController {
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm');
 
   final Rxn<DateTimeRange> selectedRange = Rxn<DateTimeRange>();
-  String? _dateRangeString;
+  String _dateRangeString = '';
 
   List<StationOverviewData> _overview = <StationOverviewData>[];
   List<StationAnalysisData> _analysis = <StationAnalysisData>[];
@@ -86,7 +86,7 @@ class StationOverviewController extends GetxController {
   List<String> get availableGroups =>
       _groupOptions[selectedModelSerial.value] ?? const <String>[];
 
-  bool get hasCustomRange => _dateRangeString != null;
+  bool get hasCustomRange => selectedRange.value != null;
 
   @override
   void onInit() {
@@ -259,7 +259,7 @@ class StationOverviewController extends GetxController {
   Future<void> updateDateRange(DateTimeRange? range) async {
     selectedRange.value = range;
     if (range == null) {
-      _dateRangeString = null;
+      _dateRangeString = '';
     } else {
       final String start = _dateFormat.format(range.start);
       final String end = _dateFormat.format(range.end);
@@ -270,11 +270,8 @@ class StationOverviewController extends GetxController {
   }
 
   StationOverviewFilter _buildFilter() {
-    final String? product = selectedProduct.value == 'ALL'
-        ? null
-        : selectedProduct.value;
-    final String? model =
-        selectedModel.value == 'ALL' ? null : selectedModel.value;
+    final String product = selectedProduct.value;
+    final String model = selectedModel.value;
     final List<String> groups = selectedGroup.value == 'ALL'
         ? List<String>.from(availableGroups)
         : <String>[selectedGroup.value];
