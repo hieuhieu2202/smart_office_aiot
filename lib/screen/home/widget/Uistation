@@ -1,0 +1,1446 @@
+@page "/nvidia/dashboard/StationOverview/{ModelSerial?}"
+@layout MonitorLayout
+
+@using System.Text.RegularExpressions;
+
+<!-- Header -->
+<WebTitle Title="@($"{GetPageTitle()}")" />
+
+@if (IsPageLoading)
+{
+    <Loading />
+}
+
+<!-- Search -->
+<PageSearchMenu>
+    @RenderSearch()
+</PageSearchMenu>
+
+<!-- Content -->
+<div class="drag-content">
+    @if (Datas.Count > 0)
+    {
+        @foreach (var data in Datas)
+        {
+            @RenderLine(data)
+        }
+    }
+</div>
+
+
+<!-- Footer -->
+<MonitorFooter IsShowFooterTab="true" ContainerStyle="width: 28vw">
+    @if (Datas.Count > 0)
+    {
+        <div class="w-100 d-flex justify-content-between">
+            @RenderFooter()
+        </div>
+    }
+</MonitorFooter>
+
+
+<!-- MODAL -->
+@RenderAnalysysModal()
+@RenderDetailModal()
+
+@using WebApplication.Models.Customer.Nvidia.Dashboard.StationOverview;
+@code {
+
+    RenderFragment RenderFooter()
+    {
+        return __builder =>
+        {
+            var STATION_DATAS = Datas
+                .SelectMany(p => p.GROUP_DATAS)
+                .SelectMany(g => g.STATION_DATAS);
+
+            int total = STATION_DATAS.Count();
+
+            int warning = STATION_DATAS.Where(s => GetStationStatus(s) == Status.WARNING)
+                .Count();
+
+            int error = STATION_DATAS.Where(s => GetStationStatus(s) == Status.ERROR)
+                .Count();
+
+            int normal = total - warning - error;
+
+            <div class="d-flex justify-content-center text-center">
+                <span class="text-purple fw-bold text-nowrap cursor-pointer icon-link-hover">
+                    <i class="fa-solid fa-circle"></i> ANALYSIS
+                </span>
+            </div>
+            <div class="d-flex justify-content-center text-center @(IsActive("FOOTER_TOTAL") ? "active" : "")" @onclick="@(() => SetActive("FOOTER_TOTAL"))">
+                <span class="text-cyan fw-bold text-nowrap cursor-pointer icon-link-hover">
+                    <i class="fa-solid fa-circle"></i> TOTAL: @total
+                </span>
+
+                <PopoverSpeech Color="PopoverColor.Dark" Position="PopoverPosition.Auto" TriggerType="PopoverTriggerType.Active">
+                    <div class="footer-chart" id="FooterTotalChart"></div>
+                </PopoverSpeech>
+
+            </div>
+            <div class="d-flex justify-content-center text-center @(IsActive("FOOTER_NORMAL") ? "active" : "")" @onclick="@(() => SetActive("FOOTER_NORMAL"))">
+                <span class="text-online fw-bold text-nowrap cursor-pointer icon-link-hover">
+                    <i class="fa-solid fa-circle"></i> NORMAL: @normal (@($"{Math.Round((double)normal / total * 100, 2)}%"))
+                </span>
+
+                <PopoverSpeech Color="PopoverColor.Dark" Position="PopoverPosition.Auto" TriggerType="PopoverTriggerType.Active">
+                    <div class="footer-chart" id="FooterNormalChart"></div>
+                </PopoverSpeech>
+            </div>
+            <div class="d-flex justify-content-center text-center @(IsActive("FOOTER_WARNING") ? "active" : "")" @onclick="@(() => SetActive("FOOTER_WARNING"))">
+                <span class="text-warning fw-bold text-nowrap cursor-pointer icon-link-hover">
+                    <i class="fa-solid fa-circle"></i> WARNING: @warning (@($"{Math.Round((double)warning / total * 100, 2)}%"))
+                </span>
+
+                <PopoverSpeech Color="PopoverColor.Dark" Position="PopoverPosition.Auto" TriggerType="PopoverTriggerType.Active">
+                    <div class="footer-chart" id="FooterWarningChart"></div>
+                </PopoverSpeech>
+            </div>
+            <div class="d-flex justify-content-center text-center @(IsActive("FOOTER_ERRROR") ? "active" : "")" @onclick="@(() => SetActive("FOOTER_ERRROR"))">
+                <span class="text-red fw-bold text-nowrap cursor-pointer icon-link-hover">
+                    <i class="fa-solid fa-circle"></i> ERROR: @error (@($"{Math.Round((double)error / total * 100, 2)}%"))
+                </span>
+
+                <PopoverSpeech Color="PopoverColor.Dark" Position="PopoverPosition.Auto" TriggerType="PopoverTriggerType.Active">
+                    <div class="footer-chart" id="FooterErrorChart"></div>
+                </PopoverSpeech>
+            </div>
+        };
+    }
+
+    RenderFragment RenderSearch()
+    {
+        return __builder =>
+        {
+            <!-- Select Date -->
+            <div class="form-group mb-3">
+                <label class="form-label text-nowrap fw-bold">Date</label>
+                <DateRangePicker IdDateRangePicker="PageSelectDateRange" @bind-Value="@DateRange" OnChange="OnChangeDateRange" />
+            </div>
+
+            <!-- Select Product -->
+            <div class="form-group mb-3">
+                <label class="form-label text-nowrap fw-bold">Product</label>
+                <Select2 OnValueChange="OnChange_Product">
+                    <option value="ALL" selected="@(SelectedProduct == "ALL")">ALL</option>
+                    @if (Products.Count > 0)
+                    {
+                        foreach (var item in Products)
+                        {
+                            var itemName = item.PRODUCT_NAME.Trim().ToUpper();
+                            <option value="@itemName" selected="@(SelectedProduct == itemName)">
+                                @itemName
+                            </option>
+                        }
+                    }
+                </Select2>
+            </div>
+
+            <!-- Select Model -->
+            <div class="form-group mb-3">
+                <label class="form-label text-nowrap fw-bold">Model</label>
+                <Select2 OnValueChange="OnChange_Model">
+                    <option value="ALL" selected="@(SelectedModel == "ALL")">ALL</option>
+                    @if (Models.Count > 0)
+                    {
+                        foreach (var item in Models)
+                        {
+                            var itemName = item.Trim().ToUpper();
+                            <option value="@itemName" selected="@(SelectedModel == itemName)">
+                                @itemName
+                            </option>
+                        }
+                    }
+                </Select2>
+            </div>
+
+            <!-- Select Station -->
+            <div class="form-group mb-3">
+                <label class="form-label text-nowrap fw-bold">Station Group</label>
+                <Select2 OnValueChange="OnChange_Group">
+                    <option value="ALL" selected="@(SelectedGroup == "ALL")">ALL</option>
+                    @if (Groups.ContainsKey(ModelSerial) && Groups[ModelSerial].Count > 0)
+                    {
+                        foreach (var item in Groups[ModelSerial])
+                        {
+                            var itemName = item.Trim().ToUpper();
+                            <option value="@itemName" selected="@(SelectedGroup == itemName)">
+                                @itemName
+                            </option>
+                        }
+                    }
+                </Select2>
+            </div>
+
+            <!-- Button -->
+            <div class="d-flex">
+                <ButtonHighlight Color="ButtonHighLightColor.Purple" Class="me-3" OnClick="OnClick_QueryData">
+                    <span class="fw-bold text-nowrap"><i class="fa-solid fa-magnifying-glass"></i> QUERY DATA</span>
+                </ButtonHighlight>
+            </div>
+
+            <hr />
+
+            <div class="form-group mb-3">
+                <label class="form-label text-nowrap fw-bold">Search Station</label>
+                <SearchInput @bind-Value="StationSearchText" OnEnter="OnEnter_SearchStation" />
+            </div>
+        };
+    }
+
+    RenderFragment RenderLine(StationOverviewData data)
+    {
+        return __builder =>
+        {
+            <CardRadius Class="layout-line" Color="CardRadiusColor.Dark">
+                <div class="d-flex">
+                    <CardHeader Class="line-title fw-bold fs-3 text-cyan text-neon">
+                        <span>@data.PRODUCT_NAME</span>
+                    </CardHeader>
+                    <CardBody Class="line-body">
+                        <div class="line-body--row">
+                            @foreach (var group in data.GROUP_DATAS)
+                            {
+                                @RenderGroup(data, group)
+                            }
+                        </div>
+                    </CardBody>
+                </div>
+
+            </CardRadius>
+        };
+    }
+
+    RenderFragment RenderGroup(StationOverviewData data, GROUP_DATA group)
+    {
+        return __builder =>
+        {
+            <CardRadius Class="line-station" Color="CardRadiusColor.Transparent">
+                <CardHeader Class="line-station--title fw-bold text-purple text-neon fs-4">
+                    <span>@group.GROUP_NAME</span>
+                </CardHeader>
+                <CardBody Class="line-station--container">
+                    <div class="line-station--info">
+                        @{
+                            int total = group.STATION_DATAS.Count();
+
+                            int warning = group.STATION_DATAS.Where(s => GetStationStatus(s) == Status.WARNING).Count();
+
+                            int error = group.STATION_DATAS.Where(s => GetStationStatus(s) == Status.ERROR).Count();
+
+                            int normal = total - warning - error;
+                        }
+
+                        <ul class="list-group text-white text-shadow fw-bold">
+                            <li class="list-group-item text-center">
+                                <span>@data.PRODUCT_NAME - @group.GROUP_NAME</span>
+                            </li>
+                            <li class="list-group-item text-info text-shadow fw-bold">
+                                <div class="d-flex justify-content-between">
+                                    <span>TOTAL</span>
+                                    <span>@total</span>
+                                </div>
+                            </li>
+                            <li class="list-group-item text-green text-shadow fw-bold">
+                                <div class="d-flex justify-content-between">
+                                    <span>NORMAL</span>
+                                    <span>@normal</span>
+                                </div>
+                            </li>
+                            <li class="list-group-item text-yellow text-shadow fw-bold">
+                                <div class="d-flex justify-content-between">
+                                    <span>WARNING</span>
+                                    <span>@warning</span>
+                                </div>
+                            </li>
+                            <li class="list-group-item text-red text-shadow fw-bold">
+                                <div class="d-flex justify-content-between">
+                                    <span>ERROR</span>
+                                    <span>@error</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="line-station--body">
+                        @foreach (var station in group.STATION_DATAS)
+                        {
+                            @RenderStation(data, group, station)
+                        }
+                    </div>
+
+                </CardBody>
+            </CardRadius>
+        };
+    }
+
+    RenderFragment RenderStation(StationOverviewData data, GROUP_DATA group, STATION_DATA station)
+    {
+        return __builder =>
+        {
+            // Lấy tên station
+            string stationName = Regex.Match(station.STATION_NAME, @"\d+").Value;
+            stationName = (group.GROUP_NAME == "ICT" && stationName.Length == 3) ? $"TRI{stationName}" : stationName;
+
+            // Lấy trạng thái và css của trạng thái
+            string stationStatus = GetStationStatus(station);
+            string stationStatusClass = GetStationStatusClass(stationStatus);
+
+            // Check xem có nhấp nháy không
+            bool isBlink = stationStatus == Status.ERROR || stationStatus == Status.WARNING;
+
+            // Lấy rate của station
+            var (yr, rr) = GetStationRate(station);
+            var (yrClass, rrClass) = GetRateStatusClass(station);
+
+            // Key để cho Popover sử dụng => chỉ có 1 popover hiển thị trong 1 thời điểm
+            var key = $"{data.PRODUCT_NAME}::{group.GROUP_NAME}::{station.STATION_NAME}::{group.STATION_DATAS.IndexOf(station)}";
+
+            // Component
+            <div class="line-station--item @stationStatusClass @(IsActive(key) ? "active" : "")" @onclick="@(() => SetActive(key))">
+                <span class="@(isBlink ? "blink" : "")">@stationName</span>
+
+                @RenderPopover(data, group, station, rr, rrClass, yr, yrClass, stationStatusClass)
+            </div>
+        };
+    }
+
+    RenderFragment RenderPopover(StationOverviewData data, GROUP_DATA group, STATION_DATA station, double rr, string rrClass, double yr, string yrClass, string stationStatusClass)
+    {
+        return __builder =>
+        {
+            <PopoverSpeech Color="PopoverColor.Dark" Position="PopoverPosition.Auto" TriggerType="PopoverTriggerType.Active">
+                <ul class="list-group fs-5">
+                    <li class="list-group-item text-center fs-4 @stationStatusClass">
+                        <span>@station.STATION_NAME</span>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between" @onclick="() => OnClick_DetailData(data, group, station.STATION_NAME, Type.INPUT)">
+                            <span>INPUT</span>
+                            <span>@station.INPUT</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between" @onclick="() => OnClick_DetailData(data, group, station.STATION_NAME, Type.PASS)">
+                            <span>PASS</span>
+                            <span>@station.PASS</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between" @onclick="() => OnClick_DetailData(data, group, station.STATION_NAME, Type.FIRST_FAIL)">
+                            <span>FIRST FAIL</span>
+                            <span>@station.FIRST_FAIL</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between" @onclick="() => OnClick_DetailData(data, group, station.STATION_NAME, Type.SECOND_FAIL)">
+                            <span>SECOND FAIL</span>
+                            <span>@station.REPAIR_QTY</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item @rrClass">
+                        <div class="d-flex justify-content-between" @onclick="() => OnClick_DetailData(data, group, station.STATION_NAME, Type.RETEST_RATE)">
+                            <span>RETEST RATE</span>
+                            <span>@($"{Math.Round((double)rr * 100, 2)}%")</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item @yrClass">
+                        <div class="d-flex justify-content-between" @onclick="() => OnClick_DetailData(data, group, station.STATION_NAME, Type.YIELD_RATE)">
+                            <span>YIELD RATE</span>
+                            <span>@($"{Math.Round((double)yr * 100, 2)}%")</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item small">
+                        <div class="d-flex justify-content-between align-items-center analysis" @onclick="() => OnClick_AnalysisData(data, group, station.STATION_NAME)">
+                            <span class="small">Analysis Details</span>
+                            <i class="fa-duotone fa-solid fa-circle-arrow-right"></i>
+                        </div>
+                    </li>
+                </ul>
+            </PopoverSpeech>
+        };
+    }
+
+    RenderFragment RenderAnalysysModal()
+    {
+        return __builder =>
+        {
+            var group = StationAnalysisDatas
+            .GroupBy(s => s.ERROR_CODE)
+            .Select(g => new
+            {
+                ERROR_CODE = g.Key,
+                COUNT = g.Sum(s => s.FAIL_COUNT)
+            })
+            .OrderByDescending(g => g.COUNT)
+            .ToList();
+
+            <div class="modal fade" id="AnalysisModal" tabindex="-1" data-bs-backdrop="static">
+                <div class="modal-dialog modal-dialog-centered modal-fullscreen">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title text-uppercase">ANALYSIS @SelectedStation</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <CardRadius Class="mb-3">
+                                        <CardHeader>
+                                            <div class="card-title-icon text-cyan text-neon text-uppercase">
+                                                <i class="fa-solid fa-angles-right"></i>
+                                                <span>@SelectedStation FAIL QUANTITY</span>
+                                            </div>
+                                        </CardHeader>
+                                        <CardBody>
+                                            <div id="AnalysisFailQtyChart"></div>
+                                        </CardBody>
+                                    </CardRadius>
+                                </div>
+                                <div class="col-6">
+                                    <CardRadius Class="mb-3">
+                                        <CardHeader>
+                                            <div class="card-title-icon text-cyan text-neon text-uppercase">
+                                                <i class="fa-solid fa-angles-right"></i>
+                                                <span>@SelectedStation ERROR CODE ANALYSIS</span>
+                                            </div>
+                                        </CardHeader>
+                                        <CardBody>
+                                            <div id="AnalysisErrorCodeChart"></div>
+                                        </CardBody>
+                                    </CardRadius>
+                                </div>
+
+                                @for (int i = 0; i < group.Count; i++)
+                                {
+                                    var index = i;
+                                    var errorcode = group[index];
+                                    <div class="col-6">
+                                        <CardRadius Class="mb-3">
+                                            <CardHeader>
+                                                <div class="card-title-icon text-uppercase">
+                                                    <i class="fa-solid fa-angles-right"></i>
+                                                    <span class="text-cyan text-neon">ERROR CODE: <span class="text-red">@errorcode.ERROR_CODE</span></span>
+                                                </div>
+                                            </CardHeader>
+                                            <CardBody>
+                                                <div id="@($"AnalysisErrorCodeChart_Number_{index}")"></div>
+                                            </CardBody>
+                                        </CardRadius>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        };
+    }
+
+    RenderFragment RenderDetailModal()
+    {
+        return __builder =>
+        {
+            <div class="modal fade" id="DetailModal" tabindex="-1" data-bs-backdrop="static">
+                <div class="modal-dialog modal-dialog-centered modal-fullscreen">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title text-uppercase">ANALYSIS @SelectedStation</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row h-100">
+                                <div class="col-9">
+                                    <CardRadius Class="h-100">
+                                        <CardBody Class="p-0">
+                                            <table class="table table-bordered table-hover align-middle" id="StationDetailTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>EMP_NO</th>
+                                                        <th>MO_NUMBER</th>
+                                                        <th>MODEL_NAME</th>
+                                                        <th>LINE_NAME</th>
+                                                        <th>GROUP_NAME</th>
+                                                        <th>STATION_NAME</th>
+                                                        <th>SERIAL_NUMBER</th>
+                                                        <th>ERROR_CODE</th>
+                                                        <th>IN_STATION_TIME</th>
+                                                        <th>DESCRIPTION</th>
+                                                        <th>CYCLE_TIME</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @if (StationDetailDatas.Count > 0)
+                                                    {
+                                                        @foreach (var r in StationDetailDatas)
+                                                        {
+                                                            var index = StationDetailDatas.IndexOf(r) + 1;
+                                                            var isPass = r.DESCRIPTION == "Test passed";
+
+                                                            <tr>
+                                                                <td>@index</td>
+                                                                <td>@r.EMP_NO</td>
+                                                                <td>@r.MO_NUMBER</td>
+                                                                <td>@r.MODEL_NAME</td>
+                                                                <td>@r.LINE_NAME</td>
+                                                                <td>@r.GROUP_NAME</td>
+                                                                <td>@r.STATION_NAME</td>
+                                                                <td>@r.SERIAL_NUMBER</td>
+                                                                <td class="@(isPass ? "text-center text-green fw-bold" : "text-center text-danger fw-bold")">
+                                                                    @(isPass ? "PASS" : r.ERROR_CODE)
+                                                                </td>
+                                                                <td>@(r.IN_STATION_TIME?.ToString("yyyy-MM-dd HH:mm:ss") ?? "")</td>
+                                                                <td>@(isPass ? "" : r.DESCRIPTION)</td>
+                                                                <td>@r.CYCLE_TIME</td>
+                                                            </tr>
+                                                        }
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </CardBody>
+                                    </CardRadius>
+
+                                </div>
+                                <div class="col-3">
+                                    <div class="d-flex flex-column h-100 gap-3">
+                                        <div class="h-50">
+                                            <CardRadius Class="h-100">
+                                                <CardBody Class="p-0" Id="StationDetailRateChartContainer">
+                                                    <div id="StationDetailRateChart"></div>
+                                                </CardBody>
+                                            </CardRadius>
+                                        </div>
+                                        <div class="h-50">
+                                            <CardRadius Class="h-100">
+                                                <CardBody Class="p-0" Id="StationDetailErrorChartContainer">
+                                                    <div id="StationDetailErrorChart"></div>
+                                                </CardBody>
+                                            </CardRadius>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        };
+    }
+}
+
+
+using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
+using Newtonsoft.Json;
+using Serilog;
+using WebApplication.Models.Customer.Nvidia.Dashboard.StationOverview;
+using WebApplication.Services;
+
+namespace WebApplication.UI.Customer.Nvidia.Dashboard
+{
+    public partial class StationOverview : ComponentBase
+    {
+        [Inject] private IWebHostEnvironment WebHostEnvironment { get; set; } = default!;
+        [Inject] private IHostEnvironment HostEnvironment { get; set; } = default!;
+        [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
+        [Inject] private HttpClient HttpClient { get; set; } = default!;
+        [Inject] private ErrorStateService ErrorStateService { get; set; } = default!;
+        [Inject] private ToastrService Toastr { get; set; } = default!;
+
+        /* Parameter */
+        [Parameter] public string ModelSerial { get; set; } = string.Empty;
+
+        //-- Global
+        private readonly List<string> AllowedModelSerial = ["ADAPTER", "SWITCH"];
+
+        DotNetObjectReference<StationOverview>? DotNetHelper;
+
+        private bool IsPageLoading { get; set; } = false;
+
+        private string DateRange = string.Empty;
+        private bool IsSelectedDateRange = false;
+
+        private Timer? RefreshTimer = default!;
+        private readonly CancellationTokenSource cancellationToken = new();
+        private int refreshing = 0;
+
+        private Rate Rate = new();
+
+        //-- Page
+        private List<ProductName> Products = [];
+        private List<string> Models = [];
+        private readonly Dictionary<string, List<string>> Groups = new()
+        {
+            { "ADAPTER", new List<string> { "ICT", "FT", "CTO", "AVI" } },
+            { "SWITCH", new List<string> { "ICT", "ICT1", "BURN_SSD", "LED", "J_TAG", "WC_PRESSURE", "WC_WATER_FILL", "WC_KIT_PRESSURE", "WC_WASH_DRAIN_NITRO_FILL", "CTO", "FT", "AVI" } }
+        };
+
+        private string SelectedProduct = "ALL";
+        private string SelectedModel = "ALL";
+        private string SelectedGroup = "ALL";
+
+        private List<StationOverviewData> Datas = [];
+        private string StationSearchText = string.Empty;
+
+        private List<ProductTrackingData> ProductTrackingDatas = [];
+
+        private string SelectedProductName = string.Empty;
+        private string SelectedGroupName = string.Empty;
+        private string SelectedStation = string.Empty;
+        private string SelectedDetailType = string.Empty;
+
+
+        private List<StationAnalysisData> StationAnalysisDatas = [];
+        private List<StationDetailData> StationDetailDatas = [];
+
+        /* Page Life Cycle */
+        protected override void OnInitialized()
+        {
+            DotNetHelper = DotNetObjectReference.Create(this);
+        }
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (!firstRender) return;
+
+            try
+            {
+                await ParameterSet();
+                await IsLoading(true);
+                await LoadAssets();
+                await GetSfcProductAndModelNames();
+
+                if (HostEnvironment.IsDevelopment())
+                {
+                    await RefreshDataAsync();
+                }
+                else
+                {
+                    RefreshTimer = new Timer(async _ =>
+                    {
+                        await InvokeAsync(async () =>
+                        {
+                            if (cancellationToken.IsCancellationRequested) return;
+
+                            if (Interlocked.Exchange(ref refreshing, 1) == 1) return;
+
+                            try
+                            {
+                                if (IsSelectedDateRange) return;
+                                await RefreshDataAsync();
+                            }
+                            catch (JSDisconnectedException) { await StopTimerAsync(); }
+                            catch (ObjectDisposedException) { await StopTimerAsync(); }
+                            finally
+                            {
+                                Interlocked.Exchange(ref refreshing, 0);
+                            }
+                        });
+                    }, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+                }
+            }
+            catch (Exception ex)
+            {
+                await ErrorStateService.HandleErrorAsync(ex);
+            }
+            finally
+            {
+                await IsLoading(false);
+            }
+        }
+        private async Task IsLoading(bool state)
+        {
+            IsPageLoading = state;
+            await InvokeAsync(StateHasChanged);
+        }
+        private async Task LoadAssets()
+        {
+            try
+            {
+                var styleTasks = new[]
+                {
+                     JsRuntime.InvokeVoidAsync("App.AssetLoader.LoadStyle", "plugin/DataTables/datatables.net-bs5/css/dataTables.bootstrap5.min.css").AsTask(),
+
+                     JsRuntime.InvokeVoidAsync("App.AssetLoader.LoadStyle", "css/Customer/Nvidia/Dashboard/StationOverview.css").AsTask(),
+                };
+
+                var scriptTasks = new[]
+                {
+                    JsRuntime.InvokeVoidAsync("App.AssetLoader.LoadScript", "plugin/DataTables/datatables.net/js/jquery.dataTables.min.js").AsTask(),
+                    JsRuntime.InvokeVoidAsync("App.AssetLoader.LoadScript", "plugin/DataTables/datatables.net/js/dataTables.rowsGroup.js").AsTask(),
+                    JsRuntime.InvokeVoidAsync("App.AssetLoader.LoadScript", "plugin/DataTables/datatables.net-bs5/js/dataTables.bootstrap5.min.js").AsTask(),
+
+                    JsRuntime.InvokeVoidAsync("App.AssetLoader.LoadScript", "plugin/Highcharts/highcharts.js").AsTask(),
+                    JsRuntime.InvokeVoidAsync("App.AssetLoader.LoadScript", "plugin/Highcharts/highcharts-more.js").AsTask(),
+                    JsRuntime.InvokeVoidAsync("App.AssetLoader.LoadScript", "plugin/Highcharts/modules/accessibility.js").AsTask(),
+                    JsRuntime.InvokeVoidAsync("App.AssetLoader.LoadScript", "plugin/Highcharts/modules/solid-gauge.js").AsTask(),
+
+                    JsRuntime.InvokeVoidAsync("App.AssetLoader.LoadScript", "js/Customer/Nvidia/Dashboard/StationOverview.js").AsTask(),
+                };
+                await Task.WhenAll(styleTasks);
+                await Task.WhenAll(scriptTasks);
+                await Task.Yield();
+            }
+            catch (Exception ex)
+            {
+                await ErrorStateService.HandleErrorAsync(ex);
+            }
+        }
+        private async Task UpdateUIAsync()
+        {
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
+        }
+        private async Task ParameterSet()
+        {
+            if (string.IsNullOrWhiteSpace(ModelSerial))
+            {
+                await ErrorStateService.HandleErrorAsync(new KeyNotFoundException("ModelSerial is Require."));
+                return;
+            }
+
+            ModelSerial = ModelSerial.Trim().ToUpper();
+
+            if (!AllowedModelSerial.Contains(ModelSerial))
+            {
+                await ErrorStateService.HandleErrorAsync(new KeyNotFoundException("ModelSerial does not match."));
+                return;
+            }
+        }
+        private async Task RefreshDataAsync()
+        {
+            GetConfigRate();
+
+            await OnClick_QueryData();
+
+            await UpdateUIAsync();
+
+            await FooterChart();
+        }
+        private async Task StopTimerAsync()
+        {
+            try
+            {
+                RefreshTimer?.Change(Timeout.Infinite, 0);
+            }
+            catch { }
+
+            try
+            {
+                if (!cancellationToken.IsCancellationRequested)
+                    cancellationToken.Cancel();
+            }
+            catch { }
+
+            try { RefreshTimer?.Dispose(); } catch { }
+            RefreshTimer = null;
+
+            await Task.CompletedTask;
+        }
+
+        // API
+        private async Task GetSfcProductAndModelNames()
+        {
+            try
+            {
+                await IsLoading(true);
+
+                var request = new Request
+                {
+                    MODEL_SERIAL = ModelSerial
+                };
+
+                var response = await HttpClient.PostAsJsonAsync($"api/nvidia/dashboard/StationOverview/GetSfcProductAndModelNames", request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    await Toastr.HttpResonseErrorHandle(response);
+                    return;
+                }
+
+                Products = await response.Content.ReadFromJsonAsync<List<ProductName>>() ?? [];
+
+                SelectedProduct = "ALL";
+                SelectedModel = "ALL";
+                SelectedGroup = "ALL";
+                Models = [.. Products.SelectMany(g => g.MODEL_NAMES)];
+
+                await JsRuntime.InvokeVoidAsync("App.Select2.TriggerChange");
+
+
+                var ss = await response.Content.ReadAsStringAsync();
+            }
+            catch (Exception ex)
+            {
+                await ErrorStateService.HandleErrorAsync(ex);
+            }
+            finally
+            {
+                await IsLoading(false);
+            }
+        }
+        private async Task GetStationOverviewData()
+        {
+            try
+            {
+                if (IsSelectedDateRange) await IsLoading(true);
+
+                var request = new Request
+                {
+                    DateRange = DateRange,
+                    MODEL_SERIAL = ModelSerial,
+                    PRODUCT_NAME = SelectedProduct,
+                    MODEL_NAME = SelectedModel,
+                    GROUP_NAMES = SelectedGroup == "ALL" ? Groups[ModelSerial] : [SelectedGroup],
+                };
+
+                var response = await HttpClient.PostAsJsonAsync($"api/nvidia/dashboard/StationOverview/GetStationOverviewDatas", request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    await Toastr.HttpResonseErrorHandle(response);
+                    return;
+                }
+
+                Datas = await response.Content.ReadFromJsonAsync<List<StationOverviewData>>() ?? [];
+            }
+            catch (Exception ex)
+            {
+                await ErrorStateService.HandleErrorAsync(ex);
+            }
+            finally
+            {
+                await IsLoading(false);
+            }
+        }
+        private async Task GetStationAnalysisDatas()
+        {
+            try
+            {
+                await IsLoading(true);
+
+                var request = new Request
+                {
+                    DateRange = DateRange,
+                    MODEL_SERIAL = ModelSerial,
+                    PRODUCT_NAME = SelectedProductName,
+                    GROUP_NAMES = [SelectedGroupName],
+                    STATION_NAME = SelectedStation,
+                };
+
+                var response = await HttpClient.PostAsJsonAsync($"api/nvidia/dashboard/StationOverview/GetStationAnalysisDatas", request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    await Toastr.HttpResonseErrorHandle(response);
+                    return;
+                }
+
+                StationAnalysisDatas = await response.Content.ReadFromJsonAsync<List<StationAnalysisData>>() ?? [];
+                StationAnalysisDatas = [.. StationAnalysisDatas.OrderBy(s => s.CLASS_DATE)];
+            }
+            catch (Exception ex)
+            {
+                await ErrorStateService.HandleErrorAsync(ex);
+            }
+            finally
+            {
+                await IsLoading(false);
+            }
+        }
+        private async Task GetStationDetailDatas()
+        {
+            try
+            {
+                await IsLoading(true);
+
+                var request = new Request
+                {
+                    DateRange = DateRange,
+                    MODEL_SERIAL = ModelSerial,
+                    PRODUCT_NAME = SelectedProductName,
+                    GROUP_NAMES = [SelectedGroupName],
+                    STATION_NAME = SelectedStation,
+                    DETAIL_TYPE = SelectedDetailType,
+                };
+
+                var response = await HttpClient.PostAsJsonAsync($"api/nvidia/dashboard/StationOverview/GetStationDetailDatas", request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    await Toastr.HttpResonseErrorHandle(response);
+                    return;
+                }
+
+                StationDetailDatas = await response.Content.ReadFromJsonAsync<List<StationDetailData>>() ?? [];
+            }
+            catch (Exception ex)
+            {
+                await ErrorStateService.HandleErrorAsync(ex);
+            }
+            finally
+            {
+                await IsLoading(false);
+            }
+        }
+
+        // không dùng
+        private async Task GetProductTrackingDatas()
+        {
+            try
+            {
+                //var cachedJson = File.ReadAllText(@"E:\Workspace\MBD.AIOT.PLATFORM\WebApplication\FileCache\Product.json");
+                //Datas = JsonConvert.DeserializeObject<List<StationOverviewData>>(cachedJson!) ?? [];
+
+                //return;
+
+                await IsLoading(true);
+
+                var request = new Request
+                {
+                    DateRange = DateRange,
+                    MODEL_SERIAL = ModelSerial,
+                    GROUP_NAMES = SelectedGroup == "ALL" ? Groups[ModelSerial] : [SelectedGroup],
+                };
+
+                var response = await HttpClient.PostAsJsonAsync($"api/nvidia/dashboard/StationOverview/GetProductTrackingDatas", request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    await Toastr.HttpResonseErrorHandle(response);
+                    return;
+                }
+
+                ProductTrackingDatas = await response.Content.ReadFromJsonAsync<List<ProductTrackingData>>() ?? [];
+
+
+
+            }
+            catch (Exception ex)
+            {
+                await ErrorStateService.HandleErrorAsync(ex);
+            }
+            finally
+            {
+                await IsLoading(false);
+            }
+        }
+
+
+        /* SEARCH EVENT */
+        private async Task OnClick_QueryData()
+        {
+            await GetStationOverviewData();
+            await UpdateUIAsync();
+
+            try
+            {
+                await JsRuntime.InvokeVoidAsync("SetPopoverPosition");
+                await JsRuntime.InvokeVoidAsync("EnableDragScroll", "drag-content");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"NVIDIA Station Overview: {ex.Message}");
+            }
+        }
+
+        private async Task OnChangeDateRange()
+        {
+            try
+            {
+                IsSelectedDateRange = true;
+                await StopTimerAsync();
+            }
+            catch (Exception ex)
+            {
+                await ErrorStateService.HandleErrorAsync(ex);
+            }
+        }
+        private async Task OnChange_Product(string product)
+        {
+            if (SelectedProduct != product)
+            {
+                SelectedProduct = product.Trim().ToUpper();
+                SelectedModel = "ALL";
+                SelectedGroup = "ALL";
+
+                if (SelectedProduct == "ALL")
+                    Models = [.. Products.SelectMany(g => g.MODEL_NAMES)];
+                else
+                    Models = Products.First(g => g.PRODUCT_NAME == SelectedProduct).MODEL_NAMES;
+
+
+                await UpdateUIAsync();
+
+                await JsRuntime.InvokeVoidAsync("App.Select2.TriggerChange");
+            }
+        }
+        private async Task OnChange_Model(string model)
+        {
+            if (SelectedModel != model)
+            {
+                SelectedModel = model.Trim().ToUpper();
+                SelectedGroup = "ALL";
+
+                await UpdateUIAsync();
+
+                await JsRuntime.InvokeVoidAsync("App.Select2.TriggerChange");
+            }
+        }
+        private async Task OnChange_Group(string group)
+        {
+            if (SelectedGroup != group)
+            {
+                SelectedGroup = group.Trim().ToUpper();
+
+                await UpdateUIAsync();
+
+                await JsRuntime.InvokeVoidAsync("App.Select2.TriggerChange");
+            }
+        }
+        private async Task OnEnter_SearchStation()
+        {
+            Log.Information("Enter Search Text: {SearchText}", StationSearchText);
+            await JsRuntime.InvokeVoidAsync("ScrollToText", StationSearchText, new { classParent = "line-station--item" });
+            await Task.Yield();
+        }
+
+        /* STATION EVENT */
+        private string? ActiveKey;
+        private void SetActive(string key)
+        {
+            if (ActiveKey == key) { ActiveKey = null; return; }
+            ActiveKey = key;
+        }
+        private bool IsActive(string key) => ActiveKey == key;
+        private async Task OnClick_AnalysisData(StationOverviewData data, GROUP_DATA group, string stationName)
+        {
+            SelectedStation = stationName;
+
+            SelectedProductName = data.PRODUCT_NAME;
+            SelectedGroupName = group.GROUP_NAME;
+
+            await GetStationAnalysisDatas();
+            await OpenAnalysisModal();
+        }
+        private async Task OnClick_DetailData(StationOverviewData data, GROUP_DATA group, string stationName, string type)
+        {
+            SelectedStation = stationName;
+            SelectedDetailType = type;
+
+            SelectedProductName = data.PRODUCT_NAME;
+            SelectedGroupName = group.GROUP_NAME;
+
+            await GetStationDetailDatas();
+            await OpenDetailModal();
+        }
+
+        /* MODAL */
+        private async Task OpenAnalysisModal()
+        {
+            await JsRuntime.InvokeVoidAsync("App.Modal.Open", "AnalysisModal", "OnShown_AnalysisModal", DotNetHelper);
+        }
+        [JSInvokable]
+        public async Task OnShown_AnalysisModal()
+        {
+            await JsRuntime.InvokeVoidAsync("ClearAnalysisErrorCodeChart_NumberData");
+
+            await AnalysisFailQtyChart();
+            await AnalysisErrorCodeChart();
+            await AnalysisErrorCodeChart_Number();
+
+            await UpdateUIAsync();
+        }
+
+        private async Task OpenDetailModal()
+        {
+            await JsRuntime.InvokeVoidAsync("App.Modal.Open", "DetailModal", "OnShown_DetailModal", DotNetHelper);
+            await JsRuntime.InvokeVoidAsync("App.Modal.ModalEvent", "DetailModal", "hidden", "OnHidden_DetailModal", DotNetHelper);
+        }
+        [JSInvokable]
+        public async Task OnShown_DetailModal()
+        {
+            await UpdateUIAsync();
+            await InitializeStationDetailTable();
+
+            await StationDetailRateChart();
+            await StationDetailErrorChart();
+        }
+        [JSInvokable]
+        public async Task OnHidden_DetailModal()
+        {
+            StationDetailDatas = [];
+            await UpdateUIAsync();
+
+            await JsRuntime.InvokeVoidAsync("App.DataTable.Clear", "StationDetailTable");
+            await JsRuntime.InvokeVoidAsync("App.DataTable.Destroy", "StationDetailTable");
+        }
+
+        /* CHART */
+        private async Task AnalysisFailQtyChart()
+        {
+            var group = StationAnalysisDatas
+                .GroupBy(s => s.CLASS_DATE);
+
+            var data = new
+            {
+                cate = group.Select(s => s.Key).ToArray(),
+                seri = group.Select(s => s.Sum(f => f.FAIL_COUNT)).ToArray(),
+            };
+
+            await JsRuntime.InvokeVoidAsync("AnalysisFailQtyChart", data);
+        }
+        private async Task AnalysisErrorCodeChart()
+        {
+            var group = StationAnalysisDatas
+                .GroupBy(s => s.ERROR_CODE)
+                .Select(g => new
+                {
+                    ERROR_CODE = g.Key,
+                    COUNT = g.Sum(s => s.FAIL_COUNT)
+                })
+                .OrderByDescending(g => g.COUNT);
+
+            var data = new
+            {
+                cate = group.Select(g => g.ERROR_CODE).ToArray(),
+                seri = group.Select(g => g.COUNT).ToArray(),
+            };
+
+            await JsRuntime.InvokeVoidAsync("AnalysisErrorCodeChart", data);
+        }
+        private async Task AnalysisErrorCodeChart_Number()
+        {
+            var group = StationAnalysisDatas
+                .GroupBy(s => s.ERROR_CODE)
+                .Select(g => new
+                {
+                    ERROR_CODE = g.Key,
+                    COUNT = g.Sum(s => s.FAIL_COUNT)
+                })
+                .OrderByDescending(g => g.COUNT)
+                .ToList();
+
+            for (int i = 0; i < group.Count; i++)
+            {
+                var errorCode = group[i];
+                var data = new
+                {
+                    cate = StationAnalysisDatas
+                        .Where(s => s.ERROR_CODE == errorCode.ERROR_CODE)
+                        .Select(s => s.CLASS_DATE).ToArray(),
+
+                    seri = StationAnalysisDatas
+                        .Where(s => s.ERROR_CODE == errorCode.ERROR_CODE)
+                        .Select(s => s.FAIL_COUNT).ToArray(),
+                };
+
+                await JsRuntime.InvokeVoidAsync("AnalysisErrorCodeChart_Number", data, i);
+            }
+        }
+
+        private async Task StationDetailRateChart()
+        {
+            var station = Datas
+                .SelectMany(p => p.GROUP_DATAS)
+                .SelectMany(g => g.STATION_DATAS)
+                .FirstOrDefault(s => s.STATION_NAME == SelectedStation);
+
+            if (station != null)
+            {
+                var data = new object[]
+                {
+                    new
+                    {
+                        name = "PASS",
+                        y = station.PASS,
+                    },
+                    new
+                    {
+                        name = "FAIL",
+                        y = station.INPUT  - station.PASS,
+                    }
+                };
+
+                await JsRuntime.InvokeVoidAsync("StationDetailRateChart", (object)data);
+            }
+
+        }
+        private async Task StationDetailErrorChart()
+        {
+            var group = StationDetailDatas
+                .Where(s => !string.IsNullOrEmpty(s.ERROR_CODE))
+                .GroupBy(s => s.ERROR_CODE)
+                .Select(g => new
+                {
+                    cate = g.Key,
+                    seri = g.Count()
+                })
+                .ToList();
+
+            var data = new
+            {
+                cate = group.Select(g => g.cate).ToArray(),
+                seri = group.Select(g => g.seri).ToArray(),
+            };
+
+            await JsRuntime.InvokeVoidAsync("StationDetailErrorChart", (object)data);
+        }
+
+        private async Task FooterChart()
+        {
+            var STATION_DATAS = Datas
+                .SelectMany(p => p.GROUP_DATAS)
+                .SelectMany(g => g.STATION_DATAS);
+
+            int total = STATION_DATAS.Count();
+
+            int warning = STATION_DATAS.Where(s => GetStationStatus(s) == Status.WARNING)
+                .Count();
+
+            int error = STATION_DATAS.Where(s => GetStationStatus(s) == Status.ERROR)
+                .Count();
+
+            int normal = total - warning - error;
+
+            var data = new[]
+            {
+                new
+                {
+                    name = "ERROR",
+                    y = error
+                },
+                new
+                {
+                    name = "WARNING",
+                    y = warning
+                },
+                new
+                {
+                    name = "NORMAL",
+                    y = normal
+                }
+            };
+
+            await JsRuntime.InvokeVoidAsync("FooterChart", (object)data);
+        }
+
+        /* TABLE */
+        private async Task InitializeStationDetailTable()
+        {
+            await JsRuntime.InvokeVoidAsync("App.DataTable.InitDatatable", "StationDetailTable", null, ConfigurationStationDetailTable());
+            await JsRuntime.InvokeVoidAsync("ChangeText", "StationDetailTableText", $"LIST TRACKING DATA: {SelectedStation}");
+        }
+        private static object ConfigurationStationDetailTable()
+        {
+            return new
+            {
+                dom = "<'row mb-2'<'col-6 StationDetailTableText align-content-center ps-3 fs-4 fw-bold text-cyan text-neon text-uppercase'><'col-6'f>><'row'<'col-12't>>",
+                scrollY = $"calc(100vh - 26vh)",
+                paging = false,
+                rowsGroup = new object[] { 1, 2, 3, 4, 5 },
+                ordering = false,
+                scrollCollapse = true,
+                columns = new object[]
+                {
+                    new { visible = true, className = "text-center fw-bold" },
+                    new { visible = true, className = "text-center fw-bold" },
+                    new { visible = true, className = "text-center fw-bold" },
+                    new { visible = true, className = "text-center fw-bold" },
+                    new { visible = true, className = "text-center fw-bold" },
+                    new { visible = true, className = "text-center fw-bold" },
+                    new { visible = false },
+                    new { visible = true },
+                    new { visible = true },
+                    new { visible = true },
+                    new { visible = true },
+                    new { visible = true },
+                },
+            };
+        }
+
+        /* HELPERS */
+        private string GetPageTitle()
+        {
+            bool isShowModel = false, isShowStation = false;
+            if (!string.IsNullOrEmpty(SelectedModel) && SelectedModel != "ALL")
+            {
+                isShowModel = true;
+            }
+
+            if (!string.IsNullOrEmpty(SelectedGroup) && SelectedGroup != "ALL")
+            {
+                isShowStation = true;
+            }
+
+            string model = isShowModel ? $"{SelectedModel} " : "";
+            string station = isShowStation ? $"{SelectedGroup} " : "";
+
+            return $"NVIDIA {ModelSerial} {model}{station} STATION OVERVIEW";
+        }
+
+        private static string GetStationStatusClass(string status)
+        {
+            return status switch
+            {
+                Status.ERROR => "text-red text-shadow bg-danger bg-opacity-25",
+                Status.WARNING => "text-yellow text-shadow bg-yellow bg-opacity-25",
+                Status.NORMAL => "text-shadow bg-green text-green bg-opacity-25",
+                Status.OFFLINE => "text-shadow bg-secondary text-secondary bg-opacity-25",
+                _ => "text-shadow bg-dark text-white bg-opacity-25",
+            };
+        }
+        private string GetStationStatus(STATION_DATA station)
+        {
+            var (yr, rr) = GetStationRate(station);
+
+            if (yr == 0)
+            {
+                return Status.NORMAL; // OFFLINE
+            }
+            else if (yr < Rate.YR_LSL || rr > Rate.RR_USL)
+            {
+                return Status.ERROR;
+            }
+            else if ((yr >= Rate.YR_LSL && yr < Rate.YR_USL) || (rr > Rate.RR_LSL && rr <= Rate.RR_USL))
+            {
+                return Status.WARNING;
+            }
+            else
+            {
+                return Status.NORMAL;
+            }
+        }
+        private (string yrClass, string rrClass) GetRateStatusClass(STATION_DATA station)
+        {
+            var (yr, rr) = GetStationRate(station);
+
+            string? yrClass;
+            // YR
+            if (yr == 0)
+            {
+                yrClass = "text-green blink";
+            }
+            else if (yr < Rate.YR_LSL)
+            {
+                yrClass = "text-red blink";
+            }
+            else if (yr >= Rate.YR_LSL && yr < Rate.YR_USL)
+            {
+                yrClass = "text-yellow blink";
+            }
+            else
+            {
+                yrClass = "text-green blink";
+            }
+
+            string? rrClass;
+            // RR
+            if (rr > Rate.RR_USL)
+            {
+                rrClass = "text-red blink";
+            }
+            else if (rr > Rate.RR_LSL && rr <= Rate.RR_USL)
+            {
+                rrClass = "text-yellow blink";
+            }
+            else
+            {
+                rrClass = "text-green blink";
+            }
+
+            return (yrClass, rrClass);
+        }
+        private static (double YR, double RR) GetStationRate(STATION_DATA station)
+        {
+            if (station == null || station.INPUT <= 0) return (0, 0);
+
+            var yr = CalcRate(station.PASS, station.INPUT);
+            var rr = CalcRate(station.SECOND_PASS, station.INPUT);
+
+            if (yr > 1) yr = 1;
+            if (rr > 1) rr = 1;
+
+            return (yr, rr);
+        }
+        private static double CalcRate(int a, int b)
+        {
+            return Math.Round((double)a / b, 2);
+        }
+        private void GetConfigRate()
+        {
+            var PathRateConfig = Path.Combine(WebHostEnvironment.WebRootPath, "json", "Customer", "Nvidia", "Dashboard", "StationOverview.json");
+            var Json = File.ReadAllText(PathRateConfig);
+            Rate = JsonConvert.DeserializeObject<Rate>(Json) ?? new();
+        }
+    }
+
+    public class Rate
+    {
+        public double YR_LSL { get; set; } = 0.95;
+        public double YR_USL { get; set; } = 0.98;
+        public double RR_LSL { get; set; } = 0.05;
+        public double RR_USL { get; set; } = 0.10;
+    }
+    public static class Status
+    {
+        public const string ERROR = "ERROR";
+        public const string WARNING = "WARNING";
+        public const string NORMAL = "NORMAL";
+        public const string OFFLINE = "OFFLINE";
+    }
+    public static class Type
+    {
+        public const string INPUT = "INPUT";
+        public const string PASS = "PASS";
+        public const string FIRST_FAIL = "FIRST_FAIL";
+        public const string SECOND_FAIL = "SECOND_FAIL";
+        public const string RETEST_RATE = "RETEST_RATE";
+        public const string YIELD_RATE = "YIELD_RATE";
+    }
+}
+
+/* Do lồng nhiều Card nên dùng css blazor không thích hợp
+** File css chính ở: wwwroot/css/Customer/Nvidia/Dashboard/StationOverview.css
+*/
+
+/* Datatable scroll radius */
+::deep .dataTables_scrollHead th:first-child {
+    border-top-left-radius: 10px;
+}
+
+::deep .dataTables_scrollHead th:last-child {
+    border-top-right-radius: 10px;
+}
+
+::deep .dataTables_scrollBody tr:last-child td:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+::deep .dataTables_scrollBody tr:last-child td:last-child {
+    border-bottom-right-radius: 10px;
+}
+
+.dataTables_scrollHeadInner {
+    font-size: 15px;
+}
+
+    .dataTables_scrollHeadInner .table {
+        color: #00e2ff;
+    }
+
+        .dataTables_scrollHeadInner .table thead {
+            background-color: #345695;
+        }
+
+table{
+    border: 0;
+}
+table.table.dataTable.table-hover > tbody > tr:hover > * {
+    background-color: rgba(var(--bg-theme-rgb), 0.5);
+}
+
+table.table.dataTable.table-hover > tbody > tr.active {
+    background-color: rgba(var(--bg-theme-rgb), 1);
+}
