@@ -92,9 +92,13 @@ class StationOverviewDashboardViewState {
     if (data.input <= 0) {
       return StationStatus.offline;
     }
+
     final double yr = data.yieldRate;
     final double rr = data.retestRate;
 
+    if (yr == 0) {
+      return StationStatus.normal;
+    }
     if (yr < rateConfig.yieldRateLower || rr > rateConfig.retestRateUpper) {
       return StationStatus.error;
     }

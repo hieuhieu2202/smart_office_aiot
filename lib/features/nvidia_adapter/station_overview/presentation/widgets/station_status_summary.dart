@@ -23,8 +23,11 @@ class StationStatusSummary extends StatelessWidget {
       final int total = state.totalStations;
       final int warning = counts[StationStatus.warning] ?? 0;
       final int error = counts[StationStatus.error] ?? 0;
-      final int normal = counts[StationStatus.normal] ?? 0;
       final int offline = counts[StationStatus.offline] ?? 0;
+      int normal = total - warning - error - offline;
+      if (normal < 0) {
+        normal = 0;
+      }
 
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -167,7 +170,7 @@ class _FooterChip extends StatelessWidget {
           if (percentage != null) ...<Widget>[
             const SizedBox(width: 4),
             Text(
-              '(${percentage!.toStringAsFixed(1)}%)',
+              '(${percentage!.toStringAsFixed(2)}%)',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white70,
                   ),

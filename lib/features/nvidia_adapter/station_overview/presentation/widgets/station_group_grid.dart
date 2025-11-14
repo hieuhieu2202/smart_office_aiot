@@ -173,10 +173,13 @@ class _GroupRow extends StatelessWidget {
     }
 
     final int total = stations.length;
-    final int normal = counts[StationStatus.normal] ?? 0;
     final int warning = counts[StationStatus.warning] ?? 0;
     final int error = counts[StationStatus.error] ?? 0;
     final int offline = counts[StationStatus.offline] ?? 0;
+    int normal = total - warning - error - offline;
+    if (normal < 0) {
+      normal = 0;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 18),

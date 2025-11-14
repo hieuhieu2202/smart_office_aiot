@@ -116,20 +116,25 @@ class StationData extends Equatable {
   final int pass;
   final int secondPass;
 
-  double get yieldRate {
-    if (input <= 0) return 0;
-    final rate = pass / input;
-    return rate > 1 ? 1 : rate;
-  }
+  double get yieldRate => _calculateRate(pass, input);
 
-  double get retestRate {
-    if (input <= 0) return 0;
-    final rate = secondPass / input;
-    return rate > 1 ? 1 : rate;
-  }
+  double get retestRate => _calculateRate(secondPass, input);
 
   int get failQty => firstFail;
   int get secondFail => repairQty;
+
+  double _calculateRate(int numerator, int denominator) {
+    if (denominator <= 0) {
+      return 0;
+    }
+
+    final double value = numerator / denominator;
+    final double rounded = double.parse(value.toStringAsFixed(2));
+    if (rounded > 1) {
+      return 1;
+    }
+    return rounded;
+  }
 
   @override
   List<Object?> get props => <Object?>[
