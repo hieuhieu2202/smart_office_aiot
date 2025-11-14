@@ -129,6 +129,7 @@ class StationData extends Equatable {
   }
 
   int get failQty => firstFail;
+  int get secondFail => repairQty;
 
   @override
   List<Object?> get props => <Object?>[
