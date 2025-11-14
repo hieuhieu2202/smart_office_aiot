@@ -1191,22 +1191,24 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Obx(() {
-      final matches = controller.serialMatches;
-      final bool isSearching = controller.isSearchingSerial.value;
-      final bool isLoadingRecord = controller.isLoadingRecord.value;
-      final ResistorMachineRecord? record = controller.selectedRecord.value;
-      final List<ResistorMachineTestResult> tests =
-          controller.recordTestResults;
-      final ResistorMachineTestResult? selectedTest =
-          controller.selectedTestResult.value;
-      final ResistorMachineSerialMatch? selectedSerial =
-          controller.selectedSerial.value;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool hasBoundedHeight =
+            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+        final bool hasBoundedWidth =
+            constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
 
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final bool hasBoundedHeight =
-              constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+        return Obx(() {
+          final matches = controller.serialMatches;
+          final bool isSearching = controller.isSearchingSerial.value;
+          final bool isLoadingRecord = controller.isLoadingRecord.value;
+          final ResistorMachineRecord? record = controller.selectedRecord.value;
+          final List<ResistorMachineTestResult> tests =
+              controller.recordTestResults;
+          final ResistorMachineTestResult? selectedTest =
+              controller.selectedTestResult.value;
+          final ResistorMachineSerialMatch? selectedSerial =
+              controller.selectedSerial.value;
 
           final Widget analysis = _buildAnalysisContent(
             constraints: constraints,
@@ -1224,8 +1226,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
             return analysis;
           }
 
-          final double minWidth = constraints.hasBoundedWidth &&
-                  constraints.maxWidth.isFinite
+          final double minWidth = hasBoundedWidth
               ? constraints.maxWidth
               : MediaQuery.of(context).size.width;
 
@@ -1236,9 +1237,9 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
               child: analysis,
             ),
           );
-        },
-      );
-    });
+        });
+      },
+    );
   }
 
   Widget _buildAnalysisContent({
