@@ -1191,65 +1191,99 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool canFillHeight =
-            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+    return Obx(() {
+      final matches = controller.serialMatches;
+      final bool isSearching = controller.isSearchingSerial.value;
+      final bool isLoadingRecord = controller.isLoadingRecord.value;
+      final ResistorMachineRecord? record = controller.selectedRecord.value;
+      final List<ResistorMachineTestResult> tests =
+          controller.recordTestResults;
+      final ResistorMachineTestResult? selectedTest =
+          controller.selectedTestResult.value;
+      final ResistorMachineSerialMatch? selectedSerial =
+          controller.selectedSerial.value;
 
-        return _buildAnalysisContent(
-          constraints: constraints,
-          fillHeight: canFillHeight,
-        );
-      },
-    );
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final bool hasBoundedHeight =
+              constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+
+          final Widget analysis = _buildAnalysisContent(
+            constraints: constraints,
+            fillHeight: hasBoundedHeight,
+            matches: matches,
+            isSearching: isSearching,
+            isLoadingRecord: isLoadingRecord,
+            record: record,
+            tests: tests,
+            selectedTest: selectedTest,
+            selectedSerial: selectedSerial,
+          );
+
+          if (hasBoundedHeight) {
+            return analysis;
+          }
+
+          final double minWidth = constraints.hasBoundedWidth &&
+                  constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : MediaQuery.of(context).size.width;
+
+          return SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: minWidth),
+              child: analysis,
+            ),
+          );
+        },
+      );
+    });
   }
 
   Widget _buildAnalysisContent({
     required BoxConstraints constraints,
     required bool fillHeight,
+    required List<ResistorMachineSerialMatch> matches,
+    required bool isSearching,
+    required bool isLoadingRecord,
+    required ResistorMachineRecord? record,
+    required List<ResistorMachineTestResult> tests,
+    required ResistorMachineTestResult? selectedTest,
+    required ResistorMachineSerialMatch? selectedSerial,
   }) {
-    return Obx(() {
-      final matches = controller.serialMatches;
-      final isSearching = controller.isSearchingSerial.value;
-      final isLoadingRecord = controller.isLoadingRecord.value;
-      final record = controller.selectedRecord.value;
-      final tests = controller.recordTestResults;
-      final selectedTest = controller.selectedTestResult.value;
-      final selectedSerial = controller.selectedSerial.value;
+    final bool isWide = constraints.maxWidth >= 1100;
+    final EdgeInsets padding = isWide
+        ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
+        : const EdgeInsets.all(16);
 
-      final bool isWide = constraints.maxWidth >= 1100;
-      final EdgeInsets padding = isWide
-          ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
-          : const EdgeInsets.all(16);
+    final bool stretchPanels = fillHeight && isWide;
 
-      final bool stretchPanels = fillHeight && isWide;
+    final Widget content = isWide
+        ? _buildWideLayout(
+            fillHeight: stretchPanels,
+            matches: matches,
+            isSearching: isSearching,
+            isLoadingRecord: isLoadingRecord,
+            record: record,
+            tests: tests,
+            selectedTest: selectedTest,
+            selectedSerial: selectedSerial,
+          )
+        : _buildStackedLayout(
+            matches: matches,
+            isSearching: isSearching,
+            isLoadingRecord: isLoadingRecord,
+            record: record,
+            tests: tests,
+            selectedTest: selectedTest,
+            selectedSerial: selectedSerial,
+          );
 
-      final Widget content = isWide
-          ? _buildWideLayout(
-              fillHeight: stretchPanels,
-              matches: matches,
-              isSearching: isSearching,
-              isLoadingRecord: isLoadingRecord,
-              record: record,
-              tests: tests,
-              selectedTest: selectedTest,
-              selectedSerial: selectedSerial,
-            )
-          : _buildStackedLayout(
-              matches: matches,
-              isSearching: isSearching,
-              isLoadingRecord: isLoadingRecord,
-              record: record,
-              tests: tests,
-              selectedTest: selectedTest,
-              selectedSerial: selectedSerial,
-            );
-
-      return Padding(
-        padding: padding,
-        child: content,
-      );
-    });
+    return Padding(
+      padding: padding,
+      child: content,
+    );
   }
 
   Widget _buildWideLayout({
