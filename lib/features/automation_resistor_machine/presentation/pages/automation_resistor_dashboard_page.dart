@@ -1197,83 +1197,107 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
         final bool hasFiniteWidth =
             constraints.hasBoundedWidth && constraints.maxWidth.isFinite;
-        final double fallbackHeight = MediaQuery.sizeOf(context).height;
-        final double fallbackWidth = MediaQuery.sizeOf(context).width;
+        final Size screenSize = MediaQuery.sizeOf(context);
         final double constrainedHeight =
-            hasFiniteHeight ? constraints.maxHeight : fallbackHeight;
+            hasFiniteHeight ? constraints.maxHeight : screenSize.height;
         final double constrainedWidth =
-            hasFiniteWidth ? constraints.maxWidth : fallbackWidth;
+            hasFiniteWidth ? constraints.maxWidth : screenSize.width;
+
+        final Widget analysisContent = _buildAnalysisContent(
+          constraints: constraints,
+          hasFiniteHeight: hasFiniteHeight,
+        );
+
+        if (hasFiniteHeight) {
+          return SizedBox(
+            width: constrainedWidth,
+            height: constrainedHeight,
+            child: CustomScrollView(
+              physics: const ClampingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constrainedHeight,
+                        minWidth: constrainedWidth,
+                      ),
+                      child: analysisContent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
         return SizedBox(
           width: constrainedWidth,
-          height: constrainedHeight,
-          child: CustomScrollView(
+          child: SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constrainedHeight,
-                      minWidth: constrainedWidth,
-                    ),
-                    child: Obx(() {
-                      final matches = controller.serialMatches;
-                      final isSearching = controller.isSearchingSerial.value;
-                      final isLoadingRecord = controller.isLoadingRecord.value;
-                      final record = controller.selectedRecord.value;
-                      final tests = controller.recordTestResults;
-                      final selectedTest =
-                          controller.selectedTestResult.value;
-                      final selectedSerial = controller.selectedSerial.value;
-
-                      final bool isWide = constraints.maxWidth >= 1100;
-                      final EdgeInsets padding = isWide
-                          ? const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 20)
-                          : const EdgeInsets.all(16);
-
-                      final double? availableHeight = hasFiniteHeight
-                          ? math.max(
-                              0, constraints.maxHeight - padding.vertical)
-                          : null;
-
-                      final Widget content = isWide
-                          ? _buildWideLayout(
-                              maxHeight: availableHeight,
-                              matches: matches,
-                              isSearching: isSearching,
-                              isLoadingRecord: isLoadingRecord,
-                              record: record,
-                              tests: tests,
-                              selectedTest: selectedTest,
-                              selectedSerial: selectedSerial,
-                            )
-                          : _buildStackedLayout(
-                              maxHeight: availableHeight,
-                              matches: matches,
-                              isSearching: isSearching,
-                              isLoadingRecord: isLoadingRecord,
-                              record: record,
-                              tests: tests,
-                              selectedTest: selectedTest,
-                              selectedSerial: selectedSerial,
-                            );
-
-                      return Padding(
-                        padding: padding,
-                        child: content,
-                      );
-                    }),
-                  ),
-                ),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: constrainedWidth),
+                child: analysisContent,
               ),
-            ],
+            ),
           ),
         );
       },
     );
+  }
+
+  Widget _buildAnalysisContent({
+    required BoxConstraints constraints,
+    required bool hasFiniteHeight,
+  }) {
+    return Obx(() {
+      final matches = controller.serialMatches;
+      final isSearching = controller.isSearchingSerial.value;
+      final isLoadingRecord = controller.isLoadingRecord.value;
+      final record = controller.selectedRecord.value;
+      final tests = controller.recordTestResults;
+      final selectedTest = controller.selectedTestResult.value;
+      final selectedSerial = controller.selectedSerial.value;
+
+      final bool isWide = constraints.maxWidth >= 1100;
+      final EdgeInsets padding = isWide
+          ? const EdgeInsets.symmetric(horizontal: 24, vertical: 20)
+          : const EdgeInsets.all(16);
+
+      final double? availableHeight = hasFiniteHeight
+          ? math.max(0, constraints.maxHeight - padding.vertical)
+          : null;
+
+      final Widget content = isWide
+          ? _buildWideLayout(
+              maxHeight: availableHeight,
+              matches: matches,
+              isSearching: isSearching,
+              isLoadingRecord: isLoadingRecord,
+              record: record,
+              tests: tests,
+              selectedTest: selectedTest,
+              selectedSerial: selectedSerial,
+            )
+          : _buildStackedLayout(
+              maxHeight: availableHeight,
+              matches: matches,
+              isSearching: isSearching,
+              isLoadingRecord: isLoadingRecord,
+              record: record,
+              tests: tests,
+              selectedTest: selectedTest,
+              selectedSerial: selectedSerial,
+            );
+
+      return Padding(
+        padding: padding,
+        child: content,
+      );
+    });
   }
 
   Widget _buildWideLayout({
