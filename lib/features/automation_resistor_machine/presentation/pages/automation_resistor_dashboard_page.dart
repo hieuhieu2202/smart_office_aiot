@@ -1212,18 +1212,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
           return SizedBox(
             width: constrainedWidth,
             height: constrainedHeight,
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minWidth: constrainedWidth,
-                  maxWidth: constrainedWidth,
-                  minHeight: constrainedHeight,
-                  maxHeight: constrainedHeight,
-                ),
-                child: analysisContent,
-              ),
-            ),
+            child: analysisContent,
           );
         }
 
