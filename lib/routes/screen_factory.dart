@@ -8,6 +8,7 @@ import 'package:smart_factory/features/te_management/presentation/views/te_manag
 import 'package:smart_factory/features/te_management/presentation/views/te_retest_rate_screen.dart';
 import 'package:smart_factory/features/te_management/presentation/views/te_yield_rate_screen.dart';
 import 'package:smart_factory/features/te_management/presentation/views/te_top10_error_code_screen.dart';
+import 'package:smart_factory/features/nvidia_adapter/station_overview.dart';
 import 'package:smart_factory/screen/home/widget/PCBA_LINE/CLEAN_SENSOR_ES2/pcba_line_dashboard_screen.dart';
 import 'package:smart_factory/screen/home/widget/nvidia_lc_switch/Dashboard/Curing_Room_Monitoring_Screen.dart';
 import 'package:smart_factory/screen/home/controller/cdu_controller.dart';
@@ -104,6 +105,7 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
         controllerTag: 'stencil_monitor_${((project.screenType ?? '').trim()).replaceAll(' ', '_')}',
       ),
   'curing_monitoring_dashboard': (project) => CuringRoomMonitoringScreen(),
+  'station_overview': (project) => StationOverviewPage(),
   'output_tracking': (project) => const OutputTrackingPage(),
   'lcr_machine_dashboard': (project) => const LcrDashboardPage(),
   'output_tracking_switch':
