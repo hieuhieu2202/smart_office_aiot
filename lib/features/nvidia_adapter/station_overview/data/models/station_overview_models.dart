@@ -1,5 +1,43 @@
 import '../../domain/entities/station_overview_entities.dart';
 
+dynamic _valueForKey(Map<String, dynamic> json, String key) {
+  final String normalized = key.toUpperCase();
+  for (final MapEntry<dynamic, dynamic> entry in json.entries) {
+    final dynamic rawKey = entry.key;
+    if (rawKey == null) continue;
+    if (rawKey.toString().toUpperCase() == normalized) {
+      return entry.value;
+    }
+  }
+  return null;
+}
+
+String _stringForKey(Map<String, dynamic> json, String key) {
+  final dynamic value = _valueForKey(json, key);
+  if (value == null) return '';
+  return value.toString();
+}
+
+List<dynamic> _listForKey(Map<String, dynamic> json, String key) {
+  final dynamic value = _valueForKey(json, key);
+  if (value is List) {
+    return value;
+  }
+  if (value == null) {
+    return const <dynamic>[];
+  }
+  return <dynamic>[value];
+}
+
+int _intForKey(Map<String, dynamic> json, String key) {
+  final dynamic value = _valueForKey(json, key);
+  if (value is num) return value.toInt();
+  if (value is String) {
+    return int.tryParse(value) ?? 0;
+  }
+  return 0;
+}
+
 class StationProductModel extends StationProduct {
   const StationProductModel({
     required super.productName,
@@ -7,17 +45,17 @@ class StationProductModel extends StationProduct {
   });
 
   factory StationProductModel.fromJson(Map<String, dynamic> json) {
+    final Iterable<dynamic> rawModels = _listForKey(json, 'MODEL_NAMES');
     final List<String> models = <String>[];
-    final dynamic rawModels = json['MODEL_NAMES'];
-    if (rawModels is List) {
-      for (final dynamic item in rawModels) {
-        if (item != null) {
-          models.add(item.toString());
-        }
+    for (final dynamic item in rawModels) {
+      if (item == null) continue;
+      final String value = item.toString().trim();
+      if (value.isNotEmpty) {
+        models.add(value.toUpperCase());
       }
     }
     return StationProductModel(
-      productName: json['PRODUCT_NAME']?.toString() ?? '',
+      productName: _stringForKey(json, 'PRODUCT_NAME').trim().toUpperCase(),
       modelNames: models,
     );
   }
@@ -30,7 +68,7 @@ class StationOverviewDataModel extends StationOverviewData {
   });
 
   factory StationOverviewDataModel.fromJson(Map<String, dynamic> json) {
-    final dynamic groupsJson = json['GROUP_DATAS'];
+    final dynamic groupsJson = _valueForKey(json, 'GROUP_DATAS');
     final List<StationGroupData> groups = <StationGroupData>[];
     if (groupsJson is List) {
       for (final dynamic item in groupsJson) {
@@ -40,7 +78,7 @@ class StationOverviewDataModel extends StationOverviewData {
       }
     }
     return StationOverviewDataModel(
-      productName: json['PRODUCT_NAME']?.toString() ?? '',
+      productName: _stringForKey(json, 'PRODUCT_NAME').trim().toUpperCase(),
       groupDatas: groups,
     );
   }
@@ -53,7 +91,7 @@ class StationGroupDataModel extends StationGroupData {
   });
 
   factory StationGroupDataModel.fromJson(Map<String, dynamic> json) {
-    final dynamic stationsJson = json['STATION_DATAS'];
+    final dynamic stationsJson = _valueForKey(json, 'STATION_DATAS');
     final List<StationData> stations = <StationData>[];
     if (stationsJson is List) {
       for (final dynamic item in stationsJson) {
@@ -63,7 +101,7 @@ class StationGroupDataModel extends StationGroupData {
       }
     }
     return StationGroupDataModel(
-      groupName: json['GROUP_NAME']?.toString() ?? '',
+      groupName: _stringForKey(json, 'GROUP_NAME').trim().toUpperCase(),
       stationDatas: stations,
     );
   }
@@ -81,23 +119,14 @@ class StationDataModel extends StationData {
   });
 
   factory StationDataModel.fromJson(Map<String, dynamic> json) {
-    int _intValue(String key) {
-      final dynamic value = json[key];
-      if (value is num) return value.toInt();
-      if (value is String) {
-        return int.tryParse(value) ?? 0;
-      }
-      return 0;
-    }
-
     return StationDataModel(
-      stationName: json['STATION_NAME']?.toString() ?? '',
-      input: _intValue('INPUT'),
-      firstFail: _intValue('FIRST_FAIL'),
-      repairQty: _intValue('REPAIR_QTY'),
-      firstPass: _intValue('FIRST_PASS'),
-      pass: _intValue('PASS'),
-      secondPass: _intValue('SECOND_PASS'),
+      stationName: _stringForKey(json, 'STATION_NAME').trim().toUpperCase(),
+      input: _intForKey(json, 'INPUT'),
+      firstFail: _intForKey(json, 'FIRST_FAIL'),
+      repairQty: _intForKey(json, 'REPAIR_QTY'),
+      firstPass: _intForKey(json, 'FIRST_PASS'),
+      pass: _intForKey(json, 'PASS'),
+      secondPass: _intForKey(json, 'SECOND_PASS'),
     );
   }
 }
@@ -110,18 +139,10 @@ class StationAnalysisDataModel extends StationAnalysisData {
   });
 
   factory StationAnalysisDataModel.fromJson(Map<String, dynamic> json) {
-    final dynamic fail = json['FAIL_COUNT'];
-    int parsedFail = 0;
-    if (fail is num) {
-      parsedFail = fail.toInt();
-    } else if (fail is String) {
-      parsedFail = int.tryParse(fail) ?? 0;
-    }
-
     return StationAnalysisDataModel(
-      classDate: json['CLASS_DATE']?.toString() ?? '',
-      errorCode: json['ERROR_CODE']?.toString() ?? '',
-      failCount: parsedFail,
+      classDate: _stringForKey(json, 'CLASS_DATE'),
+      errorCode: _stringForKey(json, 'ERROR_CODE').trim().toUpperCase(),
+      failCount: _intForKey(json, 'FAIL_COUNT'),
     );
   }
 }
@@ -151,17 +172,17 @@ class StationDetailDataModel extends StationDetailData {
     }
 
     return StationDetailDataModel(
-      empNo: json['EMP_NO']?.toString() ?? '',
-      moNumber: json['MO_NUMBER']?.toString() ?? '',
-      modelName: json['MODEL_NAME']?.toString() ?? '',
-      serialNumber: json['SERIAL_NUMBER']?.toString() ?? '',
-      lineName: json['LINE_NAME']?.toString() ?? '',
-      groupName: json['GROUP_NAME']?.toString() ?? '',
-      stationName: json['STATION_NAME']?.toString() ?? '',
-      errorCode: json['ERROR_CODE']?.toString() ?? '',
-      description: json['DESCRIPTION']?.toString() ?? '',
-      cycleTime: json['CYCLE_TIME']?.toString() ?? '',
-      inStationTime: parseDate(json['IN_STATION_TIME']),
+      empNo: _stringForKey(json, 'EMP_NO').trim().toUpperCase(),
+      moNumber: _stringForKey(json, 'MO_NUMBER').trim().toUpperCase(),
+      modelName: _stringForKey(json, 'MODEL_NAME').trim().toUpperCase(),
+      serialNumber: _stringForKey(json, 'SERIAL_NUMBER').trim().toUpperCase(),
+      lineName: _stringForKey(json, 'LINE_NAME').trim().toUpperCase(),
+      groupName: _stringForKey(json, 'GROUP_NAME').trim().toUpperCase(),
+      stationName: _stringForKey(json, 'STATION_NAME').trim().toUpperCase(),
+      errorCode: _stringForKey(json, 'ERROR_CODE').trim().toUpperCase(),
+      description: _stringForKey(json, 'DESCRIPTION'),
+      cycleTime: _stringForKey(json, 'CYCLE_TIME'),
+      inStationTime: parseDate(_valueForKey(json, 'IN_STATION_TIME')),
     );
   }
 }

@@ -110,11 +110,10 @@ class StationOverviewController extends GetxController {
     try {
       final list = await _getStationProducts(selectedModelSerial.value);
       products.assignAll(list);
-      models.assignAll(list.expand((item) => item.modelNames).toSet().toList()
-        ..sort());
       selectedProduct.value = 'ALL';
       selectedModel.value = 'ALL';
       selectedGroup.value = 'ALL';
+      _updateModelOptions('ALL');
     } catch (e) {
       error.value = e.toString();
     }
@@ -233,6 +232,9 @@ class StationOverviewController extends GetxController {
   void changeProduct(String value) {
     if (value == selectedProduct.value) return;
     selectedProduct.value = value;
+    selectedModel.value = 'ALL';
+    selectedGroup.value = 'ALL';
+    _updateModelOptions(value);
     highlightedStation.value = null;
     unawaited(loadOverview());
   }
@@ -240,6 +242,7 @@ class StationOverviewController extends GetxController {
   void changeModel(String value) {
     if (value == selectedModel.value) return;
     selectedModel.value = value;
+    selectedGroup.value = 'ALL';
     highlightedStation.value = null;
     unawaited(loadOverview());
   }
@@ -292,6 +295,35 @@ class StationOverviewController extends GetxController {
       detailData: _details,
       rateConfig: rateConfig,
     );
+  }
+
+  void _updateModelOptions(String product) {
+    if (product == 'ALL') {
+      final Set<String> values = <String>{};
+      for (final StationProduct item in products) {
+        for (final String model in item.modelNames) {
+          final String trimmed = model.trim();
+          if (trimmed.isNotEmpty) {
+            values.add(trimmed);
+          }
+        }
+      }
+      final List<String> allModels = values.toList()..sort();
+      models.assignAll(allModels);
+      return;
+    }
+
+    for (final StationProduct item in products) {
+      if (item.productName == product) {
+        final List<String> filtered = List<String>.from(item.modelNames)
+          ..removeWhere((element) => element.trim().isEmpty)
+          ..sort();
+        models.assignAll(filtered);
+        return;
+      }
+    }
+
+    models.clear();
   }
 
   void _scheduleAutoRefresh() {
