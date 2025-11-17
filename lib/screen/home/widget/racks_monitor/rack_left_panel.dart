@@ -233,22 +233,29 @@ class _LegendItem extends StatelessWidget {
 
 /// =================== PANEL: LEGEND + LIST RACK ===================
 class RackLeftPanel extends StatelessWidget {
-  const RackLeftPanel({super.key, required this.racks});
+  const RackLeftPanel({
+    super.key,
+    required this.racks,
+    this.maxWidthHint,
+  });
 
   final List<RackDetail> racks;
+  final double? maxWidthHint;
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final screenW = screenSize.width;
-    final useGrid = screenW >= 900;
-    final crossAxisCount = screenW >= 1650
-        ? 4
-        : screenW >= 1300
-            ? 3
-            : screenW >= 1050
-                ? 2
-                : 1;
+    final availableWidth = maxWidthHint ?? screenSize.width;
+    final useGrid = availableWidth >= 900;
+    final crossAxisCount = availableWidth >= 1500
+        ? 5
+        : availableWidth >= 1250
+            ? 4
+            : availableWidth >= 1050
+                ? 3
+                : availableWidth >= 900
+                    ? 2
+                    : 1;
 
     if (!useGrid || crossAxisCount == 1) {
       // Giữ nguyên layout cho điện thoại / màn hình hẹp

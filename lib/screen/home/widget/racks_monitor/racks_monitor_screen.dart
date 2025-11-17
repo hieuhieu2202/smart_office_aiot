@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -142,6 +144,9 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
 
         const sidePanelWidth = 360.0;
         const sidePanelGap = 20.0;
+        final leftViewportWidth = constraints.maxWidth >= 1180
+            ? math.max(0.0, constraints.maxWidth - sidePanelWidth - sidePanelGap)
+            : constraints.maxWidth;
 
         final filter = _activeFilter;
         late final List<RackDetail> selectedRacks;
@@ -211,7 +216,10 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
                       ),
                     )
                   else ...[
-                    RackLeftPanel(racks: selectedRacks),
+                    RackLeftPanel(
+                      racks: selectedRacks,
+                      maxWidthHint: leftViewportWidth,
+                    ),
                     const SliverToBoxAdapter(child: SizedBox(height: 24)),
                   ],
                 ];
