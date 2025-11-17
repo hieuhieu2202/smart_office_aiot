@@ -33,29 +33,7 @@ class ProjectListPage extends StatelessWidget {
           final sub = project.subProjects[idx];
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            child: ListTile(
-              leading: Icon(sub.icon ?? Icons.widgets),
-              title: Text(sub.name),
-              subtitle: Text("Trạng thái: ${sub.status}"),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (sub.screenType?.trim().isNotEmpty == true)
-                    IconButton(
-                      icon: const Icon(Icons.open_in_new_rounded),
-                      tooltip: 'Mở trực tiếp màn hình này',
-                      onPressed: () {
-                        final key = (sub.screenType ?? '').trim();
-                        debugPrint(
-                          '>> TAP ICON "${sub.name}" -> mở trực tiếp màn hình mapped: "$key"',
-                        );
-                        Get.to(() => buildProjectScreen(sub));
-                      },
-                    ),
-                  if (sub.subProjects.isNotEmpty)
-                    const Icon(Icons.chevron_right),
-                ],
-              ),
+            child: InkWell(
               onTap: () {
                 final key = (sub.screenType ?? '').trim();
                 final hasChildren = sub.subProjects.isNotEmpty;
@@ -101,6 +79,30 @@ class ProjectListPage extends StatelessWidget {
                 );
                 Get.to(() => ProjectListPage(project: sub));
               },
+              child: ListTile(
+                leading: Icon(sub.icon ?? Icons.widgets),
+                title: Text(sub.name),
+                subtitle: Text("Trạng thái: ${sub.status}"),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (sub.screenType?.trim().isNotEmpty == true)
+                      IconButton(
+                        icon: const Icon(Icons.open_in_new_rounded),
+                        tooltip: 'Mở trực tiếp màn hình này',
+                        onPressed: () {
+                          final key = (sub.screenType ?? '').trim();
+                          debugPrint(
+                            '>> TAP ICON "${sub.name}" -> mở trực tiếp màn hình mapped: "$key"',
+                          );
+                          Get.to(() => buildProjectScreen(sub));
+                        },
+                      ),
+                    if (sub.subProjects.isNotEmpty)
+                      const Icon(Icons.chevron_right),
+                  ],
+                ),
+              ),
             ),
           );
         },
