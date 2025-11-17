@@ -111,8 +111,9 @@ class RackInsightsColumn extends StatelessWidget {
         Widget chartTile({
           required Widget child,
           double? fixedHeight,
+          bool allowPairing = true,
         }) {
-          final useHalfWidth = allowGrid || canPairCharts;
+          final useHalfWidth = allowPairing && (allowGrid || canPairCharts);
           final width = useHalfWidth ? halfWidth : availableWidth;
           final Widget cardChild = fixedHeight != null
               ? SizedBox(height: fixedHeight, child: child)
@@ -150,6 +151,7 @@ class RackInsightsColumn extends StatelessWidget {
                   child: PassByModelBar(controller: controller),
                 ),
                 chartTile(
+                  allowPairing: false,
                   fixedHeight: chartTileHeight,
                   child: SlotStatusDonut(
                     controller: controller,
@@ -157,6 +159,7 @@ class RackInsightsColumn extends StatelessWidget {
                   ),
                 ),
                 chartTile(
+                  allowPairing: false,
                   fixedHeight: chartTileHeight,
                   child: YieldRateGauge(
                     controller: controller,
