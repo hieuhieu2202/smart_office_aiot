@@ -76,6 +76,20 @@ Map<String, _Agg> _mergeNearCodes(
 
 // ======================= Controller =======================
 class GroupMonitorController extends GetxController {
+  final String? initialFactory;
+  final String? initialFloor;
+  final String? initialRoom;
+  final String? initialGroup;
+  final String? initialModel;
+
+  GroupMonitorController({
+    this.initialFactory,
+    this.initialFloor,
+    this.initialRoom,
+    this.initialGroup,
+    this.initialModel,
+  });
+
   // ========= Filters =========
   List<LocationEntry> _allLocs = const <LocationEntry>[];
 
@@ -106,6 +120,7 @@ class GroupMonitorController extends GetxController {
   Future<void> onInit() async {
     super.onInit();
     await _loadFilterSources();
+    _applyInitialSelections();
     await refresh();
 
     debounce(intervalSec, (_) => _restartTimer());
@@ -151,6 +166,36 @@ class GroupMonitorController extends GetxController {
         (_) => refresh(),
       );
     }
+  }
+
+  void _applyInitialSelections() {
+    final targetFactory = initialFactory?.trim();
+    if (targetFactory != null && factories.contains(targetFactory)) {
+      selFactory.value = targetFactory;
+      _rebuildDependentOptions();
+    }
+
+    final targetFloor = initialFloor?.trim();
+    if (targetFloor != null && floors.contains(targetFloor)) {
+      selFloor.value = targetFloor;
+    }
+
+    final targetRoom = initialRoom?.trim();
+    if (targetRoom != null && rooms.contains(targetRoom)) {
+      selRoom.value = targetRoom;
+    }
+
+    final targetGroup = initialGroup?.trim();
+    if (targetGroup != null && groups.contains(targetGroup)) {
+      selGroup.value = targetGroup;
+    }
+
+    final targetModel = initialModel?.trim();
+    if (targetModel != null && models.contains(targetModel)) {
+      selModel.value = targetModel;
+    }
+
+    _rebuildDependentOptions();
   }
 
   // ========= Filter options =========

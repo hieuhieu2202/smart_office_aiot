@@ -266,6 +266,68 @@ List<AppProject> appProjects = [
         status: "Ready",
         icon: Icons.dns,
         screenType: "racks_monitor",
+        subProjects: [
+          AppProject(
+            name: "F16",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.apartment,
+            screenType: "racks_monitor_f16",
+            subProjects: [
+              AppProject(
+                name: "CTO",
+                progress: 1.0,
+                status: "Ready",
+                icon: Icons.precision_manufacturing,
+                screenType: "racks_monitor_f16_cto",
+              ),
+              AppProject(
+                name: "FT",
+                progress: 1.0,
+                status: "Ready",
+                icon: Icons.factory,
+                screenType: "racks_monitor_f16_ft",
+              ),
+              AppProject(
+                name: "J_TAG",
+                progress: 1.0,
+                status: "Ready",
+                icon: Icons.tag,
+                screenType: "racks_monitor_f16_jtag",
+              ),
+            ],
+          ),
+          AppProject(
+            name: "F17",
+            progress: 1.0,
+            status: "Ready",
+            icon: Icons.apartment,
+            screenType: "racks_monitor_f17",
+            subProjects: [
+              AppProject(
+                name: "CTO",
+                progress: 1.0,
+                status: "Ready",
+                icon: Icons.precision_manufacturing,
+                screenType: "racks_monitor_f17_cto",
+              ),
+              AppProject(
+                name: "FT",
+                progress: 1.0,
+                status: "Ready",
+                icon: Icons.factory,
+                screenType: "racks_monitor_f17_ft",
+              ),
+              AppProject(
+                name: "J_TAG",
+                progress: 1.0,
+                status: "Ready",
+                icon: Icons.tag,
+                screenType: "racks_monitor_f17_jtag",
+              ),
+            ],
+          ),
+        ],
       ),
       AppProject(
         name: "YEILD RATE REPORT (SWITCH)",

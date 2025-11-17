@@ -26,6 +26,44 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
   'pth_dashboard': (project) => AOIVIDashboardScreen(),
   'resistor_analysis': (project) => AutomationResistorDashboardPage(),
   'racks_monitor': (project) => GroupMonitorScreen(),
+  'racks_monitor_f16': (project) => const GroupMonitorScreen(
+        initialFactory: 'F16',
+        initialFloor: '3F',
+      ),
+  'racks_monitor_f16_cto': (project) => const GroupMonitorScreen(
+        initialFactory: 'F16',
+        initialFloor: '3F',
+        initialGroup: 'CTO',
+      ),
+  'racks_monitor_f16_ft': (project) => const GroupMonitorScreen(
+        initialFactory: 'F16',
+        initialFloor: '3F',
+        initialGroup: 'FT',
+      ),
+  'racks_monitor_f16_jtag': (project) => const GroupMonitorScreen(
+        initialFactory: 'F16',
+        initialFloor: '3F',
+        initialGroup: 'J_TAG',
+      ),
+  'racks_monitor_f17': (project) => const GroupMonitorScreen(
+        initialFactory: 'F17',
+        initialFloor: '3F',
+      ),
+  'racks_monitor_f17_cto': (project) => const GroupMonitorScreen(
+        initialFactory: 'F17',
+        initialFloor: '3F',
+        initialGroup: 'CTO',
+      ),
+  'racks_monitor_f17_ft': (project) => const GroupMonitorScreen(
+        initialFactory: 'F17',
+        initialFloor: '3F',
+        initialGroup: 'FT',
+      ),
+  'racks_monitor_f17_jtag': (project) => const GroupMonitorScreen(
+        initialFactory: 'F17',
+        initialFloor: '3F',
+        initialGroup: 'J_TAG',
+      ),
   'yield_report': (project) => YieldReportScreen(
         title: project.name,
         controllerTag: 'yield_report_all',

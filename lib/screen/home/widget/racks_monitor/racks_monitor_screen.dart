@@ -13,7 +13,22 @@ import 'rack_monitor_states.dart';
 import 'rack_partition.dart';
 
 class GroupMonitorScreen extends StatefulWidget {
-  const GroupMonitorScreen({super.key});
+  final String? initialFactory;
+  final String? initialFloor;
+  final String? initialRoom;
+  final String? initialGroup;
+  final String? initialModel;
+  final String? controllerTag;
+
+  const GroupMonitorScreen({
+    super.key,
+    this.initialFactory,
+    this.initialFloor,
+    this.initialRoom,
+    this.initialGroup,
+    this.initialModel,
+    this.controllerTag,
+  });
 
   @override
   State<GroupMonitorScreen> createState() => _GroupMonitorScreenState();
@@ -23,11 +38,33 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
     with SingleTickerProviderStateMixin {
   late final GroupMonitorController controller;
   late final TabController _tabController;
+  late final String _tag;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(GroupMonitorController());
+    _tag = widget.controllerTag ??
+        [
+          'racks_monitor',
+          widget.initialFactory ?? 'any',
+          widget.initialFloor ?? 'any',
+          widget.initialRoom ?? 'any',
+          widget.initialGroup ?? 'any',
+          widget.initialModel ?? 'any',
+        ].join('_');
+    if (Get.isRegistered<GroupMonitorController>(tag: _tag)) {
+      Get.delete<GroupMonitorController>(tag: _tag);
+    }
+    controller = Get.put(
+      GroupMonitorController(
+        initialFactory: widget.initialFactory,
+        initialFloor: widget.initialFloor,
+        initialRoom: widget.initialRoom,
+        initialGroup: widget.initialGroup,
+        initialModel: widget.initialModel,
+      ),
+      tag: _tag,
+    );
     _tabController = TabController(length: RackListFilter.values.length, vsync: this)
       ..addListener(_handleTabChange);
   }
@@ -37,6 +74,9 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
     _tabController
       ..removeListener(_handleTabChange)
       ..dispose();
+    if (Get.isRegistered<GroupMonitorController>(tag: _tag)) {
+      Get.delete<GroupMonitorController>(tag: _tag);
+    }
     super.dispose();
   }
 
