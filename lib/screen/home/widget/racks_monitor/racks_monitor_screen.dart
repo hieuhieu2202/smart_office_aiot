@@ -95,6 +95,7 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: Obx(() {
           final f = controller.selFactory.value;
           final fl = controller.selFloor.value;
@@ -107,7 +108,37 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
             if (g.isNotEmpty && g != 'ALL') g,
             if (m != 'ALL') m,
           ];
-          return Text(parts.isEmpty ? 'Rack Monitor' : parts.join('  ·  '));
+          final text = parts.isEmpty
+              ? 'RACK MONITOR'
+              : '${parts.join('  ·  ')}  RACK MONITOR';
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1D5DB1), Color(0xFF0E86D4)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              text.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.cyanAccent.shade100,
+                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          );
         }),
         actions: [
           RackFilterPanel(controller: controller),
