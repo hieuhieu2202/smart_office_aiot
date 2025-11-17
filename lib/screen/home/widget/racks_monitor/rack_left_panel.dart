@@ -239,31 +239,61 @@ class RackLeftPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenH = MediaQuery.of(context).size.height;
+    final screenSize = MediaQuery.of(context).size;
+    final screenH = screenSize.height;
+    final screenW = screenSize.width;
+
     final itemH = (screenH * 0.3).clamp(220.0, 320.0);
+    final useGrid = screenW >= 900;
+    final crossAxisCount = screenW >= 1600
+        ? 3
+        : screenW >= 1200
+            ? 2
+            : 1;
 
-    // Danh sách child: khoảng cách mở đầu + từng Rack + khoảng cách
-    final children = <Widget>[
-      const SizedBox(height: 8),
-    ];
+    if (!useGrid || crossAxisCount == 1) {
+      // Giữ nguyên layout cho điện thoại / màn hình hẹp
+      final children = <Widget>[
+        const SizedBox(height: 8),
+      ];
 
-    for (int i = 0; i < racks.length; i++) {
-      children.add(
-        SizedBox(
-          height: itemH,
-          width: double.infinity,
-          child: _RackCard(rack: racks[i]),
+      for (int i = 0; i < racks.length; i++) {
+        children.add(
+          SizedBox(
+            height: itemH,
+            width: double.infinity,
+            child: _RackCard(rack: racks[i]),
+          ),
+        );
+        if (i != racks.length - 1) {
+          children.add(const SizedBox(height: 12));
+        }
+      }
+
+      return SliverPadding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        sliver: SliverList(
+          delegate: SliverChildListDelegate(children),
         ),
       );
-      if (i != racks.length - 1) {
-        children.add(const SizedBox(height: 12));
-      }
     }
+
+    // Layout lưới cho web/tablet: card nhỏ gọn, đa cột
+    final gridItemHeight = math.min(itemH, 260.0);
 
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      sliver: SliverList(
-        delegate: SliverChildListDelegate(children),
+      sliver: SliverGrid(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => _RackCard(rack: racks[index]),
+          childCount: racks.length,
+        ),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          mainAxisExtent: gridItemHeight,
+        ),
       ),
     );
   }
