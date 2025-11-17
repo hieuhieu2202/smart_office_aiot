@@ -512,6 +512,9 @@ class _Strip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final yrColor = _yrColor(yr);
+    final yrBadgeFg = yrColor.computeLuminance() > 0.62 ? Colors.black : Colors.white;
+    final yrBadgeBg = yrColor.withOpacity(0.22);
 
     if (offline || !active) {
       return Container(
@@ -535,11 +538,7 @@ class _Strip extends StatelessWidget {
                 ),
               ),
             ),
-            _yrBadge(
-              'Y.R | ${yr.toStringAsFixed(0)} %',
-              color: _RackColors.offText(isDark),
-              bg: Colors.black12,
-            ),
+            _yrBadge('Y.R | ${yr.toStringAsFixed(0)} %', color: yrBadgeFg, bg: yrBadgeBg),
           ],
         ),
       );
@@ -580,11 +579,7 @@ class _Strip extends StatelessWidget {
                   ),
                 ),
               ),
-              _yrBadge(
-                'Y.R | ${yr.toStringAsFixed(0)} %',
-                color: Colors.white,
-                bg: Colors.white24,
-              ),
+              _yrBadge('Y.R | ${yr.toStringAsFixed(0)} %', color: yrBadgeFg, bg: yrBadgeBg),
             ],
           ),
         );
@@ -608,6 +603,11 @@ class _Strip extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _yrColor(double yr) {
+    final normalized = (yr / 100).clamp(0.0, 1.0);
+    return Color.lerp(Colors.red, Colors.green, normalized) ?? Colors.green;
   }
 }
 
