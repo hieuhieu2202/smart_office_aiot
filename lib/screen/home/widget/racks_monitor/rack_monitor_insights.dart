@@ -190,105 +190,123 @@ class _RackPopulationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final onlineRatio = total == 0 ? 0.0 : online / total;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final theme = Theme.of(context);
+        final textTheme = theme.textTheme;
+        final isDark = theme.brightness == Brightness.dark;
+        final onlineRatio = total == 0 ? 0.0 : online / total;
 
-    final highlightOnline = activeFilter != RackListFilter.offline;
-    final highlightOffline = activeFilter != RackListFilter.online;
+        final highlightOnline = activeFilter != RackListFilter.offline;
+        final highlightOffline = activeFilter != RackListFilter.online;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? const [Color(0xFF0F2639), Color(0xFF0A1B2A)]
-              : const [Color(0xFFF7FAFF), Color(0xFFE8F1FF)],
-        ),
-        border: Border.all(
-          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.35)
-                : Colors.blueGrey.withOpacity(0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Rack availability',
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
+        final double maxCardWidth = constraints.maxWidth > 520
+            ? 440
+            : constraints.maxWidth;
+
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: maxCardWidth,
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            total == 0
-                ? 'No racks detected for this filter.'
-                : 'Total racks: $total',
-            style: textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.65),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _AvailabilityStat(
-                  label: 'Online',
-                  count: online,
-                  accent: const Color(0xFF20C25D),
-                  highlight: highlightOnline,
-                  icon: Icons.cloud_done_rounded,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? const [Color(0xFF0F2639), Color(0xFF0A1B2A)]
+                      : const [Color(0xFFF7FAFF), Color(0xFFE8F1FF)],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _AvailabilityStat(
-                  label: 'Offline',
-                  count: offline,
-                  accent: const Color(0xFFE53935),
-                  highlight: highlightOffline,
-                  icon: Icons.cloud_off_rounded,
+                border: Border.all(
+                  color:
+                      isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withOpacity(0.28)
+                        : Colors.blueGrey.withOpacity(0.1),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 6,
-              value: onlineRatio,
-              backgroundColor:
-                  theme.colorScheme.onSurface.withOpacity(
-                isDark ? 0.15 : 0.08,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Rack availability',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    total == 0
+                        ? 'No racks detected for this filter.'
+                        : 'Total racks: $total',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.65),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _AvailabilityStat(
+                          label: 'Online',
+                          count: online,
+                          accent: const Color(0xFF20C25D),
+                          highlight: highlightOnline,
+                          icon: Icons.cloud_done_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _AvailabilityStat(
+                          label: 'Offline',
+                          count: offline,
+                          accent: const Color(0xFFE53935),
+                          highlight: highlightOffline,
+                          icon: Icons.cloud_off_rounded,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      minHeight: 5,
+                      value: onlineRatio,
+                      backgroundColor:
+                          theme.colorScheme.onSurface.withOpacity(
+                        isDark ? 0.15 : 0.08,
+                      ),
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(Color(0xFF20C25D)),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    total == 0
+                        ? 'Adjust the filters to view rack connectivity.'
+                        : '${(onlineRatio * 100).toStringAsFixed(0)}% of racks are online',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.65),
+                    ),
+                  ),
+                ],
               ),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Color(0xFF20C25D)),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            total == 0
-                ? 'Adjust the filters to view rack connectivity.'
-                : '${(onlineRatio * 100).toStringAsFixed(0)}% of racks are online',
-            style: textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.65),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -323,7 +341,7 @@ class _AvailabilityStat extends StatelessWidget {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: accent.withOpacity(highlight ? 0.12 : 0.04),
         borderRadius: BorderRadius.circular(16),
@@ -331,8 +349,8 @@ class _AvailabilityStat extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 24, color: foreground),
-          const SizedBox(width: 12),
+          Icon(icon, size: 22, color: foreground),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
