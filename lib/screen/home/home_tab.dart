@@ -850,17 +850,47 @@ class _HomeTabState extends State<HomeTab> {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          if (sub.subProjects.isNotEmpty) {
+          final key = (sub.screenType ?? '').trim();
+          final hasChildren = sub.subProjects.isNotEmpty;
+          final preferChildren = hasChildren &&
+              key.startsWith('racks_monitor');
+
+          if (preferChildren) {
+            debugPrint(
+              '>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})',
+            );
             Get.to(
               () => ProjectListPage(
                 project: sub,
               ),
             );
-          } else {
+            return;
+          }
+
+          if (key.isNotEmpty) {
+            debugPrint('>> TAP "${sub.name}" -> mở màn hình mapped: "$key"');
             Get.to(
               () => buildProjectScreen(sub),
             );
+            return;
           }
+
+          if (hasChildren) {
+            debugPrint(
+              '>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})',
+            );
+            Get.to(
+              () => ProjectListPage(
+                project: sub,
+              ),
+            );
+            return;
+          }
+
+          debugPrint('>> TAP "${sub.name}" -> không mapping, không có children');
+          Get.to(
+            () => buildProjectScreen(sub),
+          );
         },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -904,8 +934,8 @@ class _HomeTabState extends State<HomeTab> {
                 textAlign: TextAlign.center,
               ),
             ],
-          ],
-        ),
+        ],
+      ),
       ),
     );
   }
