@@ -43,12 +43,6 @@ class ProjectListPage extends StatelessWidget {
                 final key = (sub.screenType ?? '').trim();
                 final hasChildren = sub.subProjects.isNotEmpty;
 
-                if (key.isNotEmpty) {
-                  debugPrint('>> TAP "${sub.name}" -> mở màn hình mapped: "$key"');
-                  Get.to(() => buildProjectScreen(sub));
-                  return;
-                }
-
                 if (hasChildren) {
                   debugPrint(
                     '>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})',
@@ -57,10 +51,25 @@ class ProjectListPage extends StatelessWidget {
                   return;
                 }
 
+                if (key.isNotEmpty) {
+                  debugPrint('>> TAP "${sub.name}" -> mở màn hình mapped: "$key"');
+                  Get.to(() => buildProjectScreen(sub));
+                  return;
+                }
+
                 debugPrint('>> TAP "${sub.name}" -> mở màn hình/chi tiết cuối');
                 Get.to(() => buildProjectScreen(sub));
               },
               onLongPress: () {
+                final key = (sub.screenType ?? '').trim();
+                if (key.isNotEmpty) {
+                  debugPrint(
+                    '>> LONG PRESS "${sub.name}" -> mở trực tiếp màn hình mapped: "$key"',
+                  );
+                  Get.to(() => buildProjectScreen(sub));
+                  return;
+                }
+
                 if (sub.subProjects.isEmpty) return;
                 debugPrint(
                   '>> LONG PRESS "${sub.name}" -> mở danh sách con (${sub.subProjects.length})',
