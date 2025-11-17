@@ -43,19 +43,24 @@ class ProjectListPage extends StatelessWidget {
               onTap: () {
                 final key = (sub.screenType ?? '').trim();
                 final builder = screenBuilderMap[key];
-                // 1. Nếu có mapping -> mở màn hình ngay
+
+                // Ưu tiên hiển thị danh sách con nếu node có subProjects
+                if (sub.subProjects.isNotEmpty) {
+                  debugPrint(
+                    '>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})',
+                  );
+                  Get.to(() => ProjectListPage(project: sub));
+                  return;
+                }
+
+                // Nếu không có children nhưng có mapping -> mở màn hình được chỉ định
                 if (builder != null) {
                   debugPrint('>> TAP "${sub.name}" -> mở màn hình mapped: "$key"');
                   Get.to(() => builder(sub));
                   return;
                 }
-                // 2. Nếu có children -> vào tiếp danh sách
-                if (sub.subProjects.isNotEmpty) {
-                  debugPrint('>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})');
-                  Get.to(() => ProjectListPage(project: sub));
-                  return;
-                }
-                // 3. Không có gì → fallback
+
+                // Fallback nếu không có mapping
                 debugPrint('>> TAP "${sub.name}" -> không mapping, không có children');
                 Get.to(() => ProjectDetailPage(project: sub));
               },
