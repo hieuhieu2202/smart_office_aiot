@@ -55,10 +55,12 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
       appBar: AppBar(
         title: Obx(() {
           final f = controller.selFactory.value;
+          final fl = controller.selFloor.value;
           final g = controller.selGroup.value;
           final m = controller.selModel.value;
           final parts = <String>[
             f,
+            if (fl.isNotEmpty && fl != 'ALL') fl,
             if (controller.selRoom.value != 'ALL') controller.selRoom.value,
             if (g.isNotEmpty && g != 'ALL') g,
             if (m != 'ALL') m,

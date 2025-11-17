@@ -132,6 +132,15 @@ class _RackFilterForm extends StatelessWidget {
                       SizedBox(
                         width: fieldW,
                         child: _DropDownField(
+                          label: 'Floor',
+                          isDark: isDark,
+                          value: controller.selFloor,
+                          items: controller.floors,
+                        ),
+                      ),
+                      SizedBox(
+                        width: fieldW,
+                        child: _DropDownField(
                           label: 'Room',
                           isDark: isDark,
                           value: controller.selRoom,
