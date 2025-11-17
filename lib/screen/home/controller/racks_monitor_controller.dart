@@ -240,7 +240,7 @@ class GroupMonitorController extends GetxController {
     if (!models.contains(selModel.value)) selModel.value = 'ALL';
   }
 
-  Map<String, dynamic> _buildBody({required bool isF17}) {
+  Map<String, dynamic> _buildBody() {
     String? _nv(String s) => s == 'ALL' ? null : s;
 
     void put(
@@ -258,36 +258,22 @@ class GroupMonitorController extends GetxController {
 
     final Map<String, dynamic> body = {};
 
-    if (isF17) {
-      put(body, 'Factory', selFactory.value, ['factory']);
-      put(body, 'Floor', _nv(selFloor.value), ['floor']);
-      put(body, 'Location', _nv(selRoom.value), ['room']);
-      put(body, 'GroupName', _nv(selGroup.value), ['groupName']);
-      final modelValue = _nv(selModel.value);
-      put(
-        body,
-        'ModelSerial',
-        modelValue,
-        ['modelSerial', 'modelName', 'ModelName'],
-      );
-    } else {
-      put(body, 'factory', selFactory.value, ['Factory']);
-      put(body, 'floor', _nv(selFloor.value), ['Floor']);
-      put(body, 'room', _nv(selRoom.value), ['Location']);
-      put(body, 'groupName', _nv(selGroup.value), ['GroupName']);
-      final modelValue = _nv(selModel.value);
-      put(
-        body,
-        'modelSerial',
-        modelValue,
-        ['ModelSerial', 'modelName', 'ModelName'],
-      );
-      body.addAll({
-        'nickName': '',
-        'rangeDateTime': '',
-        'rackNames': <Map<String, dynamic>>[],
-      });
-    }
+    put(body, 'factory', selFactory.value, ['Factory']);
+    put(body, 'floor', _nv(selFloor.value), ['Floor']);
+    put(body, 'room', _nv(selRoom.value), ['Location']);
+    put(body, 'groupName', _nv(selGroup.value), ['GroupName']);
+    final modelValue = _nv(selModel.value);
+    put(
+      body,
+      'modelSerial',
+      modelValue,
+      ['ModelSerial', 'modelName', 'ModelName'],
+    );
+    body.addAll({
+      'nickName': '',
+      'rangeDateTime': '',
+      'rackNames': <Map<String, dynamic>>[],
+    });
 
     return body;
   }
@@ -299,12 +285,8 @@ class GroupMonitorController extends GetxController {
 
       await RackMonitorApi.quickPing();
 
-      final isF17 = selFactory.value.trim().toUpperCase() == 'F17';
-      final tower = isF17 ? Tower.f17 : Tower.f16;
-
-      final res = await RackMonitorApi.getByTower(
-        tower: tower,
-        body: _buildBody(isF17: isF17),
+      final res = await RackMonitorApi.getGroupDataMonitoring(
+        body: _buildBody(),
       );
       data.value = res;
     } catch (e) {

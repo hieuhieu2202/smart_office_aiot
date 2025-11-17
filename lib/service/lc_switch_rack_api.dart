@@ -195,44 +195,14 @@ class RackMonitorApi {
     throw Exception('GetGroupDataMonitoring: invalid payload');
   }
 
-  static Future<GroupDataMonitoring> getGroupDataMonitoring1({
-    Map<String, dynamic>? body,
-  }) async {
-    final uri = Uri.parse('$_base/Monitor/GetGroupDataMonitoring1');
-    CuringApiLog.net(() => '[CuringApi] POST $uri');
-    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body ?? {})}');
-    final res = await HttpHelper().post(
-      uri,
-      headers: _headers(),
-      body: jsonEncode(body ?? {}),
-      timeout: _timeout,
-    );
-    _ensure200(res, 'GetGroupDataMonitoring1');
-    final data = jsonDecode(res.body);
-    if (data is Map<String, dynamic>) return GroupDataMonitoring.fromJson(data);
-    throw Exception('GetGroupDataMonitoring1: invalid payload');
-  }
-
-  static Future<GroupDataMonitoring> getByTower({
-    required Tower tower,
-    Map<String, dynamic>? body,
-  }) {
-    return tower == Tower.f17
-        ? getGroupDataMonitoring1(body: body)
-        : getGroupDataMonitoring(body: body);
-  }
-
   static Future<GroupDataMonitoring> getByFactory({
     required String factory,
     Map<String, dynamic>? body,
   }) {
-    final isF17 = factory.trim().toUpperCase() == 'F17';
-    final merged = {...?body, 'factory': isF17 ? 'F17' : 'F16'};
-    return getByTower(tower: isF17 ? Tower.f17 : Tower.f16, body: merged);
+    final merged = {...?body, 'factory': factory.trim()};
+    return getGroupDataMonitoring(body: merged);
   }
 }
-
-enum Tower { f16, f17 }
 
 void _ensure200(http.Response res, String apiName) {
   if (res.statusCode != 200) {

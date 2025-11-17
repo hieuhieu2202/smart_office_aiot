@@ -260,6 +260,7 @@ class _DropDownField extends StatelessWidget {
                 items
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
+            isExpanded: true,
             onChanged: (v) {
               if (v == null && items.isNotEmpty) {
                 value.value = items.first;
