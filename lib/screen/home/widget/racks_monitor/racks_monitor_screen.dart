@@ -96,6 +96,17 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0C1B2A), Color(0xFF0E3A63), Color(0xFF76B900)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+          ),
+        ),
         title: Obx(() {
           final f = controller.selFactory.value;
           final fl = controller.selFloor.value;
@@ -109,33 +120,23 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
             if (m != 'ALL') m,
           ];
           final text = parts.isEmpty
-              ? 'RACK MONITOR'
-              : '${parts.join('  ·  ')}  RACK MONITOR';
+              ? 'NVIDIA RACK MONITOR'
+              : '${parts.join('  ·  ')}  NVIDIA RACK MONITOR';
 
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1D5DB1), Color(0xFF0E86D4)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ],
+              color: Colors.black.withOpacity(0.25),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.25)),
             ),
             child: Text(
               text.toUpperCase(),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.cyanAccent.shade100,
-                    letterSpacing: 0.5,
-                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w800,
                   ),
             ),
           );
