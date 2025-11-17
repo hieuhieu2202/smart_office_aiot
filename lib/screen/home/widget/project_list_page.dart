@@ -27,46 +27,73 @@ class ProjectListPage extends StatelessWidget {
         title: Text(title ?? project.name),
         backgroundColor: isDark ? Colors.blueGrey : Colors.blue,
       ),
-      body: ListView.builder(
-        itemCount: project.subProjects.length,
-        itemBuilder: (context, idx) {
-          final sub = project.subProjects[idx];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            child: InkWell(
-              onTap: () {
-                final key = (sub.screenType ?? '').trim();
-                final hasChildren = sub.subProjects.isNotEmpty;
-
-                if (hasChildren) {
-                  debugPrint(
-                    '>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})',
-                  );
-                  Get.to(() => ProjectListPage(project: sub));
-                  return;
-                }
-
-                if (key.isNotEmpty) {
-                  debugPrint('>> TAP "${sub.name}" -> mở màn hình mapped: "$key"');
-                  Get.to(() => buildProjectScreen(sub));
-                  return;
-                }
-
-                debugPrint('>> TAP "${sub.name}" -> mở màn hình/chi tiết cuối');
-                Get.to(() => buildProjectScreen(sub));
-              },
-              child: ListTile(
-                leading: Icon(sub.icon ?? Icons.widgets),
-                title: Text(sub.name),
-                subtitle: Text("Trạng thái: ${sub.status}"),
-                trailing:
-                    sub.subProjects.isNotEmpty ? const Icon(Icons.chevron_right) : null,
-              ),
-            ),
-          );
-        },
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        children: _buildProjectTree(
+          context: context,
+          nodes: project.subProjects,
+          depth: 0,
+        ),
       ),
     );
+  }
+
+  List<Widget> _buildProjectTree({
+    required BuildContext context,
+    required List<AppProject> nodes,
+    required int depth,
+  }) {
+    return nodes
+        .map(
+          (node) => _buildProjectNode(
+            context: context,
+            node: node,
+            depth: depth,
+          ),
+        )
+        .toList();
+  }
+
+  Widget _buildProjectNode({
+    required BuildContext context,
+    required AppProject node,
+    required int depth,
+  }) {
+    final hasChildren = node.subProjects.isNotEmpty;
+    final key = node.screenType.trim();
+
+    final card = Card(
+      margin: EdgeInsets.only(left: depth * 12.0, bottom: 10),
+      child: hasChildren
+          ? ExpansionTile(
+              initiallyExpanded: depth == 0,
+              leading: Icon(node.icon ?? Icons.widgets),
+              title: Text(node.name),
+              subtitle: Text("Trạng thái: ${node.status}"),
+              children: _buildProjectTree(
+                context: context,
+                nodes: node.subProjects,
+                depth: depth + 1,
+              ),
+            )
+          : ListTile(
+              leading: Icon(node.icon ?? Icons.widgets),
+              title: Text(node.name),
+              subtitle: Text("Trạng thái: ${node.status}"),
+              onTap: () {
+                if (key.isNotEmpty) {
+                  debugPrint('>> TAP "${node.name}" -> mở màn hình mapped: "$key"');
+                  Get.to(() => buildProjectScreen(node));
+                  return;
+                }
+
+                debugPrint('>> TAP "${node.name}" -> mở màn hình/chi tiết cuối');
+                Get.to(() => buildProjectScreen(node));
+              },
+            ),
+    );
+
+    return card;
   }
 }
 
