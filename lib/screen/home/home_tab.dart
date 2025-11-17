@@ -849,34 +849,34 @@ class _HomeTabState extends State<HomeTab> {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            final key = (sub.screenType ?? '').trim();
-            final hasChildren = sub.subProjects.isNotEmpty;
-            if (hasChildren) {
-              debugPrint(
-                '>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})',
-              );
-              Get.to(
-                () => ProjectListPage(
-                  project: sub,
-                ),
-              );
-              return;
-            }
+        onTap: () {
+          final key = (sub.screenType ?? '').trim();
+          final hasChildren = sub.subProjects.isNotEmpty;
 
-            if (key.isNotEmpty) {
-              debugPrint('>> TAP "${sub.name}" -> mở màn hình mapped: "$key"');
-              Get.to(
-                () => buildProjectScreen(sub),
-              );
-              return;
-            }
+          if (key.isNotEmpty) {
+            debugPrint('>> TAP "${sub.name}" -> mở màn hình mapped: "$key"');
+            Get.to(() => buildProjectScreen(sub));
+            return;
+          }
 
-            debugPrint('>> TAP "${sub.name}" -> không mapping, không có children');
-            Get.to(
-              () => buildProjectScreen(sub),
+          if (hasChildren) {
+            debugPrint(
+              '>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})',
             );
-          },
+            Get.to(() => ProjectListPage(project: sub));
+            return;
+          }
+
+          debugPrint('>> TAP "${sub.name}" -> không mapping, không có children');
+          Get.to(() => buildProjectScreen(sub));
+        },
+        onLongPress: () {
+          if (sub.subProjects.isEmpty) return;
+          debugPrint(
+            '>> LONG PRESS "${sub.name}" -> mở danh sách con (${sub.subProjects.length})',
+          );
+          Get.to(() => ProjectListPage(project: sub));
+        },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

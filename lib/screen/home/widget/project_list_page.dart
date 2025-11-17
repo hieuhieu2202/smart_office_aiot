@@ -40,7 +40,15 @@ class ProjectListPage extends StatelessWidget {
               trailing:
                   sub.subProjects.isNotEmpty ? const Icon(Icons.chevron_right) : null,
               onTap: () {
+                final key = (sub.screenType ?? '').trim();
                 final hasChildren = sub.subProjects.isNotEmpty;
+
+                if (key.isNotEmpty) {
+                  debugPrint('>> TAP "${sub.name}" -> mở màn hình mapped: "$key"');
+                  Get.to(() => buildProjectScreen(sub));
+                  return;
+                }
+
                 if (hasChildren) {
                   debugPrint(
                     '>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})',
@@ -49,9 +57,15 @@ class ProjectListPage extends StatelessWidget {
                   return;
                 }
 
-                /// Luồng node cuối: giao cho screen_factory quyết định mapping
                 debugPrint('>> TAP "${sub.name}" -> mở màn hình/chi tiết cuối');
                 Get.to(() => buildProjectScreen(sub));
+              },
+              onLongPress: () {
+                if (sub.subProjects.isEmpty) return;
+                debugPrint(
+                  '>> LONG PRESS "${sub.name}" -> mở danh sách con (${sub.subProjects.length})',
+                );
+                Get.to(() => ProjectListPage(project: sub));
               },
             ),
           );
