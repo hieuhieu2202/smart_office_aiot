@@ -99,6 +99,9 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
 
         final partition = RackPartition.from(data.rackDetails);
 
+        const sidePanelWidth = 360.0;
+        const sidePanelGap = 20.0;
+
         final filter = _activeFilter;
         late final List<RackDetail> selectedRacks;
         switch (filter) {
@@ -130,7 +133,8 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
                 );
 
                 final headerViewportWidth = wide
-                    ? (constraints.maxWidth - 336).clamp(0.0, constraints.maxWidth)
+                    ? (constraints.maxWidth - sidePanelWidth - sidePanelGap)
+                        .clamp(0.0, constraints.maxWidth)
                     : constraints.maxWidth;
                 final headerHeight = RackPinnedHeader.estimateHeight(
                   context: context,
@@ -186,11 +190,11 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: sidePanelGap),
                       SizedBox(
-                        width: 320,
+                        width: sidePanelWidth,
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
+                          padding: const EdgeInsets.fromLTRB(12, 18, 12, 26),
                           physics: const BouncingScrollPhysics(),
                           child: insights,
                         ),

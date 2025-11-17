@@ -279,7 +279,7 @@ class RackLeftPanel extends StatelessWidget {
     }
 
     // Layout lưới cho web/tablet: card nhỏ gọn, đa cột
-    final gridItemHeight = math.min(itemH, 260.0);
+    final gridItemHeight = math.min(itemH, 240.0);
 
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
