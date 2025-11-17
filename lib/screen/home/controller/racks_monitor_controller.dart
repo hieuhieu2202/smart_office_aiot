@@ -80,15 +80,13 @@ class GroupMonitorController extends GetxController {
   List<LocationEntry> _allLocs = const <LocationEntry>[];
 
   final factories = <String>['F16', 'F17'].obs;
-  final floors = <String>['ALL'].obs;
   final rooms = <String>['ALL'].obs;
-  final groups = <String>['ALL'].obs;
+  final groups = <String>[].obs;
   final models = <String>['ALL'].obs;
 
   final selFactory = 'F16'.obs;
-  final selFloor = '3F'.obs;
   final selRoom = 'ALL'.obs;
-  final selGroup = 'J_TAG'.obs;
+  final selGroup = ''.obs;
   final selModel = 'ALL'.obs;
 
   final showOfflineRack = true.obs;
@@ -113,18 +111,13 @@ class GroupMonitorController extends GetxController {
     _restartTimer();
 
     ever(selFactory, (_) {
-      selFloor.value = 'ALL';
       selRoom.value = 'ALL';
-      selGroup.value = 'ALL';
+      selGroup.value = '';
       selModel.value = 'ALL';
       _rebuildDependentOptions();
       refresh();
     });
 
-    ever(selFloor, (_) {
-      _rebuildDependentOptions();
-      refresh();
-    });
     ever(selRoom, (_) {
       _rebuildDependentOptions();
       refresh();
@@ -175,22 +168,19 @@ class GroupMonitorController extends GetxController {
       factories
         ..clear()
         ..addAll(['F16', 'F17']);
-      floors
-        ..clear()
-        ..addAll(['ALL', '3F']);
       rooms
         ..clear()
         ..addAll(['ALL', 'ROOM1', 'ROOM2']);
       groups
         ..clear()
-        ..addAll(['ALL', 'CTO', 'FT', 'J_TAG']);
+        ..addAll(['CTO', 'FT', 'J_TAG']);
       models
         ..clear()
         ..addAll(['ALL', 'GB200', 'GB300']);
     }
   }
 
-  List<String> _mkOpts(Iterable<String> vals) {
+  List<String> _mkOpts(Iterable<String> vals, {bool includeAll = true}) {
     final s = <String>{};
     for (final v in vals) {
       final t = v.trim();
@@ -198,41 +188,38 @@ class GroupMonitorController extends GetxController {
     }
     final list =
         s.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return ['ALL', ...list];
+    if (includeAll) return ['ALL', ...list];
+    return list;
   }
 
   void _rebuildDependentOptions() {
     final fact = selFactory.value.trim();
-    final floor = selFloor.value.trim();
     final room = selRoom.value.trim();
     final group = selGroup.value.trim();
 
-    final newFloors = _mkOpts(
-      _allLocs.where((e) => e.factory == fact).map((e) => e.floor),
-    );
-    floors
-      ..clear()
-      ..addAll(newFloors);
-    if (!floors.contains(selFloor.value)) selFloor.value = 'ALL';
-
     Iterable<LocationEntry> qRoom = _allLocs.where((e) => e.factory == fact);
-    if (selFloor.value != 'ALL') qRoom = qRoom.where((e) => e.floor == floor);
     final newRooms = _mkOpts(qRoom.map((e) => e.room));
     rooms
       ..clear()
       ..addAll(newRooms);
-    if (!rooms.contains(selRoom.value)) selRoom.value = 'ALL';
+    if (!rooms.contains(selRoom.value)) {
+      selRoom.value = rooms.isNotEmpty ? rooms.first : 'ALL';
+    }
 
     Iterable<LocationEntry> qGroup = qRoom;
     if (selRoom.value != 'ALL') qGroup = qGroup.where((e) => e.room == room);
-    final newGroups = _mkOpts(qGroup.map((e) => e.group));
+    final newGroups = _mkOpts(qGroup.map((e) => e.group), includeAll: false);
     groups
       ..clear()
       ..addAll(newGroups);
-    if (!groups.contains(selGroup.value)) selGroup.value = 'ALL';
+    if (!groups.contains(selGroup.value)) {
+      selGroup.value = groups.isNotEmpty ? groups.first : '';
+    }
 
     Iterable<LocationEntry> qModel = qGroup;
-    if (selGroup.value != 'ALL') qModel = qModel.where((e) => e.group == group);
+    if (selGroup.value.isNotEmpty && selGroup.value != 'ALL') {
+      qModel = qModel.where((e) => e.group == group);
+    }
     final newModels = _mkOpts(qModel.map((e) => e.model));
     models
       ..clear()
@@ -241,7 +228,7 @@ class GroupMonitorController extends GetxController {
   }
 
   Map<String, dynamic> _buildBody() {
-    String? _nv(String s) => s == 'ALL' ? null : s;
+    String? _nv(String s) => (s.isEmpty || s == 'ALL') ? null : s;
 
     void put(
       Map<String, dynamic> target,
@@ -259,7 +246,6 @@ class GroupMonitorController extends GetxController {
     final Map<String, dynamic> body = {};
 
     put(body, 'factory', selFactory.value, ['Factory']);
-    put(body, 'floor', _nv(selFloor.value), ['Floor']);
     put(body, 'room', _nv(selRoom.value), ['Location']);
     put(body, 'groupName', _nv(selGroup.value), ['GroupName']);
     final modelValue = _nv(selModel.value);
@@ -297,9 +283,8 @@ class GroupMonitorController extends GetxController {
   }
 
   void clearFiltersKeepFactory() {
-    selFloor.value = 'ALL';
     selRoom.value = 'ALL';
-    selGroup.value = 'ALL';
+    selGroup.value = '';
     selModel.value = 'ALL';
     _rebuildDependentOptions();
   }

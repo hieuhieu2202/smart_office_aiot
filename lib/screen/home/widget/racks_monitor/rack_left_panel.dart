@@ -243,11 +243,11 @@ class RackLeftPanel extends StatelessWidget {
     final screenH = screenSize.height;
     final screenW = screenSize.width;
 
-    final itemH = (screenH * 0.3).clamp(220.0, 320.0);
+    final itemH = (screenH * 0.26).clamp(190.0, 280.0);
     final useGrid = screenW >= 900;
-    final crossAxisCount = screenW >= 1600
+    final crossAxisCount = screenW >= 1350
         ? 3
-        : screenW >= 1200
+        : screenW >= 1100
             ? 2
             : 1;
 
@@ -279,7 +279,7 @@ class RackLeftPanel extends StatelessWidget {
     }
 
     // Layout lưới cho web/tablet: card nhỏ gọn, đa cột
-    final gridItemHeight = math.min(itemH, 240.0);
+    final gridItemHeight = math.min(itemH, 205.0);
 
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -329,8 +329,8 @@ class _RackCardState extends State<_RackCard>
 
   double _scaleForWidth(double w) {
     if (w <= 320) return 0.95;
-    if (w >= 800) return 1.15;
-    return 0.95 + (w - 320) * (1.15 - 0.95) / (800 - 320);
+    if (w >= 800) return 1.08;
+    return 0.95 + (w - 320) * (1.08 - 0.95) / (800 - 320);
   }
 
   @override
