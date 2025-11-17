@@ -222,10 +222,6 @@ class _RackPopulationCard extends StatelessWidget {
                       ? const [Color(0xFF0F2639), Color(0xFF0A1B2A)]
                       : const [Color(0xFFF7FAFF), Color(0xFFE8F1FF)],
                 ),
-                border: Border.all(
-                  color:
-                      isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
-                ),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
@@ -239,22 +235,30 @@ class _RackPopulationCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Rack availability',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'Rack availability',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          total == 0
+                              ? 'No racks detected for this filter.'
+                              : 'Total racks: $total',
+                          style: textTheme.bodySmall?.copyWith(
+                            color:
+                                theme.colorScheme.onSurface.withOpacity(0.65),
+                          ),
+                          overflow: TextOverflow.visible,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    total == 0
-                        ? 'No racks detected for this filter.'
-                        : 'Total racks: $total',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.65),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
