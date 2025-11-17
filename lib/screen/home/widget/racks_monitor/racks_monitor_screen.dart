@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -120,7 +122,18 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
-                final wide = constraints.maxWidth >= 1180;
+                const maxContentWidth = 1500.0;
+                const wideBreakpoint = 1080.0;
+                const sidePanelGap = 16.0;
+                final viewportWidth = constraints.maxWidth;
+                final wide = viewportWidth >= wideBreakpoint;
+                final constrainedWidth = math.min(maxContentWidth, viewportWidth);
+                final horizontalPadding = viewportWidth >= 900 ? 16.0 : 12.0;
+                final contentWidth = (constrainedWidth - (horizontalPadding * 2))
+                    .clamp(0.0, constrainedWidth);
+                final sidePanelWidth = wide
+                    ? (viewportWidth >= 1400 ? 340.0 : 300.0)
+                    : 0.0;
                 final insights = RackInsightsColumn(
                   controller: controller,
                   totalRacks: partition.total,
@@ -130,8 +143,9 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
                 );
 
                 final headerViewportWidth = wide
-                    ? (constraints.maxWidth - 336).clamp(0.0, constraints.maxWidth)
-                    : constraints.maxWidth;
+                    ? (contentWidth - sidePanelWidth - sidePanelGap)
+                        .clamp(0.0, contentWidth)
+                    : contentWidth;
                 final headerHeight = RackPinnedHeader.estimateHeight(
                   context: context,
                   maxWidth: headerViewportWidth,
@@ -171,41 +185,63 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
                   ],
                 ];
 
-                if (wide) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: RefreshIndicator(
-                          onRefresh: controller.refresh,
-                          child: CustomScrollView(
-                            physics: const BouncingScrollPhysics(
-                              parent: AlwaysScrollableScrollPhysics(),
-                            ),
-                            slivers: slivers,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      SizedBox(
-                        width: 320,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
-                          physics: const BouncingScrollPhysics(),
-                          child: insights,
-                        ),
-                      ),
-                    ],
-                  );
-                }
-
-                return RefreshIndicator(
+                final mainScroll = RefreshIndicator(
                   onRefresh: controller.refresh,
                   child: CustomScrollView(
                     physics: const BouncingScrollPhysics(
                       parent: AlwaysScrollableScrollPhysics(),
                     ),
                     slivers: slivers,
+                  ),
+                );
+
+                if (wide) {
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(maxWidth: maxContentWidth),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          12,
+                          horizontalPadding,
+                          24,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: mainScroll),
+                            const SizedBox(width: sidePanelGap),
+                            SizedBox(
+                              width: sidePanelWidth,
+                              child: SingleChildScrollView(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 16, 12, 24),
+                                physics: const BouncingScrollPhysics(),
+                                child: insights,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: maxContentWidth),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        12,
+                        horizontalPadding,
+                        24,
+                      ),
+                      child: mainScroll,
+                    ),
                   ),
                 );
               },
