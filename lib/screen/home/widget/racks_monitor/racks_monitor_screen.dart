@@ -97,45 +97,35 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
       appBar: AppBar(
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0C1B2A), Color(0xFF0E3A63), Color(0xFF76B900)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-          ),
-        ),
+        backgroundColor: const Color(0xFF0E3A63),
         title: Obx(() {
           final f = controller.selFactory.value;
           final fl = controller.selFloor.value;
           final g = controller.selGroup.value;
           final m = controller.selModel.value;
-          final parts = <String>[
-            f,
+          final filters = <String>[
+            if (f.isNotEmpty) f,
             if (fl.isNotEmpty && fl != 'ALL') fl,
             if (controller.selRoom.value != 'ALL') controller.selRoom.value,
             if (g.isNotEmpty && g != 'ALL') g,
             if (m != 'ALL') m,
           ];
-          final text = parts.isEmpty
-              ? 'NVIDIA RACK MONITOR'
-              : '${parts.join('  ·  ')}  NVIDIA RACK MONITOR';
+          final parts = <String>['NVIDIA', ...filters, 'RACK MONITOR'];
+          final text = parts.join('  ·  ');
 
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.25),
+              color: Colors.white.withOpacity(0.12),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(0.25)),
+              border: Border.all(color: Colors.white.withOpacity(0.22)),
             ),
             child: Text(
               text.toUpperCase(),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.white,
-                    letterSpacing: 0.8,
+                    letterSpacing: 0.9,
                     fontWeight: FontWeight.w800,
                   ),
             ),
