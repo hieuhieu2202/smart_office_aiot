@@ -870,30 +870,6 @@ class _HomeTabState extends State<HomeTab> {
           debugPrint('>> TAP "${sub.name}" -> không mapping, không có children');
           Get.to(() => buildProjectScreen(sub));
         },
-        onDoubleTap: () {
-          final key = (sub.screenType ?? '').trim();
-          if (key.isEmpty) return;
-          debugPrint(
-            '>> DOUBLE TAP "${sub.name}" -> mở trực tiếp màn hình mapped: "$key"',
-          );
-          Get.to(() => buildProjectScreen(sub));
-        },
-        onLongPress: () {
-          final key = (sub.screenType ?? '').trim();
-          if (key.isNotEmpty) {
-            debugPrint(
-              '>> LONG PRESS "${sub.name}" -> mở trực tiếp màn hình mapped: "$key"',
-            );
-            Get.to(() => buildProjectScreen(sub));
-            return;
-          }
-
-          if (sub.subProjects.isEmpty) return;
-          debugPrint(
-            '>> LONG PRESS "${sub.name}" -> mở danh sách con (${sub.subProjects.length})',
-          );
-          Get.to(() => ProjectListPage(project: sub));
-        },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

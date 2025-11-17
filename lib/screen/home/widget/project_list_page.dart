@@ -55,53 +55,12 @@ class ProjectListPage extends StatelessWidget {
                 debugPrint('>> TAP "${sub.name}" -> mở màn hình/chi tiết cuối');
                 Get.to(() => buildProjectScreen(sub));
               },
-              onDoubleTap: () {
-                final key = (sub.screenType ?? '').trim();
-                if (key.isEmpty) return;
-                debugPrint(
-                  '>> DOUBLE TAP "${sub.name}" -> mở trực tiếp màn hình mapped: "$key"',
-                );
-                Get.to(() => buildProjectScreen(sub));
-              },
-              onLongPress: () {
-                final key = (sub.screenType ?? '').trim();
-                if (key.isNotEmpty) {
-                  debugPrint(
-                    '>> LONG PRESS "${sub.name}" -> mở trực tiếp màn hình mapped: "$key"',
-                  );
-                  Get.to(() => buildProjectScreen(sub));
-                  return;
-                }
-
-                if (sub.subProjects.isEmpty) return;
-                debugPrint(
-                  '>> LONG PRESS "${sub.name}" -> mở danh sách con (${sub.subProjects.length})',
-                );
-                Get.to(() => ProjectListPage(project: sub));
-              },
               child: ListTile(
                 leading: Icon(sub.icon ?? Icons.widgets),
                 title: Text(sub.name),
                 subtitle: Text("Trạng thái: ${sub.status}"),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (sub.screenType?.trim().isNotEmpty == true)
-                      IconButton(
-                        icon: const Icon(Icons.open_in_new_rounded),
-                        tooltip: 'Mở trực tiếp màn hình này',
-                        onPressed: () {
-                          final key = (sub.screenType ?? '').trim();
-                          debugPrint(
-                            '>> TAP ICON "${sub.name}" -> mở trực tiếp màn hình mapped: "$key"',
-                          );
-                          Get.to(() => buildProjectScreen(sub));
-                        },
-                      ),
-                    if (sub.subProjects.isNotEmpty)
-                      const Icon(Icons.chevron_right),
-                  ],
-                ),
+                trailing:
+                    sub.subProjects.isNotEmpty ? const Icon(Icons.chevron_right) : null,
               ),
             ),
           );
