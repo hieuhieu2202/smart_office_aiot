@@ -240,10 +240,7 @@ class RackLeftPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final screenH = screenSize.height;
     final screenW = screenSize.width;
-
-    final itemH = (screenH * 0.26).clamp(190.0, 280.0);
     final useGrid = screenW >= 900;
     final crossAxisCount = screenW >= 1350
         ? 3
@@ -259,11 +256,7 @@ class RackLeftPanel extends StatelessWidget {
 
       for (int i = 0; i < racks.length; i++) {
         children.add(
-          SizedBox(
-            height: itemH,
-            width: double.infinity,
-            child: _RackCard(rack: racks[i]),
-          ),
+          _RackCard(rack: racks[i]),
         );
         if (i != racks.length - 1) {
           children.add(const SizedBox(height: 12));
@@ -279,20 +272,30 @@ class RackLeftPanel extends StatelessWidget {
     }
 
     // Layout lưới cho web/tablet: card nhỏ gọn, đa cột
-    final gridItemHeight = math.min(itemH, 205.0);
-
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      sliver: SliverGrid(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) => _RackCard(rack: racks[index]),
-          childCount: racks.length,
-        ),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          mainAxisExtent: gridItemHeight,
+      sliver: SliverToBoxAdapter(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final spacing = 12.0;
+            final availableWidth = constraints.maxWidth;
+            final columnWidth = crossAxisCount == 1
+                ? availableWidth
+                : (availableWidth - (spacing * (crossAxisCount - 1))) /
+                    crossAxisCount;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (final rack in racks)
+                  SizedBox(
+                    width: columnWidth,
+                    child: _RackCard(rack: rack),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -468,12 +471,10 @@ class _RackCardState extends State<_RackCard>
               SizedBox(height: 8 * s * hs),
 
               // ===== Slot list — dim khi offline/không chạy
-              Expanded(
-                child: _SlotList(
-                  slots: slots,
-                  scale: s,
-                  dimmed: isOffline || !isRunning,
-                ),
+              _SlotList(
+                slots: slots,
+                scale: s,
+                dimmed: isOffline || !isRunning,
               ),
             ],
           ),
@@ -602,7 +603,7 @@ class _Strip extends StatelessWidget {
 }
 
 /// =================== SLOT LIST ===================
-class _SlotList extends StatefulWidget {
+class _SlotList extends StatelessWidget {
   const _SlotList({
     required this.slots,
     required this.scale,
@@ -614,156 +615,149 @@ class _SlotList extends StatefulWidget {
   final bool dimmed; // xám khi offline / không chạy
 
   @override
-  State<_SlotList> createState() => _SlotListState();
-}
-
-class _SlotListState extends State<_SlotList> {
-  late final ScrollController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = ScrollController();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Scrollbar(
-        controller: _ctrl,
-        thumbVisibility: true,
-        child: ListView.separated(
-          controller: _ctrl,
-          primary: false,
-          physics: const ClampingScrollPhysics(),
-          padding: EdgeInsets.zero,
-          itemCount: widget.slots.length,
-          separatorBuilder: (_, __) => SizedBox(height: 6 * widget.scale),
-          itemBuilder: (ctx, i) {
-            final s = widget.slots[i];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int i = 0; i < slots.length; i++) ...[
+          _SlotRow(
+            slot: slots[i],
+            isDark: isDark,
+            scale: scale,
+            dimmed: dimmed,
+          ),
+          if (i != slots.length - 1) SizedBox(height: 6 * scale),
+        ],
+      ],
+    );
+  }
+}
 
-            // === QUY TẮC XÁM CHO SLOT ===
-            final bool slotGray =
-                widget.dimmed || isSlotOffline(s) || (s.yr <= 0) ||
-                    (s.input == 0 && s.totalPass == 0);
+class _SlotRow extends StatelessWidget {
+  const _SlotRow({
+    required this.slot,
+    required this.isDark,
+    required this.scale,
+    required this.dimmed,
+  });
 
-            // Tone theo slotGray
-            final rowBG =
-            slotGray ? _RackColors.offRowBG(isDark) : _RackColors.slotRowBG(isDark);
-            final border =
-            slotGray ? _RackColors.offBorder(isDark) : _RackColors.border(isDark);
-            final textC =
-            slotGray ? _RackColors.offText(isDark) : (isDark ? Colors.white70 : Colors.black87);
+  final SlotDetail slot;
+  final bool isDark;
+  final double scale;
+  final bool dimmed;
 
-            // Màu trạng thái (badge/metrics). Khi xám thì dùng offline-grey
-            final stColor = slotGray ? _RackColors.offline : _statusColor(s.status);
+  @override
+  Widget build(BuildContext context) {
+    // === QUY TẮC XÁM CHO SLOT ===
+    final bool slotGray = dimmed || isSlotOffline(slot) || (slot.yr <= 0) ||
+        (slot.input == 0 && slot.totalPass == 0);
 
-            // Tone cho cụm metrics & badge
-            final metricsBG     = slotGray ? Colors.black12 : stColor.withOpacity(.10);
-            final metricsBorder = slotGray ? _RackColors.offBorder(isDark) : stColor;
-            final metricsText   = slotGray ? _RackColors.offText(isDark) : stColor;
+    // Tone theo slotGray
+    final rowBG =
+    slotGray ? _RackColors.offRowBG(isDark) : _RackColors.slotRowBG(isDark);
+    final border =
+    slotGray ? _RackColors.offBorder(isDark) : _RackColors.border(isDark);
+    final textC =
+    slotGray ? _RackColors.offText(isDark) : (isDark ? Colors.white70 : Colors.black87);
 
-            final slotBadgeBG     = slotGray ? Colors.black12 : stColor.withOpacity(.16);
-            final slotBadgeBorder = slotGray ? _RackColors.offBorder(isDark) : stColor;
-            final slotBadgeText   = slotGray ? _RackColors.offText(isDark) : stColor;
+    // Màu trạng thái (badge/metrics). Khi xám thì dùng offline-grey
+    final stColor = slotGray ? _RackColors.offline : _statusColor(slot.status);
 
-            return Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 6 * widget.scale,
+    // Tone cho cụm metrics & badge
+    final metricsBG     = slotGray ? Colors.black12 : stColor.withOpacity(.10);
+    final metricsBorder = slotGray ? _RackColors.offBorder(isDark) : stColor;
+    final metricsText   = slotGray ? _RackColors.offText(isDark) : stColor;
+
+    final slotBadgeBG     = slotGray ? Colors.black12 : stColor.withOpacity(.16);
+    final slotBadgeBorder = slotGray ? _RackColors.offBorder(isDark) : stColor;
+    final slotBadgeText   = slotGray ? _RackColors.offText(isDark) : stColor;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6 * scale,
+      ),
+      decoration: BoxDecoration(
+        color: rowBG,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          // ===== Badge SLOT
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 4 * scale,
+            ),
+            decoration: BoxDecoration(
+              color: slotBadgeBG,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: slotBadgeBorder, width: 1),
+            ),
+            child: Text(
+              'SLOT ${slot.slotNumber}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: slotBadgeText,
+                fontSize: 11 * scale,
               ),
-              decoration: BoxDecoration(
-                color: rowBG,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: border),
+            ),
+          ),
+          SizedBox(width: 8 * scale),
+
+          // ===== Tên máy
+          Expanded(
+            child: Text(
+              slot.slotName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: textC,
+                fontWeight: FontWeight.w600,
+                fontSize: 11 * scale,
               ),
-              child: Row(
-                children: [
-                  // ===== Badge SLOT
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4 * widget.scale,
-                    ),
-                    decoration: BoxDecoration(
-                      color: slotBadgeBG,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: slotBadgeBorder, width: 1),
-                    ),
-                    child: Text(
-                      'SLOT ${s.slotNumber}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: slotBadgeText,
-                        fontSize: 11 * widget.scale,
-                      ),
+            ),
+          ),
+          SizedBox(width: 8 * scale),
+
+          // ===== Metrics (input/pass | Y.R)
+          Flexible(
+            fit: FlexFit.loose,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4 * scale,
+                  ),
+                  decoration: BoxDecoration(
+                    color: metricsBG,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: metricsBorder),
+                  ),
+                  child: Text(
+                    '${slot.input}/${slot.totalPass} | ${slot.yr.toStringAsFixed(0)} %',
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: metricsText,
+                      fontSize: 11 * scale,
+                      fontFamily: 'RobotoMono',
                     ),
                   ),
-                  SizedBox(width: 8 * widget.scale),
-
-                  // ===== Tên máy
-                  Expanded(
-                    child: Text(
-                      s.slotName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: textC,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11 * widget.scale,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8 * widget.scale),
-
-                  // ===== Metrics (input/pass | Y.R)
-                  Flexible(
-                    fit: FlexFit.loose,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4 * widget.scale,
-                          ),
-                          decoration: BoxDecoration(
-                            color: metricsBG,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: metricsBorder),
-                          ),
-                          child: Text(
-                            '${s.input}/${s.totalPass} | ${s.yr.toStringAsFixed(0)} %',
-                            maxLines: 1,
-                            overflow: TextOverflow.visible,
-                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: metricsText,
-                              fontSize: 11 * widget.scale,
-                              fontFamily: 'RobotoMono',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
