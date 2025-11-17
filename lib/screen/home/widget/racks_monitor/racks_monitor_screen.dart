@@ -97,7 +97,7 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
       appBar: AppBar(
         centerTitle: true,
         elevation: 0,
-        backgroundColor: const Color(0xFF0E3A63),
+        backgroundColor: const Color(0xFF76B900),
         title: Obx(() {
           final f = controller.selFactory.value;
           final fl = controller.selFloor.value;
