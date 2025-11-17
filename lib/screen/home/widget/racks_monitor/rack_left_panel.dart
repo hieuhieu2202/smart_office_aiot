@@ -242,11 +242,13 @@ class RackLeftPanel extends StatelessWidget {
     final screenSize = MediaQuery.of(context).size;
     final screenW = screenSize.width;
     final useGrid = screenW >= 900;
-    final crossAxisCount = screenW >= 1350
-        ? 3
-        : screenW >= 1100
-            ? 2
-            : 1;
+    final crossAxisCount = screenW >= 1650
+        ? 4
+        : screenW >= 1300
+            ? 3
+            : screenW >= 1050
+                ? 2
+                : 1;
 
     if (!useGrid || crossAxisCount == 1) {
       // Giữ nguyên layout cho điện thoại / màn hình hẹp
@@ -331,9 +333,9 @@ class _RackCardState extends State<_RackCard>
   }
 
   double _scaleForWidth(double w) {
-    if (w <= 320) return 0.95;
-    if (w >= 800) return 1.08;
-    return 0.95 + (w - 320) * (1.08 - 0.95) / (800 - 320);
+    if (w <= 320) return 0.94;
+    if (w >= 800) return 1.02;
+    return 0.94 + (w - 320) * (1.02 - 0.94) / (800 - 320);
   }
 
   @override
