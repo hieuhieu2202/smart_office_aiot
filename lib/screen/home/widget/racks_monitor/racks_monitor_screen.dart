@@ -142,12 +142,6 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
 
         final partition = RackPartition.from(data.rackDetails);
 
-        const sidePanelWidth = 360.0;
-        const sidePanelGap = 20.0;
-        final leftViewportWidth = constraints.maxWidth >= 1180
-            ? math.max(0.0, constraints.maxWidth - sidePanelWidth - sidePanelGap)
-            : constraints.maxWidth;
-
         final filter = _activeFilter;
         late final List<RackDetail> selectedRacks;
         switch (filter) {
@@ -169,7 +163,13 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
+                const sidePanelWidth = 360.0;
+                const sidePanelGap = 20.0;
                 final wide = constraints.maxWidth >= 1180;
+                final leftViewportWidth = wide
+                    ? math.max(
+                        0.0, constraints.maxWidth - sidePanelWidth - sidePanelGap)
+                    : constraints.maxWidth;
                 final insights = RackInsightsColumn(
                   controller: controller,
                   totalRacks: partition.total,
