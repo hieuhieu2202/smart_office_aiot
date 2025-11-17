@@ -122,13 +122,17 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
-                const maxContentWidth = 1500.0;
+                const maxContentWidth = 1860.0;
                 const wideBreakpoint = 1080.0;
                 const sidePanelGap = 16.0;
                 final viewportWidth = constraints.maxWidth;
                 final wide = viewportWidth >= wideBreakpoint;
                 final constrainedWidth = math.min(maxContentWidth, viewportWidth);
-                final horizontalPadding = viewportWidth >= 900 ? 16.0 : 12.0;
+                final horizontalPadding = viewportWidth >= 1400
+                    ? 24.0
+                    : viewportWidth >= 900
+                        ? 16.0
+                        : 12.0;
                 final contentWidth = (constrainedWidth - (horizontalPadding * 2))
                     .clamp(0.0, constrainedWidth);
                 final sidePanelWidth = wide
