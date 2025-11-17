@@ -37,34 +37,12 @@ class ProjectListPage extends StatelessWidget {
               leading: Icon(sub.icon ?? Icons.widgets),
               title: Text(sub.name),
               subtitle: Text("Trạng thái: ${sub.status}"),
-              trailing: sub.subProjects.isNotEmpty
-                  ? const Icon(Icons.chevron_right)
-                  : null,
+              trailing:
+                  sub.subProjects.isNotEmpty ? const Icon(Icons.chevron_right) : null,
               onTap: () {
                 final key = (sub.screenType ?? '').trim();
                 final builder = screenBuilderMap[key];
                 final hasChildren = sub.subProjects.isNotEmpty;
-                final preferChildren = hasChildren &&
-                    key.startsWith('racks_monitor');
-
-                // Chỉ ưu tiên vào danh sách con cho nhánh racks monitor để tránh
-                // ảnh hưởng tới các giao diện khác có screenType + subProjects.
-                if (preferChildren) {
-                  debugPrint(
-                    '>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})',
-                  );
-                  Get.to(() => ProjectListPage(project: sub));
-                  return;
-                }
-
-                // Nếu có mapping thì mở trực tiếp
-                if (builder != null) {
-                  debugPrint('>> TAP "${sub.name}" -> mở màn hình mapped: "$key"');
-                  Get.to(() => builder(sub));
-                  return;
-                }
-
-                // Nếu không có mapping nhưng có children thì hiển thị danh sách con
                 if (hasChildren) {
                   debugPrint(
                     '>> TAP "${sub.name}" -> vào danh sách con (${sub.subProjects.length})',
@@ -73,7 +51,12 @@ class ProjectListPage extends StatelessWidget {
                   return;
                 }
 
-                // Fallback nếu không có mapping và không có children
+                if (builder != null) {
+                  debugPrint('>> TAP "${sub.name}" -> mở màn hình mapped: "$key"');
+                  Get.to(() => builder(sub));
+                  return;
+                }
+
                 debugPrint('>> TAP "${sub.name}" -> không mapping, không có children');
                 Get.to(() => ProjectDetailPage(project: sub));
               },
