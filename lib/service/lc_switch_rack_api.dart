@@ -22,12 +22,39 @@ class RackMonitorApi {
   };
 
   // -------------------------- Location APIs --------------------------
+  static Map<String, dynamic> _locationBody({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) {
+    String normalized(String? v, {bool allowAll = true}) {
+      final trimmed = v?.trim() ?? '';
+      if (trimmed.isEmpty && allowAll) return 'ALL';
+      return trimmed;
+    }
+
+    return {
+      'factory': normalized(factory),
+      'floor': normalized(floor),
+      'room': normalized(room),
+      'model': normalized(model),
+      'nickName': normalized(nickName, allowAll: false),
+      'group': normalized(group),
+      'dateRange': normalized(dateRange, allowAll: false),
+    };
+  }
+
   static Future<List<String>> getModels() async {
     final uri = Uri.parse('$_base/Location/GetModels');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode({}),
       timeout: _timeout,
     );
     _ensure200(res, 'GetModels');
@@ -35,12 +62,31 @@ class RackMonitorApi {
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getGroups() async {
+  static Future<List<String>> getGroups({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetGroups');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(
+        _locationBody(
+          factory: factory,
+          floor: floor,
+          room: room,
+          model: model,
+          nickName: nickName,
+          group: group,
+          dateRange: dateRange,
+        ),
+      ),
       timeout: _timeout,
     );
     _ensure200(res, 'GetGroups');
@@ -48,12 +94,31 @@ class RackMonitorApi {
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getFactories() async {
+  static Future<List<String>> getFactories({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetFactories');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(
+        _locationBody(
+          factory: factory,
+          floor: floor,
+          room: room,
+          model: model,
+          nickName: nickName,
+          group: group,
+          dateRange: dateRange,
+        ),
+      ),
       timeout: _timeout,
     );
     _ensure200(res, 'GetFactories');
@@ -61,12 +126,31 @@ class RackMonitorApi {
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getFloors() async {
+  static Future<List<String>> getFloors({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetFloors');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(
+        _locationBody(
+          factory: factory,
+          floor: floor,
+          room: room,
+          model: model,
+          nickName: nickName,
+          group: group,
+          dateRange: dateRange,
+        ),
+      ),
       timeout: _timeout,
     );
     _ensure200(res, 'GetFloors');
@@ -74,12 +158,31 @@ class RackMonitorApi {
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getRooms() async {
+  static Future<List<String>> getRooms({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetRooms');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(
+        _locationBody(
+          factory: factory,
+          floor: floor,
+          room: room,
+          model: model,
+          nickName: nickName,
+          group: group,
+          dateRange: dateRange,
+        ),
+      ),
       timeout: _timeout,
     );
     _ensure200(res, 'GetRooms');
@@ -169,18 +272,19 @@ class RackMonitorApi {
   static Future<void> quickPing() async {
     final uri = Uri.parse('$_base/Location/GetModels');
     CuringApiLog.net(() => '[CuringApi] quickPing $uri');
-    await HttpHelper().get(
+    await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode({}),
       timeout: const Duration(seconds: 5),
     );
   }
 
   // -------------------------- Monitor (POST JSON) --------------------------
-  static Future<GroupDataMonitoring> getGroupDataMonitoring({
+  static Future<GroupDataMonitoring> getDataMonitoring({
     Map<String, dynamic>? body,
   }) async {
-    final uri = Uri.parse('$_base/Monitor/GetGroupDataMonitoring');
+    final uri = Uri.parse('$_base/Monitor/GetDataMonitoring');
     CuringApiLog.net(() => '[CuringApi] POST $uri');
     CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body ?? {})}');
     final res = await HttpHelper().post(
@@ -189,10 +293,16 @@ class RackMonitorApi {
       body: jsonEncode(body ?? {}),
       timeout: _timeout,
     );
-    _ensure200(res, 'GetGroupDataMonitoring');
+    _ensure200(res, 'GetDataMonitoring');
     final data = jsonDecode(res.body);
     if (data is Map<String, dynamic>) return GroupDataMonitoring.fromJson(data);
-    throw Exception('GetGroupDataMonitoring: invalid payload');
+    throw Exception('GetDataMonitoring: invalid payload');
+  }
+
+  static Future<GroupDataMonitoring> getGroupDataMonitoring({
+    Map<String, dynamic>? body,
+  }) {
+    return getDataMonitoring(body: body);
   }
 
   static Future<GroupDataMonitoring> getByFactory({
@@ -200,7 +310,7 @@ class RackMonitorApi {
     Map<String, dynamic>? body,
   }) {
     final merged = {...?body, 'factory': factory.trim()};
-    return getGroupDataMonitoring(body: merged);
+    return getDataMonitoring(body: merged);
   }
 }
 

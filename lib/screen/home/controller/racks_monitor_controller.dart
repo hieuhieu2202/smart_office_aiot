@@ -297,39 +297,17 @@ class GroupMonitorController extends GetxController {
   }
 
   Map<String, dynamic> _buildBody() {
-    String? _nv(String s) => (s.isEmpty || s == 'ALL') ? null : s;
+    String _orAll(String s) => (s.isEmpty ? 'ALL' : s).trim();
 
-    void put(
-      Map<String, dynamic> target,
-      String key,
-      String? value, [
-      List<String> aliases = const [],
-    ]) {
-      if (value == null) return;
-      target[key] = value;
-      for (final alias in aliases) {
-        target[alias] = value;
-      }
-    }
-
-    final Map<String, dynamic> body = {};
-
-    put(body, 'factory', selFactory.value, ['Factory']);
-    put(body, 'floor', _nv(selFloor.value), ['Floor']);
-    put(body, 'room', _nv(selRoom.value), ['Location']);
-    put(body, 'groupName', _nv(selGroup.value), ['GroupName']);
-    final modelValue = _nv(selModel.value);
-    put(
-      body,
-      'modelSerial',
-      modelValue,
-      ['ModelSerial', 'modelName', 'ModelName'],
-    );
-    body.addAll({
+    final Map<String, dynamic> body = {
+      'factory': _orAll(selFactory.value),
+      'floor': _orAll(selFloor.value),
+      'room': _orAll(selRoom.value),
+      'group': _orAll(selGroup.value),
+      'model': _orAll(selModel.value),
       'nickName': '',
-      'rangeDateTime': '',
-      'rackNames': <Map<String, dynamic>>[],
-    });
+      'dateRange': '',
+    };
 
     return body;
   }
@@ -341,7 +319,7 @@ class GroupMonitorController extends GetxController {
 
       await RackMonitorApi.quickPing();
 
-      final res = await RackMonitorApi.getGroupDataMonitoring(
+      final res = await RackMonitorApi.getDataMonitoring(
         body: _buildBody(),
       );
       data.value = res;
