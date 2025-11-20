@@ -626,9 +626,22 @@ class GroupDataMonitoring {
   });
 
   static List<Map<String, dynamic>> _asMapList(dynamic source) {
-    if (source is List) {
-      return source.whereType<Map<String, dynamic>>().toList();
+    dynamic raw = source;
+
+    // Một số API trả về chuỗi JSON thay vì list object
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        raw = jsonDecode(raw);
+      } catch (_) {
+        // nếu decode thất bại thì coi như không có data
+        raw = null;
+      }
     }
+
+    if (raw is List) {
+      return raw.whereType<Map<String, dynamic>>().toList();
+    }
+
     return const <Map<String, dynamic>>[];
   }
 
