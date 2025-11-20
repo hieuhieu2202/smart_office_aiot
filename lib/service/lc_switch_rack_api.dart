@@ -628,31 +628,29 @@ class GroupDataMonitoring {
     required this.modelDetails,
   });
 
-  factory GroupDataMonitoring.fromJson(Map<String, dynamic> j) =>
-      GroupDataMonitoring(
-        slotStatic:
-            (j['slotStatic'] is List)
-                ? (j['slotStatic'] as List)
-                .whereType<Map<String, dynamic>>()
-                .map(SlotStaticItem.fromJson)
-                .toList()
-            : const <SlotStaticItem>[],
-        quantitySummary: QuantitySummary.fromJson(j),
-        rackDetails:
-            (j['rackDetails'] is List)
-                ? (j['rackDetails'] as List)
-                    .whereType<Map<String, dynamic>>()
-                    .map(RackDetail.fromJson)
-                    .toList()
-                : const <RackDetail>[],
-        modelDetails:
-            (j['modelDetails'] is List)
-                ? (j['modelDetails'] as List)
-                    .whereType<Map<String, dynamic>>()
-                    .map(ModelDetail.fromJson)
-                    .toList()
-                : const <ModelDetail>[],
-      );
+  static List<Map<String, dynamic>> _asMapList(dynamic source) {
+    if (source is List) {
+      return source.whereType<Map<String, dynamic>>().toList();
+    }
+    return const <Map<String, dynamic>>[];
+  }
+
+  factory GroupDataMonitoring.fromJson(Map<String, dynamic> j) {
+    final slotSrc =
+        _valueFor(j, const ['slotStatic', 'SlotStatic', 'slot_static']);
+    final rackSrc =
+        _valueFor(j, const ['rackDetails', 'RackDetails', 'rack_Details']);
+    final modelSrc =
+        _valueFor(j, const ['modelDetails', 'ModelDetails', 'model_Details']);
+
+    return GroupDataMonitoring(
+      slotStatic:
+          _asMapList(slotSrc).map(SlotStaticItem.fromJson).toList(),
+      quantitySummary: QuantitySummary.fromJson(j),
+      rackDetails: _asMapList(rackSrc).map(RackDetail.fromJson).toList(),
+      modelDetails: _asMapList(modelSrc).map(ModelDetail.fromJson).toList(),
+    );
+  }
 }
 
 // -------------------------- Helpers --------------------------
