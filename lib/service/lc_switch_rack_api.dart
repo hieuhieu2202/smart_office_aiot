@@ -301,7 +301,7 @@ class RackMonitorApi {
     );
     _logResponse('GetDataMonitoring', res);
     _ensure200(res, 'GetDataMonitoring');
-    final data = jsonDecode(res.body);
+    final data = _decodeJsonLoose(res.body);
     if (data is Map<String, dynamic>) return GroupDataMonitoring.fromJson(data);
     throw Exception('GetDataMonitoring: invalid payload');
   }
@@ -334,6 +334,25 @@ void _logResponse(String apiName, http.Response res) {
         : res.body;
     return '[CuringApi] $apiName response ${res.statusCode}: $preview';
   });
+}
+
+dynamic _decodeJsonLoose(String body) {
+  dynamic first;
+  try {
+    first = jsonDecode(body);
+  } catch (_) {
+    return null;
+  }
+
+  if (first is String) {
+    try {
+      return jsonDecode(first);
+    } catch (_) {
+      return first;
+    }
+  }
+
+  return first;
 }
 
 // -------------------------- Safe body logger --------------------------
