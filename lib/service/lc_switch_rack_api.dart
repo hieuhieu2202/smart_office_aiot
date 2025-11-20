@@ -577,13 +577,10 @@ class RackDetail {
     yr: _readDouble(j, const ['yr', 'YR']),
     runtime: _readDouble(j, const ['runtime']),
     totalTime: _readDouble(j, const ['totalTime', 'total_Time']),
-    slotDetails:
-        (j['slotDetails'] is List)
-            ? (j['slotDetails'] as List)
-                .whereType<Map<String, dynamic>>()
-                .map(SlotDetail.fromJson)
-                .toList()
-            : const <SlotDetail>[],
+    slotDetails: GroupDataMonitoring._asMapList(_valueFor(j,
+            const ['slotDetails', 'SlotDetails', 'slot_Details', 'Slot_Details']))
+        .map(SlotDetail.fromJson)
+        .toList(),
   );
 }
 
