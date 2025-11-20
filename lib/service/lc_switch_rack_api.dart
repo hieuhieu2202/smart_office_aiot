@@ -435,10 +435,11 @@ class QuantitySummary {
   });
 
   factory QuantitySummary.fromJson(Map<String, dynamic> j) {
-    final q =
-        (j['quantitySummary'] is Map<String, dynamic>)
-            ? (j['quantitySummary'] as Map<String, dynamic>)
-            : j;
+    final qRaw = _valueFor(
+      j,
+      const ['quantitySummary', 'QuantitySummary', 'quantity_Summary'],
+    );
+    final q = (qRaw is Map<String, dynamic>) ? qRaw : j;
     return QuantitySummary(
       ut: _readDouble(q, const ['ut', 'UT']),
       input: _readInt(q, const ['input']),
