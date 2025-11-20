@@ -119,6 +119,7 @@ class GroupMonitorController extends GetxController {
   @override
   Future<void> onInit() async {
     super.onInit();
+    CuringApiLog.network = true;
     await _loadFilterSources();
     _applyInitialSelections();
     await refresh();
@@ -312,6 +313,12 @@ class GroupMonitorController extends GetxController {
     return body;
   }
 
+  String _fmtBodyForLog(Map<String, dynamic> body) {
+    final clone = Map<String, dynamic>.from(body);
+    clone.removeWhere((k, v) => k.toLowerCase().contains('token'));
+    return clone.toString();
+  }
+
   Future<void> refresh() async {
     try {
       isLoading.value = true;
@@ -319,8 +326,10 @@ class GroupMonitorController extends GetxController {
 
       await RackMonitorApi.quickPing();
 
+      final body = _buildBody();
+      CuringApiLog.net(() => '[RackMonitor] Query body => ${_fmtBodyForLog(body)}');
       final res = await RackMonitorApi.getDataMonitoring(
-        body: _buildBody(),
+        body: body,
       );
       data.value = res;
     } catch (e) {

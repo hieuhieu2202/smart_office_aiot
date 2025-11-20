@@ -51,12 +51,14 @@ class RackMonitorApi {
   static Future<List<String>> getModels() async {
     final uri = Uri.parse('$_base/Location/GetModels');
     CuringApiLog.net(() => '[CuringApi] POST $uri');
+    CuringApiLog.net(() => '[CuringApi] POST body => {}');
     final res = await HttpHelper().post(
       uri,
       headers: _headers(),
       body: jsonEncode({}),
       timeout: _timeout,
     );
+    _logResponse('GetModels', res);
     _ensure200(res, 'GetModels');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
@@ -73,22 +75,23 @@ class RackMonitorApi {
   }) async {
     final uri = Uri.parse('$_base/Location/GetGroups');
     CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
     final res = await HttpHelper().post(
       uri,
       headers: _headers(),
-      body: jsonEncode(
-        _locationBody(
-          factory: factory,
-          floor: floor,
-          room: room,
-          model: model,
-          nickName: nickName,
-          group: group,
-          dateRange: dateRange,
-        ),
-      ),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetGroups', res);
     _ensure200(res, 'GetGroups');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
@@ -105,22 +108,23 @@ class RackMonitorApi {
   }) async {
     final uri = Uri.parse('$_base/Location/GetFactories');
     CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
     final res = await HttpHelper().post(
       uri,
       headers: _headers(),
-      body: jsonEncode(
-        _locationBody(
-          factory: factory,
-          floor: floor,
-          room: room,
-          model: model,
-          nickName: nickName,
-          group: group,
-          dateRange: dateRange,
-        ),
-      ),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetFactories', res);
     _ensure200(res, 'GetFactories');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
@@ -137,22 +141,23 @@ class RackMonitorApi {
   }) async {
     final uri = Uri.parse('$_base/Location/GetFloors');
     CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
     final res = await HttpHelper().post(
       uri,
       headers: _headers(),
-      body: jsonEncode(
-        _locationBody(
-          factory: factory,
-          floor: floor,
-          room: room,
-          model: model,
-          nickName: nickName,
-          group: group,
-          dateRange: dateRange,
-        ),
-      ),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetFloors', res);
     _ensure200(res, 'GetFloors');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
@@ -169,22 +174,23 @@ class RackMonitorApi {
   }) async {
     final uri = Uri.parse('$_base/Location/GetRooms');
     CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
     final res = await HttpHelper().post(
       uri,
       headers: _headers(),
-      body: jsonEncode(
-        _locationBody(
-          factory: factory,
-          floor: floor,
-          room: room,
-          model: model,
-          nickName: nickName,
-          group: group,
-          dateRange: dateRange,
-        ),
-      ),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetRooms', res);
     _ensure200(res, 'GetRooms');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
@@ -293,6 +299,7 @@ class RackMonitorApi {
       body: jsonEncode(body ?? {}),
       timeout: _timeout,
     );
+    _logResponse('GetDataMonitoring', res);
     _ensure200(res, 'GetDataMonitoring');
     final data = jsonDecode(res.body);
     if (data is Map<String, dynamic>) return GroupDataMonitoring.fromJson(data);
@@ -318,6 +325,15 @@ void _ensure200(http.Response res, String apiName) {
   if (res.statusCode != 200) {
     throw Exception('$apiName failed: ${res.statusCode} ${res.body}');
   }
+}
+
+void _logResponse(String apiName, http.Response res) {
+  CuringApiLog.net(() {
+    final preview = res.body.length > 400
+        ? '${res.body.substring(0, 400)}...(+${res.body.length - 400} chars)'
+        : res.body;
+    return '[CuringApi] $apiName response ${res.statusCode}: $preview';
+  });
 }
 
 // -------------------------- Safe body logger --------------------------
