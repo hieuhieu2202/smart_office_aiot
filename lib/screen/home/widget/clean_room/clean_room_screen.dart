@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
@@ -543,6 +544,12 @@ class CleanRoomScreen extends StatelessWidget {
   ImageProvider? _resolveImageFromConfig(Map<String, dynamic> config) {
     final imagePath = (config['image'] ?? '').toString();
     if (imagePath.isEmpty) return null;
+
+    if (imagePath.startsWith('data:image')) {
+      final base64String = imagePath.split(',').last;
+      final bytes = base64Decode(base64String);
+      return MemoryImage(bytes);
+    }
 
     if (imagePath.startsWith('assets/')) {
       return AssetImage(imagePath);
