@@ -41,7 +41,7 @@ class CleanRoomScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(theme),
+                _buildHeader(context, theme),
                 const SizedBox(height: 12),
                 _buildFilters(context, theme),
                 const SizedBox(height: 16),
@@ -65,7 +65,7 @@ class CleanRoomScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ThemeData theme) {
+  Widget _buildHeader(BuildContext context, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -106,6 +106,18 @@ class CleanRoomScreen extends StatelessWidget {
               ],
             ),
           ),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: BorderSide(color: Colors.white.withOpacity(.35)),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+            label: const Text('Back'),
+          ),
+          const SizedBox(width: 10),
           FilledButton.icon(
             style: FilledButton.styleFrom(
               backgroundColor: Colors.blueAccent,
@@ -454,6 +466,11 @@ class CleanRoomScreen extends StatelessWidget {
                 .toList() ??
             [];
 
+        final fallbackImage = const AssetImage('assets/images/background_dark.png');
+        final imageProvider = controller.roomImage.value ??
+            _resolveImageFromConfig(config) ??
+            fallbackImage;
+
         final gradientStart =
             isDark ? Colors.blueGrey.shade900 : Colors.blue.shade700;
         final gradientEnd = isDark ? Colors.indigo.shade800 : Colors.blue.shade500;
@@ -485,27 +502,10 @@ class CleanRoomScreen extends StatelessWidget {
                 return Stack(
                   children: [
                     Positioned.fill(
-                      child: controller.roomImage.value != null
-                          ? Image(
-                              image: controller.roomImage.value!,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              decoration: const BoxDecoration(
-                                gradient: RadialGradient(
-                                  colors: [Color(0xFF0E2A55), Color(0xFF061833)],
-                                  radius: 1.0,
-                                  center: Alignment(.1, -.1),
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'Không có sơ đồ phòng',
-                                  style: theme.textTheme.titleMedium
-                                      ?.copyWith(color: Colors.white70),
-                                ),
-                              ),
-                            ),
+                      child: Image(
+                        image: imageProvider,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                     if (positions.isNotEmpty)
                       ...positions
@@ -517,8 +517,8 @@ class CleanRoomScreen extends StatelessWidget {
                             (element) => element['sensorName'] == sensorName);
                         if (sensor == null) return const SizedBox.shrink();
 
-                        final topPercent = (pos['top'] ?? 0).toDouble();
-                        final leftPercent = (pos['left'] ?? 0).toDouble();
+                        final topPercent = double.tryParse('${pos['top'] ?? 0}') ?? 0;
+                        final leftPercent = double.tryParse('${pos['left'] ?? 0}') ?? 0;
                         final top =
                             constraints.maxHeight * (topPercent.clamp(0, 100) / 100);
                         final left = constraints.maxWidth *
@@ -538,6 +538,17 @@ class CleanRoomScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  ImageProvider? _resolveImageFromConfig(Map<String, dynamic> config) {
+    final imagePath = (config['image'] ?? '').toString();
+    if (imagePath.isEmpty) return null;
+
+    if (imagePath.startsWith('assets/')) {
+      return AssetImage(imagePath);
+    }
+
+    return NetworkImage(imagePath);
   }
 
   Widget _buildSensorBubble(Map<String, dynamic> pos, Map<String, dynamic> sensor) {
