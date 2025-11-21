@@ -44,61 +44,85 @@ class CleanRoomScreen extends StatelessWidget {
               ),
             ),
             SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    _HeaderBar(onFilterTap: controller.toggleFilterPanel),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 320,
-                            child: _SideColumn(
-                              children: [
-                                LocationInfoWidget(),
-                                SensorOverviewWidget(),
-                                SensorDataChartWidget(),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: _NeonPanel(
-                                    child: RoomLayoutWidget(),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 1920,
+                    maxHeight: 1080,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: 72,
+                          child: _HeaderBar(onFilterTap: controller.toggleFilterPanel),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final double bodyHeight = constraints.maxHeight;
+
+                              const double sideWidth = 360;
+                              const double spacing = 16;
+
+                              const double locationHeight = 220;
+                              const double overviewHeight = 200;
+                              const double sensorChartHeight = 440;
+
+                              const double layoutHeight = 540;
+                              const double chartRowHeight = 300;
+
+                              return Row(
+                                children: [
+                                  SizedBox(
+                                    width: sideWidth,
+                                    child: Column(
+                                      children: const [
+                                        SizedBox(height: locationHeight, child: LocationInfoWidget()),
+                                        SizedBox(height: spacing),
+                                        SizedBox(height: overviewHeight, child: SensorOverviewWidget()),
+                                        SizedBox(height: spacing),
+                                        SizedBox(height: sensorChartHeight, child: SensorDataChartWidget()),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 14),
-                                SizedBox(
-                                  height: 250,
-                                  child: Row(
-                                    children: [
-                                      Expanded(child: BarChartWidget()),
-                                      SizedBox(width: 14),
-                                      Expanded(child: AreaChartWidget()),
-                                    ],
+                                  const SizedBox(width: spacing),
+                                  Expanded(
+                                    child: Column(
+                                      children: const [
+                                        SizedBox(height: layoutHeight, child: _NeonPanel(child: RoomLayoutWidget())),
+                                        SizedBox(height: spacing),
+                                        SizedBox(
+                                          height: chartRowHeight,
+                                          child: Row(
+                                            children: [
+                                              Expanded(child: BarChartWidget()),
+                                              SizedBox(width: spacing),
+                                              Expanded(child: AreaChartWidget()),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                  const SizedBox(width: spacing),
+                                  SizedBox(
+                                    width: sideWidth,
+                                    child: SizedBox(
+                                      height: bodyHeight,
+                                      child: const SensorHistoryChartWidget(),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
-                          const SizedBox(width: 14),
-                          SizedBox(
-                            width: 320,
-                            child: _SideColumn(
-                              children: [
-                                SensorHistoryChartWidget(),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -177,32 +201,6 @@ class _HeaderBar extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SideColumn extends StatelessWidget {
-  final List<Widget> children;
-  const _SideColumn({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Column(
-              children: [
-                ...children.map((e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: e,
-                    )),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }
