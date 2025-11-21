@@ -79,11 +79,11 @@ class CleanRoomScreen extends StatelessWidget {
                                   SizedBox(
                                     width: sideWidth,
                                     child: Column(
-                                      children: const [
+                                      children: [
                                         SizedBox(height: locationHeight, child: LocationInfoWidget()),
-                                        SizedBox(height: spacing),
+                                        const SizedBox(height: spacing),
                                         SizedBox(height: overviewHeight, child: SensorOverviewWidget()),
-                                        SizedBox(height: spacing),
+                                        const SizedBox(height: spacing),
                                         SizedBox(height: sensorChartHeight, child: SensorDataChartWidget()),
                                       ],
                                     ),
@@ -91,15 +91,15 @@ class CleanRoomScreen extends StatelessWidget {
                                   const SizedBox(width: spacing),
                                   Expanded(
                                     child: Column(
-                                      children: const [
+                                      children: [
                                         SizedBox(height: layoutHeight, child: _NeonPanel(child: RoomLayoutWidget())),
-                                        SizedBox(height: spacing),
+                                        const SizedBox(height: spacing),
                                         SizedBox(
                                           height: chartRowHeight,
                                           child: Row(
                                             children: [
                                               Expanded(child: BarChartWidget()),
-                                              SizedBox(width: spacing),
+                                              const SizedBox(width: spacing),
                                               Expanded(child: AreaChartWidget()),
                                             ],
                                           ),
