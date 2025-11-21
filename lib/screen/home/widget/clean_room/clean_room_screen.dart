@@ -114,7 +114,7 @@ class CleanRoomScreen extends StatelessWidget {
                                     width: sideWidth,
                                     child: SizedBox(
                                       height: bodyHeight,
-                                      child: const SensorHistoryChartWidget(),
+                                      child: SensorHistoryChartWidget(),
                                     ),
                                   ),
                                 ],
