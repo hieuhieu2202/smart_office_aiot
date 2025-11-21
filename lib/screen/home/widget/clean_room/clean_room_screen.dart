@@ -18,48 +18,224 @@ class CleanRoomScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Bảng điều khiển phòng sạch'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.filter_list),
-            onPressed: controller.toggleFilterPanel,
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark
+                ? [const Color(0xFF041226), const Color(0xFF08264A), const Color(0xFF021325)]
+                : [const Color(0xFFE5F1FF), Colors.white, const Color(0xFFD7E7FF)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: isDark ? 0.25 : 0.4,
+                  child: GridPaper(
+                    divisions: 2,
+                    interval: 80,
+                    color: isDark ? Colors.lightBlueAccent.withOpacity(0.08) : Colors.blueGrey.withOpacity(0.08),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  children: [
+                    _HeaderBar(onFilterTap: controller.toggleFilterPanel),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 320,
+                            child: _SideColumn(
+                              children: [
+                                LocationInfoWidget(),
+                                SensorOverviewWidget(),
+                                SensorDataChartWidget(),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: _NeonPanel(
+                                    child: RoomLayoutWidget(),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                SizedBox(
+                                  height: 250,
+                                  child: Row(
+                                    children: [
+                                      Expanded(child: BarChartWidget()),
+                                      SizedBox(width: 14),
+                                      Expanded(child: AreaChartWidget()),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          SizedBox(
+                            width: 320,
+                            child: _SideColumn(
+                              children: [
+                                SensorHistoryChartWidget(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Obx(
+              () => CleanroomFilterPanel(
+                show: controller.showFilterPanel.value,
+                start: controller.selectedStartDate.value,
+                end: controller.selectedEndDate.value,
+                customer: controller.selectedCustomer.value.isEmpty ? null : controller.selectedCustomer.value,
+                factory: controller.selectedFactory.value.isEmpty ? null : controller.selectedFactory.value,
+                floor: controller.selectedFloor.value.isEmpty ? null : controller.selectedFloor.value,
+                room: controller.selectedRoom.value.isEmpty ? null : controller.selectedRoom.value,
+                customerOptions: controller.customers,
+                factoryOptions: controller.factories,
+                floorOptions: controller.floors,
+                roomOptions: controller.rooms,
+                onApply: controller.applyFilter,
+                onClose: controller.toggleFilterPanel,
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderBar extends StatelessWidget {
+  final VoidCallback onFilterTap;
+  const _HeaderBar({required this.onFilterTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        gradient: LinearGradient(
+          colors: theme.brightness == Brightness.dark
+              ? [const Color(0xFF0B2E59), const Color(0xFF0F3C71)]
+              : [const Color(0xFFB9D8FF), Colors.white],
+        ),
+        border: Border.all(color: Colors.blueAccent.withOpacity(0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blueAccent.withOpacity(0.25),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      body: Stack(
+      child: Row(
         children: [
-          ListView(
-            padding: const EdgeInsets.only(bottom: 20),
-            children: [
-              LocationInfoWidget(),
-              RoomLayoutWidget(),
-              SensorOverviewWidget(),
-              SensorDataChartWidget(),
-              SensorHistoryChartWidget(),
-              BarChartWidget(),
-              AreaChartWidget(),
-            ],
-          ),
-          Obx(
-                () => CleanroomFilterPanel(
-              show: controller.showFilterPanel.value,
-              start: controller.selectedStartDate.value,
-              end: controller.selectedEndDate.value,
-              customer: controller.selectedCustomer.value.isEmpty ? null : controller.selectedCustomer.value,
-              factory: controller.selectedFactory.value.isEmpty ? null : controller.selectedFactory.value,
-              floor: controller.selectedFloor.value.isEmpty ? null : controller.selectedFloor.value,
-              room: controller.selectedRoom.value.isEmpty ? null : controller.selectedRoom.value,
-              customerOptions: controller.customers,
-              factoryOptions: controller.factories,
-              floorOptions: controller.floors,
-              roomOptions: controller.rooms,
-              onApply: controller.applyFilter,
-              onClose: controller.toggleFilterPanel,
-              isDark: isDark,
+          const Icon(Icons.auto_mode, color: Colors.lightBlueAccent),
+          const SizedBox(width: 10),
+          Text(
+            'Bảng điều khiển phòng sạch',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF0C2340),
+              fontWeight: FontWeight.bold,
             ),
           ),
+          const Spacer(),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: onFilterTap,
+            icon: const Icon(Icons.filter_list),
+            label: const Text('Lọc dữ liệu'),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _SideColumn extends StatelessWidget {
+  final List<Widget> children;
+  const _SideColumn({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              children: [
+                ...children.map((e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: e,
+                    )),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _NeonPanel extends StatelessWidget {
+  final Widget child;
+  const _NeonPanel({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? [const Color(0xFF0B1F3C), const Color(0xFF10386A)]
+              : [Colors.white, const Color(0xFFE3EEFF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: Colors.blueAccent.withOpacity(0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: child,
       ),
     );
   }
