@@ -69,10 +69,12 @@ class CleanRoomScreen extends StatelessWidget {
 
                               const double locationHeight = 220;
                               const double overviewHeight = 200;
-                              const double sensorChartHeight = 440;
+                              final double sensorChartHeight = (bodyHeight - (locationHeight + overviewHeight + spacing * 2))
+                                  .clamp(320.0, bodyHeight)
+                                  .toDouble();
 
-                              const double layoutHeight = 540;
-                              const double chartRowHeight = 300;
+                              final double chartRowHeight = (bodyHeight * 0.32).clamp(280.0, bodyHeight * 0.45).toDouble();
+                              final double layoutHeight = (bodyHeight - chartRowHeight - spacing).clamp(360.0, bodyHeight).toDouble();
 
                               return Row(
                                 children: [
