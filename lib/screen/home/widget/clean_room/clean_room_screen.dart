@@ -73,7 +73,7 @@ class CleanRoomScreen extends StatelessWidget {
                               final double heroStripHeight = 110;
                               final double mapHeight = (bodyHeight * 0.54).clamp(460.0, 620.0);
                               final double chartRowHeight =
-                                  (bodyHeight - mapHeight - heroStripHeight - vSpacing * 2).clamp(240.0, bodyHeight);
+                                  (bodyHeight - mapHeight - heroStripHeight - 12 - vSpacing).clamp(240.0, bodyHeight);
 
                               return Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
