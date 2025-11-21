@@ -5,9 +5,7 @@ import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/area_c
 import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/bar_chart_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_data_chart_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_history_chart_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/info/location_info_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/layout/room_layout_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/overview/sensor_overview_widget.dart';
 
 import 'cleanroom_filter_panel.dart';
 
@@ -21,12 +19,11 @@ class CleanRoomScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    const double headerHeight = 80;
-    const double outerPadding = 20;
-    const double hSpacing = 16;
-    const double vSpacing = 16;
-    const double leftWidth = 340;
-    const double rightWidth = 380;
+    const double outerPadding = 22;
+    const double hSpacing = 18;
+    const double vSpacing = 18;
+    const double leftWidth = 360;
+    const double chartHeight = 260;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -36,8 +33,8 @@ class CleanRoomScreen extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [const Color(0xFF021026), const Color(0xFF042d56), const Color(0xFF0b4a7a)]
-                : [const Color(0xFFdceaff), const Color(0xFFd7e7ff), const Color(0xFFf2f6ff)],
+                ? [const Color(0xFF031023), const Color(0xFF052444), const Color(0xFF0a3d73)]
+                : [const Color(0xFFd8e7ff), const Color(0xFFe6f0ff), const Color(0xFFf2f7ff)],
           ),
         ),
         child: Stack(
@@ -55,25 +52,18 @@ class CleanRoomScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: outerPadding, vertical: 18),
                     child: Column(
                       children: [
-                        SizedBox(
-                          height: headerHeight,
-                          child: _HeaderBar(onFilterTap: controller.toggleFilterPanel),
-                        ),
+                        _TopBar(onFilterTap: controller.toggleFilterPanel),
                         const SizedBox(height: vSpacing),
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               final double bodyHeight = constraints.maxHeight;
+                              const double summaryHeight = 220;
+                              const double activityHeight = 180;
 
-                              const double locationHeight = 150;
-                              const double overviewHeight = 176;
-                              final double sensorChartHeight =
-                                  (bodyHeight - locationHeight - overviewHeight - vSpacing * 2).clamp(240.0, 420.0);
-
-                              final double heroStripHeight = 110;
-                              final double mapHeight = (bodyHeight * 0.54).clamp(460.0, 620.0);
-                              final double chartRowHeight =
-                                  (bodyHeight - mapHeight - heroStripHeight - 12 - vSpacing).clamp(240.0, bodyHeight);
+                              final double historyHeight =
+                                  (bodyHeight - summaryHeight - activityHeight - vSpacing * 2).clamp(240.0, bodyHeight);
+                              final double mapHeight = (bodyHeight - chartHeight - vSpacing).clamp(460.0, bodyHeight);
 
                               return Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,11 +72,23 @@ class CleanRoomScreen extends StatelessWidget {
                                     width: leftWidth,
                                     child: Column(
                                       children: [
-                                        _InfoPanel(height: locationHeight, child: LocationInfoWidget()),
+                                        _SummaryPanel(height: summaryHeight),
                                         const SizedBox(height: vSpacing),
-                                        _InfoPanel(height: overviewHeight, child: SensorOverviewWidget()),
+                                        _GlassPanel(
+                                          height: activityHeight,
+                                          title: 'Hoạt động cảm biến',
+                                          subtitle: 'Tổng quan trạng thái và khu vực',
+                                          leadingIcon: Icons.layers_outlined,
+                                          child: SensorDataChartWidget(),
+                                        ),
                                         const SizedBox(height: vSpacing),
-                                        _InfoPanel(height: sensorChartHeight, child: SensorDataChartWidget()),
+                                        _GlassPanel(
+                                          height: historyHeight,
+                                          title: 'Lịch sử cảm biến',
+                                          subtitle: 'Log thời gian thực và gần nhất',
+                                          leadingIcon: Icons.history_toggle_off,
+                                          child: SensorHistoryChartWidget(),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -94,31 +96,53 @@ class CleanRoomScreen extends StatelessWidget {
                                   Expanded(
                                     child: Column(
                                       children: [
-                                        _HeroStrip(height: heroStripHeight),
-                                        const SizedBox(height: 12),
-                                        _DataPanel(
+                                        _GlassPanel(
                                           height: mapHeight,
                                           title: 'Sơ đồ phòng sạch',
-                                          subtitle: 'Bản đồ khu vực và trạng thái điểm đo',
+                                          subtitle: 'Bản đồ bố trí cảm biến và trạng thái điểm đo',
+                                          leadingIcon: Icons.location_on_outlined,
+                                          actions: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(isDark ? 0.08 : 0.18),
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.white.withOpacity(isDark ? 0.14 : 0.24)),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: const [
+                                                  Icon(Icons.touch_app_outlined, size: 16, color: Colors.white70),
+                                                  SizedBox(width: 8),
+                                                  Text(
+                                                    'Chạm cảm biến để xem chi tiết',
+                                                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                           child: RoomLayoutWidget(),
                                         ),
                                         const SizedBox(height: vSpacing),
                                         SizedBox(
-                                          height: chartRowHeight,
+                                          height: chartHeight,
                                           child: Row(
                                             children: [
                                               Expanded(
-                                                child: _DataPanel(
+                                                child: _GlassPanel(
                                                   title: 'Tần suất cảnh báo',
-                                                  subtitle: 'Tổng hợp cảnh báo gần đây',
+                                                  subtitle: 'Thống kê theo khu vực',
+                                                  leadingIcon: Icons.bar_chart,
                                                   child: BarChartWidget(),
                                                 ),
                                               ),
                                               const SizedBox(width: hSpacing),
                                               Expanded(
-                                                child: _DataPanel(
+                                                child: _GlassPanel(
                                                   title: 'Xu hướng theo thời gian',
-                                                  subtitle: 'Biểu đồ biến động cảm biến',
+                                                  subtitle: 'Biến động thông số chính',
+                                                  leadingIcon: Icons.timeline_outlined,
                                                   child: AreaChartWidget(),
                                                 ),
                                               ),
@@ -126,16 +150,6 @@ class CleanRoomScreen extends StatelessWidget {
                                           ),
                                         ),
                                       ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: hSpacing),
-                                  SizedBox(
-                                    width: rightWidth,
-                                    child: _DataPanel(
-                                      height: bodyHeight,
-                                      title: 'Lịch sử cảm biến',
-                                      subtitle: 'Dữ liệu real-time và ghi nhận',
-                                      child: SensorHistoryChartWidget(),
                                     ),
                                   ),
                                 ],
@@ -174,41 +188,35 @@ class CleanRoomScreen extends StatelessWidget {
   }
 }
 
-class _HeaderBar extends StatelessWidget {
+class _TopBar extends StatelessWidget {
   final VoidCallback onFilterTap;
-  const _HeaderBar({required this.onFilterTap});
+  const _TopBar({required this.onFilterTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final CleanRoomController controller = Get.find<CleanRoomController>();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0b1f3f), const Color(0xFF0f3f76), const Color(0xFF1662a3)]
-              : [const Color(0xFFdce9ff), const Color(0xFFeaf2ff)],
+              ? [const Color(0xFF0b1d38), const Color(0xFF0f2f55), const Color(0xFF114374)]
+              : [const Color(0xFFdceaff), const Color(0xFFeaf2ff)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.08 : 0.6)),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.1 : 0.4)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 20,
-            offset: const Offset(0, 12),
-          ),
-          BoxShadow(
-            color: Colors.blueAccent.withOpacity(0.2),
-            blurRadius: 26,
-            offset: const Offset(0, 10),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 22, offset: const Offset(0, 12)),
+          BoxShadow(color: Colors.blueAccent.withOpacity(0.16), blurRadius: 26, offset: const Offset(0, 12)),
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(12),
@@ -217,77 +225,59 @@ class _HeaderBar extends StatelessWidget {
               gradient: LinearGradient(
                 colors: isDark
                     ? [Colors.cyanAccent.withOpacity(0.9), Colors.blueAccent.shade200]
-                    : [Colors.blue.shade300, Colors.lightBlueAccent],
+                    : [Colors.blue.shade400, Colors.lightBlueAccent],
               ),
-              boxShadow: [
-                BoxShadow(color: Colors.cyanAccent.withOpacity(.38), blurRadius: 18, offset: const Offset(0, 8)),
-              ],
+              boxShadow: [BoxShadow(color: Colors.cyanAccent.withOpacity(.36), blurRadius: 20, offset: const Offset(0, 10))],
             ),
-            child: const Icon(Icons.bubble_chart, color: Colors.white, size: 24),
+            child: const Icon(Icons.bubble_chart, color: Colors.white, size: 22),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  Text(
-                    'Cleanroom Command',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : const Color(0xFF0a2540),
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(.22)),
-                    ),
-                    child: Row(
-                      children: const [
-                        Icon(Icons.monitor_heart_outlined, size: 14, color: Colors.white70),
-                        SizedBox(width: 6),
-                        Text('1080p fixed layout', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                ],
+              Text(
+                'CLEAN ROOM SENSOR MONITOR',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : const Color(0xFF0a2540),
+                  letterSpacing: 0.4,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
-                'Giám sát phòng sạch thời gian thực với bố cục cố định',
+                'Giám sát phòng sạch với bố cục cố định 1080p',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: isDark ? Colors.white70 : const Color(0xFF3b5068),
-                  letterSpacing: 0.3,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],
           ),
           const Spacer(),
-          Wrap(
-            spacing: 10,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _HeaderChip(icon: Icons.cloud_outlined, label: 'Realtime data'),
-              _HeaderChip(icon: Icons.shield_outlined, label: 'Safety view'),
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  foregroundColor: isDark ? Colors.white : Colors.blueGrey.shade900,
-                  backgroundColor: isDark ? Colors.white.withOpacity(0.08) : Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          Obx(
+            () => Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _FilterChip(label: controller.selectedCustomer.value.isEmpty ? 'Customer' : controller.selectedCustomer.value),
+                _FilterChip(label: controller.selectedFactory.value.isEmpty ? 'Factory' : controller.selectedFactory.value),
+                _FilterChip(label: controller.selectedFloor.value.isEmpty ? 'Floor' : controller.selectedFloor.value),
+                _FilterChip(label: controller.selectedRoom.value.isEmpty ? 'Room' : controller.selectedRoom.value),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    foregroundColor: isDark ? Colors.white : Colors.blueGrey.shade900,
+                    backgroundColor: isDark ? Colors.white.withOpacity(0.08) : Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: onFilterTap,
+                  icon: const Icon(Icons.filter_list),
+                  label: const Text('Bộ lọc'),
                 ),
-                onPressed: onFilterTap,
-                icon: const Icon(Icons.filter_list),
-                label: const Text('Bộ lọc dữ liệu'),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -295,11 +285,9 @@ class _HeaderBar extends StatelessWidget {
   }
 }
 
-class _HeaderChip extends StatelessWidget {
-  final IconData icon;
+class _FilterChip extends StatelessWidget {
   final String label;
-
-  const _HeaderChip({required this.icon, required this.label});
+  const _FilterChip({required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -309,121 +297,159 @@ class _HeaderChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withOpacity(.06) : Colors.blueGrey.withOpacity(.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? .18 : .32)),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? .16 : .3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: isDark ? Colors.white70 : Colors.blueGrey.shade700, size: 14),
+          const Icon(Icons.circle, size: 8, color: Colors.lightBlueAccent),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(color: isDark ? Colors.white70 : Colors.blueGrey.shade800, fontSize: 12),
-          ),
+          Text(label, style: TextStyle(color: isDark ? Colors.white70 : Colors.blueGrey.shade800, fontSize: 12)),
         ],
       ),
     );
   }
 }
 
-class _HeroStrip extends StatelessWidget {
+class _SummaryPanel extends StatelessWidget {
   final double height;
-  const _HeroStrip({required this.height});
+  const _SummaryPanel({required this.height});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final CleanRoomController controller = Get.find<CleanRoomController>();
 
-    Widget buildItem({required IconData icon, required String title, required String value, required String hint}) {
-      return Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [const Color(0xFF0f2f55).withOpacity(.85), const Color(0xFF0c2040).withOpacity(.9)]
-                  : [Colors.white, const Color(0xFFe7f1ff)],
-            ),
-            border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.22)),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(.2), blurRadius: 14, offset: const Offset(0, 10)),
-              BoxShadow(color: Colors.blueAccent.withOpacity(.12), blurRadius: 20, offset: const Offset(0, 10)),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isDark ? Colors.white.withOpacity(.08) : const Color(0xFFe4f0ff),
-                  border: Border.all(color: Colors.white.withOpacity(isDark ? .22 : .3)),
-                ),
-                child: Icon(icon, size: 18, color: isDark ? Colors.cyanAccent : const Color(0xFF0a4f8f)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: isDark ? Colors.white : const Color(0xFF0a2540),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      value,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: isDark ? Colors.white : const Color(0xFF0b2d55),
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      hint,
-                      style: theme.textTheme.bodySmall?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade600),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
+    return _GlassPanel(
       height: height,
-      child: Row(
-        children: [
-          buildItem(icon: Icons.assessment_outlined, title: 'Tổng quan', value: 'Ổn định', hint: 'Trạng thái vận hành'),
-          const SizedBox(width: 12),
-          buildItem(icon: Icons.water_drop_outlined, title: 'Độ ẩm', value: '46%', hint: 'Duy trì phạm vi an toàn'),
-          const SizedBox(width: 12),
-          buildItem(icon: Icons.thermostat_outlined, title: 'Nhiệt độ', value: '22.5°C', hint: 'Ổn định theo thời gian'),
-          const SizedBox(width: 12),
-          buildItem(icon: Icons.warning_amber_outlined, title: 'Cảnh báo', value: '0', hint: 'Không có cảnh báo mới'),
-        ],
+      title: 'Tổng quan cảm biến',
+      subtitle: 'Tổng số, trạng thái và chi tiết',
+      leadingIcon: Icons.dashboard_outlined,
+      trailing: TextButton(
+        onPressed: controller.fetchData,
+        child: const Text('Làm mới'),
+      ),
+      child: Obx(
+        () {
+          final total = controller.sensorOverview['totalSensors'] ?? 0;
+          final online = controller.sensorOverview['onlineSensors'] ?? 0;
+          final warning = controller.sensorOverview['warningSensors'] ?? 0;
+          final offline = controller.sensorOverview['offlineSensors'] ?? 0;
+
+          return Column(
+            children: [
+              Row(
+                children: [
+                  _StatTile(icon: Icons.layers, label: 'TOTAL', value: total.toString(), color: const Color(0xFF4fa5ff)),
+                  const SizedBox(width: 12),
+                  _StatTile(icon: Icons.wifi_tethering, label: 'ONLINE', value: online.toString(), color: const Color(0xFF4bd1a0)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _StatTile(icon: Icons.warning_amber_rounded, label: 'WARNING', value: warning.toString(), color: const Color(0xFFf7b500)),
+                  const SizedBox(width: 12),
+                  _StatTile(icon: Icons.wifi_off_rounded, label: 'OFFLINE', value: offline.toString(), color: const Color(0xFF94a0b8)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: const Color(0xFF3178ff),
+                  ),
+                  onPressed: controller.toggleFilterPanel,
+                  icon: const Icon(Icons.open_in_new, color: Colors.white),
+                  label: const Text('XEM CHI TIẾT', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-class _DataPanel extends StatelessWidget {
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  const _StatTile({required this.icon, required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            colors: isDark
+                ? [color.withOpacity(.22), Colors.black.withOpacity(.18)]
+                : [Colors.white, color.withOpacity(.14)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: Colors.white.withOpacity(isDark ? 0.16 : 0.26)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(.18), blurRadius: 16, offset: const Offset(0, 10)),
+            BoxShadow(color: color.withOpacity(.18), blurRadius: 22, spreadRadius: -6, offset: const Offset(0, 12)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withOpacity(.14),
+                border: Border.all(color: color.withOpacity(.4)),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade800, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: isDark ? Colors.white : const Color(0xFF0a2540), fontWeight: FontWeight.w800)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassPanel extends StatelessWidget {
   final Widget child;
   final double? height;
   final String title;
   final String subtitle;
+  final IconData leadingIcon;
+  final List<Widget>? actions;
+  final Widget? trailing;
 
-  const _DataPanel({required this.child, required this.title, required this.subtitle, this.height});
+  const _GlassPanel({
+    required this.child,
+    required this.title,
+    required this.subtitle,
+    required this.leadingIcon,
+    this.height,
+    this.actions,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -435,13 +461,13 @@ class _DataPanel extends StatelessWidget {
         gradient: LinearGradient(
           colors: isDark
               ? [const Color(0xFF0a1d38), const Color(0xFF0b315a), const Color(0xFF0c3e72)]
-              : [Colors.white, const Color(0xFFe8f2ff)],
+              : [Colors.white, const Color(0xFFe9f2ff)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.25)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.26), blurRadius: 24, offset: const Offset(0, 14)),
+          BoxShadow(color: Colors.black.withOpacity(0.24), blurRadius: 24, offset: const Offset(0, 14)),
           BoxShadow(color: Colors.blueAccent.withOpacity(.16), blurRadius: 30, spreadRadius: -10, offset: const Offset(0, 16)),
         ],
       ),
@@ -451,11 +477,11 @@ class _DataPanel extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF0c2d52).withOpacity(.95), const Color(0xFF0b1f3c).withOpacity(.96)]
+                  : [const Color(0xFFf7fbff), const Color(0xFFe8f1ff)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: isDark
-                  ? [const Color(0xFF0d2f57).withOpacity(.96), const Color(0xFF0b203c).withOpacity(.96)]
-                  : [const Color(0xFFf6faff), const Color(0xFFeaf2ff)],
             ),
           ),
           child: Column(
@@ -474,11 +500,11 @@ class _DataPanel extends StatelessWidget {
                       ),
                       border: Border.all(color: Colors.white.withOpacity(isDark ? .22 : .32)),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(.28), blurRadius: 14, offset: const Offset(0, 8)),
-                        BoxShadow(color: Colors.blueAccent.withOpacity(.22), blurRadius: 22, spreadRadius: -6),
+                        BoxShadow(color: Colors.black.withOpacity(.26), blurRadius: 14, offset: const Offset(0, 8)),
+                        BoxShadow(color: Colors.blueAccent.withOpacity(.18), blurRadius: 20, spreadRadius: -6),
                       ],
                     ),
-                    child: const Icon(Icons.dashboard_customize_outlined, color: Colors.white, size: 18),
+                    child: Icon(leadingIcon, color: Colors.white, size: 18),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -502,29 +528,8 @@ class _DataPanel extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(.06) : Colors.blue.withOpacity(.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white.withOpacity(isDark ? .14 : .26)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.circle, size: 10, color: isDark ? Colors.cyanAccent : Colors.blueAccent),
-                        const SizedBox(width: 6),
-                        Text(
-                          'LIVE',
-                          style: TextStyle(
-                            color: isDark ? Colors.white : const Color(0xFF0b2d55),
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.6,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  if (actions != null) ...actions!,
+                  if (trailing != null) trailing!,
                 ],
               ),
               const SizedBox(height: 14),
@@ -536,52 +541,6 @@ class _DataPanel extends StatelessWidget {
     );
 
     return height != null ? SizedBox(height: height, child: panel) : panel;
-  }
-}
-
-class _InfoPanel extends StatelessWidget {
-  final double height;
-  final Widget child;
-
-  const _InfoPanel({required this.height, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          colors: isDark
-              ? [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.04)]
-              : [Colors.white, const Color(0xFFeef3ff)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.14 : 0.22)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 18, offset: const Offset(0, 12)),
-          BoxShadow(color: Colors.blueAccent.withOpacity(.12), blurRadius: 22, offset: const Offset(0, 10)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF0f2b4f), const Color(0xFF0b1f3c)]
-                  : [Colors.white, const Color(0xFFf5f8ff)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: child,
-        ),
-      ),
-    );
   }
 }
 
