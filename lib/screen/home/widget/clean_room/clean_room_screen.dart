@@ -585,6 +585,8 @@ class CleanRoomScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildSensorDot(size, color),
+        const SizedBox(height: 10),
         Container(
           width: 280,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -700,23 +702,50 @@ class CleanRoomScreen extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 6),
+      ],
+    );
+  }
+
+  Widget _buildSensorDot(double size, Color color) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
         Container(
           width: size,
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [color.withOpacity(.65), color.withOpacity(.15)],
-            ),
-            border: Border.all(color: color, width: 3),
+            color: color.withOpacity(.75),
             boxShadow: [
               BoxShadow(
                 color: color.withOpacity(.35),
-                blurRadius: 12,
-                spreadRadius: 2,
-              )
+                blurRadius: 14,
+                spreadRadius: 6,
+              ),
             ],
+          ),
+          child: Center(
+            child: Container(
+              width: size * .45,
+              height: size * .45,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(.9),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          right: -6,
+          bottom: -6,
+          child: Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
           ),
         ),
       ],
