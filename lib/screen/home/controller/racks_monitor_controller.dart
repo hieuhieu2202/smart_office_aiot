@@ -76,19 +76,33 @@ Map<String, _Agg> _mergeNearCodes(
 
 // ======================= Controller =======================
 class GroupMonitorController extends GetxController {
+  final String? initialFactory;
+  final String? initialFloor;
+  final String? initialRoom;
+  final String? initialGroup;
+  final String? initialModel;
+
+  GroupMonitorController({
+    this.initialFactory,
+    this.initialFloor,
+    this.initialRoom,
+    this.initialGroup,
+    this.initialModel,
+  });
+
   // ========= Filters =========
   List<LocationEntry> _allLocs = const <LocationEntry>[];
 
   final factories = <String>['F16', 'F17'].obs;
-  final floors = <String>['ALL'].obs;
+  final floors = <String>[].obs;
   final rooms = <String>['ALL'].obs;
-  final groups = <String>['ALL'].obs;
+  final groups = <String>[].obs;
   final models = <String>['ALL'].obs;
 
   final selFactory = 'F16'.obs;
-  final selFloor = '3F'.obs;
+  final selFloor = ''.obs;
   final selRoom = 'ALL'.obs;
-  final selGroup = 'J_TAG'.obs;
+  final selGroup = ''.obs;
   final selModel = 'ALL'.obs;
 
   final showOfflineRack = true.obs;
@@ -105,7 +119,9 @@ class GroupMonitorController extends GetxController {
   @override
   Future<void> onInit() async {
     super.onInit();
+    CuringApiLog.network = true;
     await _loadFilterSources();
+    _applyInitialSelections();
     await refresh();
 
     debounce(intervalSec, (_) => _restartTimer());
@@ -113,9 +129,9 @@ class GroupMonitorController extends GetxController {
     _restartTimer();
 
     ever(selFactory, (_) {
-      selFloor.value = 'ALL';
+      selFloor.value = '';
       selRoom.value = 'ALL';
-      selGroup.value = 'ALL';
+      selGroup.value = '';
       selModel.value = 'ALL';
       _rebuildDependentOptions();
       refresh();
@@ -125,6 +141,7 @@ class GroupMonitorController extends GetxController {
       _rebuildDependentOptions();
       refresh();
     });
+
     ever(selRoom, (_) {
       _rebuildDependentOptions();
       refresh();
@@ -152,6 +169,36 @@ class GroupMonitorController extends GetxController {
     }
   }
 
+  void _applyInitialSelections() {
+    final targetFactory = initialFactory?.trim();
+    if (targetFactory != null && factories.contains(targetFactory)) {
+      selFactory.value = targetFactory;
+      _rebuildDependentOptions();
+    }
+
+    final targetFloor = initialFloor?.trim();
+    if (targetFloor != null && floors.contains(targetFloor)) {
+      selFloor.value = targetFloor;
+    }
+
+    final targetRoom = initialRoom?.trim();
+    if (targetRoom != null && rooms.contains(targetRoom)) {
+      selRoom.value = targetRoom;
+    }
+
+    final targetGroup = initialGroup?.trim();
+    if (targetGroup != null && groups.contains(targetGroup)) {
+      selGroup.value = targetGroup;
+    }
+
+    final targetModel = initialModel?.trim();
+    if (targetModel != null && models.contains(targetModel)) {
+      selModel.value = targetModel;
+    }
+
+    _rebuildDependentOptions();
+  }
+
   // ========= Filter options =========
   Future<void> _loadFilterSources() async {
     try {
@@ -177,20 +224,20 @@ class GroupMonitorController extends GetxController {
         ..addAll(['F16', 'F17']);
       floors
         ..clear()
-        ..addAll(['ALL', '3F']);
+        ..addAll(['3F']);
       rooms
         ..clear()
         ..addAll(['ALL', 'ROOM1', 'ROOM2']);
       groups
         ..clear()
-        ..addAll(['ALL', 'CTO', 'FT', 'J_TAG']);
+        ..addAll(['CTO', 'FT', 'J_TAG']);
       models
         ..clear()
         ..addAll(['ALL', 'GB200', 'GB300']);
     }
   }
 
-  List<String> _mkOpts(Iterable<String> vals) {
+  List<String> _mkOpts(Iterable<String> vals, {bool includeAll = true}) {
     final s = <String>{};
     for (final v in vals) {
       final t = v.trim();
@@ -198,7 +245,8 @@ class GroupMonitorController extends GetxController {
     }
     final list =
         s.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return ['ALL', ...list];
+    if (includeAll) return ['ALL', ...list];
+    return list;
   }
 
   void _rebuildDependentOptions() {
@@ -209,30 +257,39 @@ class GroupMonitorController extends GetxController {
 
     final newFloors = _mkOpts(
       _allLocs.where((e) => e.factory == fact).map((e) => e.floor),
+      includeAll: false,
     );
     floors
       ..clear()
       ..addAll(newFloors);
-    if (!floors.contains(selFloor.value)) selFloor.value = 'ALL';
+    if (!floors.contains(selFloor.value)) {
+      selFloor.value = floors.isNotEmpty ? floors.first : '';
+    }
 
     Iterable<LocationEntry> qRoom = _allLocs.where((e) => e.factory == fact);
-    if (selFloor.value != 'ALL') qRoom = qRoom.where((e) => e.floor == floor);
+    if (selFloor.value.isNotEmpty) qRoom = qRoom.where((e) => e.floor == floor);
     final newRooms = _mkOpts(qRoom.map((e) => e.room));
     rooms
       ..clear()
       ..addAll(newRooms);
-    if (!rooms.contains(selRoom.value)) selRoom.value = 'ALL';
+    if (!rooms.contains(selRoom.value)) {
+      selRoom.value = rooms.isNotEmpty ? rooms.first : 'ALL';
+    }
 
     Iterable<LocationEntry> qGroup = qRoom;
     if (selRoom.value != 'ALL') qGroup = qGroup.where((e) => e.room == room);
-    final newGroups = _mkOpts(qGroup.map((e) => e.group));
+    final newGroups = _mkOpts(qGroup.map((e) => e.group), includeAll: false);
     groups
       ..clear()
       ..addAll(newGroups);
-    if (!groups.contains(selGroup.value)) selGroup.value = 'ALL';
+    if (!groups.contains(selGroup.value)) {
+      selGroup.value = groups.isNotEmpty ? groups.first : '';
+    }
 
     Iterable<LocationEntry> qModel = qGroup;
-    if (selGroup.value != 'ALL') qModel = qModel.where((e) => e.group == group);
+    if (selGroup.value.isNotEmpty && selGroup.value != 'ALL') {
+      qModel = qModel.where((e) => e.group == group);
+    }
     final newModels = _mkOpts(qModel.map((e) => e.model));
     models
       ..clear()
@@ -240,56 +297,26 @@ class GroupMonitorController extends GetxController {
     if (!models.contains(selModel.value)) selModel.value = 'ALL';
   }
 
-  Map<String, dynamic> _buildBody({required bool isF17}) {
-    String? _nv(String s) => s == 'ALL' ? null : s;
+  Map<String, dynamic> _buildBody() {
+    String _orAll(String s) => (s.isEmpty ? 'ALL' : s).trim();
 
-    void put(
-      Map<String, dynamic> target,
-      String key,
-      String? value, [
-      List<String> aliases = const [],
-    ]) {
-      if (value == null) return;
-      target[key] = value;
-      for (final alias in aliases) {
-        target[alias] = value;
-      }
-    }
-
-    final Map<String, dynamic> body = {};
-
-    if (isF17) {
-      put(body, 'Factory', selFactory.value, ['factory']);
-      put(body, 'Floor', _nv(selFloor.value), ['floor']);
-      put(body, 'Location', _nv(selRoom.value), ['room']);
-      put(body, 'GroupName', _nv(selGroup.value), ['groupName']);
-      final modelValue = _nv(selModel.value);
-      put(
-        body,
-        'ModelSerial',
-        modelValue,
-        ['modelSerial', 'modelName', 'ModelName'],
-      );
-    } else {
-      put(body, 'factory', selFactory.value, ['Factory']);
-      put(body, 'floor', _nv(selFloor.value), ['Floor']);
-      put(body, 'room', _nv(selRoom.value), ['Location']);
-      put(body, 'groupName', _nv(selGroup.value), ['GroupName']);
-      final modelValue = _nv(selModel.value);
-      put(
-        body,
-        'modelSerial',
-        modelValue,
-        ['ModelSerial', 'modelName', 'ModelName'],
-      );
-      body.addAll({
-        'nickName': '',
-        'rangeDateTime': '',
-        'rackNames': <Map<String, dynamic>>[],
-      });
-    }
+    final Map<String, dynamic> body = {
+      'factory': _orAll(selFactory.value),
+      'floor': _orAll(selFloor.value),
+      'room': _orAll(selRoom.value),
+      'group': _orAll(selGroup.value),
+      'model': _orAll(selModel.value),
+      'nickName': '',
+      'dateRange': '',
+    };
 
     return body;
+  }
+
+  String _fmtBodyForLog(Map<String, dynamic> body) {
+    final clone = Map<String, dynamic>.from(body);
+    clone.removeWhere((k, v) => k.toLowerCase().contains('token'));
+    return clone.toString();
   }
 
   Future<void> refresh() async {
@@ -299,12 +326,10 @@ class GroupMonitorController extends GetxController {
 
       await RackMonitorApi.quickPing();
 
-      final isF17 = selFactory.value.trim().toUpperCase() == 'F17';
-      final tower = isF17 ? Tower.f17 : Tower.f16;
-
-      final res = await RackMonitorApi.getByTower(
-        tower: tower,
-        body: _buildBody(isF17: isF17),
+      final body = _buildBody();
+      CuringApiLog.net(() => '[RackMonitor] Query body => ${_fmtBodyForLog(body)}');
+      final res = await RackMonitorApi.getDataMonitoring(
+        body: body,
       );
       data.value = res;
     } catch (e) {
@@ -315,9 +340,9 @@ class GroupMonitorController extends GetxController {
   }
 
   void clearFiltersKeepFactory() {
-    selFloor.value = 'ALL';
+    selFloor.value = floors.isNotEmpty ? floors.first : '';
     selRoom.value = 'ALL';
-    selGroup.value = 'ALL';
+    selGroup.value = '';
     selModel.value = 'ALL';
     _rebuildDependentOptions();
   }
