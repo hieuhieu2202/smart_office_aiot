@@ -22,9 +22,7 @@ class CleanRoomScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? GlobalColors.backgroundSecondaryDark
-          : GlobalColors.backgroundPrimaryLight,
+      backgroundColor: isDark ? GlobalColors.bgDark : GlobalColors.bgLight,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -577,7 +575,7 @@ class CleanRoomScreen extends StatelessWidget {
     );
   }
 
-  int _readInt(Map<String, dynamic> map, String key) {
+  int _readInt(Map map, String key) {
     final lower = key[0].toLowerCase() + key.substring(1);
     return (map[key] ?? map[lower] ?? 0) as int;
   }
