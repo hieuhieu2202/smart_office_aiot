@@ -52,7 +52,7 @@ class CleanRoomScreen extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1900, maxHeight: 1040),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: outerPadding.toDouble(), vertical: 18),
+                    padding: const EdgeInsets.symmetric(horizontal: outerPadding, vertical: 18),
                     child: Column(
                       children: [
                         SizedBox(
