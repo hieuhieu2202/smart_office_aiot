@@ -13,11 +13,20 @@ import 'cleanroom_filter_panel.dart';
 
 
 class CleanRoomScreen extends StatelessWidget {
+  const CleanRoomScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final CleanRoomController controller = Get.put(CleanRoomController());
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    const double headerHeight = 86;
+    const double outerPadding = 22;
+    const double hSpacing = 16;
+    const double vSpacing = 16;
+    const double leftWidth = 360;
+    const double rightWidth = 380;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -27,8 +36,8 @@ class CleanRoomScreen extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [const Color(0xFF040b1f), const Color(0xFF0b1e3f), const Color(0xFF0c2e58)]
-                : [const Color(0xFFe9f2ff), const Color(0xFFdfe7ff), const Color(0xFFf6f9ff)],
+                ? [const Color(0xFF021026), const Color(0xFF042d56), const Color(0xFF0b4a7a)]
+                : [const Color(0xFFdceaff), const Color(0xFFd7e7ff), const Color(0xFFf2f6ff)],
           ),
         ),
         child: Stack(
@@ -41,68 +50,71 @@ class CleanRoomScreen extends StatelessWidget {
             SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1880, maxHeight: 1040),
+                  constraints: const BoxConstraints(maxWidth: 1900, maxHeight: 1040),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: outerPadding.toDouble(), vertical: 18),
                     child: Column(
                       children: [
-                        SizedBox(height: 88, child: _HeaderBar(onFilterTap: controller.toggleFilterPanel)),
-                        const SizedBox(height: 18),
+                        SizedBox(
+                          height: headerHeight,
+                          child: _HeaderBar(onFilterTap: controller.toggleFilterPanel),
+                        ),
+                        const SizedBox(height: vSpacing),
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final bodyHeight = constraints.maxHeight;
-                              const double sideWidth = 360;
-                              const double rightWidth = 380;
-                              const double spacing = 18;
+                              final double bodyHeight = constraints.maxHeight;
 
-                              const double locationHeight = 210;
-                              const double overviewHeight = 210;
-                              final double sensorChartHeight = (bodyHeight - locationHeight - overviewHeight - spacing * 2)
-                                  .clamp(320.0, bodyHeight);
+                              const double locationHeight = 176;
+                              const double overviewHeight = 186;
+                              final double sensorChartHeight =
+                                  (bodyHeight - locationHeight - overviewHeight - vSpacing * 2).clamp(260.0, 420.0);
 
-                              final double mapHeight = (bodyHeight * 0.5).clamp(420.0, bodyHeight - 280);
-                              final double chartRowHeight = (bodyHeight - mapHeight - spacing).clamp(260.0, 360.0);
+                              final double mapHeight = (bodyHeight * 0.55).clamp(470.0, 620.0);
+                              final double chartRowHeight = (bodyHeight - mapHeight - vSpacing).clamp(260.0, bodyHeight);
 
                               return Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   SizedBox(
-                                    width: sideWidth,
+                                    width: leftWidth,
                                     child: Column(
                                       children: [
-                                        _GlassCard(height: locationHeight, child: LocationInfoWidget()),
-                                        const SizedBox(height: spacing),
-                                        _GlassCard(height: overviewHeight, child: SensorOverviewWidget()),
-                                        const SizedBox(height: spacing),
-                                        _GlassCard(height: sensorChartHeight, child: SensorDataChartWidget()),
+                                        _InfoPanel(height: locationHeight, child: LocationInfoWidget()),
+                                        const SizedBox(height: vSpacing),
+                                        _InfoPanel(height: overviewHeight, child: SensorOverviewWidget()),
+                                        const SizedBox(height: vSpacing),
+                                        _InfoPanel(height: sensorChartHeight, child: SensorDataChartWidget()),
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: spacing),
+                                  const SizedBox(width: hSpacing),
                                   Expanded(
                                     child: Column(
                                       children: [
-                                        _GradientPanel(
+                                        _DataPanel(
                                           height: mapHeight,
                                           title: 'Sơ đồ phòng sạch',
+                                          subtitle: 'Bản đồ khu vực và trạng thái điểm đo',
                                           child: RoomLayoutWidget(),
                                         ),
-                                        const SizedBox(height: spacing),
+                                        const SizedBox(height: vSpacing),
                                         SizedBox(
                                           height: chartRowHeight,
                                           child: Row(
                                             children: [
                                               Expanded(
-                                                child: _GradientPanel(
+                                                child: _DataPanel(
                                                   title: 'Tần suất cảnh báo',
+                                                  subtitle: 'Tổng hợp cảnh báo gần đây',
                                                   child: BarChartWidget(),
                                                 ),
                                               ),
-                                              const SizedBox(width: spacing),
+                                              const SizedBox(width: hSpacing),
                                               Expanded(
-                                                child: _GradientPanel(
+                                                child: _DataPanel(
                                                   title: 'Xu hướng theo thời gian',
+                                                  subtitle: 'Biểu đồ biến động cảm biến',
                                                   child: AreaChartWidget(),
                                                 ),
                                               ),
@@ -112,12 +124,13 @@ class CleanRoomScreen extends StatelessWidget {
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: spacing),
+                                  const SizedBox(width: hSpacing),
                                   SizedBox(
                                     width: rightWidth,
-                                    child: _GradientPanel(
+                                    child: _DataPanel(
                                       height: bodyHeight,
                                       title: 'Lịch sử cảm biến',
+                                      subtitle: 'Dữ liệu real-time và ghi nhận',
                                       child: SensorHistoryChartWidget(),
                                     ),
                                   ),
@@ -167,26 +180,26 @@ class _HeaderBar extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0b2345), const Color(0xFF123c72)]
-              : [const Color(0xFFdbe9ff), const Color(0xFFf7fbff)],
+              ? [const Color(0xFF0b1f3f), const Color(0xFF0f3f76), const Color(0xFF1662a3)]
+              : [const Color(0xFFdce9ff), const Color(0xFFeaf2ff)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.08 : 0.65)),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.08 : 0.6)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.16),
-            blurRadius: 18,
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 20,
             offset: const Offset(0, 12),
           ),
           BoxShadow(
-            color: Colors.blueAccent.withOpacity(0.25),
-            blurRadius: 22,
+            color: Colors.blueAccent.withOpacity(0.2),
+            blurRadius: 26,
             offset: const Offset(0, 10),
           ),
         ],
@@ -194,14 +207,17 @@ class _HeaderBar extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: isDark
-                    ? [Colors.cyanAccent.withOpacity(0.8), Colors.blueAccent.shade200]
-                    : [Colors.blueAccent.shade200, Colors.lightBlueAccent],
+                    ? [Colors.cyanAccent.withOpacity(0.9), Colors.blueAccent.shade200]
+                    : [Colors.blue.shade300, Colors.lightBlueAccent],
               ),
+              boxShadow: [
+                BoxShadow(color: Colors.cyanAccent.withOpacity(.38), blurRadius: 18, offset: const Offset(0, 8)),
+              ],
             ),
             child: const Icon(Icons.bubble_chart, color: Colors.white, size: 24),
           ),
@@ -210,34 +226,64 @@ class _HeaderBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                'Cleanroom Command',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : const Color(0xFF0a2540),
-                  letterSpacing: 0.4,
-                ),
+              Row(
+                children: [
+                  Text(
+                    'Cleanroom Command',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : const Color(0xFF0a2540),
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(.22)),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.monitor_heart_outlined, size: 14, color: Colors.white70),
+                        SizedBox(width: 6),
+                        Text('1080p fixed layout', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 4),
               Text(
-                'Giám sát thời gian thực với bố cục cố định 1080p',
+                'Giám sát phòng sạch thời gian thực với bố cục cố định',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: isDark ? Colors.white70 : const Color(0xFF38536f),
-                  letterSpacing: 0.2,
+                  color: isDark ? Colors.white70 : const Color(0xFF3b5068),
+                  letterSpacing: 0.3,
                 ),
               ),
             ],
           ),
           const Spacer(),
-          TextButton.icon(
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              foregroundColor: isDark ? Colors.white : Colors.blueGrey.shade900,
-              backgroundColor: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: onFilterTap,
-            icon: const Icon(Icons.filter_list),
-            label: const Text('Bộ lọc dữ liệu'),
+          Wrap(
+            spacing: 10,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _HeaderChip(icon: Icons.cloud_outlined, label: 'Realtime data'),
+              _HeaderChip(icon: Icons.shield_outlined, label: 'Safety view'),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  foregroundColor: isDark ? Colors.white : Colors.blueGrey.shade900,
+                  backgroundColor: isDark ? Colors.white.withOpacity(0.08) : Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: onFilterTap,
+                icon: const Icon(Icons.filter_list),
+                label: const Text('Bộ lọc dữ liệu'),
+              ),
+            ],
           ),
         ],
       ),
@@ -245,12 +291,44 @@ class _HeaderBar extends StatelessWidget {
   }
 }
 
-class _GradientPanel extends StatelessWidget {
+class _HeaderChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _HeaderChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(.06) : Colors.blueGrey.withOpacity(.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? .18 : .32)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: isDark ? Colors.white70 : Colors.blueGrey.shade700, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(color: isDark ? Colors.white70 : Colors.blueGrey.shade800, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DataPanel extends StatelessWidget {
   final Widget child;
   final double? height;
   final String title;
+  final String subtitle;
 
-  const _GradientPanel({required this.child, required this.title, this.height});
+  const _DataPanel({required this.child, required this.title, required this.subtitle, this.height});
 
   @override
   Widget build(BuildContext context) {
@@ -258,42 +336,33 @@ class _GradientPanel extends StatelessWidget {
     final panel = Container(
       height: height,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF0a2041), const Color(0xFF0b3965), const Color(0xFF0d4c82)]
+              : [Colors.white, const Color(0xFFe7efff)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF0c1f3d), const Color(0xFF0f2f59)]
-              : [Colors.white, const Color(0xFFe8f0ff)],
         ),
-        border: Border.all(color: isDark ? Colors.white24 : Colors.blueGrey.withOpacity(0.18)),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.08 : 0.2)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.blueAccent.withOpacity(0.18),
-            blurRadius: 32,
-            spreadRadius: -6,
-            offset: const Offset(0, 12),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.24), blurRadius: 22, offset: const Offset(0, 12)),
+          BoxShadow(color: Colors.blueAccent.withOpacity(.18), blurRadius: 32, spreadRadius: -8, offset: const Offset(0, 16)),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: isDark
-                  ? [const Color(0xFF0e274b).withOpacity(0.9), const Color(0xFF09182f).withOpacity(0.92)]
-                  : [Colors.white, const Color(0xFFeef4ff)],
+                  ? [const Color(0xFF0d2c54).withOpacity(.94), const Color(0xFF0a1d37).withOpacity(.95)]
+                  : [Colors.white, const Color(0xFFf2f6ff)],
             ),
           ),
-          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -312,12 +381,26 @@ class _GradientPanel extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.2,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
                         ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: isDark ? Colors.white70 : Colors.blueGrey.shade600,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -333,11 +416,11 @@ class _GradientPanel extends StatelessWidget {
   }
 }
 
-class _GlassCard extends StatelessWidget {
+class _InfoPanel extends StatelessWidget {
   final double height;
   final Widget child;
 
-  const _GlassCard({required this.height, required this.child});
+  const _InfoPanel({required this.height, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -348,29 +431,25 @@ class _GlassCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         gradient: LinearGradient(
           colors: isDark
-              ? [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.04)]
-              : [Colors.white.withOpacity(0.9), Colors.white.withOpacity(0.82)],
+              ? [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.05)]
+              : [Colors.white, const Color(0xFFedf2ff)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: isDark ? Colors.white12 : Colors.blueGrey.withOpacity(0.18)),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.2)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.14),
-            blurRadius: 18,
-            offset: const Offset(0, 12),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 18, offset: const Offset(0, 12)),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isDark
-                  ? [const Color(0xFF0b1f3c), const Color(0xFF0c2747)]
-                  : [Colors.white, const Color(0xFFf1f5ff)],
+                  ? [const Color(0xFF0f294d), const Color(0xFF0c1f3d)]
+                  : [Colors.white, const Color(0xFFf3f7ff)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
