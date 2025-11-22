@@ -90,16 +90,40 @@ class _SensorCard extends StatelessWidget {
       tooltipPosition: TooltipPosition.pointer,
       animationDuration: 120,
       builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
-        final chartPoint = data is _ChartPoint ? data : null;
-        final timestamp = chartPoint?.timestamp;
-        final formattedTime = timestamp != null
-            ? DateFormat('yyyy-MM-dd HH:mm').format(timestamp)
-            : chartPoint?.rawLabel ?? '';
-        final valueText = chartPoint != null ? chartPoint.formattedValue : point.y?.toString();
+        final headerPoint = (chartSeries.isNotEmpty && pointIndex >= 0 && pointIndex < chartSeries.first.points.length)
+            ? chartSeries.first.points[pointIndex]
+            : null;
+        final headerTime = headerPoint?.timestamp;
+        final headerLabel = headerTime != null
+            ? DateFormat('yyyy-MM-dd HH:mm').format(headerTime)
+            : headerPoint?.rawLabel ?? '';
+
+        final rows = chartSeries
+            .where((item) => pointIndex >= 0 && pointIndex < item.points.length)
+            .map((item) {
+          final point = item.points[pointIndex];
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: item.color, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Text(
+                item.name,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                point.formattedValue,
+                style: TextStyle(color: item.color, fontWeight: FontWeight.w800, fontSize: 12),
+              ),
+            ],
+          );
+        }).toList();
+
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.82),
+            color: Colors.black.withOpacity(0.86),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.white.withOpacity(0.16)),
           ),
@@ -108,26 +132,11 @@ class _SensorCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                formattedTime,
+                headerLabel,
                 style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(width: 10, height: 10, decoration: BoxDecoration(color: series.color, shape: BoxShape.circle)),
-                  const SizedBox(width: 6),
-                  Text(
-                    series.name?.toString() ?? '',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    valueText ?? '',
-                    style: TextStyle(color: series.color ?? Colors.white, fontWeight: FontWeight.w800, fontSize: 12),
-                  )
-                ],
-              ),
+              const SizedBox(height: 6),
+              ...rows,
             ],
           ),
         );
