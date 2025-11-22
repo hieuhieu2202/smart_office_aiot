@@ -76,19 +76,30 @@ class _SensorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = CleanRoomChartStyle.palette(isDark);
+    final metrics = _buildMetrics(seriesList, palette);
+    final tooltip = TooltipBehavior(
+      enable: true,
+      shared: true,
+      color: Colors.blueGrey.shade900.withOpacity(0.9),
+      header: '',
+      textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+      canShowMarker: true,
+      opacity: 0.98,
+      tooltipPosition: TooltipPosition.pointer,
+    );
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0d213b), const Color(0xFF0f305d)]
-              : [const Color(0xFFe6f0ff), const Color(0xFFd6e7ff)],
+              ? [const Color(0xFF0c1f38), const Color(0xFF0e335c), const Color(0xFF0f3e71)]
+              : [const Color(0xFFdff0ff), const Color(0xFFd2e6ff), const Color(0xFFc1dcff)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.14 : 0.32)),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.18 : 0.28)),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 10)),
           BoxShadow(color: Colors.blueAccent.withOpacity(0.18), blurRadius: 18, spreadRadius: -6),
@@ -101,180 +112,272 @@ class _SensorCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
+                flex: 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _Header(sensorName: sensorName, sensorDesc: sensorDesc, isDark: isDark),
+                    const SizedBox(height: 6),
+                    _MetricList(metrics: metrics, isDark: isDark),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: _Sparkline(
+                  categories: categories,
+                  seriesList: seriesList,
+                  palette: palette,
+                  tooltipBehavior: tooltip,
+                  isDark: isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.08) : Colors.blue.shade50.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.24)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.sensors, size: 16, color: isDark ? Colors.white : const Color(0xFF0a2d50)),
+                    const SizedBox(width: 8),
                     Text(
                       sensorName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w800,
                             color: isDark ? Colors.white : const Color(0xFF0a2d50),
                           ),
                     ),
-                    if (sensorDesc.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          sensorDesc,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade600),
-                        ),
+                    if (sensorDesc.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        sensorDesc,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
                       ),
+                    ]
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _StatusPill(status: status),
-                  if (lastTime.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.06)
-                              : Colors.black.withOpacity(0.04),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(isDark ? 0.16 : 0.22)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.access_time, size: 14, color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
-                            const SizedBox(width: 6),
-                            Text(
-                              lastTime,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              )
+              const Spacer(),
+              if (lastTime.isNotEmpty) ...[
+                _TimePill(time: lastTime),
+                const SizedBox(width: 8),
+              ],
+              _StatusPill(status: status),
             ],
-          ),
-          const SizedBox(height: 12),
-          _MetricWrap(palette: palette, seriesList: seriesList, isDark: isDark),
-          const SizedBox(height: 12),
-          Container(
-            height: 100,
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.04) : Colors.white.withOpacity(0.65),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(isDark ? 0.08 : 0.18)),
-            ),
-            padding: const EdgeInsets.only(left: 6, right: 6, top: 4, bottom: 2),
-            child: SfCartesianChart(
-              margin: EdgeInsets.zero,
-              plotAreaBorderWidth: 0,
-              borderWidth: 0,
-              palette: palette,
-              primaryXAxis: CategoryAxis(
-                isVisible: false,
-                majorGridLines: const MajorGridLines(width: 0),
-              ),
-              primaryYAxis: NumericAxis(
-                isVisible: false,
-                majorGridLines: const MajorGridLines(width: 0),
-              ),
-              legend: const Legend(isVisible: false),
-              series: seriesList
-                  .where((serie) => serie is Map && (serie['data'] as List?)?.isNotEmpty == true)
-                  .map<SplineSeries<dynamic, String>>((serie) {
-                final data = (serie['data'] as List).map((e) => e as num).toList();
-                final name = serie['parameterDisplayName'] ?? serie['name'] ?? '';
-                return SplineSeries<dynamic, String>(
-                  dataSource: data,
-                  width: 2.4,
-                  opacity: 0.9,
-                  markerSettings: const MarkerSettings(isVisible: false),
-                  xValueMapper: (dynamic value, int index) =>
-                      index < categories.length ? categories[index] : index.toString(),
-                  yValueMapper: (dynamic value, int _) => value,
-                  name: name.toString(),
-                );
-              }).toList(),
-            ),
           ),
         ],
       ),
     );
   }
 
+  List<_MetricItem> _buildMetrics(List<dynamic> series, List<Color> palette) {
+    final items = <_MetricItem>[];
+    int colorIndex = 0;
+    for (final raw in series) {
+      final map = raw is Map<String, dynamic> ? raw : null;
+      final data = (map?['data'] as List?) ?? [];
+      if (map == null || data.isEmpty) continue;
+      final label = map['parameterDisplayName']?.toString() ?? map['name']?.toString() ?? '';
+      final lastValue = data.last as num;
+      final color = palette[colorIndex % palette.length];
+      colorIndex++;
+      items.add(_MetricItem(label: label, value: lastValue, color: color));
+    }
+    return items;
+  }
 }
 
-class _MetricWrap extends StatelessWidget {
-  final List<Color> palette;
-  final List<dynamic> seriesList;
+class _Header extends StatelessWidget {
+  final String sensorName;
+  final String sensorDesc;
   final bool isDark;
 
-  const _MetricWrap({required this.palette, required this.seriesList, required this.isDark});
+  const _Header({required this.sensorName, required this.sensorDesc, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    final chips = <Widget>[];
-    for (int i = 0; i < seriesList.length && i < 5; i++) {
-      final serie = seriesList[i] as Map<String, dynamic>?;
-      if (serie == null) continue;
-      final label = serie['parameterDisplayName']?.toString() ?? serie['name']?.toString() ?? '';
-      final data = (serie['data'] as List?) ?? [];
-      if (data.isEmpty) continue;
-      final value = data.last as num;
-      final color = palette[i % palette.length];
-      chips.add(
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: isDark ? color.withOpacity(0.16) : color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.3)),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.16), blurRadius: 10, offset: const Offset(0, 6)),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : const Color(0xFF0a2d50),
-                  fontSize: 12,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          sensorName,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : const Color(0xFF0b2d55),
+                letterSpacing: 0.1,
               ),
-              const SizedBox(height: 4),
-              Text(
-                _formatValue(value),
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
         ),
+        if (sensorDesc.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              sensorDesc,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade600),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _MetricList extends StatelessWidget {
+  final List<_MetricItem> metrics;
+  final bool isDark;
+
+  const _MetricList({required this.metrics, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    if (metrics.isEmpty) {
+      return Text(
+        'No sensor data',
+        style: Theme.of(context)
+            .textTheme
+            .bodyMedium
+            ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
       );
     }
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: chips,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: metrics
+          .take(5)
+          .map((metric) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: metric.color,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: metric.color.withOpacity(0.4), blurRadius: 8, spreadRadius: 1),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        metric.label,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : const Color(0xFF0b2d55),
+                            ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      metric.formattedValue,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: metric.color,
+                          ),
+                    ),
+                  ],
+                ),
+              ))
+          .toList(),
     );
   }
+}
 
-  String _formatValue(num value) {
+class _Sparkline extends StatelessWidget {
+  final List<String> categories;
+  final List<dynamic> seriesList;
+  final List<Color> palette;
+  final TooltipBehavior tooltipBehavior;
+  final bool isDark;
+
+  const _Sparkline({
+    required this.categories,
+    required this.seriesList,
+    required this.palette,
+    required this.tooltipBehavior,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final series = seriesList
+        .where((serie) => serie is Map && (serie['data'] as List?)?.isNotEmpty == true)
+        .map<SplineSeries<dynamic, String>>((serie) {
+      final data = (serie['data'] as List).map((e) => e as num).toList();
+      final name = serie['parameterDisplayName'] ?? serie['name'] ?? '';
+      return SplineSeries<dynamic, String>(
+        dataSource: data,
+        width: 2.6,
+        opacity: 0.95,
+        markerSettings: const MarkerSettings(isVisible: true, height: 6, width: 6),
+        xValueMapper: (dynamic value, int index) => index < categories.length ? categories[index] : index.toString(),
+        yValueMapper: (dynamic value, int _) => value,
+        name: name.toString(),
+      );
+    }).toList();
+
+    return Container(
+      height: 110,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.black.withOpacity(0.25) : Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.18)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 12, offset: const Offset(0, 6)),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+      child: SfCartesianChart(
+        margin: EdgeInsets.zero,
+        plotAreaBorderWidth: 0,
+        borderWidth: 0,
+        palette: palette,
+        tooltipBehavior: tooltipBehavior,
+        primaryXAxis: CategoryAxis(
+          isVisible: true,
+          majorGridLines: const MajorGridLines(width: 0),
+          labelStyle: TextStyle(
+            color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
+            fontSize: 10,
+          ),
+        ),
+        primaryYAxis: NumericAxis(
+          isVisible: false,
+          majorGridLines: const MajorGridLines(width: 0),
+        ),
+        legend: const Legend(isVisible: false),
+        series: series,
+      ),
+    );
+  }
+}
+
+class _MetricItem {
+  final String label;
+  final num value;
+  final Color color;
+
+  const _MetricItem({required this.label, required this.value, required this.color});
+
+  String get formattedValue {
     if (value is int) return value.toString();
     final doubleValue = value.toDouble();
     return doubleValue % 1 == 0 ? doubleValue.toStringAsFixed(0) : doubleValue.toStringAsFixed(2);
@@ -293,15 +396,15 @@ class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? color.withOpacity(0.22) : color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.4)),
+        color: isDark ? color.withOpacity(0.28) : color.withOpacity(0.16),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withOpacity(0.42)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.circle, size: 10, color: color),
-          const SizedBox(width: 6),
+          Icon(Icons.circle, size: 11, color: color),
+          const SizedBox(width: 7),
           Text(
             status,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -323,5 +426,38 @@ class _StatusPill extends StatelessWidget {
       default:
         return Colors.lightGreenAccent.shade400;
     }
+  }
+}
+
+class _TimePill extends StatelessWidget {
+  final String time;
+
+  const _TimePill({required this.time});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.14 : 0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.access_time_rounded, size: 14, color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
+          const SizedBox(width: 6),
+          Text(
+            time,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
+    );
   }
 }
