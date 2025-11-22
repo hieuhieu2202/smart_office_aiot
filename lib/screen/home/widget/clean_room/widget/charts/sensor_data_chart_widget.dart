@@ -126,34 +126,23 @@ class _SensorCard extends StatelessWidget {
                     _TimePill(time: lastTime),
                   ],
                 ],
-              )
+              ),
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Flexible(
-                flex: 40,
-                child: _MetricList(metrics: metrics, isDark: isDark),
-              ),
-              const SizedBox(width: 12),
-              Flexible(
-                flex: 60,
-                child: SizedBox(
-                  height: 130,
-                  child: _Sparkline(
-                    categories: categories,
-                    seriesList: seriesList,
-                    palette: palette,
-                    tooltipBehavior: tooltip,
-                    isDark: isDark,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          _MetricWrap(metrics: metrics, isDark: isDark),
           const SizedBox(height: 12),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 110, maxHeight: 150),
+            child: _Sparkline(
+              categories: categories,
+              seriesList: seriesList,
+              palette: palette,
+              tooltipBehavior: tooltip,
+              isDark: isDark,
+            ),
+          ),
+          const SizedBox(height: 10),
           Row(
             children: [
               Container(
@@ -248,11 +237,11 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _MetricList extends StatelessWidget {
+class _MetricWrap extends StatelessWidget {
   final List<_MetricItem> metrics;
   final bool isDark;
 
-  const _MetricList({required this.metrics, required this.isDark});
+  const _MetricWrap({required this.metrics, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -266,53 +255,51 @@ class _MetricList extends StatelessWidget {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: metrics
-          .take(5)
-          .map((metric) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: metric.color,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(color: metric.color.withOpacity(0.4), blurRadius: 8, spreadRadius: 1),
-                        ],
-                      ),
+    return Wrap(
+      spacing: 10,
+      runSpacing: 8,
+      children: metrics.take(6).map((metric) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.78),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: metric.color.withOpacity(isDark ? 0.45 : 0.35)),
+            boxShadow: [
+              BoxShadow(color: metric.color.withOpacity(0.2), blurRadius: 10, spreadRadius: -2),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(color: metric.color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                metric.label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : const Color(0xFF0b2d55),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        metric.label,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : const Color(0xFF0b2d55),
-                            ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                metric.formattedValue,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: metric.color,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      metric.formattedValue,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: metric.color,
-                          ),
-                    ),
-                  ],
-                ),
-              ))
-          .toList(),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }
-
 class _Sparkline extends StatelessWidget {
   final List<String> categories;
   final List<dynamic> seriesList;
@@ -348,9 +335,10 @@ class _Sparkline extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double clampedHeight = constraints.maxHeight.isFinite
-            ? constraints.maxHeight.clamp(68.0, 96.0)
-            : 88.0;
+        final double targetHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
+            ? constraints.maxHeight
+            : 120.0;
+        final double clampedHeight = targetHeight.clamp(100.0, 160.0);
 
         return Container(
           height: clampedHeight,
