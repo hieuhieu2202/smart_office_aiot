@@ -56,6 +56,13 @@ class SensorDataChartWidget extends StatelessWidget {
 }
 
 class _SensorCard extends StatelessWidget {
+  static const List<_ParameterSpec> _preferredParams = [
+    _ParameterSpec(key: '0.3um', fallbackLabel: 'PM0.3 (µm/m³)'),
+    _ParameterSpec(key: '0.5um', fallbackLabel: 'PM0.5 (µm/m³)'),
+    _ParameterSpec(key: '1.0um', fallbackLabel: 'PM1.0 (µm/m³)'),
+    _ParameterSpec(key: '5.0um', fallbackLabel: 'PM5.0 (µm/m³)'),
+    _ParameterSpec(key: 'traffic', fallbackLabel: 'Traffic Flow (m/min)'),
+  ];
   final String sensorName;
   final String sensorDesc;
   final String lastTime;
@@ -144,14 +151,19 @@ class _SensorCard extends StatelessWidget {
   List<_MetricItem> _buildMetrics(List<dynamic> series, List<Color> palette) {
     final items = <_MetricItem>[];
     int colorIndex = 0;
-    for (final raw in series) {
-      final map = raw is Map<String, dynamic> ? raw : null;
+
+    for (final spec in _preferredParams) {
+      final map = _findSeriesByKey(series, spec.key);
       final data = (map?['data'] as List?) ?? [];
       if (map == null || data.isEmpty) continue;
-      final label = map['parameterDisplayName']?.toString() ?? map['name']?.toString() ?? '';
+
+      final label = map['parameterDisplayName']?.toString() ??
+          map['name']?.toString() ??
+          spec.fallbackLabel;
       final lastValue = data.last as num;
       final color = palette[colorIndex % palette.length];
       colorIndex++;
+
       items.add(_MetricItem(label: label, value: lastValue, color: color));
     }
     return items;
@@ -164,12 +176,15 @@ class _SensorCard extends StatelessWidget {
   ) {
     final items = <_ChartSeriesData>[];
     int colorIndex = 0;
-    for (final raw in series) {
-      final map = raw is Map<String, dynamic> ? raw : null;
+
+    for (final spec in _preferredParams) {
+      final map = _findSeriesByKey(series, spec.key);
       final data = (map?['data'] as List?)?.map((e) => e as num).toList() ?? [];
       if (map == null || data.isEmpty || categories.isEmpty) continue;
 
-      final label = map['parameterDisplayName']?.toString() ?? map['name']?.toString() ?? '';
+      final label = map['parameterDisplayName']?.toString() ??
+          map['name']?.toString() ??
+          spec.fallbackLabel;
       final length = data.length < categories.length ? data.length : categories.length;
       final color = palette[colorIndex % palette.length];
       colorIndex++;
@@ -196,6 +211,19 @@ class _SensorCard extends StatelessWidget {
       );
     }
     return items;
+  }
+
+  Map<String, dynamic>? _findSeriesByKey(List<dynamic> series, String key) {
+    final normalizedKey = key.toLowerCase();
+    final match = series.whereType<Map<String, dynamic>>().firstWhere(
+          (map) {
+            final paramName = map['parameterName']?.toString().toLowerCase();
+            final name = map['name']?.toString().toLowerCase();
+            return paramName == normalizedKey || name == normalizedKey;
+          },
+          orElse: () => <String, dynamic>{},
+        );
+    return match.isEmpty ? null : match;
   }
 
   TooltipBehavior _buildTooltip(List<_ChartSeriesData> chartSeries) {
@@ -558,6 +586,13 @@ class _ChartPoint {
     final doubleValue = value.toDouble();
     return doubleValue % 1 == 0 ? doubleValue.toStringAsFixed(0) : doubleValue.toStringAsFixed(2);
   }
+}
+
+class _ParameterSpec {
+  final String key;
+  final String fallbackLabel;
+
+  const _ParameterSpec({required this.key, required this.fallbackLabel});
 }
 
 class _StatusPill extends StatelessWidget {
