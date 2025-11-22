@@ -79,69 +79,7 @@ class _SensorCard extends StatelessWidget {
     final palette = CleanRoomChartStyle.palette(isDark);
     final metrics = _buildMetrics(seriesList, palette);
     final chartSeries = _buildSeries(seriesList, categories, palette);
-    final tooltip = TooltipBehavior(
-      enable: true,
-      shared: true,
-      color: Colors.blueGrey.shade900.withOpacity(0.94),
-      header: '',
-      textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11),
-      canShowMarker: true,
-      opacity: 0.98,
-      tooltipPosition: TooltipPosition.pointer,
-      animationDuration: 120,
-      builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
-        final headerPoint = (chartSeries.isNotEmpty && pointIndex >= 0 && pointIndex < chartSeries.first.points.length)
-            ? chartSeries.first.points[pointIndex]
-            : null;
-        final headerTime = headerPoint?.timestamp;
-        final headerLabel = headerTime != null
-            ? DateFormat('yyyy-MM-dd HH:mm').format(headerTime)
-            : headerPoint?.rawLabel ?? '';
-
-        final rows = chartSeries
-            .where((item) => pointIndex >= 0 && pointIndex < item.points.length)
-            .map((item) {
-          final point = item.points[pointIndex];
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 10, height: 10, decoration: BoxDecoration(color: item.color, shape: BoxShape.circle)),
-              const SizedBox(width: 6),
-              Text(
-                item.name,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                point.formattedValue,
-                style: TextStyle(color: item.color, fontWeight: FontWeight.w800, fontSize: 12),
-              ),
-            ],
-          );
-        }).toList();
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.86),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.white.withOpacity(0.16)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                headerLabel,
-                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              ...rows,
-            ],
-          ),
-        );
-      },
-    );
+    final tooltip = _buildTooltip(chartSeries);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -259,6 +197,75 @@ class _SensorCard extends StatelessWidget {
       );
     }
     return items;
+  }
+
+  TooltipBehavior _buildTooltip(List<_ChartSeriesData> chartSeries) {
+    return TooltipBehavior(
+      enable: true,
+      color: Colors.blueGrey.shade900.withOpacity(0.95),
+      header: '',
+      canShowMarker: true,
+      opacity: 0.98,
+      animationDuration: 120,
+      tooltipPosition: TooltipPosition.pointer,
+      builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
+        final chartPoint = point.data is _ChartPoint ? point.data as _ChartPoint : null;
+        final headerLabel = chartPoint?.timestamp != null
+            ? DateFormat('yyyy-MM-dd HH:mm').format(chartPoint!.timestamp!)
+            : (chartPoint?.displayLabel ?? chartPoint?.rawLabel ?? '');
+
+        final rows = chartSeries
+            .where((item) => pointIndex >= 0 && pointIndex < item.points.length)
+            .map((item) {
+          final valuePoint = item.points[pointIndex];
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: item.color, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Text(
+                item.name,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                valuePoint.formattedValue,
+                style: TextStyle(color: item.color, fontWeight: FontWeight.w800, fontSize: 12),
+              ),
+            ],
+          );
+        }).toList();
+
+        return Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.blueGrey.shade900.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.12)),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 6))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.schedule, size: 12, color: Colors.white70),
+                  const SizedBox(width: 6),
+                  Text(
+                    headerLabel,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+                  ),
+                ],
+              ),
+              if (rows.isNotEmpty) const SizedBox(height: 6),
+              ...rows,
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
