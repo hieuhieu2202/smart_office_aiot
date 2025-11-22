@@ -127,7 +127,12 @@ class RoomLayoutWidget extends StatelessWidget {
                                 child: Stack(
                                   children: [
                                     Positioned.fill(
-                                      child: Image(image: image, fit: BoxFit.cover),
+                                      child: Image(
+                                        image: image,
+                                        // Fill the sized canvas so percentage coordinates match the
+                                        // database layout without cropping.
+                                        fit: BoxFit.fill,
+                                      ),
                                     ),
                                     Positioned.fill(
                                       child: DecoratedBox(
@@ -147,13 +152,16 @@ class RoomLayoutWidget extends StatelessWidget {
                                     ...sensors.map((sensor) {
                                       final topPercentStr = sensor['Top']?.toString().replaceAll('%', '') ?? '0';
                                       final leftPercentStr = sensor['Left']?.toString().replaceAll('%', '') ?? '0';
-                                      final topPercent = double.tryParse(topPercentStr) ?? 0.0;
-                                      final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
+                                      final topPercent = (double.tryParse(topPercentStr) ?? 0.0).clamp(0.0, 100.0);
+                                      final leftPercent = (double.tryParse(leftPercentStr) ?? 0.0).clamp(0.0, 100.0);
 
-                                      final rawTop = (topPercent.isNaN ? 0.0 : topPercent) / 100 * canvasHeight;
-                                      final rawLeft = (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * canvasWidth;
-                                      final topPos = rawTop.clamp(0.0, canvasHeight - markerBoxSize);
-                                      final leftPos = rawLeft.clamp(0.0, canvasWidth - markerBoxSize);
+                                      // Treat API coordinates as marker center points.
+                                      final centerY = (topPercent / 100) * canvasHeight;
+                                      final centerX = (leftPercent / 100) * canvasWidth;
+                                      final topPos =
+                                          (centerY - markerBoxSize / 2).clamp(0.0, canvasHeight - markerBoxSize);
+                                      final leftPos =
+                                          (centerX - markerBoxSize / 2).clamp(0.0, canvasWidth - markerBoxSize);
 
                                       Map<String, dynamic>? dataEntry;
                                       try {
