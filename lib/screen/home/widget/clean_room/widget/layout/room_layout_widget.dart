@@ -153,7 +153,13 @@ class RoomLayoutWidget extends StatelessWidget {
                                       final topPercentStr = sensor['Top']?.toString().replaceAll('%', '') ?? '0';
                                       final leftPercentStr = sensor['Left']?.toString().replaceAll('%', '') ?? '0';
                                       final topPercent = (double.tryParse(topPercentStr) ?? 0.0).clamp(0.0, 100.0);
-                                      final leftPercent = (double.tryParse(leftPercentStr) ?? 0.0).clamp(0.0, 100.0);
+
+                                      // The API coordinates map most accurately when shifted ~20%
+                                      // to the left relative to the image canvas. Apply the offset
+                                      // before converting to pixel space and keep the value clamped
+                                      // to valid percentage bounds.
+                                      final leftPercent =
+                                          ((double.tryParse(leftPercentStr) ?? 0.0) - 20.0).clamp(0.0, 100.0);
 
                                       // Treat API coordinates as marker center points.
                                       final centerY = (topPercent / 100) * canvasHeight;
