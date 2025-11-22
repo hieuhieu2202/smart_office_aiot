@@ -209,7 +209,14 @@ class _SensorCard extends StatelessWidget {
       animationDuration: 120,
       tooltipPosition: TooltipPosition.pointer,
       builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
-        final chartPoint = point.data is _ChartPoint ? point.data as _ChartPoint : null;
+        final _ChartPoint? chartPoint = data is _ChartPoint
+            ? data as _ChartPoint
+            : (seriesIndex >= 0 && seriesIndex < chartSeries.length)
+                ? (pointIndex >= 0 && pointIndex < chartSeries[seriesIndex].points.length)
+                    ? chartSeries[seriesIndex].points[pointIndex]
+                    : null
+                : null;
+
         final headerLabel = chartPoint?.timestamp != null
             ? DateFormat('yyyy-MM-dd HH:mm').format(chartPoint!.timestamp!)
             : (chartPoint?.displayLabel ?? chartPoint?.rawLabel ?? '');
