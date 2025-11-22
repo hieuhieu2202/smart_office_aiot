@@ -17,7 +17,7 @@ class CleanRoomScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     const double outerPadding = 12;
-    const double gridGap = 10;
+    const double gridGap = 8;
     const int gridColumns = 5;
     const int gridRows = 5;
 
@@ -59,10 +59,10 @@ class CleanRoomScreen extends StatelessWidget {
                               final double cellWidth = (bodyWidth - gridGap * (gridColumns - 1)) / gridColumns;
                               final double cellHeight = (bodyHeight - gridGap * (gridRows - 1)) / gridRows;
 
-                              final double leftWidth = cellWidth * 2 + gridGap;
+                              final double leftWidth = cellWidth;
                               final double summaryHeight = cellHeight * 2 + gridGap;
                               final double historyHeight = cellHeight * 3 + gridGap * 2;
-                              final double mapWidth = cellWidth * 3 + gridGap * 2;
+                              final double mapWidth = cellWidth * 4 + gridGap * 3;
                               final double mapHeight = cellHeight * 5 + gridGap * 4;
 
                               return Row(
@@ -93,27 +93,6 @@ class CleanRoomScreen extends StatelessWidget {
                                       title: 'Sơ đồ phòng sạch',
                                       subtitle: 'Bản đồ bố trí cảm biến và trạng thái điểm đo',
                                       leadingIcon: Icons.location_on_outlined,
-                                      actions: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(isDark ? 0.08 : 0.18),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: Colors.white.withOpacity(isDark ? 0.14 : 0.24)),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: const [
-                                              Icon(Icons.touch_app_outlined, size: 16, color: Colors.white70),
-                                              SizedBox(width: 6),
-                                              Text(
-                                                'Chạm cảm biến để xem chi tiết',
-                                                style: TextStyle(color: Colors.white70, fontSize: 12),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
                                       child: RoomLayoutWidget(),
                                     ),
                                   ),
