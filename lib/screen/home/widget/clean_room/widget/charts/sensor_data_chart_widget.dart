@@ -176,14 +176,13 @@ class _SensorCard extends StatelessWidget {
 
       final points = <_ChartPoint>[];
       for (int i = 0; i < length; i++) {
-        final rawLabel = categories[i];
-        final parsed = _parseTimestamp(rawLabel);
+        final category = _resolveCategory(categories[i]);
         points.add(
           _ChartPoint(
-            rawLabel: rawLabel,
-            displayLabel: _formatCategoryLabel(rawLabel),
+            rawLabel: category.raw,
+            displayLabel: category.display,
             value: data[i],
-            timestamp: parsed,
+            timestamp: category.timestamp,
           ),
         );
       }
@@ -488,12 +487,57 @@ DateTime? _parseTimestamp(String raw) {
   return DateTime.tryParse(normalized);
 }
 
+_CategoryLabel _resolveCategory(dynamic raw) {
+  if (raw == null) {
+    return const _CategoryLabel(raw: '', display: '', timestamp: null);
+  }
+
+  if (raw is Map) {
+    // Prioritize well-known time/label keys.
+    const keys = ['timestamp', 'time', 'label', 'value', 'name'];
+    for (final key in keys) {
+      if (raw.containsKey(key) && raw[key] != null) {
+        final candidate = raw[key].toString();
+        final ts = _parseTimestamp(candidate);
+        return _CategoryLabel(
+          raw: candidate,
+          display: _formatCategoryLabel(candidate),
+          timestamp: ts,
+        );
+      }
+    }
+
+    // Fall back to a concatenated description when no key matches.
+    final fallback = raw.values.map((v) => v?.toString() ?? '').where((v) => v.isNotEmpty).join(' ');
+    return _CategoryLabel(
+      raw: fallback,
+      display: _formatCategoryLabel(fallback),
+      timestamp: _parseTimestamp(fallback),
+    );
+  }
+
+  final label = raw.toString();
+  return _CategoryLabel(
+    raw: label,
+    display: _formatCategoryLabel(label),
+    timestamp: _parseTimestamp(label),
+  );
+}
+
 class _ChartSeriesData {
   final String name;
   final Color color;
   final List<_ChartPoint> points;
 
   const _ChartSeriesData({required this.name, required this.color, required this.points});
+}
+
+class _CategoryLabel {
+  final String raw;
+  final String display;
+  final DateTime? timestamp;
+
+  const _CategoryLabel({required this.raw, required this.display, required this.timestamp});
 }
 
 class _ChartPoint {
