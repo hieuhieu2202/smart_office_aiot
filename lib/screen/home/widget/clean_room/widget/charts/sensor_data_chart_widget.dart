@@ -78,20 +78,20 @@ class _SensorCard extends StatelessWidget {
     final palette = CleanRoomChartStyle.palette(isDark);
 
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0d2a4b), const Color(0xFF0f3a6d)]
-              : [const Color(0xFFe2f1ff), const Color(0xFFd4e7ff)],
+              ? [const Color(0xFF0d213b), const Color(0xFF0f305d)]
+              : [const Color(0xFFe6f0ff), const Color(0xFFd6e7ff)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.2 : 0.5)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.14 : 0.32)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.24), blurRadius: 14, offset: const Offset(0, 10)),
-          BoxShadow(color: Colors.blueAccent.withOpacity(0.18), blurRadius: 16, spreadRadius: -8),
+          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 10)),
+          BoxShadow(color: Colors.blueAccent.withOpacity(0.18), blurRadius: 18, spreadRadius: -6),
         ],
       ),
       child: Column(
@@ -103,53 +103,75 @@ class _SensorCard extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _buildMetrics(palette),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(sensorName,
+                  children: [
+                    Text(
+                      sensorName,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w800,
                             color: isDark ? Colors.white : const Color(0xFF0a2d50),
-                          )),
-                  if (sensorDesc.isNotEmpty)
-                    Text(sensorDesc,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade600)),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.circle, size: 12, color: _statusColor(status)),
-                      const SizedBox(width: 6),
-                      Text(status,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: _statusColor(status),
-                              )),
-                    ],
-                  ),
-                  if (lastTime.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(lastTime,
+                          ),
+                    ),
+                    if (sensorDesc.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          sensorDesc,
                           style: Theme.of(context)
                               .textTheme
                               .bodySmall
-                              ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700)),
+                              ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade600),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _StatusPill(status: status),
+                  if (lastTime.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.06)
+                              : Colors.black.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withOpacity(isDark ? 0.16 : 0.22)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.access_time, size: 14, color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
+                            const SizedBox(width: 6),
+                            Text(
+                              lastTime,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                 ],
               )
             ],
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 90,
+          const SizedBox(height: 12),
+          _MetricWrap(palette: palette, seriesList: seriesList, isDark: isDark),
+          const SizedBox(height: 12),
+          Container(
+            height: 100,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.04) : Colors.white.withOpacity(0.65),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(isDark ? 0.08 : 0.18)),
+            ),
+            padding: const EdgeInsets.only(left: 6, right: 6, top: 4, bottom: 2),
             child: SfCartesianChart(
               margin: EdgeInsets.zero,
               plotAreaBorderWidth: 0,
@@ -171,7 +193,8 @@ class _SensorCard extends StatelessWidget {
                 final name = serie['parameterDisplayName'] ?? serie['name'] ?? '';
                 return SplineSeries<dynamic, String>(
                   dataSource: data,
-                  width: 2.2,
+                  width: 2.4,
+                  opacity: 0.9,
                   markerSettings: const MarkerSettings(isVisible: false),
                   xValueMapper: (dynamic value, int index) =>
                       index < categories.length ? categories[index] : index.toString(),
@@ -186,39 +209,119 @@ class _SensorCard extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildMetrics(List<Color> palette) {
-    final List<Widget> metrics = [];
-    for (int i = 0; i < seriesList.length && i < 4; i++) {
+}
+
+class _MetricWrap extends StatelessWidget {
+  final List<Color> palette;
+  final List<dynamic> seriesList;
+  final bool isDark;
+
+  const _MetricWrap({required this.palette, required this.seriesList, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = <Widget>[];
+    for (int i = 0; i < seriesList.length && i < 5; i++) {
       final serie = seriesList[i] as Map<String, dynamic>?;
       if (serie == null) continue;
       final label = serie['parameterDisplayName']?.toString() ?? serie['name']?.toString() ?? '';
       final data = (serie['data'] as List?) ?? [];
-      final value = data.isNotEmpty ? data.last : null;
-      metrics.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            '$label: ${value ?? 0}',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 12,
-              color: palette[i % palette.length],
-            ),
+      if (data.isEmpty) continue;
+      final value = data.last as num;
+      final color = palette[i % palette.length];
+      chips.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isDark ? color.withOpacity(0.16) : color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.3)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.16), blurRadius: 10, offset: const Offset(0, 6)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF0a2d50),
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _formatValue(value),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: color,
+                ),
+              ),
+            ],
           ),
         ),
       );
     }
-    return metrics;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: chips,
+    );
   }
 
-  Color _statusColor(String status) {
+  String _formatValue(num value) {
+    if (value is int) return value.toString();
+    final doubleValue = value.toDouble();
+    return doubleValue % 1 == 0 ? doubleValue.toStringAsFixed(0) : doubleValue.toStringAsFixed(2);
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  final String status;
+
+  const _StatusPill({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(status);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? color.withOpacity(0.22) : color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.circle, size: 10, color: color),
+          const SizedBox(width: 6),
+          Text(
+            status,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Color _statusColor(String status) {
     switch (status.toUpperCase()) {
       case 'OFFLINE':
         return Colors.grey.shade400;
       case 'WARNING':
         return Colors.orangeAccent;
       default:
-        return Colors.lightGreenAccent;
+        return Colors.lightGreenAccent.shade400;
     }
   }
 }
