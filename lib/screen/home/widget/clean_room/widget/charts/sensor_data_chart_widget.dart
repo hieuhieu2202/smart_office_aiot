@@ -120,6 +120,8 @@ class _SensorCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  _SensorTag(sensorName: sensorName, sensorDesc: sensorDesc, isDark: isDark),
+                  const SizedBox(height: 6),
                   _StatusPill(status: status),
                   if (lastTime.isNotEmpty) ...[
                     const SizedBox(height: 6),
@@ -141,43 +143,6 @@ class _SensorCard extends StatelessWidget {
               tooltipBehavior: tooltip,
               isDark: isDark,
             ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.06) : Colors.blue.shade50.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.24)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.sensors, size: 16, color: isDark ? Colors.white : const Color(0xFF0a2d50)),
-                    const SizedBox(width: 8),
-                    Text(
-                      sensorName,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : const Color(0xFF0a2d50),
-                          ),
-                    ),
-                    if (sensorDesc.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        sensorDesc,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -398,6 +363,63 @@ class _MetricItem {
     if (value is int) return value.toString();
     final doubleValue = value.toDouble();
     return doubleValue % 1 == 0 ? doubleValue.toStringAsFixed(0) : doubleValue.toStringAsFixed(2);
+  }
+}
+
+class _SensorTag extends StatelessWidget {
+  final String sensorName;
+  final String sensorDesc;
+  final bool isDark;
+
+  const _SensorTag({required this.sensorName, required this.sensorDesc, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF123a64).withOpacity(0.9), const Color(0xFF0f2744).withOpacity(0.9)]
+              : [const Color(0xFFd9e9ff), const Color(0xFFc5dbfb)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.18 : 0.26)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 12, offset: const Offset(0, 6)),
+          BoxShadow(color: Colors.blueAccent.withOpacity(0.12), blurRadius: 14, spreadRadius: -4),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.wifi_tethering, size: 15, color: isDark ? Colors.white : const Color(0xFF0a2d50)),
+          const SizedBox(width: 8),
+          Text(
+            sensorName,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  color: isDark ? Colors.white : const Color(0xFF0a2d50),
+                ),
+          ),
+          if (sensorDesc.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            Text(
+              sensorDesc,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700, fontSize: 11.5),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 
