@@ -82,6 +82,7 @@ class _SensorCard extends StatelessWidget {
       shared: true,
       color: Colors.blueGrey.shade900.withOpacity(0.95),
       header: '',
+      format: 'Time: point.x',
       textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
       canShowMarker: true,
       opacity: 0.98,
@@ -94,15 +95,15 @@ class _SensorCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0c1f38), const Color(0xFF0e335c), const Color(0xFF0f3e71)]
-              : [const Color(0xFFdff0ff), const Color(0xFFd2e6ff), const Color(0xFFc1dcff)],
+              ? [const Color(0xFF0b1d35), const Color(0xFF0d3055), const Color(0xFF0e3b6a)]
+              : [const Color(0xFFe9f3ff), const Color(0xFFd7e8ff), const Color(0xFFc8defc)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white.withOpacity(isDark ? 0.18 : 0.28)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 10)),
+          BoxShadow(color: Colors.black.withOpacity(0.28), blurRadius: 16, offset: const Offset(0, 10)),
           BoxShadow(color: Colors.blueAccent.withOpacity(0.18), blurRadius: 18, spreadRadius: -6),
         ],
       ),
@@ -113,36 +114,52 @@ class _SensorCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _Header(sensorName: sensorName, sensorDesc: sensorDesc, isDark: isDark),
+                child: _Header(sensorName: sensorName, sensorDesc: sensorDesc, isDark: isDark),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _StatusPill(status: status),
+                  if (lastTime.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    _MetricList(metrics: metrics, isDark: isDark),
+                    _TimePill(time: lastTime),
                   ],
-                ),
+                ],
+              )
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                flex: 40,
+                child: _MetricList(metrics: metrics, isDark: isDark),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                flex: 3,
-                child: _Sparkline(
-                  categories: categories,
-                  seriesList: seriesList,
-                  palette: palette,
-                  tooltipBehavior: tooltip,
-                  isDark: isDark,
+              Flexible(
+                flex: 60,
+                child: SizedBox(
+                  height: 130,
+                  child: _Sparkline(
+                    categories: categories,
+                    seriesList: seriesList,
+                    palette: palette,
+                    tooltipBehavior: tooltip,
+                    isDark: isDark,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.08) : Colors.blue.shade50.withOpacity(0.7),
+                  color: isDark ? Colors.white.withOpacity(0.06) : Colors.blue.shade50.withOpacity(0.7),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.24)),
                 ),
@@ -159,7 +176,7 @@ class _SensorCard extends StatelessWidget {
                           ),
                     ),
                     if (sensorDesc.isNotEmpty) ...[
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       Text(
                         sensorDesc,
                         style: Theme.of(context)
@@ -167,16 +184,10 @@ class _SensorCard extends StatelessWidget {
                             .bodySmall
                             ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
                       ),
-                    ]
+                    ],
                   ],
                 ),
               ),
-              const Spacer(),
-              if (lastTime.isNotEmpty) ...[
-                _TimePill(time: lastTime),
-                const SizedBox(width: 8),
-              ],
-              _StatusPill(status: status),
             ],
           ),
         ],
