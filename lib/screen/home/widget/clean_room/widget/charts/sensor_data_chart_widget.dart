@@ -346,7 +346,6 @@ class _Sparkline extends StatelessWidget {
                 color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
                 fontSize: 9,
               ),
-              categories: formattedCategories,
             ),
             primaryYAxis: NumericAxis(
               isVisible: false,
