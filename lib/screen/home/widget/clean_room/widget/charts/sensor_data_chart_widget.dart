@@ -117,16 +117,15 @@ class _SensorCard extends StatelessWidget {
                 child: _Header(sensorName: sensorName, sensorDesc: sensorDesc, isDark: isDark),
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   _SensorTag(sensorName: sensorName, sensorDesc: sensorDesc, isDark: isDark),
-                  const SizedBox(height: 6),
                   _StatusPill(status: status),
-                  if (lastTime.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    _TimePill(time: lastTime),
-                  ],
+                  if (lastTime.isNotEmpty) _TimePill(time: lastTime),
                 ],
               ),
             ],
