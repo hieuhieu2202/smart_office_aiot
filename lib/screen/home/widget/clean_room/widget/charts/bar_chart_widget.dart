@@ -24,8 +24,7 @@ class BarChartWidget extends StatelessWidget {
                 controller.barData.containsKey('categories') &&
                 (controller.barData['series'] as List).isNotEmpty &&
                 (controller.barData['categories'] as List).isNotEmpty)
-              SizedBox(
-                height: 300,
+              Expanded(
                 child: SfCartesianChart(
                   palette: CleanRoomChartStyle.palette(isDark),
                   primaryXAxis: CategoryAxis(
@@ -57,7 +56,7 @@ class BarChartWidget extends StatelessWidget {
                 ),
               )
             else
-              const Text('Không có dữ liệu thanh'),
+              const Expanded(child: Center(child: Text('Không có dữ liệu thanh'))),
           ],
         ),
       ),
