@@ -59,10 +59,10 @@ class CleanRoomScreen extends StatelessWidget {
                               final double cellWidth = (bodyWidth - gridGap * (gridColumns - 1)) / gridColumns;
                               final double cellHeight = (bodyHeight - gridGap * (gridRows - 1)) / gridRows;
 
-                              final double leftWidth = cellWidth * 1.1;
+                              final double leftWidth = cellWidth * 1.25;
                               final double summaryHeight = (cellHeight * 2 + gridGap) * 0.8;
 
-                              final double desiredHistoryHeight = (cellHeight * 3 + gridGap * 2) * 1.2;
+                              final double desiredHistoryHeight = (cellHeight * 3 + gridGap * 2) * 1.3;
                               final double availableHistoryHeight = bodyHeight - summaryHeight - gridGap;
                               final double historyHeight = desiredHistoryHeight > availableHistoryHeight
                                   ? availableHistoryHeight

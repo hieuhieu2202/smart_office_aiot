@@ -80,12 +80,13 @@ class _SensorCard extends StatelessWidget {
     final tooltip = TooltipBehavior(
       enable: true,
       shared: true,
-      color: Colors.blueGrey.shade900.withOpacity(0.9),
+      color: Colors.blueGrey.shade900.withOpacity(0.95),
       header: '',
       textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
       canShowMarker: true,
       opacity: 0.98,
       tooltipPosition: TooltipPosition.pointer,
+      animationDuration: 150,
     );
 
     return Container(
@@ -135,7 +136,7 @@ class _SensorCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Row(
             children: [
               Container(
@@ -334,38 +335,46 @@ class _Sparkline extends StatelessWidget {
       );
     }).toList();
 
-    return Container(
-      height: 110,
-      decoration: BoxDecoration(
-        color: isDark ? Colors.black.withOpacity(0.25) : Colors.white.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.18)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 12, offset: const Offset(0, 6)),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
-      child: SfCartesianChart(
-        margin: EdgeInsets.zero,
-        plotAreaBorderWidth: 0,
-        borderWidth: 0,
-        palette: palette,
-        tooltipBehavior: tooltipBehavior,
-        primaryXAxis: CategoryAxis(
-          isVisible: true,
-          majorGridLines: const MajorGridLines(width: 0),
-          labelStyle: TextStyle(
-            color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
-            fontSize: 10,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double clampedHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight.clamp(68.0, 96.0)
+            : 88.0;
+
+        return Container(
+          height: clampedHeight,
+          decoration: BoxDecoration(
+            color: isDark ? Colors.black.withOpacity(0.25) : Colors.white.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.18)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 12, offset: const Offset(0, 6)),
+            ],
           ),
-        ),
-        primaryYAxis: NumericAxis(
-          isVisible: false,
-          majorGridLines: const MajorGridLines(width: 0),
-        ),
-        legend: const Legend(isVisible: false),
-        series: series,
-      ),
+          padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
+          child: SfCartesianChart(
+            margin: EdgeInsets.zero,
+            plotAreaBorderWidth: 0,
+            borderWidth: 0,
+            palette: palette,
+            tooltipBehavior: tooltipBehavior,
+            primaryXAxis: CategoryAxis(
+              isVisible: true,
+              majorGridLines: const MajorGridLines(width: 0),
+              labelStyle: TextStyle(
+                color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
+                fontSize: 10,
+              ),
+            ),
+            primaryYAxis: NumericAxis(
+              isVisible: false,
+              majorGridLines: const MajorGridLines(width: 0),
+            ),
+            legend: const Legend(isVisible: false),
+            series: series,
+          ),
+        );
+      },
     );
   }
 }
