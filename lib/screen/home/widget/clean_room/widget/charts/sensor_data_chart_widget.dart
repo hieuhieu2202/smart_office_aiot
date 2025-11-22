@@ -215,10 +215,13 @@ class _Header extends StatelessWidget {
       children: [
         Text(
           sensorName,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
                 color: isDark ? Colors.white : const Color(0xFF0b2d55),
-                letterSpacing: 0.1,
+                letterSpacing: 0.15,
               ),
         ),
         if (sensorDesc.isNotEmpty)
@@ -226,10 +229,12 @@ class _Header extends StatelessWidget {
             padding: const EdgeInsets.only(top: 2),
             child: Text(
               sensorDesc,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context)
                   .textTheme
                   .bodySmall
-                  ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade600),
+                  ?.copyWith(color: isDark ? Colors.white60 : Colors.blueGrey.shade600, fontSize: 11.5),
             ),
           ),
       ],
@@ -256,11 +261,11 @@ class _MetricWrap extends StatelessWidget {
     }
 
     return Wrap(
-      spacing: 10,
-      runSpacing: 8,
+      spacing: 8,
+      runSpacing: 6,
       children: metrics.take(6).map((metric) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
             color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.78),
             borderRadius: BorderRadius.circular(12),
@@ -280,16 +285,20 @@ class _MetricWrap extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 metric.label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
                       color: isDark ? Colors.white : const Color(0xFF0b2d55),
                     ),
               ),
               const SizedBox(width: 8),
               Text(
                 metric.formattedValue,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
                       color: metric.color,
                     ),
               ),
@@ -415,8 +424,9 @@ class _StatusPill extends StatelessWidget {
           const SizedBox(width: 7),
           Text(
             status,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w800,
+                  fontSize: 12,
                   color: isDark ? Colors.white : Colors.black87,
                 ),
           ),
@@ -462,6 +472,7 @@ class _TimePill extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
                   fontWeight: FontWeight.w700,
+                  fontSize: 12,
                 ),
           ),
         ],
