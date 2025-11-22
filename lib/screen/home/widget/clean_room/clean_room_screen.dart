@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_history_chart_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_data_chart_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/layout/room_layout_widget.dart';
 
 import 'cleanroom_filter_panel.dart';
@@ -76,10 +76,10 @@ class CleanRoomScreen extends StatelessWidget {
                                         const SizedBox(height: gridGap),
                                         _GlassPanel(
                                           height: historyHeight,
-                                          title: 'Lịch sử cảm biến',
-                                          subtitle: 'Dòng sự kiện và xu hướng',
-                                          leadingIcon: Icons.history_toggle_off,
-                                          child: SensorHistoryChartWidget(),
+                                          title: 'Dữ liệu cảm biến',
+                                          subtitle: 'Thông tin cảm biến và biểu đồ xu hướng',
+                                          leadingIcon: Icons.auto_graph,
+                                          child: const SensorDataChartWidget(),
                                         ),
                                       ],
                                     ),
