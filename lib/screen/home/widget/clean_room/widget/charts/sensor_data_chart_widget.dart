@@ -78,17 +78,60 @@ class _SensorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = CleanRoomChartStyle.palette(isDark);
     final metrics = _buildMetrics(seriesList, palette);
+    final chartSeries = _buildSeries(seriesList, categories, palette);
     final tooltip = TooltipBehavior(
       enable: true,
       shared: true,
-      color: Colors.blueGrey.shade900.withOpacity(0.95),
+      color: Colors.blueGrey.shade900.withOpacity(0.94),
       header: '',
-      format: 'Time: point.x',
-      textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+      textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11),
       canShowMarker: true,
       opacity: 0.98,
       tooltipPosition: TooltipPosition.pointer,
-      animationDuration: 150,
+      animationDuration: 120,
+      builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
+        final chartPoint = data is _ChartPoint ? data : null;
+        final timestamp = chartPoint?.timestamp;
+        final formattedTime = timestamp != null
+            ? DateFormat('yyyy-MM-dd HH:mm').format(timestamp)
+            : chartPoint?.rawLabel ?? '';
+        final valueText = chartPoint != null ? chartPoint.formattedValue : point.y?.toString();
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.82),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white.withOpacity(0.16)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                formattedTime,
+                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 10, height: 10, decoration: BoxDecoration(color: series.color, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  Text(
+                    series.name?.toString() ?? '',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    valueText ?? '',
+                    style: TextStyle(color: series.color ?? Colors.white, fontWeight: FontWeight.w800, fontSize: 12),
+                  )
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
 
     return Container(
@@ -115,7 +158,11 @@ class _SensorCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _Header(sensorName: sensorName, sensorDesc: sensorDesc, isDark: isDark),
+                child: _Header(
+                  sensorName: sensorName,
+                  sensorDesc: sensorDesc,
+                  isDark: isDark,
+                ),
               ),
               const SizedBox(width: 10),
               Wrap(
@@ -130,14 +177,13 @@ class _SensorCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _MetricWrap(metrics: metrics, isDark: isDark),
-          const SizedBox(height: 12),
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 110, maxHeight: 150),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 140,
             child: _Sparkline(
-              categories: categories,
-              seriesList: seriesList,
+              series: chartSeries,
               palette: palette,
               tooltipBehavior: tooltip,
               isDark: isDark,
@@ -160,6 +206,48 @@ class _SensorCard extends StatelessWidget {
       final color = palette[colorIndex % palette.length];
       colorIndex++;
       items.add(_MetricItem(label: label, value: lastValue, color: color));
+    }
+    return items;
+  }
+
+  List<_ChartSeriesData> _buildSeries(
+    List<dynamic> series,
+    List<String> categories,
+    List<Color> palette,
+  ) {
+    final items = <_ChartSeriesData>[];
+    int colorIndex = 0;
+    for (final raw in series) {
+      final map = raw is Map<String, dynamic> ? raw : null;
+      final data = (map?['data'] as List?)?.map((e) => e as num).toList() ?? [];
+      if (map == null || data.isEmpty || categories.isEmpty) continue;
+
+      final label = map['parameterDisplayName']?.toString() ?? map['name']?.toString() ?? '';
+      final length = data.length < categories.length ? data.length : categories.length;
+      final color = palette[colorIndex % palette.length];
+      colorIndex++;
+
+      final points = <_ChartPoint>[];
+      for (int i = 0; i < length; i++) {
+        final rawLabel = categories[i];
+        final parsed = _parseTimestamp(rawLabel);
+        points.add(
+          _ChartPoint(
+            rawLabel: rawLabel,
+            displayLabel: _formatCategoryLabel(rawLabel),
+            value: data[i],
+            timestamp: parsed,
+          ),
+        );
+      }
+
+      items.add(
+        _ChartSeriesData(
+          name: label,
+          color: color,
+          points: points,
+        ),
+      );
     }
     return items;
   }
@@ -274,15 +362,13 @@ class _MetricWrap extends StatelessWidget {
   }
 }
 class _Sparkline extends StatelessWidget {
-  final List<String> categories;
-  final List<dynamic> seriesList;
+  final List<_ChartSeriesData> series;
   final List<Color> palette;
   final TooltipBehavior tooltipBehavior;
   final bool isDark;
 
   const _Sparkline({
-    required this.categories,
-    required this.seriesList,
+    required this.series,
     required this.palette,
     required this.tooltipBehavior,
     required this.isDark,
@@ -290,34 +376,14 @@ class _Sparkline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formattedCategories = categories.map(_formatCategoryLabel).toList();
-
-    final series = seriesList
-        .where((serie) => serie is Map && (serie['data'] as List?)?.isNotEmpty == true)
-        .map<SplineSeries<dynamic, String>>((serie) {
-      final data = (serie['data'] as List).map((e) => e as num).toList();
-      final name = serie['parameterDisplayName'] ?? serie['name'] ?? '';
-      return SplineSeries<dynamic, String>(
-        dataSource: data,
-        width: 2.6,
-        opacity: 0.95,
-        markerSettings: const MarkerSettings(isVisible: true, height: 6, width: 6),
-        xValueMapper: (dynamic value, int index) =>
-            index < formattedCategories.length ? formattedCategories[index] : index.toString(),
-        yValueMapper: (dynamic value, int _) => value,
-        name: name.toString(),
-      );
-    }).toList();
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final double targetHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
             ? constraints.maxHeight
             : 120.0;
         final double clampedHeight = targetHeight.clamp(100.0, 160.0);
-        final double labelInterval = formattedCategories.length <= 6
-            ? 1
-            : (formattedCategories.length / 6).ceilToDouble();
+        final int pointCount = series.isNotEmpty ? series.first.points.length : 0;
+        final double labelInterval = pointCount <= 6 ? 1 : (pointCount / 6).ceilToDouble();
 
         return Container(
           height: clampedHeight,
@@ -352,7 +418,18 @@ class _Sparkline extends StatelessWidget {
               majorGridLines: const MajorGridLines(width: 0),
             ),
             legend: const Legend(isVisible: false),
-            series: series,
+            series: series.map((item) {
+              return SplineSeries<_ChartPoint, String>(
+                dataSource: item.points,
+                width: 2.4,
+                opacity: 0.95,
+                markerSettings: const MarkerSettings(isVisible: true, height: 6, width: 6),
+                xValueMapper: (point, _) => point.displayLabel,
+                yValueMapper: (point, _) => point.value,
+                name: item.name,
+                color: item.color,
+              );
+            }).toList(),
           ),
         );
       },
@@ -381,6 +458,39 @@ String _formatCategoryLabel(String raw) {
     return DateFormat('MM-dd HH:mm').format(parsed);
   }
   return raw.length > 16 ? raw.substring(0, 16) : raw;
+}
+
+DateTime? _parseTimestamp(String raw) {
+  final normalized = raw.contains('T') ? raw : raw.replaceFirst(' ', 'T');
+  return DateTime.tryParse(normalized);
+}
+
+class _ChartSeriesData {
+  final String name;
+  final Color color;
+  final List<_ChartPoint> points;
+
+  const _ChartSeriesData({required this.name, required this.color, required this.points});
+}
+
+class _ChartPoint {
+  final String rawLabel;
+  final String displayLabel;
+  final num value;
+  final DateTime? timestamp;
+
+  const _ChartPoint({
+    required this.rawLabel,
+    required this.displayLabel,
+    required this.value,
+    required this.timestamp,
+  });
+
+  String get formattedValue {
+    if (value is int) return value.toString();
+    final doubleValue = value.toDouble();
+    return doubleValue % 1 == 0 ? doubleValue.toStringAsFixed(0) : doubleValue.toStringAsFixed(2);
+  }
 }
 
 class _StatusPill extends StatelessWidget {
