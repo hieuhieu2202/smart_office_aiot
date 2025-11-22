@@ -19,9 +19,9 @@ class CleanRoomScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    const double outerPadding = 18;
-    const double hSpacing = 16;
-    const double vSpacing = 16;
+    const double outerPadding = 14;
+    const double hSpacing = 14;
+    const double vSpacing = 14;
     const double leftWidth = 360;
     const double chartHeight = 230;
 
@@ -49,7 +49,7 @@ class CleanRoomScreen extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1920, maxHeight: 1040),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: outerPadding, vertical: 18),
+                    padding: const EdgeInsets.symmetric(horizontal: outerPadding, vertical: 14),
                     child: Column(
                       children: [
                         _TopBar(onFilterTap: controller.toggleFilterPanel),
@@ -103,7 +103,7 @@ class CleanRoomScreen extends StatelessWidget {
                                           leadingIcon: Icons.location_on_outlined,
                                           actions: [
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                               decoration: BoxDecoration(
                                                 color: Colors.white.withOpacity(isDark ? 0.08 : 0.18),
                                                 borderRadius: BorderRadius.circular(12),
@@ -113,7 +113,7 @@ class CleanRoomScreen extends StatelessWidget {
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: const [
                                                   Icon(Icons.touch_app_outlined, size: 16, color: Colors.white70),
-                                                  SizedBox(width: 8),
+                                                  SizedBox(width: 6),
                                                   Text(
                                                     'Chạm cảm biến để xem chi tiết',
                                                     style: TextStyle(color: Colors.white70, fontSize: 12),
@@ -199,7 +199,7 @@ class _TopBar extends StatelessWidget {
     final CleanRoomController controller = Get.find<CleanRoomController>();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         gradient: LinearGradient(
@@ -293,7 +293,7 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withOpacity(.06) : Colors.blueGrey.withOpacity(.08),
         borderRadius: BorderRadius.circular(12),
@@ -413,7 +413,7 @@ class _StatTile extends StatelessWidget {
     return Expanded(
       child: Container(
         height: height,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
@@ -500,7 +500,7 @@ class _GlassPanel extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isDark

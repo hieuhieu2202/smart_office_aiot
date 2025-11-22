@@ -53,7 +53,7 @@ class DashboardCard extends StatelessWidget {
                 : Colors.blueAccent.withOpacity(.14),
           ),
         ),
-        padding: padding ?? const EdgeInsets.all(16),
+        padding: padding ?? const EdgeInsets.all(12),
         child: child,
       ),
     );
