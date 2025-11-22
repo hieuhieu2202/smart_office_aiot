@@ -484,58 +484,7 @@ class _GlassPanel extends StatelessWidget {
               end: Alignment.bottomCenter,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [Colors.cyanAccent.withOpacity(.36), Colors.blueAccent.withOpacity(.32)]
-                            : [const Color(0xFF5aa6ff), const Color(0xFF7fc5ff)],
-                      ),
-                      border: Border.all(color: Colors.white.withOpacity(isDark ? .22 : .32)),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(.26), blurRadius: 14, offset: const Offset(0, 8)),
-                        BoxShadow(color: Colors.blueAccent.withOpacity(.18), blurRadius: 20, spreadRadius: -6),
-                      ],
-                    ),
-                    child: Icon(leadingIcon, color: Colors.white, size: 18),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : const Color(0xFF0b2d55),
-                              ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: isDark ? Colors.white70 : Colors.blueGrey.shade600,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (actions != null) ...actions!,
-                  if (trailing != null) trailing!,
-                ],
-              ),
-              const SizedBox(height: 14),
-              Expanded(child: child),
-            ],
-          ),
+          child: child,
         ),
       ),
     );
