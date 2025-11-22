@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
-import 'sensor_detail_dialog.dart';
+
 import 'marker/sensor_marker.dart';
+import 'sensor_detail_dialog.dart';
 
 class RoomLayoutWidget extends StatelessWidget {
   @override
@@ -57,14 +59,6 @@ class RoomLayoutWidget extends StatelessWidget {
                 builder: (ctx, cons) {
                   final maxWidth = cons.maxWidth;
                   final maxHeight = cons.maxHeight;
-                  const aspect = 1.85;
-
-                  double canvasWidth = maxWidth;
-                  double canvasHeight = canvasWidth / aspect;
-                  if (canvasHeight > maxHeight) {
-                    canvasHeight = maxHeight;
-                    canvasWidth = canvasHeight * aspect;
-                  }
 
                   const double markerBoxSize = 45.0; // keep in sync with SensorMarker container
 
@@ -87,153 +81,200 @@ class RoomLayoutWidget extends StatelessWidget {
                   final sensors = controller.configData['data'] as List<dynamic>;
                   final image = controller.roomImage.value!;
 
-                  return Center(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: canvasWidth,
-                          height: canvasHeight,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(.25),
-                                blurRadius: 22,
-                                offset: const Offset(0, 12),
+                  return FutureBuilder<Size>(
+                    key: ValueKey(image),
+                    future: _resolveImageSize(image),
+                    builder: (context, snapshot) {
+                      final aspect = _imageAspect(snapshot.data);
+
+                      double canvasWidth = maxWidth;
+                      double canvasHeight = canvasWidth / aspect;
+                      if (canvasHeight > maxHeight) {
+                        canvasHeight = maxHeight;
+                        canvasWidth = canvasHeight * aspect;
+                      }
+
+                      return Center(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: canvasWidth,
+                              height: canvasHeight,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(.25),
+                                    blurRadius: 22,
+                                    offset: const Offset(0, 12),
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.blueAccent.withOpacity(.2),
+                                    blurRadius: 28,
+                                    spreadRadius: -6,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                                border: Border.all(color: Colors.white.withOpacity(.08)),
                               ),
-                              BoxShadow(
-                                color: Colors.blueAccent.withOpacity(.2),
-                                blurRadius: 28,
-                                spreadRadius: -6,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                            border: Border.all(color: Colors.white.withOpacity(.08)),
-                          ),
-                        ),
-                        SizedBox(
-                          width: canvasWidth,
-                          height: canvasHeight,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: Image(image: image, fit: BoxFit.cover),
-                                ),
-                                Positioned.fill(
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.transparent,
-                                          Colors.black.withOpacity(.08),
-                                          Colors.black.withOpacity(.12),
-                                        ],
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
+                            ),
+                            SizedBox(
+                              width: canvasWidth,
+                              height: canvasHeight,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: Image(image: image, fit: BoxFit.cover),
+                                    ),
+                                    Positioned.fill(
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withOpacity(.08),
+                                              Colors.black.withOpacity(.12),
+                                            ],
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                                ...sensors.map((sensor) {
-                                  final topPercentStr = sensor['Top']?.toString().replaceAll('%', '') ?? '0';
-                                  final leftPercentStr = sensor['Left']?.toString().replaceAll('%', '') ?? '0';
-                                  final topPercent = double.tryParse(topPercentStr) ?? 0.0;
-                                  final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
+                                    ...sensors.map((sensor) {
+                                      final topPercentStr = sensor['Top']?.toString().replaceAll('%', '') ?? '0';
+                                      final leftPercentStr = sensor['Left']?.toString().replaceAll('%', '') ?? '0';
+                                      final topPercent = double.tryParse(topPercentStr) ?? 0.0;
+                                      final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
 
-                                  final topPos =
-                                      (topPercent.isNaN ? 0.0 : topPercent) / 100 * canvasHeight - (markerBoxSize / 2);
-                                  final leftPos =
-                                      (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * canvasWidth - (markerBoxSize / 2);
+                                      final topPos =
+                                          (topPercent.isNaN ? 0.0 : topPercent) / 100 * canvasHeight - (markerBoxSize / 2);
+                                      final leftPos =
+                                          (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * canvasWidth - (markerBoxSize / 2);
 
-                                  Map<String, dynamic>? dataEntry;
-                                  try {
-                                    dataEntry = controller.sensorData.firstWhere(
-                                      (e) => e['sensorName'] == sensor['SensorName'],
-                                    );
-                                  } catch (_) {
-                                    dataEntry = null;
-                                  }
-
-                                  bool hasDataPoint = false;
-                                  if (dataEntry != null && dataEntry['series'] is List) {
-                                    final series = dataEntry['series'] as List;
-                                    hasDataPoint = series.any(
-                                      (s) => s is Map && s['data'] is List && (s['data'] as List).isNotEmpty,
-                                    );
-                                  }
-
-                                  final areaName = dataEntry?['sensorDesc']?.toString() ?? '';
-
-                                  final menuMobile = sensor['menu-mobile']?.toString().toLowerCase() ?? '';
-                                  final menu = sensor['menu']?.toString().toLowerCase() ?? '';
-                                  final orientation = menuMobile.isNotEmpty ? menuMobile : menu;
-                                  bool labelOnTop = true;
-                                  if (orientation.contains('bottom')) {
-                                    labelOnTop = false;
-                                  } else if (orientation.contains('top')) {
-                                    labelOnTop = true;
-                                  }
-                                  bool triangleAtLeft = true;
-                                  if (menu.contains('right')) {
-                                    triangleAtLeft = false;
-                                  } else if (menu.contains('left')) {
-                                    triangleAtLeft = true;
-                                  }
-
-                                  return Positioned(
-                                    top: topPos,
-                                    left: leftPos,
-                                    child: SensorMarker(
-                                      sensorName: sensor['SensorName'],
-                                      areaName: areaName,
-                                      online: hasDataPoint,
-                                      triangleAtLeft: triangleAtLeft,
-                                      labelOnTop: labelOnTop,
-                                      onTap: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (_) => SensorDetailDialog(
-                                            sensorName: sensor['SensorName'],
-                                            dataEntry: dataEntry,
-                                            online: hasDataPoint,
-                                          ),
+                                      Map<String, dynamic>? dataEntry;
+                                      try {
+                                        dataEntry = controller.sensorData.firstWhere(
+                                          (e) => e['sensorName'] == sensor['SensorName'],
                                         );
-                                      },
-                                    ),
-                                  );
-                                }).toList(),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right: 16,
-                          top: 14,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(.35),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.white.withOpacity(.12)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(Icons.touch_app_outlined, size: 16, color: Colors.white70),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Chạm vào cảm biến để xem chi tiết',
-                                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                                      } catch (_) {
+                                        dataEntry = null;
+                                      }
+
+                                      bool hasDataPoint = false;
+                                      if (dataEntry != null && dataEntry['series'] is List) {
+                                        final series = dataEntry['series'] as List;
+                                        hasDataPoint = series.any(
+                                          (s) => s is Map && s['data'] is List && (s['data'] as List).isNotEmpty,
+                                        );
+                                      }
+
+                                      final areaName = dataEntry?['sensorDesc']?.toString() ?? '';
+
+                                      final menuMobile = sensor['menu-mobile']?.toString().toLowerCase() ?? '';
+                                      final menu = sensor['menu']?.toString().toLowerCase() ?? '';
+                                      final orientation = menuMobile.isNotEmpty ? menuMobile : menu;
+                                      bool labelOnTop = true;
+                                      if (orientation.contains('bottom')) {
+                                        labelOnTop = false;
+                                      } else if (orientation.contains('top')) {
+                                        labelOnTop = true;
+                                      }
+                                      bool triangleAtLeft = true;
+                                      if (menu.contains('right')) {
+                                        triangleAtLeft = false;
+                                      } else if (menu.contains('left')) {
+                                        triangleAtLeft = true;
+                                      }
+
+                                      return Positioned(
+                                        top: topPos,
+                                        left: leftPos,
+                                        child: SensorMarker(
+                                          sensorName: sensor['SensorName'],
+                                          areaName: areaName,
+                                          online: hasDataPoint,
+                                          triangleAtLeft: triangleAtLeft,
+                                          labelOnTop: labelOnTop,
+                                          onTap: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (_) => SensorDetailDialog(
+                                                sensorName: sensor['SensorName'],
+                                                dataEntry: dataEntry,
+                                                online: hasDataPoint,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
+                            Positioned(
+                              right: 16,
+                              top: 14,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(.35),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.white.withOpacity(.12)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: [Color(0xFF30e7ff), Color(0xFF66ffaf)],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text('SENSOR MAP',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: .6,
+                                        )),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(.32),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.white.withOpacity(.12)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.touch_app_outlined, size: 16, color: Colors.white70),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Chạm vào cảm biến để xem chi tiết',
+                                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   );
                 },
               ),
@@ -242,5 +283,29 @@ class RoomLayoutWidget extends StatelessWidget {
         );
       },
     );
+  }
+
+  double _imageAspect(Size? imageSize) {
+    if (imageSize == null || imageSize.height == 0) {
+      return 1.85;
+    }
+    return imageSize.width / imageSize.height;
+  }
+
+  Future<Size> _resolveImageSize(ImageProvider image) async {
+    final completer = Completer<Size>();
+    final ImageStream stream = image.resolve(ImageConfiguration.empty);
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener((ImageInfo info, bool _) {
+      completer.complete(Size(info.image.width.toDouble(), info.image.height.toDouble()));
+      stream.removeListener(listener);
+    }, onError: (Object error, StackTrace? stackTrace) {
+      if (!completer.isCompleted) {
+        completer.complete(const Size(1850, 1000));
+      }
+      stream.removeListener(listener);
+    });
+    stream.addListener(listener);
+    return completer.future;
   }
 }
