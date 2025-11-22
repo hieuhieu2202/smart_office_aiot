@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
 
@@ -123,7 +124,6 @@ class _SensorCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 6,
                 children: [
-                  _SensorTag(sensorName: sensorName, sensorDesc: sensorDesc, isDark: isDark),
                   _StatusPill(status: status),
                   if (lastTime.isNotEmpty) _TimePill(time: lastTime),
                 ],
@@ -290,6 +290,8 @@ class _Sparkline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final formattedCategories = categories.map(_formatCategoryLabel).toList();
+
     final series = seriesList
         .where((serie) => serie is Map && (serie['data'] as List?)?.isNotEmpty == true)
         .map<SplineSeries<dynamic, String>>((serie) {
@@ -300,7 +302,8 @@ class _Sparkline extends StatelessWidget {
         width: 2.6,
         opacity: 0.95,
         markerSettings: const MarkerSettings(isVisible: true, height: 6, width: 6),
-        xValueMapper: (dynamic value, int index) => index < categories.length ? categories[index] : index.toString(),
+        xValueMapper: (dynamic value, int index) =>
+            index < formattedCategories.length ? formattedCategories[index] : index.toString(),
         yValueMapper: (dynamic value, int _) => value,
         name: name.toString(),
       );
@@ -312,6 +315,9 @@ class _Sparkline extends StatelessWidget {
             ? constraints.maxHeight
             : 120.0;
         final double clampedHeight = targetHeight.clamp(100.0, 160.0);
+        final double labelInterval = formattedCategories.length <= 6
+            ? 1
+            : (formattedCategories.length / 6).ceilToDouble();
 
         return Container(
           height: clampedHeight,
@@ -333,10 +339,14 @@ class _Sparkline extends StatelessWidget {
             primaryXAxis: CategoryAxis(
               isVisible: true,
               majorGridLines: const MajorGridLines(width: 0),
+              labelPlacement: LabelPlacement.onTicks,
+              labelIntersectAction: AxisLabelIntersectAction.hide,
+              interval: labelInterval,
               labelStyle: TextStyle(
                 color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
-                fontSize: 10,
+                fontSize: 9,
               ),
+              categories: formattedCategories,
             ),
             primaryYAxis: NumericAxis(
               isVisible: false,
@@ -365,61 +375,13 @@ class _MetricItem {
   }
 }
 
-class _SensorTag extends StatelessWidget {
-  final String sensorName;
-  final String sensorDesc;
-  final bool isDark;
-
-  const _SensorTag({required this.sensorName, required this.sensorDesc, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF123a64).withOpacity(0.9), const Color(0xFF0f2744).withOpacity(0.9)]
-              : [const Color(0xFFd9e9ff), const Color(0xFFc5dbfb)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.18 : 0.26)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 12, offset: const Offset(0, 6)),
-          BoxShadow(color: Colors.blueAccent.withOpacity(0.12), blurRadius: 14, spreadRadius: -4),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.wifi_tethering, size: 15, color: isDark ? Colors.white : const Color(0xFF0a2d50)),
-          const SizedBox(width: 8),
-          Text(
-            sensorName,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
-                  color: isDark ? Colors.white : const Color(0xFF0a2d50),
-                ),
-          ),
-          if (sensorDesc.isNotEmpty) ...[
-            const SizedBox(width: 8),
-            Text(
-              sensorDesc,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700, fontSize: 11.5),
-            ),
-          ],
-        ],
-      ),
-    );
+String _formatCategoryLabel(String raw) {
+  final normalized = raw.contains('T') ? raw : raw.replaceFirst(' ', 'T');
+  final parsed = DateTime.tryParse(normalized);
+  if (parsed != null) {
+    return DateFormat('MM-dd HH:mm').format(parsed);
   }
+  return raw.length > 16 ? raw.substring(0, 16) : raw;
 }
 
 class _StatusPill extends StatelessWidget {
