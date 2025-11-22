@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/area_chart_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/bar_chart_widget.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_data_chart_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_history_chart_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/layout/room_layout_widget.dart';
 
@@ -19,11 +16,10 @@ class CleanRoomScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    const double outerPadding = 14;
-    const double hSpacing = 14;
-    const double vSpacing = 14;
-    const double leftWidth = 360;
-    const double chartHeight = 230;
+    const double outerPadding = 12;
+    const double gridGap = 10;
+    const int gridColumns = 5;
+    const int gridRows = 5;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -53,17 +49,21 @@ class CleanRoomScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         _TopBar(onFilterTap: controller.toggleFilterPanel),
-                        const SizedBox(height: vSpacing),
+                        const SizedBox(height: gridGap),
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               final double bodyHeight = constraints.maxHeight;
-                              const double summaryHeight = 200;
-                              const double activityHeight = 150;
+                              final double bodyWidth = constraints.maxWidth;
 
-                              final double historyHeight =
-                                  (bodyHeight - summaryHeight - activityHeight - vSpacing * 2).clamp(260.0, bodyHeight);
-                              final double mapHeight = (bodyHeight - chartHeight - vSpacing).clamp(520.0, bodyHeight);
+                              final double cellWidth = (bodyWidth - gridGap * (gridColumns - 1)) / gridColumns;
+                              final double cellHeight = (bodyHeight - gridGap * (gridRows - 1)) / gridRows;
+
+                              final double leftWidth = cellWidth * 2 + gridGap;
+                              final double summaryHeight = cellHeight * 2 + gridGap;
+                              final double historyHeight = cellHeight * 3 + gridGap * 2;
+                              final double mapWidth = cellWidth * 3 + gridGap * 2;
+                              final double mapHeight = cellHeight * 5 + gridGap * 4;
 
                               return Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,83 +73,48 @@ class CleanRoomScreen extends StatelessWidget {
                                     child: Column(
                                       children: [
                                         _SummaryPanel(height: summaryHeight),
-                                        const SizedBox(height: vSpacing),
-                                        _GlassPanel(
-                                          height: activityHeight,
-                                          title: 'Hoạt động cảm biến',
-                                          subtitle: 'Tổng quan trạng thái và khu vực',
-                                          leadingIcon: Icons.layers_outlined,
-                                          child: SensorDataChartWidget(),
-                                        ),
-                                        const SizedBox(height: vSpacing),
+                                        const SizedBox(height: gridGap),
                                         _GlassPanel(
                                           height: historyHeight,
                                           title: 'Lịch sử cảm biến',
-                                          subtitle: 'Log thời gian thực và gần nhất',
+                                          subtitle: 'Dòng sự kiện và xu hướng',
                                           leadingIcon: Icons.history_toggle_off,
                                           child: SensorHistoryChartWidget(),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: hSpacing),
-                                  Expanded(
-                                    child: Column(
-                                      children: [
-                                        _GlassPanel(
-                                          height: mapHeight,
-                                          title: 'Sơ đồ phòng sạch',
-                                          subtitle: 'Bản đồ bố trí cảm biến và trạng thái điểm đo',
-                                          leadingIcon: Icons.location_on_outlined,
-                                          actions: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withOpacity(isDark ? 0.08 : 0.18),
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.white.withOpacity(isDark ? 0.14 : 0.24)),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: const [
-                                                  Icon(Icons.touch_app_outlined, size: 16, color: Colors.white70),
-                                                  SizedBox(width: 6),
-                                                  Text(
-                                                    'Chạm cảm biến để xem chi tiết',
-                                                    style: TextStyle(color: Colors.white70, fontSize: 12),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                          child: RoomLayoutWidget(),
-                                        ),
-                                        const SizedBox(height: vSpacing),
-                                        SizedBox(
-                                          height: chartHeight,
+                                  const SizedBox(width: gridGap),
+                                  SizedBox(
+                                    width: mapWidth,
+                                    height: mapHeight,
+                                    child: _GlassPanel(
+                                      height: mapHeight,
+                                      title: 'Sơ đồ phòng sạch',
+                                      subtitle: 'Bản đồ bố trí cảm biến và trạng thái điểm đo',
+                                      leadingIcon: Icons.location_on_outlined,
+                                      actions: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(isDark ? 0.08 : 0.18),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: Colors.white.withOpacity(isDark ? 0.14 : 0.24)),
+                                          ),
                                           child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: _GlassPanel(
-                                                  title: 'Tần suất cảnh báo',
-                                                  subtitle: 'Thống kê theo khu vực',
-                                                  leadingIcon: Icons.bar_chart,
-                                                  child: BarChartWidget(),
-                                                ),
-                                              ),
-                                              const SizedBox(width: hSpacing),
-                                              Expanded(
-                                                child: _GlassPanel(
-                                                  title: 'Xu hướng theo thời gian',
-                                                  subtitle: 'Biến động thông số chính',
-                                                  leadingIcon: Icons.timeline_outlined,
-                                                  child: AreaChartWidget(),
-                                                ),
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: const [
+                                              Icon(Icons.touch_app_outlined, size: 16, color: Colors.white70),
+                                              SizedBox(width: 6),
+                                              Text(
+                                                'Chạm cảm biến để xem chi tiết',
+                                                style: TextStyle(color: Colors.white70, fontSize: 12),
                                               ),
                                             ],
                                           ),
                                         ),
                                       ],
+                                      child: RoomLayoutWidget(),
                                     ),
                                   ),
                                 ],
@@ -383,11 +348,11 @@ class _SummaryPanel extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    backgroundColor: const Color(0xFF3178ff),
+                    backgroundColor: const Color(0xFFf7b500),
                   ),
                   onPressed: controller.toggleFilterPanel,
                   icon: const Icon(Icons.open_in_new, color: Colors.white),
-                  label: const Text('XEM CHI TIẾT', style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: const Text('XEM CHI TIẾT', style: TextStyle(fontWeight: FontWeight.w800)),
                 ),
               ),
             ],
@@ -413,20 +378,21 @@ class _StatTile extends StatelessWidget {
     return Expanded(
       child: Container(
         height: height,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
-            colors: isDark
-                ? [color.withOpacity(.22), Colors.black.withOpacity(.18)]
-                : [Colors.white, color.withOpacity(.14)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [
+              color.withOpacity(isDark ? .45 : .85),
+              const Color(0xFF0b1d38).withOpacity(.88),
+            ],
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
           ),
-          border: Border.all(color: Colors.white.withOpacity(isDark ? 0.16 : 0.26)),
+          border: Border.all(color: color.withOpacity(isDark ? 0.32 : 0.52)),
           boxShadow: [
             BoxShadow(color: Colors.black.withOpacity(.18), blurRadius: 16, offset: const Offset(0, 10)),
-            BoxShadow(color: color.withOpacity(.18), blurRadius: 22, spreadRadius: -6, offset: const Offset(0, 12)),
+            BoxShadow(color: color.withOpacity(.26), blurRadius: 22, spreadRadius: -6, offset: const Offset(0, 12)),
           ],
         ),
         child: Row(
@@ -435,8 +401,8 @@ class _StatTile extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: color.withOpacity(.14),
-                border: Border.all(color: color.withOpacity(.4)),
+                color: Colors.white.withOpacity(.08),
+                border: Border.all(color: Colors.white.withOpacity(.2)),
               ),
               child: Icon(icon, color: color, size: 22),
             ),
@@ -445,9 +411,22 @@ class _StatTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade800, fontWeight: FontWeight.w700)),
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withOpacity(.85),
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: isDark ? Colors.white : const Color(0xFF0a2540), fontWeight: FontWeight.w800)),
+                  Text(
+                    value,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
                 ],
               ),
             ),
@@ -486,10 +465,10 @@ class _GlassPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0a1d38), const Color(0xFF0b315a), const Color(0xFF0c3e72)]
-              : [Colors.white, const Color(0xFFe9f2ff)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+              ? [const Color(0xFF062045), const Color(0xFF0a2f5e), const Color(0xFF0f4c8c)]
+              : [const Color(0xFFd7e9ff), const Color(0xFFe7f1ff)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
         border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.25)),
         boxShadow: [
@@ -500,17 +479,21 @@ class _GlassPanel extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isDark
-                  ? [const Color(0xFF0c2d52).withOpacity(.95), const Color(0xFF0b1f3c).withOpacity(.96)]
+                  ? [const Color(0xFF0c2d52).withOpacity(.92), const Color(0xFF0b1f3c).withOpacity(.94)]
                   : [const Color(0xFFf7fbff), const Color(0xFFe8f1ff)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
           ),
-          child: child,
+          child: Semantics(
+            label: title,
+            hint: subtitle,
+            child: child,
+          ),
         ),
       ),
     );

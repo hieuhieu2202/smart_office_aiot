@@ -17,7 +17,7 @@ class RoomLayoutWidget extends StatelessWidget {
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 320),
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
