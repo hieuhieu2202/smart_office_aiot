@@ -19,11 +19,11 @@ class CleanRoomScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    const double outerPadding = 22;
-    const double hSpacing = 18;
-    const double vSpacing = 18;
+    const double outerPadding = 18;
+    const double hSpacing = 16;
+    const double vSpacing = 16;
     const double leftWidth = 360;
-    const double chartHeight = 260;
+    const double chartHeight = 230;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -58,12 +58,12 @@ class CleanRoomScreen extends StatelessWidget {
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               final double bodyHeight = constraints.maxHeight;
-                              const double summaryHeight = 220;
-                              const double activityHeight = 180;
+                              const double summaryHeight = 200;
+                              const double activityHeight = 150;
 
                               final double historyHeight =
-                                  (bodyHeight - summaryHeight - activityHeight - vSpacing * 2).clamp(240.0, bodyHeight);
-                              final double mapHeight = (bodyHeight - chartHeight - vSpacing).clamp(460.0, bodyHeight);
+                                  (bodyHeight - summaryHeight - activityHeight - vSpacing * 2).clamp(260.0, bodyHeight);
+                              final double mapHeight = (bodyHeight - chartHeight - vSpacing).clamp(520.0, bodyHeight);
 
                               return Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,17 +339,41 @@ class _SummaryPanel extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  _StatTile(icon: Icons.layers, label: 'TOTAL', value: total.toString(), color: const Color(0xFF4fa5ff)),
+                  _StatTile(
+                    height: 96,
+                    icon: Icons.layers,
+                    label: 'TOTAL',
+                    value: total.toString(),
+                    color: const Color(0xFF4fa5ff),
+                  ),
                   const SizedBox(width: 12),
-                  _StatTile(icon: Icons.wifi_tethering, label: 'ONLINE', value: online.toString(), color: const Color(0xFF4bd1a0)),
+                  _StatTile(
+                    height: 96,
+                    icon: Icons.wifi_tethering,
+                    label: 'ONLINE',
+                    value: online.toString(),
+                    color: const Color(0xFF4bd1a0),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _StatTile(icon: Icons.warning_amber_rounded, label: 'WARNING', value: warning.toString(), color: const Color(0xFFf7b500)),
+                  _StatTile(
+                    height: 96,
+                    icon: Icons.warning_amber_rounded,
+                    label: 'WARNING',
+                    value: warning.toString(),
+                    color: const Color(0xFFf7b500),
+                  ),
                   const SizedBox(width: 12),
-                  _StatTile(icon: Icons.wifi_off_rounded, label: 'OFFLINE', value: offline.toString(), color: const Color(0xFF94a0b8)),
+                  _StatTile(
+                    height: 96,
+                    icon: Icons.wifi_off_rounded,
+                    label: 'OFFLINE',
+                    value: offline.toString(),
+                    color: const Color(0xFF94a0b8),
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -379,14 +403,16 @@ class _StatTile extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
+  final double? height;
 
-  const _StatTile({required this.icon, required this.label, required this.value, required this.color});
+  const _StatTile({required this.icon, required this.label, required this.value, required this.color, this.height});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: Container(
+        height: height,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),

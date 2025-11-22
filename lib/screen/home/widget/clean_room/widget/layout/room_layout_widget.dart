@@ -17,7 +17,7 @@ class RoomLayoutWidget extends StatelessWidget {
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 320),
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
@@ -57,7 +57,7 @@ class RoomLayoutWidget extends StatelessWidget {
                 builder: (ctx, cons) {
                   final maxWidth = cons.maxWidth;
                   final maxHeight = cons.maxHeight;
-                  const aspect = 1.6;
+                  const aspect = 1.85;
 
                   double canvasWidth = maxWidth;
                   double canvasHeight = canvasWidth / aspect;
