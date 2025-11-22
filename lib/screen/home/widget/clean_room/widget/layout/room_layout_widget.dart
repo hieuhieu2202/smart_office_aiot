@@ -150,10 +150,10 @@ class RoomLayoutWidget extends StatelessWidget {
                                       final topPercent = double.tryParse(topPercentStr) ?? 0.0;
                                       final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
 
-                                      final topPos =
-                                          (topPercent.isNaN ? 0.0 : topPercent) / 100 * canvasHeight - (markerBoxSize / 2);
-                                      final leftPos =
-                                          (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * canvasWidth - (markerBoxSize / 2);
+                                      final rawTop = (topPercent.isNaN ? 0.0 : topPercent) / 100 * canvasHeight;
+                                      final rawLeft = (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * canvasWidth;
+                                      final topPos = rawTop.clamp(0.0, canvasHeight - markerBoxSize);
+                                      final leftPos = rawLeft.clamp(0.0, canvasWidth - markerBoxSize);
 
                                       Map<String, dynamic>? dataEntry;
                                       try {
