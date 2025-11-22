@@ -66,7 +66,7 @@ class RoomLayoutWidget extends StatelessWidget {
                     canvasWidth = canvasHeight * aspect;
                   }
 
-                  const double markerDiameter = 16.0;
+                  const double markerBoxSize = 45.0; // keep in sync with SensorMarker container
 
                   if (!hasLayout) {
                     return Center(
@@ -143,8 +143,10 @@ class RoomLayoutWidget extends StatelessWidget {
                                   final topPercent = double.tryParse(topPercentStr) ?? 0.0;
                                   final leftPercent = double.tryParse(leftPercentStr) ?? 0.0;
 
-                                  final topPos = (topPercent.isNaN ? 0.0 : topPercent) / 100 * canvasHeight - markerDiameter;
-                                  final leftPos = (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * canvasWidth - markerDiameter;
+                                  final topPos =
+                                      (topPercent.isNaN ? 0.0 : topPercent) / 100 * canvasHeight - (markerBoxSize / 2);
+                                  final leftPos =
+                                      (leftPercent.isNaN ? 0.0 : leftPercent) / 100 * canvasWidth - (markerBoxSize / 2);
 
                                   Map<String, dynamic>? dataEntry;
                                   try {
