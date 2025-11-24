@@ -48,26 +48,32 @@ class CleanRoomScreen extends StatelessWidget {
                     child: _TopBar(onFilterTap: controller.toggleFilterPanel),
                   ),
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      width: double.infinity,
-                      child: SingleChildScrollView(
-                        child: Center(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
                           child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 1440),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                LocationInfoWidget(),
-                                const SizedBox(height: 14),
-                                _MainRow(isDark: isDark, controller: controller),
-                                const SizedBox(height: 14),
-                                _ChartRow(),
-                              ],
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight,
+                              maxWidth: 1440,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              child: Center(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    LocationInfoWidget(),
+                                    const SizedBox(height: 14),
+                                    _MainRow(isDark: isDark, controller: controller),
+                                    const SizedBox(height: 14),
+                                    _ChartRow(),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ),
                 ],
