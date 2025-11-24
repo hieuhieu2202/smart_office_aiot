@@ -466,35 +466,40 @@ class _Sparkline extends StatelessWidget {
 
         return ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.blueGrey.shade900.withOpacity(0.95),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.12)),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 6))],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.schedule, size: 12, color: Colors.white70),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        headerLabel,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+          child: Material(
+            color: Colors.transparent,
+            elevation: 14,
+            shadowColor: Colors.black.withOpacity(0.35),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.blueGrey.shade900.withOpacity(0.98),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.18)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.schedule, size: 12, color: Colors.white70),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          headerLabel,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                if (rows.isNotEmpty) const SizedBox(height: 6),
-                ...rows,
-              ],
+                    ],
+                  ),
+                  if (rows.isNotEmpty) const SizedBox(height: 6),
+                  ...rows,
+                ],
+              ),
             ),
           ),
         );
