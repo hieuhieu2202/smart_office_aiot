@@ -1,0 +1,205 @@
+import 'package:flutter/material.dart';
+import 'package:collection/collection.dart';
+
+import '../../domain/entities/sensor_data.dart';
+
+class SensorOverviewCard extends StatelessWidget {
+  const SensorOverviewCard({
+    super.key,
+    required this.data,
+    required this.status,
+    required this.size,
+    required this.speechType,
+  });
+
+  final SensorDataResponse data;
+  final String status;
+  final double size;
+  final String speechType;
+
+  Color _statusColor() {
+    switch (status.toUpperCase()) {
+      case 'WARNING':
+        return Colors.orangeAccent;
+      case 'OFFLINE':
+        return Colors.grey;
+      default:
+        return Colors.greenAccent;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor();
+    final DateTime? last = data.data.map((e) => e.timestamp).whereType<DateTime>().fold<DateTime?>(
+          null,
+          (prev, element) => prev == null || element.isAfter(prev) ? element : prev,
+        );
+    final Offset bubbleOffset = _speechOffset();
+
+    return Transform.translate(
+      offset: bubbleOffset,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withOpacity(0.16),
+              border: Border.all(color: color, width: 3),
+            ),
+            child: Center(
+              child: Container(
+                width: size * 0.45,
+                height: size * 0.45,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.6),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        Container(
+          width: 260,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.72),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.6)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data.sensorName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          data.sensorDesc,
+                          style: const TextStyle(color: Colors.white60),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+                      if (last != null)
+                        Text(
+                          last.toString(),
+                          style: const TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 2.8,
+                children: data.data.take(4).mapIndexed((index, p) {
+                  return _paramTile(p);
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _paramTile(SensorDataPoint p) {
+    final Color valueColor;
+    switch (p.result.toUpperCase()) {
+      case 'WARNING':
+        valueColor = Colors.orangeAccent;
+        break;
+      case 'OFFLINE':
+        valueColor = Colors.grey;
+        break;
+      default:
+        valueColor = Colors.greenAccent;
+    }
+    final Map<String, Color> paramColors = {
+      '0.3um': const Color(0xFF058DC7),
+      '0.5um': const Color(0xFF50B432),
+      '1.0um': const Color(0xFFED561B),
+      '5.0um': const Color(0xFFDDDF00),
+    };
+
+    final Color labelColor = paramColors[p.paramName] ?? Colors.cyanAccent;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: labelColor.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            p.paramDisplayName,
+            style: TextStyle(color: labelColor, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            p.value.toStringAsFixed(p.precision),
+            style: TextStyle(
+              color: valueColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Offset _speechOffset() {
+    switch (speechType.toLowerCase()) {
+      case 'top-left':
+        return const Offset(-12, -12);
+      case 'top-right':
+        return const Offset(12, -12);
+      case 'bottom-left':
+        return const Offset(-12, 12);
+      case 'bottom-mid':
+        return const Offset(0, 12);
+      case 'bottom-right':
+        return const Offset(12, 12);
+      default:
+        return const Offset(0, -12);
+    }
+  }
+}

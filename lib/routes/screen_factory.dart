@@ -20,6 +20,7 @@ import '../features/nvidia_lc_switch_kanban/presentation/pages/upd_tracking_page
 import '../features/lcr_machine/presentation/pages/lcr_dashboard_page.dart';
 import '../features/automation_resistor_machine/presentation/pages/automation_resistor_dashboard_page.dart';
 import '../screen/home/widget/project_list_page.dart';
+import '../features/clean_room/presentation/pages/clean_room_monitor_page.dart';
 
 final Map<String, Widget Function(AppProject)> screenBuilderMap = {
   'pth_dashboard': (project) => AOIVIDashboardScreen(),
@@ -164,6 +165,8 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
     );
     return CduMonitoringScreen(controller: ctrl);
   },
+
+  'clean_room': (project) => const CleanRoomMonitorPage(),
 
   /// Mở trực tiếp từng tầng
   'f16_3f': (project) {
