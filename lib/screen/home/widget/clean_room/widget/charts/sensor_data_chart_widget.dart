@@ -1,68 +1,195 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
+import 'package:smart_factory/config/global_color.dart';
 import '../common/dashboard_card.dart';
 import 'chart_style.dart';
-import 'package:smart_factory/config/global_color.dart';
 
 class SensorDataChartWidget extends StatelessWidget {
+  final bool withCard;
+  const SensorDataChartWidget({super.key, this.withCard = true});
+
+  /// Extracts a DateTime from dynamic category inputs (string or map).
+  DateTime? _parseCategoryTime(dynamic raw) {
+    if (raw is DateTime) return raw;
+    if (raw is Map) {
+      final candidates = [
+        raw['timestamp'],
+        raw['time'],
+        raw['date'],
+        raw['datetime'],
+        raw['name'],
+        raw['value'],
+      ];
+      for (final item in candidates) {
+        if (item is DateTime) return item;
+        final parsed = DateTime.tryParse(item?.toString().replaceAll('/', '-') ?? '');
+        if (parsed != null) return parsed;
+      }
+    }
+    return DateTime.tryParse(raw.toString().replaceAll('/', '-'));
+  }
+
+  /// Returns a shorter label (e.g. `HH:mm`) when the category contains
+  /// a datetime string, otherwise falls back to the raw value.
+  String _compactLabel(dynamic raw) {
+    final parsed = _parseCategoryTime(raw);
+    if (parsed != null) {
+      return '${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+    }
+
+    final rawString = raw.toString();
+    if (rawString.contains(' ')) {
+      final parts = rawString.split(' ');
+      return parts.last;
+    }
+
+    return rawString;
+  }
+
+  /// Returns indices limited to the most recent 10 hours using the latest
+  /// available timestamp as the anchor (matching the server payload instead of
+  /// the current device time). Falls back to the latest 20 points when
+  /// timestamps cannot be parsed.
+  List<int> _recentIndices(List<dynamic> categories) {
+    final parsed = categories.map(_parseCategoryTime).toList();
+
+    final validTimes = parsed.whereType<DateTime>().toList();
+    if (validTimes.isNotEmpty) {
+      final anchor = validTimes.reduce((a, b) => a.isAfter(b) ? a : b);
+      final cutoff = anchor.subtract(const Duration(hours: 10));
+
+      final indices = <int>[];
+      for (var i = 0; i < parsed.length; i++) {
+        final ts = parsed[i];
+        if (ts != null && !ts.isBefore(cutoff)) {
+          indices.add(i);
+        }
+      }
+
+      if (indices.isNotEmpty) {
+        return indices;
+      }
+    }
+
+    return List<int>.generate(categories.length, (i) => i);
+  }
+
   @override
   Widget build(BuildContext context) {
     final CleanRoomController controller = Get.find<CleanRoomController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Obx(
-      () => DashboardCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Dữ liệu cảm biến',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (controller.sensorData.isNotEmpty &&
-                controller.sensorData[0].containsKey('series') &&
-                controller.sensorData[0].containsKey('categories') &&
-                (controller.sensorData[0]['series'] as List).isNotEmpty &&
-                (controller.sensorData[0]['categories'] as List).isNotEmpty)
-              SizedBox(
-                height: 300,
-                child: SfCartesianChart(
-                  palette: CleanRoomChartStyle.palette(isDark),
-                  primaryXAxis: CategoryAxis(
-                    majorGridLines: const MajorGridLines(width: 0),
-                  ),
-                  primaryYAxis: NumericAxis(
-                    majorGridLines: const MajorGridLines(dashArray: [4, 4]),
-                  ),
-                  legend: const Legend(isVisible: true),
-                  tooltipBehavior: TooltipBehavior(
-                    enable: true,
-                    color: isDark
-                        ? GlobalColors.tooltipBgDark
-                        : GlobalColors.tooltipBgLight,
-                  ),
-                  series: controller.sensorData
-                      .map((sensor) => sensor['series'] as List<dynamic>)
-                      .expand((series) => series)
-                      .where((serie) => serie['data'] != null && (serie['data'] as List).isNotEmpty)
-                      .map((serie) => SplineSeries<dynamic, String>(
-                            name: serie['name'] ?? '',
-                            dataSource: serie['data'] as List,
-                            markerSettings: const MarkerSettings(isVisible: false),
-                            xValueMapper: (dynamic data, int index) =>
-                                index < (controller.sensorData[0]['categories'] as List).length
-                                    ? controller.sensorData[0]['categories'][index].toString()
-                                    : '',
-                            yValueMapper: (dynamic data, int index) => data,
-                          ))
-                      .toList(),
+
+    final palette = CleanRoomChartStyle.palette(isDark);
+
+    return Obx(() {
+      if (controller.sensorData.isEmpty) {
+        final empty = const Center(child: Text('Không có dữ liệu cảm biến'));
+        return withCard ? DashboardCard(child: empty) : empty;
+      }
+
+      Widget content = LayoutBuilder(
+        builder: (context, constraints) {
+          final sensors = controller.sensorData
+              .where((sensor) =>
+                  (sensor['series'] as List?)?.isNotEmpty == true &&
+                  (sensor['categories'] as List?)?.isNotEmpty == true)
+              .toList();
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.only(right: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Dữ liệu cảm biến',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
-              )
-            else
-              const Text('Không có dữ liệu cảm biến'),
-          ],
-        ),
-      ),
-    );
+                const SizedBox(height: 8),
+                ...sensors.map((sensor) {
+                  final sensorName = (sensor['sensorName'] ?? '').toString();
+                  final categories = (sensor['categories'] as List<dynamic>);
+                  final keep = _recentIndices(categories);
+                  final formattedCategories = keep
+                      .where((i) => i < categories.length)
+                      .map((i) => _compactLabel(categories[i]))
+                      .toList();
+                  final seriesList = sensor['series'] as List<dynamic>;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (sensorName.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text(
+                              sensorName,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        SizedBox(
+                          height: 260,
+                          child: SfCartesianChart(
+                            palette: palette,
+                            primaryXAxis: CategoryAxis(
+                              majorGridLines: const MajorGridLines(width: 0),
+                              labelStyle:
+                                  Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
+                            ),
+                            primaryYAxis: NumericAxis(
+                              majorGridLines: const MajorGridLines(dashArray: [4, 4]),
+                              labelStyle:
+                                  Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
+                            ),
+                            legend: const Legend(isVisible: true),
+                            tooltipBehavior: TooltipBehavior(
+                              enable: true,
+                              color:
+                                  isDark ? GlobalColors.tooltipBgDark : GlobalColors.tooltipBgLight,
+                            ),
+                            series: seriesList
+                                .where((serie) =>
+                                    serie['data'] != null && (serie['data'] as List).isNotEmpty)
+                                .map(
+                                  (serie) => SplineSeries<dynamic, String>(
+                                    name: (serie['parameterDisplayName'] ?? serie['name'] ?? '')
+                                        .toString(),
+                                    dataSource: keep
+                                        .where((i) =>
+                                            i < (serie['data'] as List).length && i < categories.length)
+                                        .map((i) => (serie['data'] as List)[i])
+                                        .toList(),
+                                    markerSettings: const MarkerSettings(isVisible: false),
+                                    xValueMapper: (dynamic data, int index) =>
+                                        index < formattedCategories.length ? formattedCategories[index] : '',
+                                    yValueMapper: (dynamic data, int index) => data,
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (withCard) {
+        content = DashboardCard(child: content);
+      }
+      return content;
+    });
   }
 }

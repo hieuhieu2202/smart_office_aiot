@@ -106,13 +106,23 @@ class CleanRoomController extends GetxController {
     }
     try {
       final format = DateFormat('yyyy-MM-dd HH:mm');
-      final rangeDateTime = '${format.format(selectedStartDate.value)} - ${format.format(selectedEndDate.value)}';
+      final DateTime endTime = selectedEndDate.value;
+      final DateTime startTime = selectedStartDate.value;
+      final thirtyMinutesAgo = endTime.subtract(const Duration(minutes: 30));
+      final twelveHoursAgo = endTime.subtract(const Duration(hours: 12));
+
+      final rangeDateTime = '${format.format(startTime)} - ${format.format(endTime)}';
+      final range30Minutes = '${format.format(thirtyMinutesAgo)} - ${format.format(endTime)}';
+      final range12Hours = '${format.format(twelveHoursAgo)} - ${format.format(endTime)}';
+
       var params = {
         'customer': selectedCustomer.value,
         'factory': selectedFactory.value,
         'floor': selectedFloor.value,
         'room': selectedRoom.value,
         'rangeDateTime': rangeDateTime,
+        'range30Minutes': range30Minutes,
+        'range12Hours': range12Hours,
       };
 
       configData.value = await CleanRoomApi.getConfigMapping(
@@ -126,18 +136,21 @@ class CleanRoomController extends GetxController {
         factory: params['factory']!,
         floor: params['floor']!,
         room: params['room']!,
+        rangeDateTime: params['range30Minutes']!,
       );
       sensorData.value = await CleanRoomApi.getSensorDataOverview(
         customer: params['customer']!,
         factory: params['factory']!,
         floor: params['floor']!,
         room: params['room']!,
+        rangeDateTime: params['range30Minutes']!,
       );
       sensorHistories.value = await CleanRoomApi.getSensorDataHistories(
         customer: params['customer']!,
         factory: params['factory']!,
         floor: params['floor']!,
         room: params['room']!,
+        rangeDateTime: params['range12Hours']!,
       );
       sensorDataList.value = await CleanRoomApi.getSensorData(
         customer: params['customer']!,
@@ -184,5 +197,13 @@ class CleanRoomController extends GetxController {
     if (room != null) selectedRoom.value = room;
     fetchData();
     showFilterPanel.value = false;
+  }
+
+  void onDetailTap() {
+    fetchData();
+  }
+
+  void refreshRoomLayout() {
+    fetchData();
   }
 }

@@ -24,8 +24,7 @@ class AreaChartWidget extends StatelessWidget {
                 controller.areaData.containsKey('categories') &&
                 (controller.areaData['series'] as List).isNotEmpty &&
                 (controller.areaData['categories'] as List).isNotEmpty)
-              SizedBox(
-                height: 300,
+              Expanded(
                 child: SfCartesianChart(
                   palette: CleanRoomChartStyle.palette(isDark),
                   primaryXAxis: CategoryAxis(
@@ -56,7 +55,7 @@ class AreaChartWidget extends StatelessWidget {
                 ),
               )
             else
-              const Text('Không có dữ liệu khu vực'),
+              const Expanded(child: Center(child: Text('Không có dữ liệu khu vực'))),
           ],
         ),
       ),

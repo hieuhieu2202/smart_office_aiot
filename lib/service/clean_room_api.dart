@@ -103,6 +103,7 @@ class CleanRoomApi {
     required String factory,
     required String floor,
     required String room,
+    String? rangeDateTime,
   }) async {
     var url = Uri.parse("${_baseUrl}SensorData/GetSensorOverview");
     var body = json.encode({
@@ -110,6 +111,7 @@ class CleanRoomApi {
       "factory": factory,
       "floor": floor,
       "room": room,
+      if (rangeDateTime != null) "rangeDateTime": rangeDateTime,
     });
     print('[DEBUG] POST $url');
     print('[DEBUG] Body send: $body');
@@ -134,6 +136,7 @@ class CleanRoomApi {
     required String factory,
     required String floor,
     required String room,
+    String? rangeDateTime,
   }) async {
     var url = Uri.parse("${_baseUrl}SensorData/GetSensorDataOverview");
     var body = json.encode({
@@ -141,6 +144,7 @@ class CleanRoomApi {
       "factory": factory,
       "floor": floor,
       "room": room,
+      if (rangeDateTime != null) "rangeDateTime": rangeDateTime,
     });
     print('[DEBUG] POST $url');
     print('[DEBUG] Body send: $body');
@@ -165,6 +169,7 @@ class CleanRoomApi {
     required String factory,
     required String floor,
     required String room,
+    String? rangeDateTime,
   }) async {
     var url = Uri.parse("${_baseUrl}SensorData/GetSensorDataHistories");
     var body = json.encode({
@@ -172,6 +177,7 @@ class CleanRoomApi {
       "factory": factory,
       "floor": floor,
       "room": room,
+      if (rangeDateTime != null) "rangeDateTime": rangeDateTime,
     });
     print('[DEBUG] POST $url');
     print('[DEBUG] Body send: $body');
