@@ -18,17 +18,25 @@ class SensorDataChartWidget extends StatelessWidget {
     return Obx(() {
       final histories = controller.sensorHistories;
       if (histories.isEmpty) {
-        return const DashboardCard(
-          padding: EdgeInsets.all(10),
-          child: Center(child: Text('Không có lịch sử cảm biến')),
+        return DashboardCard(
+          padding: const EdgeInsets.all(12),
+          child: Center(
+            child: Text(
+              'Không có lịch sử cảm biến',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
+            ),
+          ),
         );
       }
 
       return DashboardCard(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         child: ListView.separated(
           itemCount: histories.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final entry = histories[index];
             final categories =
@@ -92,16 +100,16 @@ class _SensorCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0b1d35), const Color(0xFF0d3055), const Color(0xFF0e3b6a)]
-              : [const Color(0xFFe9f3ff), const Color(0xFFd7e8ff), const Color(0xFFc8defc)],
+              ? [const Color(0xFF0a1327), const Color(0xFF0f1f3d), const Color(0xFF12345a)]
+              : [const Color(0xFFf0f6ff), const Color(0xFFe3edff), const Color(0xFFd5e5ff)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.18 : 0.28)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.16 : 0.24)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.28), blurRadius: 16, offset: const Offset(0, 10)),
-          BoxShadow(color: Colors.blueAccent.withOpacity(0.18), blurRadius: 18, spreadRadius: -6),
+          BoxShadow(color: Colors.black.withOpacity(0.28), blurRadius: 18, offset: const Offset(0, 12)),
+          BoxShadow(color: Colors.blueAccent.withOpacity(0.16), blurRadius: 24, spreadRadius: -8),
         ],
       ),
       child: Column(
@@ -130,11 +138,11 @@ class _SensorCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          _MetricWrap(metrics: metrics, isDark: isDark),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 140,
+          _MetricWrap(metrics: metrics, isDark: isDark),
+          const SizedBox(height: 12),
+          _SparklineCard(
+            isDark: isDark,
             child: _Sparkline(
               series: chartSeries,
               palette: palette,
@@ -285,39 +293,53 @@ class _MetricWrap extends StatelessWidget {
     }
 
     return Wrap(
-      spacing: 8,
-      runSpacing: 6,
+      spacing: 10,
+      runSpacing: 8,
       children: metrics.take(6).map((metric) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.78),
-            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              colors: [
+                metric.color.withOpacity(isDark ? 0.12 : 0.08),
+                metric.color.withOpacity(isDark ? 0.2 : 0.12),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: metric.color.withOpacity(isDark ? 0.45 : 0.35)),
             boxShadow: [
-              BoxShadow(color: metric.color.withOpacity(0.2), blurRadius: 10, spreadRadius: -2),
+              BoxShadow(color: metric.color.withOpacity(0.25), blurRadius: 14, spreadRadius: -4),
             ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(color: metric.color, shape: BoxShape.circle),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: metric.color,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: metric.color.withOpacity(0.55), blurRadius: 8)],
+                ),
               ),
               const SizedBox(width: 8),
-              Text(
-                metric.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                      color: isDark ? Colors.white : const Color(0xFF0b2d55),
-                    ),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 160),
+                child: Text(
+                  metric.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        color: isDark ? Colors.white : const Color(0xFF0b2d55),
+                      ),
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text(
                 metric.formattedValue,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -333,6 +355,37 @@ class _MetricWrap extends StatelessWidget {
     );
   }
 }
+
+class _SparklineCard extends StatelessWidget {
+  final bool isDark;
+  final Widget child;
+
+  const _SparklineCard({required this.isDark, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 160,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF0b1b35), const Color(0xFF0e2a4d)]
+              : [const Color(0xFFe7f0ff), const Color(0xFFdbe6ff)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.18)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.22), blurRadius: 16, offset: const Offset(0, 10)),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
 class _Sparkline extends StatelessWidget {
   final List<_ChartSeriesData> series;
   final List<Color> palette;
@@ -362,7 +415,7 @@ class _Sparkline extends StatelessWidget {
         return Container(
           height: clampedHeight,
           decoration: BoxDecoration(
-            color: isDark ? Colors.black.withOpacity(0.25) : Colors.white.withOpacity(0.7),
+            color: isDark ? Colors.black.withOpacity(0.22) : Colors.white.withOpacity(0.8),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.18)),
             boxShadow: [
@@ -370,44 +423,47 @@ class _Sparkline extends StatelessWidget {
             ],
           ),
           padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            clipBehavior: Clip.antiAlias,
-            child: SfCartesianChart(
-              margin: EdgeInsets.zero,
-              plotAreaBorderWidth: 0,
-              borderWidth: 0,
-              palette: palette,
-              tooltipBehavior: tooltipBehavior,
-              primaryXAxis: CategoryAxis(
-                isVisible: true,
-                majorGridLines: const MajorGridLines(width: 0),
-                labelPlacement: LabelPlacement.onTicks,
-                labelIntersectAction: AxisLabelIntersectAction.hide,
-                interval: labelInterval,
-                labelStyle: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
-                  fontSize: 9,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: SfCartesianChart(
+                  margin: EdgeInsets.zero,
+                  plotAreaBorderWidth: 0,
+                  borderWidth: 0,
+                  palette: palette,
+                  tooltipBehavior: tooltipBehavior,
+                  primaryXAxis: CategoryAxis(
+                    isVisible: true,
+                    majorGridLines: const MajorGridLines(width: 0),
+                    labelPlacement: LabelPlacement.onTicks,
+                    labelIntersectAction: AxisLabelIntersectAction.hide,
+                    interval: labelInterval,
+                    labelStyle: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
+                      fontSize: 9,
+                    ),
+                  ),
+                  primaryYAxis: NumericAxis(
+                    isVisible: false,
+                    majorGridLines: const MajorGridLines(width: 0),
+                  ),
+                  legend: const Legend(isVisible: false),
+                  series: series.map((item) {
+                    return SplineSeries<_ChartPoint, String>(
+                      dataSource: item.points,
+                      width: 2.4,
+                      opacity: 0.95,
+                      markerSettings: const MarkerSettings(isVisible: true, height: 6, width: 6),
+                      xValueMapper: (point, _) => point.displayLabel,
+                      yValueMapper: (point, _) => point.value,
+                      name: item.name,
+                      color: item.color,
+                    );
+                  }).toList(),
                 ),
               ),
-              primaryYAxis: NumericAxis(
-                isVisible: false,
-                majorGridLines: const MajorGridLines(width: 0),
-              ),
-              legend: const Legend(isVisible: false),
-              series: series.map((item) {
-                return SplineSeries<_ChartPoint, String>(
-                  dataSource: item.points,
-                  width: 2.4,
-                  opacity: 0.95,
-                  markerSettings: const MarkerSettings(isVisible: true, height: 6, width: 6),
-                  xValueMapper: (point, _) => point.displayLabel,
-                  yValueMapper: (point, _) => point.value,
-                  name: item.name,
-                  color: item.color,
-                );
-              }).toList(),
-            ),
+            ],
           ),
         );
       },
@@ -468,15 +524,15 @@ class _Sparkline extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: Material(
             color: Colors.transparent,
-            elevation: 14,
-            shadowColor: Colors.black.withOpacity(0.35),
+            elevation: 22,
+            shadowColor: Colors.black.withOpacity(0.5),
             borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.blueGrey.shade900.withOpacity(0.98),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.18)),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
