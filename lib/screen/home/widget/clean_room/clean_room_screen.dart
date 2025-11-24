@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_data_chart_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/common/dashboard_card.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/layout/room_layout_widget.dart';
 
 import 'cleanroom_filter_panel.dart';
@@ -373,7 +374,7 @@ class _MapCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          const Expanded(
+          Expanded(
             child: RoomLayoutWidget(),
           ),
         ],
