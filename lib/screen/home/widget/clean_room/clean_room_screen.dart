@@ -168,6 +168,8 @@ class _TopBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          _BackButton(isDark: isDark),
+          const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -230,6 +232,37 @@ class _TopBar extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BackButton extends StatelessWidget {
+  final bool isDark;
+  const _BackButton({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => Get.back(),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: isDark
+                ? [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.02)]
+                : [const Color(0xFFe7f0ff), const Color(0xFFf4f7ff)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: Colors.white.withOpacity(isDark ? 0.18 : 0.36)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 8)),
+          ],
+        ),
+        child: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : const Color(0xFF0a2540), size: 18),
       ),
     );
   }
