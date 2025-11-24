@@ -9,6 +9,22 @@ import 'package:smart_factory/config/global_color.dart';
 class SensorDataChartWidget extends StatelessWidget {
   const SensorDataChartWidget({super.key});
 
+  /// Returns a shorter label (e.g. `HH:mm`) when the category contains
+  /// a datetime string, otherwise falls back to the raw value.
+  String _compactLabel(String raw) {
+    final parsed = DateTime.tryParse(raw.replaceAll('/', '-'));
+    if (parsed != null) {
+      return '${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+    }
+
+    if (raw.contains(' ')) {
+      final parts = raw.split(' ');
+      return parts.last;
+    }
+
+    return raw;
+  }
+
   @override
   Widget build(BuildContext context) {
     final CleanRoomController controller = Get.find<CleanRoomController>();
@@ -49,6 +65,8 @@ class SensorDataChartWidget extends StatelessWidget {
                     final sensorName = (sensor['sensorName'] ?? '').toString();
                     final categories =
                         (sensor['categories'] as List<dynamic>).map((e) => e.toString()).toList();
+                    final formattedCategories =
+                        categories.map((raw) => _compactLabel(raw)).toList();
                     final seriesList = sensor['series'] as List<dynamic>;
 
                     return Padding(
@@ -102,7 +120,9 @@ class SensorDataChartWidget extends StatelessWidget {
                                       dataSource: serie['data'] as List,
                                       markerSettings: const MarkerSettings(isVisible: false),
                                       xValueMapper: (dynamic data, int index) =>
-                                          index < categories.length ? categories[index] : '',
+                                          index < formattedCategories.length
+                                              ? formattedCategories[index]
+                                              : '',
                                       yValueMapper: (dynamic data, int index) => data,
                                     ),
                                   )
