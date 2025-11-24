@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
@@ -50,55 +48,42 @@ class CleanRoomScreen extends StatelessWidget {
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final bodyWidth = constraints.maxWidth;
-                              final bodyHeight = constraints.maxHeight;
-
-                              final double leftWidth = math.min(460, bodyWidth * 0.34);
-                              final double gap = 12;
-                              final double rightWidth = bodyWidth - leftWidth - gap;
-
-                              final double summaryHeight = bodyHeight * 0.32;
-
+                              final spacing = 12.0;
                               return Row(
                                 children: [
-                                  SizedBox(
-                                    width: leftWidth,
-                                    child: Column(
-                                      children: [
-                                        _SectionCard(
-                                          height: summaryHeight,
-                                          title: 'Sensor Overview',
-                                          subtitle: 'Tổng số cảm biến & trạng thái',
-                                          icon: Icons.dashboard_customize_outlined,
-                                          actions: [
-                                            TextButton(
-                                              onPressed: controller.fetchData,
-                                              child: const Text('Refresh'),
+                                  Expanded(
+                                    flex: 3,
+                                    child: LayoutBuilder(
+                                      builder: (context, leftConstraints) {
+                                        final double summaryHeight = leftConstraints.maxHeight * 0.38;
+                                        final double historyHeight = leftConstraints.maxHeight - summaryHeight - spacing;
+
+                                        return Column(
+                                          children: [
+                                            SizedBox(
+                                              height: summaryHeight,
+                                              child: _SummaryCard(
+                                                controller: controller,
+                                                isDark: isDark,
+                                              ),
+                                            ),
+                                            SizedBox(height: spacing),
+                                            SizedBox(
+                                              height: historyHeight,
+                                              child: _HistoryCard(
+                                                controller: controller,
+                                                isDark: isDark,
+                                              ),
                                             ),
                                           ],
-                                          child: _SummaryGrid(height: summaryHeight - 60),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Expanded(
-                                          child: _SectionCard(
-                                            title: 'Sensor Data Histories',
-                                            subtitle: 'Thông số và biểu đồ của từng cảm biến',
-                                            icon: Icons.auto_graph,
-                                            child: const SensorDataChartWidget(withCard: false),
-                                          ),
-                                        ),
-                                      ],
+                                        );
+                                      },
                                     ),
                                   ),
-                                  SizedBox(width: gap),
-                                  SizedBox(
-                                    width: rightWidth,
-                                    child: _SectionCard(
-                                      title: 'Cleanroom Map',
-                                      subtitle: 'Vị trí cảm biến và trạng thái trên sơ đồ',
-                                      icon: Icons.map_outlined,
-                                      child: RoomLayoutWidget(),
-                                    ),
+                                  SizedBox(width: spacing),
+                                  Expanded(
+                                    flex: 9,
+                                    child: _MapCard(isDark: isDark),
                                   ),
                                 ],
                               );
@@ -235,6 +220,194 @@ class _TopBar extends StatelessWidget {
   }
 }
 
+class _SummaryCard extends StatelessWidget {
+  final CleanRoomController controller;
+  final bool isDark;
+
+  const _SummaryCard({required this.controller, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _SectionIcon(icon: Icons.dashboard_customize_outlined, isDark: isDark),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sensor Overview',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : const Color(0xFF0a2540),
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Tổng số cảm biến & trạng thái',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
+                        ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: controller.fetchData,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: _SummaryGrid(),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5aa6ff),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: controller.toggleFilterPanel,
+              icon: const Icon(Icons.open_in_new, color: Colors.white, size: 18),
+              label: const Text('Chi tiết cảm biến', style: TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryCard extends StatelessWidget {
+  final CleanRoomController controller;
+  final bool isDark;
+
+  const _HistoryCard({required this.controller, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _SectionIcon(icon: Icons.timeline, isDark: isDark),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sensor History',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : const Color(0xFF0a2540),
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Thông số và biểu đồ của từng cảm biến',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
+                        ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Expanded(
+            child: SensorDataChartWidget(withCard: false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MapCard extends StatelessWidget {
+  final bool isDark;
+  const _MapCard({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _SectionIcon(icon: Icons.map_outlined, isDark: isDark),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Cleanroom Map',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : const Color(0xFF0a2540),
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Vị trí cảm biến và trạng thái trên sơ đồ',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
+                        ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Expanded(
+            child: RoomLayoutWidget(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionIcon extends StatelessWidget {
+  final IconData icon;
+  final bool isDark;
+
+  const _SectionIcon({required this.icon, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: isDark
+              ? [Colors.cyanAccent.withOpacity(.82), Colors.blueAccent.shade200]
+              : [const Color(0xFF5aa6ff), const Color(0xFF7cc5ff)],
+        ),
+        boxShadow: [
+          BoxShadow(color: Colors.blueAccent.withOpacity(.24), blurRadius: 20, offset: const Offset(0, 10)),
+        ],
+      ),
+      child: Icon(icon, color: Colors.white, size: 18),
+    );
+  }
+}
+
 class _BackButton extends StatelessWidget {
   final bool isDark;
   const _BackButton({required this.isDark});
@@ -292,123 +465,8 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Widget child;
-  final double? height;
-  final List<Widget>? actions;
-
-  const _SectionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.child,
-    this.height,
-    this.actions,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final content = Container(
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF081c36), const Color(0xFF0d2f52), const Color(0xFF0f4777)]
-              : [const Color(0xFFdfefff), const Color(0xFFe9f3ff)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.28)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.24), blurRadius: 26, offset: const Offset(0, 16)),
-          BoxShadow(color: Colors.blueAccent.withOpacity(.16), blurRadius: 30, spreadRadius: -10, offset: const Offset(0, 14)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF0c2847), const Color(0xFF0a1c34)]
-                  : [const Color(0xFFf8fbff), const Color(0xFFedf3ff)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [Colors.cyanAccent.withOpacity(.82), Colors.blueAccent.shade200]
-                            : [const Color(0xFF5aa6ff), const Color(0xFF7cc5ff)],
-                      ),
-                      boxShadow: [
-                        BoxShadow(color: Colors.blueAccent.withOpacity(.24), blurRadius: 20, offset: const Offset(0, 10)),
-                      ],
-                    ),
-                    child: Icon(icon, color: Colors.white, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : const Color(0xFF0a2540),
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: isDark ? Colors.white70 : Colors.blueGrey.shade700),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (actions != null)
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: actions!,
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Expanded(child: child),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    return height != null ? SizedBox(height: height, child: content) : content;
-  }
-}
-
 class _SummaryGrid extends StatelessWidget {
-  final double height;
-  const _SummaryGrid({required this.height});
+  const _SummaryGrid();
 
   @override
   Widget build(BuildContext context) {
@@ -419,51 +477,18 @@ class _SummaryGrid extends StatelessWidget {
       final warning = controller.sensorOverview['warningSensors'] ?? 0;
       final offline = controller.sensorOverview['offlineSensors'] ?? 0;
 
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final availableHeight = constraints.maxHeight;
-          const buttonHeight = 46.0;
-          const buttonSpacing = 8.0;
-          final gridHeight = math.max(140.0, availableHeight - buttonHeight - buttonSpacing);
-
-          return Column(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: gridHeight,
-                  child: GridView.count(
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 1.8,
-                    children: [
-                      _StatChip(label: 'TOTAL', value: total.toString(), icon: Icons.layers, color: const Color(0xFF469cff)),
-                      _StatChip(label: 'ONLINE', value: online.toString(), icon: Icons.wifi_tethering, color: const Color(0xFF3ed399)),
-                      _StatChip(label: 'WARNING', value: warning.toString(), icon: Icons.warning_amber_rounded, color: const Color(0xFFf6b317)),
-                      _StatChip(label: 'OFFLINE', value: offline.toString(), icon: Icons.wifi_off_rounded, color: const Color(0xFF9aa6bb)),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: buttonSpacing),
-              SizedBox(
-                width: double.infinity,
-                height: buttonHeight,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: const Color(0xFF5aa6ff),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: controller.toggleFilterPanel,
-                  icon: const Icon(Icons.open_in_new, color: Colors.white),
-                  label: const Text('Chi tiết cảm biến', style: TextStyle(fontWeight: FontWeight.w800)),
-                ),
-              ),
-            ],
-          );
-        },
+      return GridView.count(
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1.8,
+        children: [
+          _StatChip(label: 'TOTAL', value: total.toString(), icon: Icons.layers, color: const Color(0xFF469cff)),
+          _StatChip(label: 'ONLINE', value: online.toString(), icon: Icons.wifi_tethering, color: const Color(0xFF3ed399)),
+          _StatChip(label: 'WARNING', value: warning.toString(), icon: Icons.warning_amber_rounded, color: const Color(0xFFf6b317)),
+          _StatChip(label: 'OFFLINE', value: offline.toString(), icon: Icons.wifi_off_rounded, color: const Color(0xFF9aa6bb)),
+        ],
       );
     });
   }
