@@ -71,6 +71,7 @@ class _SensorCard extends StatelessWidget {
     _ParameterSpec(key: '5.0um', fallbackLabel: 'PM5.0 (µm/m³)'),
     _ParameterSpec(key: 'traffic', fallbackLabel: 'Traffic Flow (m/min)'),
   ];
+
   final String sensorName;
   final String sensorDesc;
   final String lastTime;
@@ -100,23 +101,22 @@ class _SensorCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0c1833), const Color(0xFF0f1f3d), const Color(0xFF14345f)]
-              : [const Color(0xFFeef4ff), const Color(0xFFe5edff), const Color(0xFFd8e5ff)],
+              ? [const Color(0xFF0b1424), const Color(0xFF0f2744), const Color(0xFF143a66)]
+              : [const Color(0xFFeef3ff), const Color(0xFFe2ecff), const Color(0xFFd6e3ff)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withOpacity(isDark ? 0.2 : 0.26)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.26), blurRadius: 18, offset: const Offset(0, 12)),
-          BoxShadow(color: Colors.blueAccent.withOpacity(0.18), blurRadius: 26, spreadRadius: -10),
+          BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 18, offset: const Offset(0, 12)),
+          BoxShadow(color: Colors.blueAccent.withOpacity(0.16), blurRadius: 24, spreadRadius: -8),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _Header(
@@ -234,6 +234,18 @@ class _SensorCard extends StatelessWidget {
     if (map['name'] != null) return map['name'].toString();
     return fallback;
   }
+
+  _CategoryLabel _resolveCategory(String raw) {
+    DateTime? timestamp;
+    String display = raw;
+
+    timestamp = DateTime.tryParse(raw);
+    if (timestamp != null) {
+      display = DateFormat('MM-dd HH:mm').format(timestamp.toLocal());
+    }
+
+    return _CategoryLabel(raw: raw, display: display, timestamp: timestamp);
+  }
 }
 
 class _Header extends StatelessWidget {
@@ -256,7 +268,7 @@ class _Header extends StatelessWidget {
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
                 color: isDark ? Colors.white : const Color(0xFF0b2d55),
-                letterSpacing: 0.15,
+                letterSpacing: 0.1,
               ),
         ),
         if (sensorDesc.isNotEmpty)
@@ -368,7 +380,7 @@ class _SparklineCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 160,
+      height: 170,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -407,7 +419,7 @@ class _Sparkline extends StatelessWidget {
         final double targetHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
             ? constraints.maxHeight
             : 120.0;
-        final double clampedHeight = targetHeight.clamp(100.0, 160.0);
+        final double clampedHeight = targetHeight.clamp(110.0, 180.0);
         final int pointCount = series.isNotEmpty ? series.first.points.length : 0;
         final double labelInterval = pointCount <= 6 ? 1 : (pointCount / 6).ceilToDouble();
         final double tooltipMaxWidth =
@@ -418,7 +430,7 @@ class _Sparkline extends StatelessWidget {
         return Container(
           height: clampedHeight,
           decoration: BoxDecoration(
-            color: isDark ? Colors.black.withOpacity(0.22) : Colors.white.withOpacity(0.8),
+            color: isDark ? Colors.black.withOpacity(0.22) : Colors.white.withOpacity(0.82),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.white.withOpacity(isDark ? 0.12 : 0.18)),
             boxShadow: [
@@ -426,47 +438,40 @@ class _Sparkline extends StatelessWidget {
             ],
           ),
           padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned.fill(
-                child: SfCartesianChart(
-                  margin: EdgeInsets.zero,
-                  plotAreaBorderWidth: 0,
-                  borderWidth: 0,
-                  palette: palette,
-                  tooltipBehavior: tooltipBehavior,
-                  primaryXAxis: CategoryAxis(
-                    isVisible: true,
-                    majorGridLines: const MajorGridLines(width: 0),
-                    labelPlacement: LabelPlacement.onTicks,
-                    labelIntersectAction: AxisLabelIntersectAction.hide,
-                    interval: labelInterval,
-                    labelStyle: TextStyle(
-                      color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
-                      fontSize: 9,
-                    ),
-                  ),
-                  primaryYAxis: NumericAxis(
-                    isVisible: false,
-                    majorGridLines: const MajorGridLines(width: 0),
-                  ),
-                  legend: const Legend(isVisible: false),
-                  series: series.map((item) {
-                    return SplineSeries<_ChartPoint, String>(
-                      dataSource: item.points,
-                      width: 2.4,
-                      opacity: 0.95,
-                      markerSettings: const MarkerSettings(isVisible: true, height: 6, width: 6),
-                      xValueMapper: (point, _) => point.displayLabel,
-                      yValueMapper: (point, _) => point.value,
-                      name: item.name,
-                      color: item.color,
-                    );
-                  }).toList(),
-                ),
+          child: SfCartesianChart(
+            margin: EdgeInsets.zero,
+            plotAreaBorderWidth: 0,
+            borderWidth: 0,
+            palette: palette,
+            tooltipBehavior: tooltipBehavior,
+            primaryXAxis: CategoryAxis(
+              isVisible: true,
+              majorGridLines: const MajorGridLines(width: 0),
+              labelPlacement: LabelPlacement.onTicks,
+              labelIntersectAction: AxisLabelIntersectAction.hide,
+              interval: labelInterval,
+              labelStyle: TextStyle(
+                color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
+                fontSize: 9,
               ),
-            ],
+            ),
+            primaryYAxis: const NumericAxis(
+              isVisible: false,
+              majorGridLines: MajorGridLines(width: 0),
+            ),
+            legend: const Legend(isVisible: false),
+            series: series.map((item) {
+              return SplineSeries<_ChartPoint, String>(
+                dataSource: item.points,
+                width: 2.4,
+                opacity: 0.95,
+                markerSettings: const MarkerSettings(isVisible: true, height: 6, width: 6),
+                xValueMapper: (point, _) => point.displayLabel,
+                yValueMapper: (point, _) => point.value,
+                name: item.name,
+                color: item.color,
+              );
+            }).toList(),
           ),
         );
       },
@@ -521,7 +526,7 @@ class _Sparkline extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   valuePoint.formattedValue,
-                  style: TextStyle(color: item.color, fontWeight: FontWeight.w800, fontSize: 12),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12),
                 ),
               ],
             ),
@@ -529,18 +534,22 @@ class _Sparkline extends StatelessWidget {
         }).toList();
 
         return Material(
-          elevation: 22,
           color: Colors.transparent,
-          shadowColor: Colors.black.withOpacity(0.55),
+          elevation: 14,
+          shadowColor: Colors.black54,
           child: Container(
             constraints: BoxConstraints(maxWidth: maxWidth),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blueGrey.shade900.withOpacity(0.98),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.22)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.55), blurRadius: 26, spreadRadius: 2, offset: const Offset(0, 12)),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF12233d), Color(0xFF1f3a63)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              boxShadow: const [
+                BoxShadow(color: Colors.black38, blurRadius: 16, offset: Offset(0, 10)),
               ],
             ),
             child: Column(
@@ -549,7 +558,11 @@ class _Sparkline extends StatelessWidget {
               children: [
                 Text(
                   headerLabel,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12.5,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 ...rows,
@@ -570,61 +583,9 @@ class _MetricItem {
   const _MetricItem({required this.label, required this.value, required this.color});
 
   String get formattedValue {
-    if (value is int) return value.toString();
     final doubleValue = value.toDouble();
     return doubleValue % 1 == 0 ? doubleValue.toStringAsFixed(0) : doubleValue.toStringAsFixed(2);
   }
-}
-
-String _formatCategoryLabel(String raw) {
-  final normalized = raw.contains('T') ? raw : raw.replaceFirst(' ', 'T');
-  final parsed = DateTime.tryParse(normalized);
-  if (parsed != null) {
-    return DateFormat('MM-dd HH:mm').format(parsed);
-  }
-  return raw.length > 16 ? raw.substring(0, 16) : raw;
-}
-
-DateTime? _parseTimestamp(String raw) {
-  final normalized = raw.contains('T') ? raw : raw.replaceFirst(' ', 'T');
-  return DateTime.tryParse(normalized);
-}
-
-_CategoryLabel _resolveCategory(dynamic raw) {
-  if (raw == null) {
-    return const _CategoryLabel(raw: '', display: '', timestamp: null);
-  }
-
-  if (raw is Map) {
-    // Prioritize well-known time/label keys.
-    const keys = ['timestamp', 'time', 'label', 'value', 'name'];
-    for (final key in keys) {
-      if (raw.containsKey(key) && raw[key] != null) {
-        final candidate = raw[key].toString();
-        final ts = _parseTimestamp(candidate);
-        return _CategoryLabel(
-          raw: candidate,
-          display: _formatCategoryLabel(candidate),
-          timestamp: ts,
-        );
-      }
-    }
-
-    // Fall back to a concatenated description when no key matches.
-    final fallback = raw.values.map((v) => v?.toString() ?? '').where((v) => v.isNotEmpty).join(' ');
-    return _CategoryLabel(
-      raw: fallback,
-      display: _formatCategoryLabel(fallback),
-      timestamp: _parseTimestamp(fallback),
-    );
-  }
-
-  final label = raw.toString();
-  return _CategoryLabel(
-    raw: label,
-    display: _formatCategoryLabel(label),
-    timestamp: _parseTimestamp(label),
-  );
 }
 
 class _ChartSeriesData {
@@ -657,7 +618,6 @@ class _ChartPoint {
   });
 
   String get formattedValue {
-    if (value is int) return value.toString();
     final doubleValue = value.toDouble();
     return doubleValue % 1 == 0 ? doubleValue.toStringAsFixed(0) : doubleValue.toStringAsFixed(2);
   }
