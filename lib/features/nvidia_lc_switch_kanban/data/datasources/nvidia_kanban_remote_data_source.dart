@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
@@ -13,7 +14,13 @@ import '../models/upd_tracking_model.dart';
 class NvidiaKanbanLogger {
   NvidiaKanbanLogger._();
 
-  static void net(String Function() _) {}
+  static void net(String Function() messageBuilder) {
+    try {
+      developer.log(messageBuilder(), name: 'NvidiaKanban');
+    } catch (_) {
+      // Ignore logging errors to avoid impacting runtime behaviour.
+    }
+  }
 }
 
 class NvidiaKanbanRemoteDataSource {

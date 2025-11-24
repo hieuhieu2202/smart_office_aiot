@@ -16,6 +16,7 @@ const Color _textSecondary = Colors.white70;
 const double _headerHeight = 56;
 const double _subHeaderHeight = 36;
 const double _rowHeight = 52;
+const double _sectionWidth = 120;
 
 class UphTrackingTable extends StatefulWidget {
   const UphTrackingTable({
@@ -37,7 +38,6 @@ class _UphTrackingTableState extends State<UphTrackingTable> {
   static const double _modelWidth = 220;
   static const double _stationWidth = 160;
   static const double _metricWidth = 110;
-  static const double _sectionWidth = 120;
 
   final ScrollController _horizontalCtrl = ScrollController();
   final ScrollController _verticalCtrl = ScrollController();
@@ -62,14 +62,19 @@ class _UphTrackingTableState extends State<UphTrackingTable> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double maxHeight = constraints.maxHeight.isFinite
-            ? constraints.maxHeight
-            : (_rowHeight * math.max(rows.length, 1)) +
-                _headerHeight +
-                _subHeaderHeight +
-                8;
-        final double bodyHeight =
-            (maxHeight - _headerHeight - _subHeaderHeight).clamp(160.0, double.infinity);
+        final bool hasFiniteHeight = constraints.maxHeight.isFinite;
+        final double headerTotal = _headerHeight + _subHeaderHeight;
+        final int effectiveRows = math.max(rows.length, 1);
+        final double naturalBodyHeight =
+            (effectiveRows * _rowHeight) + ((effectiveRows - 1) * 0.6);
+
+        double bodyHeight = hasFiniteHeight
+            ? math.max(0, constraints.maxHeight - headerTotal)
+            : math.max(160.0, naturalBodyHeight);
+
+        if (!hasFiniteHeight) {
+          bodyHeight = math.max(bodyHeight, naturalBodyHeight);
+        }
 
         return Container(
           decoration: BoxDecoration(
@@ -260,7 +265,6 @@ class _UpdTrackingTableState extends State<UpdTrackingTable> {
   static const double _modelWidth = 220;
   static const double _stationWidth = 160;
   static const double _metricWidth = 110;
-  static const double _sectionWidth = 120;
 
   final ScrollController _horizontalCtrl = ScrollController();
   final ScrollController _verticalCtrl = ScrollController();
@@ -285,14 +289,19 @@ class _UpdTrackingTableState extends State<UpdTrackingTable> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double maxHeight = constraints.maxHeight.isFinite
-            ? constraints.maxHeight
-            : (_rowHeight * math.max(rows.length, 1)) +
-                _headerHeight +
-                _subHeaderHeight +
-                8;
-        final double bodyHeight =
-            (maxHeight - _headerHeight - _subHeaderHeight).clamp(160.0, double.infinity);
+        final bool hasFiniteHeight = constraints.maxHeight.isFinite;
+        final double headerTotal = _headerHeight + _subHeaderHeight;
+        final int effectiveRows = math.max(rows.length, 1);
+        final double naturalBodyHeight =
+            (effectiveRows * _rowHeight) + ((effectiveRows - 1) * 0.6);
+
+        double bodyHeight = hasFiniteHeight
+            ? math.max(0, constraints.maxHeight - headerTotal)
+            : math.max(160.0, naturalBodyHeight);
+
+        if (!hasFiniteHeight) {
+          bodyHeight = math.max(bodyHeight, naturalBodyHeight);
+        }
 
         return Container(
           decoration: BoxDecoration(
