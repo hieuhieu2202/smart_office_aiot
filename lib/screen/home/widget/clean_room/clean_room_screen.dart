@@ -60,16 +60,21 @@ class CleanRoomScreen extends StatelessWidget {
                               final double cellHeight = (bodyHeight - gridGap * (gridRows - 1)) / gridRows;
 
                               final double leftWidth = cellWidth * 1.25;
-                              final double summaryHeight = (cellHeight * 2 + gridGap) * 0.8;
+                              final double summaryHeight = ((cellHeight * 2) + gridGap) * 0.8;
+
+                              const double minHistoryHeight = 220;
+                              const double minMapHeight = 320;
 
                               final double desiredHistoryHeight = (cellHeight * 3 + gridGap * 2) * 1.3;
                               final double availableHistoryHeight = bodyHeight - summaryHeight - gridGap;
-                              final double historyHeight = desiredHistoryHeight > availableHistoryHeight
-                                  ? availableHistoryHeight
-                                  : desiredHistoryHeight;
+                              final double safeAvailableHistory = availableHistoryHeight.isFinite ? availableHistoryHeight : desiredHistoryHeight;
+                              final double clampedHistoryHeight = availableHistoryHeight.clamp(minHistoryHeight, desiredHistoryHeight);
+                              final double historyHeight = safeAvailableHistory >= minHistoryHeight
+                                  ? clampedHistoryHeight
+                                  : (safeAvailableHistory > 0 ? safeAvailableHistory : minHistoryHeight);
 
                               final double mapWidth = bodyWidth - leftWidth - gridGap;
-                              final double mapHeight = bodyHeight;
+                              final double mapHeight = bodyHeight < minMapHeight ? minMapHeight : bodyHeight;
 
                               return Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
