@@ -75,65 +75,66 @@ class SensorOverviewCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.72),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.6)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          data.sensorName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withOpacity(0.6)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            data.sensorName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
-                        Text(
-                          data.sensorDesc,
-                          style: const TextStyle(color: Colors.white60),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          Text(
+                            data.sensorDesc,
+                            style: const TextStyle(color: Colors.white60),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+                        if (last != null)
+                          Text(
+                            last.toString(),
+                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                          ),
                       ],
                     ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
-                      if (last != null)
-                        Text(
-                          last.toString(),
-                          style: const TextStyle(color: Colors.white54, fontSize: 12),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 2.8,
-                children: data.data.take(4).mapIndexed((index, p) {
-                  return _paramTile(p);
-                }).toList(),
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 2.8,
+                  children: data.data.take(4).mapIndexed((index, p) {
+                    return _paramTile(p);
+                  }).toList(),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
