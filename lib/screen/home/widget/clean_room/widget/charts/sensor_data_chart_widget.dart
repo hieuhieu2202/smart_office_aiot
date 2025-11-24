@@ -35,12 +35,12 @@ class SensorDataChartWidget extends StatelessWidget {
       return DashboardCard(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: ListView.separated(
+          clipBehavior: Clip.none,
           itemCount: histories.length,
           separatorBuilder: (_, __) => const SizedBox(height: 14),
           itemBuilder: (context, index) {
             final entry = histories[index];
-            final categories =
-                (entry['categories'] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
+            final categories = (entry['categories'] as List?) ?? <dynamic>[];
             final seriesList = (entry['series'] as List?) ?? <dynamic>[];
             final sensorName = entry['sensorName']?.toString() ?? '';
             final sensorDesc = entry['sensorDesc']?.toString() ?? '';
@@ -76,7 +76,7 @@ class _SensorCard extends StatelessWidget {
   final String sensorDesc;
   final String lastTime;
   final String status;
-  final List<String> categories;
+  final List<dynamic> categories;
   final List<dynamic> seriesList;
   final bool isDark;
 
@@ -175,7 +175,7 @@ class _SensorCard extends StatelessWidget {
 
   List<_ChartSeriesData> _buildSeries(
     List<dynamic> series,
-    List<String> categories,
+    List<dynamic> categories,
     List<Color> palette,
   ) {
     final items = <_ChartSeriesData>[];
@@ -235,7 +235,15 @@ class _SensorCard extends StatelessWidget {
     return fallback;
   }
 
-  _CategoryLabel _resolveCategory(String raw) {
+  _CategoryLabel _resolveCategory(dynamic rawValue) {
+    if (rawValue is Map) {
+      final raw = rawValue['timestamp']?.toString() ?? rawValue['label']?.toString() ?? rawValue['name']?.toString();
+      if (raw != null) {
+        return _resolveCategory(raw);
+      }
+    }
+
+    final raw = rawValue?.toString() ?? '';
     DateTime? timestamp;
     String display = raw;
 
