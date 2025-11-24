@@ -42,45 +42,56 @@ class CleanRoomScreen extends StatelessWidget {
               ),
             ),
             SafeArea(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1440),
-                  child: SingleChildScrollView(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _TopBar(onFilterTap: controller.toggleFilterPanel),
-                        const SizedBox(height: 14),
-                        LocationInfoWidget(),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          height: 420,
-                          child: _MapCard(isDark: isDark),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth,
+                        maxWidth: constraints.maxWidth,
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1440),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _TopBar(onFilterTap: controller.toggleFilterPanel),
+                              const SizedBox(height: 14),
+                              LocationInfoWidget(),
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                height: 420,
+                                child: _MapCard(isDark: isDark),
+                              ),
+                              const SizedBox(height: 14),
+                              _SummaryCard(
+                                controller: controller,
+                                isDark: isDark,
+                              ),
+                              const SizedBox(height: 14),
+                              SensorOverviewWidget(),
+                              const SizedBox(height: 14),
+                              SensorDataChartWidget(),
+                              const SizedBox(height: 14),
+                              SensorHistoryChartWidget(),
+                              const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  Expanded(child: BarChartWidget()),
+                                  const SizedBox(width: 14),
+                                  Expanded(child: AreaChartWidget()),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 14),
-                        _SummaryCard(
-                          controller: controller,
-                          isDark: isDark,
-                        ),
-                        const SizedBox(height: 14),
-                        SensorOverviewWidget(),
-                        const SizedBox(height: 14),
-                        SensorDataChartWidget(),
-                        const SizedBox(height: 14),
-                        SensorHistoryChartWidget(),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(child: BarChartWidget()),
-                            const SizedBox(width: 14),
-                            Expanded(child: AreaChartWidget()),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
             Obx(
