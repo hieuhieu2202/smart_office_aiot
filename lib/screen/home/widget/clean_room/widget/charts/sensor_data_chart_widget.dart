@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -23,6 +25,31 @@ class SensorDataChartWidget extends StatelessWidget {
     }
 
     return raw;
+  }
+
+  /// Returns indices limited to the most recent 10 hours (approx. 20 points
+  /// when data arrives every 30 minutes). Falls back to the latest 20 points
+  /// when timestamps cannot be parsed.
+  List<int> _recentIndices(List<String> categories) {
+    final cutoff = DateTime.now().subtract(const Duration(hours: 10));
+    final parsed = categories
+        .map((raw) => DateTime.tryParse(raw.replaceAll('/', '-')))
+        .toList();
+
+    final indices = <int>[];
+    for (var i = 0; i < parsed.length; i++) {
+      final ts = parsed[i];
+      if (ts != null && !ts.isBefore(cutoff)) {
+        indices.add(i);
+      }
+    }
+
+    if (indices.isNotEmpty) {
+      return indices;
+    }
+
+    final start = math.max(categories.length - 20, 0);
+    return List<int>.generate(categories.length - start, (i) => start + i);
   }
 
   @override
@@ -65,8 +92,11 @@ class SensorDataChartWidget extends StatelessWidget {
                     final sensorName = (sensor['sensorName'] ?? '').toString();
                     final categories =
                         (sensor['categories'] as List<dynamic>).map((e) => e.toString()).toList();
-                    final formattedCategories =
-                        categories.map((raw) => _compactLabel(raw)).toList();
+                    final keep = _recentIndices(categories);
+                    final formattedCategories = keep
+                        .where((i) => i < categories.length)
+                        .map((i) => _compactLabel(categories[i]))
+                        .toList();
                     final seriesList = sensor['series'] as List<dynamic>;
 
                     return Padding(
@@ -117,7 +147,11 @@ class SensorDataChartWidget extends StatelessWidget {
                                     (serie) => SplineSeries<dynamic, String>(
                                       name: (serie['parameterDisplayName'] ?? serie['name'] ?? '')
                                           .toString(),
-                                      dataSource: serie['data'] as List,
+                                      dataSource: keep
+                                          .where((i) =>
+                                              i < (serie['data'] as List).length && i < categories.length)
+                                          .map((i) => (serie['data'] as List)[i])
+                                          .toList(),
                                       markerSettings: const MarkerSettings(isVisible: false),
                                       xValueMapper: (dynamic data, int index) =>
                                           index < formattedCategories.length
