@@ -86,7 +86,6 @@ class _SensorCard extends StatelessWidget {
     final palette = CleanRoomChartStyle.palette(isDark);
     final metrics = _buildMetrics(seriesList, palette);
     final chartSeries = _buildSeries(seriesList, categories, palette);
-    final tooltip = _buildTooltip(chartSeries);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -139,7 +138,6 @@ class _SensorCard extends StatelessWidget {
             child: _Sparkline(
               series: chartSeries,
               palette: palette,
-              tooltipBehavior: tooltip,
               isDark: isDark,
             ),
           ),
@@ -224,82 +222,6 @@ class _SensorCard extends StatelessWidget {
           orElse: () => <String, dynamic>{},
         );
     return match.isEmpty ? null : match;
-  }
-
-  TooltipBehavior _buildTooltip(List<_ChartSeriesData> chartSeries) {
-    return TooltipBehavior(
-      enable: true,
-      color: Colors.blueGrey.shade900.withOpacity(0.95),
-      header: '',
-      canShowMarker: true,
-      opacity: 0.98,
-      animationDuration: 120,
-      tooltipPosition: TooltipPosition.pointer,
-      builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
-        final _ChartPoint? chartPoint = data is _ChartPoint
-            ? data as _ChartPoint
-            : (seriesIndex >= 0 && seriesIndex < chartSeries.length)
-                ? (pointIndex >= 0 && pointIndex < chartSeries[seriesIndex].points.length)
-                    ? chartSeries[seriesIndex].points[pointIndex]
-                    : null
-                : null;
-
-        final headerLabel = chartPoint?.timestamp != null
-            ? DateFormat('yyyy-MM-dd HH:mm').format(chartPoint!.timestamp!)
-            : (chartPoint?.displayLabel ?? chartPoint?.rawLabel ?? '');
-
-        final rows = chartSeries
-            .where((item) => pointIndex >= 0 && pointIndex < item.points.length)
-            .map((item) {
-          final valuePoint = item.points[pointIndex];
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 10, height: 10, decoration: BoxDecoration(color: item.color, shape: BoxShape.circle)),
-              const SizedBox(width: 6),
-              Text(
-                item.name,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                valuePoint.formattedValue,
-                style: TextStyle(color: item.color, fontWeight: FontWeight.w800, fontSize: 12),
-              ),
-            ],
-          );
-        }).toList();
-
-        return Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.blueGrey.shade900.withOpacity(0.95),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.12)),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 6))],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.schedule, size: 12, color: Colors.white70),
-                  const SizedBox(width: 6),
-                  Text(
-                    headerLabel,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
-                  ),
-                ],
-              ),
-              if (rows.isNotEmpty) const SizedBox(height: 6),
-              ...rows,
-            ],
-          ),
-        );
-      },
-    );
   }
 }
 
@@ -414,13 +336,11 @@ class _MetricWrap extends StatelessWidget {
 class _Sparkline extends StatelessWidget {
   final List<_ChartSeriesData> series;
   final List<Color> palette;
-  final TooltipBehavior tooltipBehavior;
   final bool isDark;
 
   const _Sparkline({
     required this.series,
     required this.palette,
-    required this.tooltipBehavior,
     required this.isDark,
   });
 
@@ -434,6 +354,10 @@ class _Sparkline extends StatelessWidget {
         final double clampedHeight = targetHeight.clamp(100.0, 160.0);
         final int pointCount = series.isNotEmpty ? series.first.points.length : 0;
         final double labelInterval = pointCount <= 6 ? 1 : (pointCount / 6).ceilToDouble();
+        final double tooltipMaxWidth =
+            (constraints.maxWidth.isFinite ? constraints.maxWidth - 16 : 280).clamp(160.0, 320.0);
+
+        final tooltipBehavior = _buildTooltip(series, tooltipMaxWidth);
 
         return Container(
           height: clampedHeight,
@@ -446,40 +370,132 @@ class _Sparkline extends StatelessWidget {
             ],
           ),
           padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-          child: SfCartesianChart(
-            margin: EdgeInsets.zero,
-            plotAreaBorderWidth: 0,
-            borderWidth: 0,
-            palette: palette,
-            tooltipBehavior: tooltipBehavior,
-            primaryXAxis: CategoryAxis(
-              isVisible: true,
-              majorGridLines: const MajorGridLines(width: 0),
-              labelPlacement: LabelPlacement.onTicks,
-              labelIntersectAction: AxisLabelIntersectAction.hide,
-              interval: labelInterval,
-              labelStyle: TextStyle(
-                color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
-                fontSize: 9,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            clipBehavior: Clip.antiAlias,
+            child: SfCartesianChart(
+              margin: EdgeInsets.zero,
+              plotAreaBorderWidth: 0,
+              borderWidth: 0,
+              palette: palette,
+              tooltipBehavior: tooltipBehavior,
+              primaryXAxis: CategoryAxis(
+                isVisible: true,
+                majorGridLines: const MajorGridLines(width: 0),
+                labelPlacement: LabelPlacement.onTicks,
+                labelIntersectAction: AxisLabelIntersectAction.hide,
+                interval: labelInterval,
+                labelStyle: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
+                  fontSize: 9,
+                ),
               ),
+              primaryYAxis: NumericAxis(
+                isVisible: false,
+                majorGridLines: const MajorGridLines(width: 0),
+              ),
+              legend: const Legend(isVisible: false),
+              series: series.map((item) {
+                return SplineSeries<_ChartPoint, String>(
+                  dataSource: item.points,
+                  width: 2.4,
+                  opacity: 0.95,
+                  markerSettings: const MarkerSettings(isVisible: true, height: 6, width: 6),
+                  xValueMapper: (point, _) => point.displayLabel,
+                  yValueMapper: (point, _) => point.value,
+                  name: item.name,
+                  color: item.color,
+                );
+              }).toList(),
             ),
-            primaryYAxis: NumericAxis(
-              isVisible: false,
-              majorGridLines: const MajorGridLines(width: 0),
+          ),
+        );
+      },
+    );
+  }
+
+  TooltipBehavior _buildTooltip(List<_ChartSeriesData> chartSeries, double maxWidth) {
+    return TooltipBehavior(
+      enable: true,
+      color: Colors.blueGrey.shade900.withOpacity(0.95),
+      header: '',
+      canShowMarker: true,
+      opacity: 0.98,
+      animationDuration: 120,
+      tooltipPosition: TooltipPosition.pointer,
+      activationMode: ActivationMode.singleTap,
+      builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
+        _ChartPoint? chartPoint;
+        if (data is _ChartPoint) {
+          chartPoint = data;
+        } else if (seriesIndex >= 0 && seriesIndex < chartSeries.length) {
+          final points = chartSeries[seriesIndex].points;
+          if (pointIndex >= 0 && pointIndex < points.length) {
+            chartPoint = points[pointIndex];
+          }
+        }
+
+        final headerLabel = chartPoint?.timestamp != null
+            ? DateFormat('yyyy-MM-dd HH:mm').format(chartPoint!.timestamp!)
+            : (chartPoint?.displayLabel ?? chartPoint?.rawLabel ?? '');
+
+        final rows = chartSeries
+            .where((item) => pointIndex >= 0 && pointIndex < item.points.length)
+            .map((item) {
+          final valuePoint = item.points[pointIndex];
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: item.color, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  item.name,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                valuePoint.formattedValue,
+                style: TextStyle(color: item.color, fontWeight: FontWeight.w800, fontSize: 12),
+              ),
+            ],
+          );
+        }).toList();
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.blueGrey.shade900.withOpacity(0.95),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.12)),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 6))],
             ),
-            legend: const Legend(isVisible: false),
-            series: series.map((item) {
-              return SplineSeries<_ChartPoint, String>(
-                dataSource: item.points,
-                width: 2.4,
-                opacity: 0.95,
-                markerSettings: const MarkerSettings(isVisible: true, height: 6, width: 6),
-                xValueMapper: (point, _) => point.displayLabel,
-                yValueMapper: (point, _) => point.value,
-                name: item.name,
-                color: item.color,
-              );
-            }).toList(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.schedule, size: 12, color: Colors.white70),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        headerLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+                if (rows.isNotEmpty) const SizedBox(height: 6),
+                ...rows,
+              ],
+            ),
           ),
         );
       },
