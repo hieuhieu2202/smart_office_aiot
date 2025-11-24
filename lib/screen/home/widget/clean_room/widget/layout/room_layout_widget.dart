@@ -152,13 +152,10 @@ class RoomLayoutWidget extends StatelessWidget {
                                     ...sensors.map((sensor) {
                                       final topPercentStr = sensor['Top']?.toString().replaceAll('%', '') ?? '0';
                                       final leftPercentStr = sensor['Left']?.toString().replaceAll('%', '') ?? '0';
-                                      // Nudge markers upward by ~3% and rightward by ~10% to match
-                                      // the API-provided map overlay while keeping values within
-                                      // valid percentage bounds.
-                                      final topPercent =
-                                          ((double.tryParse(topPercentStr) ?? 0.0) - 3.0).clamp(0.0, 100.0);
-                                      final leftPercent =
-                                          ((double.tryParse(leftPercentStr) ?? 0.0) + 10.0).clamp(0.0, 100.0);
+                                      // Use API-provided percentages directly so markers sit exactly
+                                      // where the room layout defines them.
+                                      final topPercent = (double.tryParse(topPercentStr) ?? 0.0).clamp(0.0, 100.0);
+                                      final leftPercent = (double.tryParse(leftPercentStr) ?? 0.0).clamp(0.0, 100.0);
 
                                       // Treat API coordinates as marker center points.
                                       final centerY = (topPercent / 100) * canvasHeight;
