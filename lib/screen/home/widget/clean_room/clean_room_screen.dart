@@ -42,51 +42,45 @@ class CleanRoomScreen extends StatelessWidget {
               ),
             ),
             SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1440),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                          child: Column(
-                            children: [
-                              _TopBar(onFilterTap: controller.toggleFilterPanel),
-                              const SizedBox(height: 14),
-                              LocationInfoWidget(),
-                              const SizedBox(height: 14),
-                              SizedBox(
-                                height: 420,
-                                child: _MapCard(isDark: isDark),
-                              ),
-                              const SizedBox(height: 14),
-                              _SummaryCard(
-                                controller: controller,
-                                isDark: isDark,
-                              ),
-                              const SizedBox(height: 14),
-                              SensorOverviewWidget(),
-                              const SizedBox(height: 14),
-                              SensorDataChartWidget(),
-                              const SizedBox(height: 14),
-                              SensorHistoryChartWidget(),
-                              const SizedBox(height: 14),
-                              Row(
-                                children: [
-                                  Expanded(child: BarChartWidget()),
-                                  const SizedBox(width: 14),
-                                  Expanded(child: AreaChartWidget()),
-                                ],
-                              ),
-                            ],
-                          ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1440),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _TopBar(onFilterTap: controller.toggleFilterPanel),
+                        const SizedBox(height: 14),
+                        LocationInfoWidget(),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 420,
+                          child: _MapCard(isDark: isDark),
                         ),
-                      ),
+                        const SizedBox(height: 14),
+                        _SummaryCard(
+                          controller: controller,
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: 14),
+                        SensorOverviewWidget(),
+                        const SizedBox(height: 14),
+                        SensorDataChartWidget(),
+                        const SizedBox(height: 14),
+                        SensorHistoryChartWidget(),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(child: BarChartWidget()),
+                            const SizedBox(width: 14),
+                            Expanded(child: AreaChartWidget()),
+                          ],
+                        ),
+                      ],
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
             ),
             Obx(
