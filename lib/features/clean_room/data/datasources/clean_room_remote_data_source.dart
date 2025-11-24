@@ -13,6 +13,7 @@ class CleanRoomRemoteDataSource {
       : _http = httpHelper ?? HttpHelper();
 
   final HttpHelper _http;
+  final bool _logVerbose = true;
 
   static const String _baseUrl =
       'https://10.220.130.117/newweb/api/nvidia/cleanroom';
@@ -30,6 +31,12 @@ class CleanRoomRemoteDataSource {
   Future<List<String>> fetchCustomers() async {
     final uri = Uri.parse('$_baseUrl/location/GetCustomers');
     final res = await _http.get(uri, headers: _headers()).timeout(_timeout);
+    _logApi(
+      endpoint: 'GetCustomers',
+      uri: uri,
+      method: 'GET',
+      response: res,
+    );
     if (res.statusCode == 204) return const <String>[];
     _ensureSuccess(res, 'GetCustomers');
     return _decodeStringList(res.body);
@@ -38,6 +45,12 @@ class CleanRoomRemoteDataSource {
   Future<List<String>> fetchFactories({required String customer}) async {
     final uri = Uri.parse('$_baseUrl/location/GetFactories');
     final res = await _http.get(uri, headers: _headers()).timeout(_timeout);
+    _logApi(
+      endpoint: 'GetFactories',
+      uri: uri,
+      method: 'GET',
+      response: res,
+    );
     if (res.statusCode == 204) return const <String>[];
     _ensureSuccess(res, 'GetFactories');
     return _decodeStringList(res.body);
@@ -50,6 +63,12 @@ class CleanRoomRemoteDataSource {
     final uri = Uri.parse('$_baseUrl/location/GetFloors')
         .replace(queryParameters: <String, String>{'factory': factory});
     final res = await _http.get(uri, headers: _headers()).timeout(_timeout);
+    _logApi(
+      endpoint: 'GetFloors',
+      uri: uri,
+      method: 'GET',
+      response: res,
+    );
     if (res.statusCode == 204) return const <String>[];
     _ensureSuccess(res, 'GetFloors');
     return _decodeStringList(res.body);
@@ -67,6 +86,12 @@ class CleanRoomRemoteDataSource {
       },
     );
     final res = await _http.get(uri, headers: _headers()).timeout(_timeout);
+    _logApi(
+      endpoint: 'GetRooms',
+      uri: uri,
+      method: 'GET',
+      response: res,
+    );
     if (res.statusCode == 204) return const <String>[];
     _ensureSuccess(res, 'GetRooms');
     return _decodeStringList(res.body);
@@ -79,18 +104,27 @@ class CleanRoomRemoteDataSource {
     required String room,
   }) async {
     final uri = Uri.parse('$_baseUrl/location/GetConfigMapping');
+    final payload = <String, String>{
+      'customer': customer,
+      'factory': factory,
+      'floor': floor,
+      'room': room,
+    };
     final res = await _http
         .post(
           uri,
           headers: _headers(includeContentType: true),
-          body: jsonEncode({
-            'customer': customer,
-            'factory': factory,
-            'floor': floor,
-            'room': room,
-          }),
+          body: jsonEncode(payload),
         )
         .timeout(_timeout);
+
+    _logApi(
+      endpoint: 'GetConfigMapping',
+      uri: uri,
+      method: 'POST',
+      payload: payload,
+      response: res,
+    );
 
     if (res.statusCode == 204) return null;
     _ensureSuccess(res, 'GetConfigMapping');
@@ -108,18 +142,26 @@ class CleanRoomRemoteDataSource {
     required String room,
   }) async {
     final uri = Uri.parse('$_baseUrl/sensordata/GetSensorOverview');
+    final payload = <String, String>{
+      'customer': customer,
+      'factory': factory,
+      'floor': floor,
+      'room': room,
+    };
     final res = await _http
         .post(
           uri,
           headers: _headers(includeContentType: true),
-          body: jsonEncode({
-            'customer': customer,
-            'factory': factory,
-            'floor': floor,
-            'room': room,
-          }),
+          body: jsonEncode(payload),
         )
         .timeout(_timeout);
+    _logApi(
+      endpoint: 'GetSensorOverview',
+      uri: uri,
+      method: 'POST',
+      payload: payload,
+      response: res,
+    );
     if (res.statusCode == 204) return null;
     _ensureSuccess(res, 'GetSensorOverview');
     final dynamic body = jsonDecode(res.body);
@@ -136,18 +178,26 @@ class CleanRoomRemoteDataSource {
     required String room,
   }) async {
     final uri = Uri.parse('$_baseUrl/sensordata/GetSensorDataOverview');
+    final payload = <String, String>{
+      'customer': customer,
+      'factory': factory,
+      'floor': floor,
+      'room': room,
+    };
     final res = await _http
         .post(
           uri,
           headers: _headers(includeContentType: true),
-          body: jsonEncode({
-            'customer': customer,
-            'factory': factory,
-            'floor': floor,
-            'room': room,
-          }),
+          body: jsonEncode(payload),
         )
         .timeout(_timeout);
+    _logApi(
+      endpoint: 'GetSensorDataOverview',
+      uri: uri,
+      method: 'POST',
+      payload: payload,
+      response: res,
+    );
     if (res.statusCode == 204) return const <SensorDataResponseModel>[];
     _ensureSuccess(res, 'GetSensorDataOverview');
     final dynamic body = jsonDecode(res.body);
@@ -167,18 +217,26 @@ class CleanRoomRemoteDataSource {
     required String room,
   }) async {
     final uri = Uri.parse('$_baseUrl/sensordata/GetSensorDataHistories');
+    final payload = <String, String>{
+      'customer': customer,
+      'factory': factory,
+      'floor': floor,
+      'room': room,
+    };
     final res = await _http
         .post(
           uri,
           headers: _headers(includeContentType: true),
-          body: jsonEncode({
-            'customer': customer,
-            'factory': factory,
-            'floor': floor,
-            'room': room,
-          }),
+          body: jsonEncode(payload),
         )
         .timeout(_timeout);
+    _logApi(
+      endpoint: 'GetSensorDataHistories',
+      uri: uri,
+      method: 'POST',
+      payload: payload,
+      response: res,
+    );
     if (res.statusCode == 204) return const <SensorDataResponseModel>[];
     _ensureSuccess(res, 'GetSensorDataHistories');
     final dynamic body = jsonDecode(res.body);
@@ -197,6 +255,30 @@ class CleanRoomRemoteDataSource {
       return data.map((e) => e.toString()).toList();
     }
     return const <String>[];
+  }
+
+  void _logApi({
+    required String endpoint,
+    required Uri uri,
+    required String method,
+    http.Response? response,
+    Map<String, String>? payload,
+  }) {
+    if (!_logVerbose) return;
+    final buffer = StringBuffer();
+    buffer.writeln('[CleanRoomAPI][$endpoint] $method $uri');
+    if (payload != null && payload.isNotEmpty) {
+      buffer.writeln('  Payload: ${jsonEncode(payload)}');
+    }
+    if (response != null) {
+      buffer.writeln(
+          '  Response: status=${response.statusCode}, length=${response.body.length}');
+      final encodedBody = base64Encode(utf8.encode(response.body));
+      buffer.writeln('  Body (raw): ${response.body}');
+      buffer.writeln('  Body (base64): $encodedBody');
+    }
+    // ignore: avoid_print
+    print(buffer.toString());
   }
 
   void _ensureSuccess(http.Response res, String endpoint) {
