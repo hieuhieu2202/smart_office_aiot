@@ -421,29 +421,35 @@ class _SummaryGrid extends StatelessWidget {
 
       return LayoutBuilder(
         builder: (context, constraints) {
-          final gridHeight = math.max(180.0, math.min(height - 64, constraints.maxHeight - 56));
+          final availableHeight = constraints.maxHeight;
+          const buttonHeight = 46.0;
+          const buttonSpacing = 8.0;
+          final gridHeight = math.max(140.0, availableHeight - buttonHeight - buttonSpacing);
 
           return Column(
             children: [
-              SizedBox(
-                height: gridHeight,
-                child: GridView.count(
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 1.8,
-                  children: [
-                    _StatChip(label: 'TOTAL', value: total.toString(), icon: Icons.layers, color: const Color(0xFF469cff)),
-                    _StatChip(label: 'ONLINE', value: online.toString(), icon: Icons.wifi_tethering, color: const Color(0xFF3ed399)),
-                    _StatChip(label: 'WARNING', value: warning.toString(), icon: Icons.warning_amber_rounded, color: const Color(0xFFf6b317)),
-                    _StatChip(label: 'OFFLINE', value: offline.toString(), icon: Icons.wifi_off_rounded, color: const Color(0xFF9aa6bb)),
-                  ],
+              Expanded(
+                child: SizedBox(
+                  height: gridHeight,
+                  child: GridView.count(
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 1.8,
+                    children: [
+                      _StatChip(label: 'TOTAL', value: total.toString(), icon: Icons.layers, color: const Color(0xFF469cff)),
+                      _StatChip(label: 'ONLINE', value: online.toString(), icon: Icons.wifi_tethering, color: const Color(0xFF3ed399)),
+                      _StatChip(label: 'WARNING', value: warning.toString(), icon: Icons.warning_amber_rounded, color: const Color(0xFFf6b317)),
+                      _StatChip(label: 'OFFLINE', value: offline.toString(), icon: Icons.wifi_off_rounded, color: const Color(0xFF9aa6bb)),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: buttonSpacing),
               SizedBox(
                 width: double.infinity,
+                height: buttonHeight,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),

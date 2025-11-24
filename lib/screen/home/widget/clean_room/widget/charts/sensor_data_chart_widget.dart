@@ -4,38 +4,58 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
+import 'package:smart_factory/config/global_color.dart';
 import '../common/dashboard_card.dart';
 import 'chart_style.dart';
-import 'package:smart_factory/config/global_color.dart';
 
 class SensorDataChartWidget extends StatelessWidget {
   final bool withCard;
   const SensorDataChartWidget({super.key, this.withCard = true});
 
+  /// Extracts a DateTime from dynamic category inputs (string or map).
+  DateTime? _parseCategoryTime(dynamic raw) {
+    if (raw is DateTime) return raw;
+    if (raw is Map) {
+      final candidates = [
+        raw['timestamp'],
+        raw['time'],
+        raw['date'],
+        raw['datetime'],
+        raw['name'],
+        raw['value'],
+      ];
+      for (final item in candidates) {
+        if (item is DateTime) return item;
+        final parsed = DateTime.tryParse(item?.toString().replaceAll('/', '-') ?? '');
+        if (parsed != null) return parsed;
+      }
+    }
+    return DateTime.tryParse(raw.toString().replaceAll('/', '-'));
+  }
+
   /// Returns a shorter label (e.g. `HH:mm`) when the category contains
   /// a datetime string, otherwise falls back to the raw value.
-  String _compactLabel(String raw) {
-    final parsed = DateTime.tryParse(raw.replaceAll('/', '-'));
+  String _compactLabel(dynamic raw) {
+    final parsed = _parseCategoryTime(raw);
     if (parsed != null) {
       return '${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
     }
 
-    if (raw.contains(' ')) {
-      final parts = raw.split(' ');
+    final rawString = raw.toString();
+    if (rawString.contains(' ')) {
+      final parts = rawString.split(' ');
       return parts.last;
     }
 
-    return raw;
+    return rawString;
   }
 
   /// Returns indices limited to the most recent 10 hours using the latest
   /// available timestamp as the anchor (matching the server payload instead of
   /// the current device time). Falls back to the latest 20 points when
   /// timestamps cannot be parsed.
-  List<int> _recentIndices(List<String> categories) {
-    final parsed = categories
-        .map((raw) => DateTime.tryParse(raw.replaceAll('/', '-')))
-        .toList();
+  List<int> _recentIndices(List<dynamic> categories) {
+    final parsed = categories.map(_parseCategoryTime).toList();
 
     final validTimes = parsed.whereType<DateTime>().toList();
     if (validTimes.isNotEmpty) {
@@ -55,8 +75,7 @@ class SensorDataChartWidget extends StatelessWidget {
       }
     }
 
-    final start = math.max(categories.length - 20, 0);
-    return List<int>.generate(categories.length - start, (i) => start + i);
+    return List<int>.generate(categories.length, (i) => i);
   }
 
   @override
@@ -92,8 +111,7 @@ class SensorDataChartWidget extends StatelessWidget {
                 const SizedBox(height: 8),
                 ...sensors.map((sensor) {
                   final sensorName = (sensor['sensorName'] ?? '').toString();
-                  final categories =
-                      (sensor['categories'] as List<dynamic>).map((e) => e.toString()).toList();
+                  final categories = (sensor['categories'] as List<dynamic>);
                   final keep = _recentIndices(categories);
                   final formattedCategories = keep
                       .where((i) => i < categories.length)
