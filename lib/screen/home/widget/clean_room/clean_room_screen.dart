@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_factory/screen/home/controller/clean_room_controller.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/area_chart_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/bar_chart_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_data_chart_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/charts/sensor_history_chart_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/common/dashboard_card.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/info/location_info_widget.dart';
 import 'package:smart_factory/screen/home/widget/clean_room/widget/layout/room_layout_widget.dart';
+import 'package:smart_factory/screen/home/widget/clean_room/widget/overview/sensor_overview_widget.dart';
 
 import 'cleanroom_filter_panel.dart';
 
@@ -39,57 +44,37 @@ class CleanRoomScreen extends StatelessWidget {
             SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1920, maxHeight: 1040),
-                  child: Padding(
+                  constraints: const BoxConstraints(maxWidth: 1440),
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                     child: Column(
                       children: [
                         _TopBar(onFilterTap: controller.toggleFilterPanel),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final spacing = 12.0;
-                              return Row(
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: LayoutBuilder(
-                                      builder: (context, leftConstraints) {
-                                        final double summaryHeight = leftConstraints.maxHeight * 0.38;
-                                        final double historyHeight = leftConstraints.maxHeight - summaryHeight - spacing;
-
-                                        return Column(
-                                          children: [
-                                            SizedBox(
-                                              height: summaryHeight,
-                                              child: _SummaryCard(
-                                                controller: controller,
-                                                isDark: isDark,
-                                              ),
-                                            ),
-                                            SizedBox(height: spacing),
-                                            SizedBox(
-                                              height: historyHeight,
-                                              child: _HistoryCard(
-                                                controller: controller,
-                                                isDark: isDark,
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  SizedBox(width: spacing),
-                                  Expanded(
-                                    flex: 9,
-                                    child: _MapCard(isDark: isDark),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
+                        const SizedBox(height: 14),
+                        const LocationInfoWidget(),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 420,
+                          child: _MapCard(isDark: isDark),
+                        ),
+                        const SizedBox(height: 14),
+                        _SummaryCard(
+                          controller: controller,
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: 14),
+                        const SensorOverviewWidget(),
+                        const SizedBox(height: 14),
+                        const SensorDataChartWidget(),
+                        const SizedBox(height: 14),
+                        const SensorHistoryChartWidget(),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: const [
+                            Expanded(child: BarChartWidget()),
+                            SizedBox(width: 14),
+                            Expanded(child: AreaChartWidget()),
+                          ],
                         ),
                       ],
                     ),
@@ -266,7 +251,8 @@ class _SummaryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Expanded(
+          SizedBox(
+            height: 190,
             child: _SummaryGrid(),
           ),
           const SizedBox(height: 8),
@@ -328,8 +314,9 @@ class _HistoryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          const Expanded(
-            child: SensorDataChartWidget(withCard: false),
+          SizedBox(
+            height: 360,
+            child: const SensorDataChartWidget(withCard: false),
           ),
         ],
       ),
