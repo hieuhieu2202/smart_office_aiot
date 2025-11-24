@@ -284,8 +284,9 @@ class _CleanRoomMonitorPageState extends State<CleanRoomMonitorPage> {
               child: Obx(() {
                 final CleanRoomConfig? config = controller.configMapping.value;
                 final imageUrl = config?.image;
+                final imageBytes = config?.imageBytes;
                 final brightness = config?.imageBrightness ?? 1.0;
-                if (imageUrl == null || imageUrl.isEmpty) {
+                if ((imageUrl == null || imageUrl.isEmpty) && imageBytes == null) {
                   return Container(
                     decoration: BoxDecoration(
                       color: Colors.grey.shade900,
@@ -300,13 +301,21 @@ class _CleanRoomMonitorPageState extends State<CleanRoomMonitorPage> {
                       Colors.black.withOpacity(1 - brightness.clamp(0.0, 1.0)),
                       BlendMode.darken,
                     ),
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: Colors.grey.shade900,
-                      ),
-                    ),
+                    child: imageBytes != null
+                        ? Image.memory(
+                            imageBytes,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey.shade900,
+                            ),
+                          )
+                        : Image.network(
+                            imageUrl ?? '',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey.shade900,
+                            ),
+                          ),
                   ),
                 );
               }),

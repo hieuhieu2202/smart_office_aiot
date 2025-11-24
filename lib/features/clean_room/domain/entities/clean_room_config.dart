@@ -1,20 +1,24 @@
+import 'dart:typed_data';
+
 import 'package:equatable/equatable.dart';
 
 class CleanRoomConfig extends Equatable {
   const CleanRoomConfig({
     required this.id,
     required this.image,
+    required this.imageBytes,
     required this.imageBrightness,
     required this.data,
   });
 
   final int id;
   final String? image;
+  final Uint8List? imageBytes;
   final double imageBrightness;
   final String? data;
 
   @override
-  List<Object?> get props => [id, image, imageBrightness, data];
+  List<Object?> get props => [id, image, imageBytes, imageBrightness, data];
 }
 
 class PositionMapping extends Equatable {
