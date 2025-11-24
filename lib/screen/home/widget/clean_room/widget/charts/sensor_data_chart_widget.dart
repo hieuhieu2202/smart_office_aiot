@@ -33,16 +33,16 @@ class SensorDataChartWidget extends StatelessWidget {
       }
 
       return DashboardCard(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: ListView.separated(
           itemCount: histories.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (_, __) => const SizedBox(height: 14),
           itemBuilder: (context, index) {
             final entry = histories[index];
             final categories =
                 (entry['categories'] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
             final seriesList = (entry['series'] as List?) ?? <dynamic>[];
-            final sensorName = entry['sensorName']?.toString() ?? 'Sensor';
+            final sensorName = entry['sensorName']?.toString() ?? '';
             final sensorDesc = entry['sensorDesc']?.toString() ?? '';
             final lastTime = entry['timestamp']?.toString() ?? '';
             final status = (entry['status'] ?? 'ONLINE').toString().toUpperCase();
@@ -100,16 +100,16 @@ class _SensorCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0a1327), const Color(0xFF0f1f3d), const Color(0xFF12345a)]
-              : [const Color(0xFFf0f6ff), const Color(0xFFe3edff), const Color(0xFFd5e5ff)],
+              ? [const Color(0xFF0c1833), const Color(0xFF0f1f3d), const Color(0xFF14345f)]
+              : [const Color(0xFFeef4ff), const Color(0xFFe5edff), const Color(0xFFd8e5ff)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.16 : 0.24)),
+        border: Border.all(color: Colors.white.withOpacity(isDark ? 0.2 : 0.26)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.28), blurRadius: 18, offset: const Offset(0, 12)),
-          BoxShadow(color: Colors.blueAccent.withOpacity(0.16), blurRadius: 24, spreadRadius: -8),
+          BoxShadow(color: Colors.black.withOpacity(0.26), blurRadius: 18, offset: const Offset(0, 12)),
+          BoxShadow(color: Colors.blueAccent.withOpacity(0.18), blurRadius: 26, spreadRadius: -10),
         ],
       ),
       child: Column(
@@ -120,7 +120,7 @@ class _SensorCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _Header(
-                  sensorName: sensorName,
+                  sensorName: sensorName.isNotEmpty ? sensorName : 'Sensor',
                   sensorDesc: sensorDesc,
                   isDark: isDark,
                 ),
@@ -138,9 +138,9 @@ class _SensorCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _MetricWrap(metrics: metrics, isDark: isDark),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _SparklineCard(
             isDark: isDark,
             child: _Sparkline(
@@ -163,9 +163,7 @@ class _SensorCard extends StatelessWidget {
       final data = (map?['data'] as List?) ?? [];
       if (map == null || data.isEmpty) continue;
 
-      final label = map['parameterDisplayName']?.toString() ??
-          map['name']?.toString() ??
-          spec.fallbackLabel;
+      final label = _resolveLabel(map, spec.fallbackLabel);
       final lastValue = data.last as num;
       final color = palette[colorIndex % palette.length];
       colorIndex++;
@@ -188,9 +186,7 @@ class _SensorCard extends StatelessWidget {
       final data = (map?['data'] as List?)?.map((e) => e as num).toList() ?? [];
       if (map == null || data.isEmpty || categories.isEmpty) continue;
 
-      final label = map['parameterDisplayName']?.toString() ??
-          map['name']?.toString() ??
-          spec.fallbackLabel;
+      final label = _resolveLabel(map, spec.fallbackLabel);
       final length = data.length < categories.length ? data.length : categories.length;
       final color = palette[colorIndex % palette.length];
       colorIndex++;
@@ -230,6 +226,13 @@ class _SensorCard extends StatelessWidget {
           orElse: () => <String, dynamic>{},
         );
     return match.isEmpty ? null : match;
+  }
+
+  String _resolveLabel(Map<String, dynamic> map, String fallback) {
+    if (map['parameterDisplayName'] != null) return map['parameterDisplayName'].toString();
+    if (map['parameterName'] != null) return map['parameterName'].toString();
+    if (map['name'] != null) return map['name'].toString();
+    return fallback;
   }
 }
 
@@ -297,28 +300,28 @@ class _MetricWrap extends StatelessWidget {
       runSpacing: 8,
       children: metrics.take(6).map((metric) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
                 metric.color.withOpacity(isDark ? 0.12 : 0.08),
-                metric.color.withOpacity(isDark ? 0.2 : 0.12),
+                metric.color.withOpacity(isDark ? 0.22 : 0.12),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: metric.color.withOpacity(isDark ? 0.45 : 0.35)),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: metric.color.withOpacity(isDark ? 0.42 : 0.32)),
             boxShadow: [
-              BoxShadow(color: metric.color.withOpacity(0.25), blurRadius: 14, spreadRadius: -4),
+              BoxShadow(color: metric.color.withOpacity(0.3), blurRadius: 14, spreadRadius: -6),
             ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 10,
-                height: 10,
+                width: 9,
+                height: 9,
                 decoration: BoxDecoration(
                   color: metric.color,
                   shape: BoxShape.circle,
@@ -339,12 +342,12 @@ class _MetricWrap extends StatelessWidget {
                       ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Text(
                 metric.formattedValue,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w800,
-                      fontSize: 14,
+                      fontSize: 13.5,
                       color: metric.color,
                     ),
               ),
@@ -408,7 +411,7 @@ class _Sparkline extends StatelessWidget {
         final int pointCount = series.isNotEmpty ? series.first.points.length : 0;
         final double labelInterval = pointCount <= 6 ? 1 : (pointCount / 6).ceilToDouble();
         final double tooltipMaxWidth =
-            (constraints.maxWidth.isFinite ? constraints.maxWidth - 16 : 280).clamp(160.0, 320.0).toDouble();
+            (constraints.maxWidth.isFinite ? constraints.maxWidth - 10 : 280).clamp(180.0, 360.0).toDouble();
 
         final tooltipBehavior = _buildTooltip(series, tooltipMaxWidth);
 
@@ -473,13 +476,14 @@ class _Sparkline extends StatelessWidget {
   TooltipBehavior _buildTooltip(List<_ChartSeriesData> chartSeries, double maxWidth) {
     return TooltipBehavior(
       enable: true,
-      color: Colors.blueGrey.shade900.withOpacity(0.95),
+      color: Colors.transparent,
       header: '',
       canShowMarker: true,
-      opacity: 0.98,
-      animationDuration: 120,
+      opacity: 1,
+      animationDuration: 90,
       tooltipPosition: TooltipPosition.pointer,
       activationMode: ActivationMode.singleTap,
+      shouldAlwaysShow: false,
       builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
         _ChartPoint? chartPoint;
         if (data is _ChartPoint) {
@@ -499,63 +503,57 @@ class _Sparkline extends StatelessWidget {
             .where((item) => pointIndex >= 0 && pointIndex < item.points.length)
             .map((item) {
           final valuePoint = item.points[pointIndex];
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 10, height: 10, decoration: BoxDecoration(color: item.color, shape: BoxShape.circle)),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  item.name,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 10, height: 10, decoration: BoxDecoration(color: item.color, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxWidth * 0.45),
+                  child: Text(
+                    item.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                valuePoint.formattedValue,
-                style: TextStyle(color: item.color, fontWeight: FontWeight.w800, fontSize: 12),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  valuePoint.formattedValue,
+                  style: TextStyle(color: item.color, fontWeight: FontWeight.w800, fontSize: 12),
+                ),
+              ],
+            ),
           );
         }).toList();
 
-        return ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: Material(
-            color: Colors.transparent,
-            elevation: 22,
-            shadowColor: Colors.black.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.shade900.withOpacity(0.98),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.schedule, size: 12, color: Colors.white70),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          headerLabel,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (rows.isNotEmpty) const SizedBox(height: 6),
-                  ...rows,
-                ],
-              ),
+        return Material(
+          elevation: 22,
+          color: Colors.transparent,
+          shadowColor: Colors.black.withOpacity(0.55),
+          child: Container(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.blueGrey.shade900.withOpacity(0.98),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.22)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.55), blurRadius: 26, spreadRadius: 2, offset: const Offset(0, 12)),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  headerLabel,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                ),
+                const SizedBox(height: 6),
+                ...rows,
+              ],
             ),
           ),
         );
