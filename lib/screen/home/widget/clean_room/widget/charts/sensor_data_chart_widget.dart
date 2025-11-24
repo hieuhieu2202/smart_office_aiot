@@ -27,25 +27,31 @@ class SensorDataChartWidget extends StatelessWidget {
     return raw;
   }
 
-  /// Returns indices limited to the most recent 10 hours (approx. 20 points
-  /// when data arrives every 30 minutes). Falls back to the latest 20 points
-  /// when timestamps cannot be parsed.
+  /// Returns indices limited to the most recent 10 hours using the latest
+  /// available timestamp as the anchor (matching the server payload instead of
+  /// the current device time). Falls back to the latest 20 points when
+  /// timestamps cannot be parsed.
   List<int> _recentIndices(List<String> categories) {
-    final cutoff = DateTime.now().subtract(const Duration(hours: 10));
     final parsed = categories
         .map((raw) => DateTime.tryParse(raw.replaceAll('/', '-')))
         .toList();
 
-    final indices = <int>[];
-    for (var i = 0; i < parsed.length; i++) {
-      final ts = parsed[i];
-      if (ts != null && !ts.isBefore(cutoff)) {
-        indices.add(i);
-      }
-    }
+    final validTimes = parsed.whereType<DateTime>().toList();
+    if (validTimes.isNotEmpty) {
+      final anchor = validTimes.reduce((a, b) => a.isAfter(b) ? a : b);
+      final cutoff = anchor.subtract(const Duration(hours: 10));
 
-    if (indices.isNotEmpty) {
-      return indices;
+      final indices = <int>[];
+      for (var i = 0; i < parsed.length; i++) {
+        final ts = parsed[i];
+        if (ts != null && !ts.isBefore(cutoff)) {
+          indices.add(i);
+        }
+      }
+
+      if (indices.isNotEmpty) {
+        return indices;
+      }
     }
 
     final start = math.max(categories.length - 20, 0);
