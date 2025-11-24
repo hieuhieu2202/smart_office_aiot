@@ -70,11 +70,11 @@ class SensorOverviewCard extends StatelessWidget {
               ),
             ),
           ),
-        Container(
-          width: 260,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.72),
+          Container(
+            width: 260,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.72),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: color.withOpacity(0.6)),
           ),
