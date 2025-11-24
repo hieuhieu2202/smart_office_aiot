@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:smart_factory/screen/home/widget/aoivi/avi_dashboard_screen.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/clean_room_screen.dart';
 import 'package:smart_factory/screen/home/widget/racks_monitor/racks_monitor_screen.dart';
 import 'package:smart_factory/screen/home/widget/yield_report/yield_report_screen.dart';
 import 'package:smart_factory/features/te_management/presentation/views/te_management_screen.dart';
@@ -135,7 +134,6 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
         title: project.name,
         controllerTag: 'te_management_adapter',
       ),
-  'clean_room': (project) => CleanRoomScreen(),
   'pcba_line_dashboard': (project) => PcbaLineDashboardScreen(),
   'stencil_monitor': (project) => StencilMonitorScreen(
         title: project.name,
