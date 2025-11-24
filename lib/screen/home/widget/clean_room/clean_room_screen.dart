@@ -51,7 +51,7 @@ class CleanRoomScreen extends StatelessWidget {
                       children: [
                         _TopBar(onFilterTap: controller.toggleFilterPanel),
                         const SizedBox(height: 14),
-                        const LocationInfoWidget(),
+                        LocationInfoWidget(),
                         const SizedBox(height: 14),
                         SizedBox(
                           height: 420,
@@ -63,16 +63,16 @@ class CleanRoomScreen extends StatelessWidget {
                           isDark: isDark,
                         ),
                         const SizedBox(height: 14),
-                        const SensorOverviewWidget(),
+                        SensorOverviewWidget(),
                         const SizedBox(height: 14),
-                        const SensorDataChartWidget(),
+                        SensorDataChartWidget(),
                         const SizedBox(height: 14),
-                        const SensorHistoryChartWidget(),
+                        SensorHistoryChartWidget(),
                         const SizedBox(height: 14),
                         Row(
-                          children: const [
+                          children: [
                             Expanded(child: BarChartWidget()),
-                            SizedBox(width: 14),
+                            const SizedBox(width: 14),
                             Expanded(child: AreaChartWidget()),
                           ],
                         ),
