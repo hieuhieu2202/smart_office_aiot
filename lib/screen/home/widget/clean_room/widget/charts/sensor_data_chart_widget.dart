@@ -355,7 +355,7 @@ class _Sparkline extends StatelessWidget {
         final int pointCount = series.isNotEmpty ? series.first.points.length : 0;
         final double labelInterval = pointCount <= 6 ? 1 : (pointCount / 6).ceilToDouble();
         final double tooltipMaxWidth =
-            (constraints.maxWidth.isFinite ? constraints.maxWidth - 16 : 280).clamp(160.0, 320.0);
+            (constraints.maxWidth.isFinite ? constraints.maxWidth - 16 : 280).clamp(160.0, 320.0).toDouble();
 
         final tooltipBehavior = _buildTooltip(series, tooltipMaxWidth);
 
