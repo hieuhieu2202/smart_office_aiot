@@ -198,4 +198,12 @@ class CleanRoomController extends GetxController {
     fetchData();
     showFilterPanel.value = false;
   }
+
+  void onDetailTap() {
+    fetchData();
+  }
+
+  void refreshRoomLayout() {
+    fetchData();
+  }
 }
