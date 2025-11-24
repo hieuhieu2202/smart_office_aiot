@@ -31,9 +31,13 @@ class SensorOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _statusColor();
-    final DateTime? last = data.data.map((e) => e.timestamp).whereType<DateTime>().fold<DateTime?>(
+    final DateTime? last = data.data
+        .map((e) => e.timestamp)
+        .whereType<DateTime>()
+        .fold<DateTime?>(
           null,
-          (prev, element) => prev == null || element.isAfter(prev) ? element : prev,
+          (prev, element) =>
+              prev == null || element.isAfter(prev) ? element : prev,
         );
     final Offset bubbleOffset = _speechOffset();
 
@@ -108,11 +112,20 @@ class SensorOverviewCard extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+                        Text(
+                          status,
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         if (last != null)
                           Text(
                             last.toString(),
-                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
                           ),
                       ],
                     ),
@@ -150,6 +163,7 @@ class SensorOverviewCard extends StatelessWidget {
       default:
         valueColor = Colors.greenAccent;
     }
+
     final Map<String, Color> paramColors = {
       '0.3um': const Color(0xFF058DC7),
       '0.5um': const Color(0xFF50B432),
