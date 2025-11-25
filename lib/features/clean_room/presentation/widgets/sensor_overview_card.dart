@@ -3,7 +3,7 @@ import 'package:collection/collection.dart';
 
 import '../../domain/entities/sensor_data.dart';
 
-class SensorOverviewCard extends StatelessWidget {
+class SensorOverviewCard extends StatefulWidget {
   const SensorOverviewCard({
     super.key,
     required this.data,
@@ -16,6 +16,18 @@ class SensorOverviewCard extends StatelessWidget {
   final String status;
   final double size;
   final String speechType;
+
+  @override
+  State<SensorOverviewCard> createState() => _SensorOverviewCardState();
+}
+
+class _SensorOverviewCardState extends State<SensorOverviewCard> {
+  bool _isHovered = false;
+
+  SensorDataResponse get data => widget.data;
+  String get status => widget.status;
+  double get size => widget.size;
+  String get speechType => widget.speechType;
 
   Color _statusColor() {
     switch (status.toUpperCase()) {
@@ -146,13 +158,31 @@ class SensorOverviewCard extends StatelessWidget {
       ),
     );
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment:
-          speechType.toLowerCase().contains('right') ? CrossAxisAlignment.end : CrossAxisAlignment.center,
-      children: bubbleBelow
-          ? [dot, bubble]
-          : [bubble, dot],
+    final children = bubbleBelow ? <Widget>[dot] : <Widget>[];
+    children.add(
+      AnimatedSwitcher(
+        duration: const Duration(milliseconds: 120),
+        child: _isHovered
+            ? bubble
+            : const SizedBox.shrink(
+                key: ValueKey('hidden-bubble'),
+              ),
+      ),
+    );
+    if (!bubbleBelow) {
+      children.add(dot);
+    }
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: speechType.toLowerCase().contains('right')
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.center,
+        children: children,
+      ),
     );
   }
 
@@ -212,5 +242,4 @@ class SensorOverviewCard extends StatelessWidget {
       ),
     );
   }
-
 }
