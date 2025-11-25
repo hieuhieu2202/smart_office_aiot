@@ -185,23 +185,30 @@ class SensorOverviewCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: labelColor.withOpacity(0.4)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            p.paramDisplayName,
-            style: TextStyle(color: labelColor, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            p.value.toStringAsFixed(p.precision),
-            style: TextStyle(
-              color: valueColor,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+      child: FittedBox(
+        alignment: Alignment.topLeft,
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              p.paramDisplayName,
+              style: TextStyle(color: labelColor, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              p.value.toStringAsFixed(p.precision),
+              style: TextStyle(
+                color: valueColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
