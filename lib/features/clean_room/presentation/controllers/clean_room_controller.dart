@@ -199,18 +199,30 @@ class CleanRoomController extends GetxController {
     final raw = configMapping.value?.data;
     if (raw == null || raw.isEmpty) return const <PositionMapping>[];
     try {
-      final dynamic decoded = jsonDecode(raw);
-      if (decoded is List) {
-        return decoded
-            .whereType<Map<String, dynamic>>()
-            .map(PositionMappingModel.fromJson)
-            .where((element) => element.sensorName.isNotEmpty)
-            .toList();
-      }
+      final List<dynamic> decodedList = _decodePositions(raw);
+      return decodedList
+          .whereType<Map<String, dynamic>>()
+          .map(PositionMappingModel.fromJson)
+          .where((element) => element.sensorName.isNotEmpty)
+          .toList();
     } catch (_) {
       return const <PositionMapping>[];
     }
-    return const <PositionMapping>[];
+  }
+
+  List<dynamic> _decodePositions(String raw) {
+    try {
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is List) return decoded;
+    } catch (_) {
+      // try base64 encoded JSON string
+      try {
+        final payload = utf8.decode(base64Decode(raw));
+        final dynamic decoded = jsonDecode(payload);
+        if (decoded is List) return decoded;
+      } catch (_) {}
+    }
+    return const <dynamic>[];
   }
 
   String statusFor(SensorDataResponse data) {

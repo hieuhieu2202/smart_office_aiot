@@ -53,12 +53,26 @@ class PositionMappingModel extends PositionMapping {
   });
 
   factory PositionMappingModel.fromJson(Map<String, dynamic> json) {
+    double _parseDouble(dynamic value) {
+      if (value is num) return value.toDouble();
+      return double.tryParse('$value') ?? 0;
+    }
+
+    String _parseSensorName(Map<String, dynamic> source) {
+      return source['sensorName']?.toString() ??
+          source['sensor']?.toString() ??
+          source['SensorName']?.toString() ??
+          source['SensorId']?.toString() ??
+          '';
+    }
+
     return PositionMappingModel(
-      top: (json['top'] as num?)?.toDouble() ?? 0,
-      left: (json['left'] as num?)?.toDouble() ?? 0,
-      size: (json['size'] as num?)?.toDouble() ?? 12,
-      sensorName: json['sensorName'] as String? ?? '',
-      speechType: json['speechType'] as String? ?? 'top-mid',
+      top: _parseDouble(json['top'] ?? json['Top']),
+      left: _parseDouble(json['left'] ?? json['Left']),
+      size: _parseDouble(json['size'] ?? json['Size'] ?? 12),
+      sensorName: _parseSensorName(json),
+      speechType: (json['speechType'] ?? json['SpeechType']) as String? ??
+          'top-mid',
     );
   }
 }
