@@ -6,27 +6,28 @@ class CduApi {
   CduApi._();
 
   /// Base URL không có dấu "/" cuối
-  static const String _base = 'https://10.220.130.117/NVIDIA/CDU';
+  static const String _base = 'https://10.220.130.117/api/nvidia/dashboard/CduMonitor';
 
   static Map<String, String> _headers() => {
     'Content-Type': 'application/json; charset=utf-8',
     'Accept': 'application/json',
   };
 
-  /// POST /GetCDUDataDashBoard
-  /// body: { "Factory": "F16|F17", "Floor": "3F" }
+  /// GET /GetLastestLayout?factory=F16&floor=3F
+  /// Returns layout configuration with CDU positions
   static Future<Map<String, dynamic>> fetchDashboard({
     required String factory,
     required String floor,
     Duration timeout = const Duration(seconds: 25),
   }) async {
-    final uri = Uri.parse('$_base/GetCDUDataDashBoard');
-    final body = jsonEncode({
-      'Factory': factory,
-      'Floor': floor,
-    });
+    final uri = Uri.parse('$_base/GetLastestLayout').replace(
+      queryParameters: {
+        'factory': factory,
+        'floor': floor,
+      },
+    );
 
-    final res = await http.post(uri, headers: _headers(), body: body).timeout(timeout);
+    final res = await http.get(uri, headers: _headers()).timeout(timeout);
 
     if (res.statusCode >= 200 && res.statusCode < 300) {
       return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
@@ -34,28 +35,29 @@ class CduApi {
     throw Exception('CDU fetchDashboard ${res.statusCode}: ${res.reasonPhrase}\n${res.body}');
   }
 
-  /// POST /GetCDUDataDashBoardDetailHistory
-  /// body: { "Factory": "F16|F17", "Floor": "3F" }
-  static Future<Map<String, dynamic>> fetchDetailHistory({
+  /// GET /GetHistoryWarningDatas?factory=F16&floor=3F
+  /// Returns array of warning history items directly
+  static Future<List<dynamic>> fetchDetailHistory({
     required String factory,
     required String floor,
     Duration timeout = const Duration(seconds: 25),
   }) async {
-    final uri = Uri.parse('$_base/GetCDUDataDashBoardDetailHistory');
-    final body = jsonEncode({
-      'Factory': factory,
-      'Floor': floor,
-    });
+    final uri = Uri.parse('$_base/GetHistoryWarningDatas').replace(
+      queryParameters: {
+        'factory': factory,
+        'floor': floor,
+      },
+    );
 
-    final res = await http.post(uri, headers: _headers(), body: body).timeout(timeout);
+    final res = await http.get(uri, headers: _headers()).timeout(timeout);
 
     if (res.statusCode >= 200 && res.statusCode < 300) {
-      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return jsonDecode(utf8.decode(res.bodyBytes)) as List<dynamic>;
     }
     throw Exception('CDU fetchDetailHistory ${res.statusCode}: ${res.reasonPhrase}\n${res.body}');
   }
 
-  /// Link Web dashboard (để mở WebView/Browser khi cần đối chiếu)
+  /// Link Web dashboard (note: may need to be updated based on actual web URL structure)
   static String webDashboardUrl({
     required String factory,
     required String floor,
