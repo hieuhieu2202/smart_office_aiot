@@ -166,11 +166,6 @@ class CduController extends GetxController {
     return const [];
   }
 
-  int _sumGet(List<String> keys) {
-    // Since new API doesn't have summary, calculate from nodes
-    return 0; // Will be calculated from nodes instead
-  }
-
   int get totalCdu => nodes.length;
   
   int get runningCdu => nodes.where((n) => n.status == 'running').length;
@@ -191,9 +186,10 @@ class CduController extends GetxController {
       final w = _asNum(item['Width']) / 100.0;
       final h = _asNum(item['Height']) / 100.0;
 
-      final cduName = (item['CDUName'] ?? '').toString();
-      final hostName = (item['HostName'] ?? '').toString();
-      final ipAddress = (item['IPAddress'] ?? '').toString();
+      // Support both camelCase (new API) and PascalCase (old API)
+      final cduName = (item['cduName'] ?? item['CDUName'] ?? '').toString();
+      final hostName = (item['hostName'] ?? item['HostName'] ?? '').toString();
+      final ipAddress = (item['ipAddress'] ?? item['IPAddress'] ?? '').toString();
 
       // For now, assume no real-time status data from layout API
       // Status will need to come from another source or default to 'no_connect'
