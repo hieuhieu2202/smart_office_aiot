@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
 import '../../../service/cdu_api.dart';
+import '../../../model/cdu_layout.dart';
 import '../widget/nvidia_lc_switch/Cdu_Monitoring/cdu_node.dart';
 
 class CduController extends GetxController {
@@ -23,9 +24,12 @@ class CduController extends GetxController {
   final refreshIntervalSec = 10.obs;
   Timer? _timer;
 
-  // ====== Raw JSON ======
+  // ====== Raw JSON (kept for backward compatibility) ======
   final dashboard = Rxn<Map<String, dynamic>>();
   final history = Rxn<Map<String, dynamic>>();
+
+  // ====== CDU Layout ======
+  final layout = Rxn<CduLayout>();
 
   // ====== Nodes for canvas ======
   final nodes = <CduNode>[].obs;
@@ -42,14 +46,12 @@ class CduController extends GetxController {
     super.onInit();
     refreshAll();
     _startAutoRefresh();
-    _historyTimer?.cancel();
-    _historyTimer = Timer.periodic(const Duration(seconds: 30), (_) => fetchDetailHistory());
+    // History functionality removed as per new API structure
   }
 
   @override
   void onClose() {
     _stopAutoRefresh();
-    _historyTimer?.cancel();
     super.onClose();
   }
 
@@ -60,15 +62,22 @@ class CduController extends GetxController {
       isLoading.value = true;
 
       if (kDebugMode) {
-        print('[CDU] fetchDashboard: ${factory.value}, ${floor.value}');
+        print('[CDU] fetchDashboard (GetLatestLayout)');
       }
 
-      final data = await CduApi.fetchDashboard(
-        factory: factory.value,
-        floor: floor.value,
-      );
-
-      dashboard.value = data;
+      final cduLayout = await CduApi.getLatestLayout();
+      
+      layout.value = cduLayout;
+      
+      // Build backward-compatible dashboard structure for existing UI code
+      dashboard.value = {
+        'Data': {
+          'Image': cduLayout.image,
+          'Data': cduLayout.data,
+          'Summary': _buildSummary(cduLayout.data),
+        }
+      };
+      
       _buildNodesFromDashboard();
       _debugDump();
     } on TimeoutException {
@@ -78,56 +87,61 @@ class CduController extends GetxController {
     } catch (e) {
       error.value = e.toString();
     } finally {
-      isLoading.value = false; // (fix) không gán 2 lần
+      isLoading.value = false;
     }
   }
 
-  Future<void> fetchDetailHistory() async {
-    final first = historyItems.isEmpty;
-    if (first) {
-      isLoadingHistory.value = true;
-      isFirstHistoryLoad.value = true;
-    } else {
-      isRefreshingHistory.value = true;
+  // Build summary from device data for backward compatibility
+  Map<String, dynamic> _buildSummary(List<Map<String, dynamic>> devices) {
+    int total = devices.length;
+    int running = 0;
+    int warning = 0;
+    int abnormal = 0;
+
+    for (final device in devices) {
+      final monitor = device['DataMonitor'] as Map<String, dynamic>?;
+      
+      if (monitor == null) {
+        // No connection - count as abnormal or separate category
+        continue;
+      }
+      
+      final tool = (monitor['tool_status'] ?? '').toString().toUpperCase();
+      final run = (monitor['run_status'] ?? '').toString().toUpperCase();
+
+      if (tool == 'OFF') {
+        abnormal++;
+      } else if (run.contains('WARN')) {
+        warning++;
+      } else if (run.contains('STOP') ||
+          run.contains('ABNORMAL') ||
+          run.contains('ERROR') ||
+          run.contains('ALARM') ||
+          run.contains('FAIL')) {
+        abnormal++;
+      } else if (run.isNotEmpty || tool == 'ON') {
+        running++;
+      }
     }
 
-    try {
-      if (kDebugMode) {
-        print('[CDU] fetchDetailHistory: ${factory.value}, ${floor.value}');
-      }
+    return {
+      'TotalCDU': total,
+      'RunningNormally': running,
+      'Warning': warning,
+      'Abnormal': abnormal,
+    };
+  }
 
-      final data = await CduApi.fetchDetailHistory(
-        factory: factory.value,
-        floor: floor.value,
-      );
-
-      history.value = data; // nếu UI cũ còn xài raw
-
-      // Lấy list theo JSON { Data: [ ... ] }
-      final list = (data['Data'] as List? ?? const [])
-          .whereType<Map>()
-          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
-
-      _mergeHistory(list);
-    } on TimeoutException {
-      error.value = 'Hết thời gian chờ API (history)';
-    } on FormatException catch (e) {
-      error.value = 'JSON (history) không hợp lệ: $e';
-    } catch (e) {
-      error.value = e.toString();
-    } finally {
-      isLoadingHistory.value = false;
-      isFirstHistoryLoad.value = false;
-      isRefreshingHistory.value = false;
+  Future<void> fetchDetailHistory() async {
+    // History endpoint removed in new API
+    // This method is kept for backward compatibility but does nothing
+    if (kDebugMode) {
+      print('[CDU] fetchDetailHistory: Not available in new API');
     }
   }
 
   Future<void> refreshAll() async {
-    await Future.wait([
-      fetchDashboard(),
-      fetchDetailHistory(),
-    ]);
+    await fetchDashboard();
   }
 
   void changeLocation({required String newFactory, required String newFloor}) {
@@ -138,9 +152,6 @@ class CduController extends GetxController {
     isFirstHistoryLoad.value = true;
     refreshAll();
   }
-
-  String get webUrl =>
-      CduApi.webDashboardUrl(factory: factory.value, floor: floor.value);
 
   // ====== Computed ======
   Map<String, dynamic>? get root =>
@@ -258,7 +269,6 @@ class CduController extends GetxController {
 
     _timer = Timer.periodic(Duration(seconds: refreshIntervalSec.value), (_) {
       fetchDashboard();
-      fetchDetailHistory();  // panel đã “êm”
     });
 
     if (kDebugMode) {
