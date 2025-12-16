@@ -13,7 +13,7 @@ class CuringApiLog {
 class RackMonitorApi {
   RackMonitorApi._();
 
-  static const String _base = 'https://10.220.130.117/newweb/api/nvidia/rack';
+  static const String _base = 'https://10.220.130.117/api/nvidia/rack';
   static const Duration _timeout = Duration(seconds: 45);
 
   static Map<String, String> _headers() => const {
@@ -22,66 +22,175 @@ class RackMonitorApi {
   };
 
   // -------------------------- Location APIs --------------------------
+  static Map<String, dynamic> _locationBody({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) {
+    String normalized(String? v, {bool allowAll = true}) {
+      final trimmed = v?.trim() ?? '';
+      if (trimmed.isEmpty && allowAll) return 'ALL';
+      return trimmed;
+    }
+
+    return {
+      'factory': normalized(factory),
+      'floor': normalized(floor),
+      'room': normalized(room),
+      'model': normalized(model),
+      'nickName': normalized(nickName, allowAll: false),
+      'group': normalized(group),
+      'dateRange': normalized(dateRange, allowAll: false),
+    };
+  }
+
   static Future<List<String>> getModels() async {
     final uri = Uri.parse('$_base/Location/GetModels');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    CuringApiLog.net(() => '[CuringApi] POST body => {}');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode({}),
       timeout: _timeout,
     );
+    _logResponse('GetModels', res);
     _ensure200(res, 'GetModels');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getGroups() async {
+  static Future<List<String>> getGroups({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetGroups');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetGroups', res);
     _ensure200(res, 'GetGroups');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getFactories() async {
+  static Future<List<String>> getFactories({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetFactories');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetFactories', res);
     _ensure200(res, 'GetFactories');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getFloors() async {
+  static Future<List<String>> getFloors({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetFloors');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetFloors', res);
     _ensure200(res, 'GetFloors');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getRooms() async {
+  static Future<List<String>> getRooms({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetRooms');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetRooms', res);
     _ensure200(res, 'GetRooms');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
@@ -169,75 +278,81 @@ class RackMonitorApi {
   static Future<void> quickPing() async {
     final uri = Uri.parse('$_base/Location/GetModels');
     CuringApiLog.net(() => '[CuringApi] quickPing $uri');
-    await HttpHelper().get(
+    await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode({}),
       timeout: const Duration(seconds: 5),
     );
   }
 
   // -------------------------- Monitor (POST JSON) --------------------------
+  static Future<GroupDataMonitoring> getDataMonitoring({
+    Map<String, dynamic>? body,
+  }) async {
+    final uri = Uri.parse('$_base/Monitor/GetDataMonitoring');
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body ?? {})}');
+    final res = await HttpHelper().post(
+      uri,
+      headers: _headers(),
+      body: jsonEncode(body ?? {}),
+      timeout: _timeout,
+    );
+    _logResponse('GetDataMonitoring', res);
+    _ensure200(res, 'GetDataMonitoring');
+    final data = _decodeJsonLoose(res.body);
+    if (data is Map<String, dynamic>) return GroupDataMonitoring.fromJson(data);
+    throw Exception('GetDataMonitoring: invalid payload');
+  }
+
   static Future<GroupDataMonitoring> getGroupDataMonitoring({
     Map<String, dynamic>? body,
-  }) async {
-    final uri = Uri.parse('$_base/Monitor/GetGroupDataMonitoring');
-    CuringApiLog.net(() => '[CuringApi] POST $uri');
-    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body ?? {})}');
-    final res = await HttpHelper().post(
-      uri,
-      headers: _headers(),
-      body: jsonEncode(body ?? {}),
-      timeout: _timeout,
-    );
-    _ensure200(res, 'GetGroupDataMonitoring');
-    final data = jsonDecode(res.body);
-    if (data is Map<String, dynamic>) return GroupDataMonitoring.fromJson(data);
-    throw Exception('GetGroupDataMonitoring: invalid payload');
-  }
-
-  static Future<GroupDataMonitoring> getGroupDataMonitoring1({
-    Map<String, dynamic>? body,
-  }) async {
-    final uri = Uri.parse('$_base/Monitor/GetGroupDataMonitoring1');
-    CuringApiLog.net(() => '[CuringApi] POST $uri');
-    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body ?? {})}');
-    final res = await HttpHelper().post(
-      uri,
-      headers: _headers(),
-      body: jsonEncode(body ?? {}),
-      timeout: _timeout,
-    );
-    _ensure200(res, 'GetGroupDataMonitoring1');
-    final data = jsonDecode(res.body);
-    if (data is Map<String, dynamic>) return GroupDataMonitoring.fromJson(data);
-    throw Exception('GetGroupDataMonitoring1: invalid payload');
-  }
-
-  static Future<GroupDataMonitoring> getByTower({
-    required Tower tower,
-    Map<String, dynamic>? body,
   }) {
-    return tower == Tower.f17
-        ? getGroupDataMonitoring1(body: body)
-        : getGroupDataMonitoring(body: body);
+    return getDataMonitoring(body: body);
   }
 
   static Future<GroupDataMonitoring> getByFactory({
     required String factory,
     Map<String, dynamic>? body,
   }) {
-    final isF17 = factory.trim().toUpperCase() == 'F17';
-    final merged = {...?body, 'factory': isF17 ? 'F17' : 'F16'};
-    return getByTower(tower: isF17 ? Tower.f17 : Tower.f16, body: merged);
+    final merged = {...?body, 'factory': factory.trim()};
+    return getDataMonitoring(body: merged);
   }
 }
-
-enum Tower { f16, f17 }
 
 void _ensure200(http.Response res, String apiName) {
   if (res.statusCode != 200) {
     throw Exception('$apiName failed: ${res.statusCode} ${res.body}');
   }
+}
+
+void _logResponse(String apiName, http.Response res) {
+  CuringApiLog.net(() {
+    final preview = res.body.length > 400
+        ? '${res.body.substring(0, 400)}...(+${res.body.length - 400} chars)'
+        : res.body;
+    return '[CuringApi] $apiName response ${res.statusCode}: $preview';
+  });
+}
+
+dynamic _decodeJsonLoose(String body) {
+  dynamic first;
+  try {
+    first = jsonDecode(body);
+  } catch (_) {
+    return null;
+  }
+
+  if (first is String) {
+    try {
+      return jsonDecode(first);
+    } catch (_) {
+      return first;
+    }
+  }
+
+  return first;
 }
 
 // -------------------------- Safe body logger --------------------------
@@ -320,10 +435,11 @@ class QuantitySummary {
   });
 
   factory QuantitySummary.fromJson(Map<String, dynamic> j) {
-    final q =
-        (j['quantitySummary'] is Map<String, dynamic>)
-            ? (j['quantitySummary'] as Map<String, dynamic>)
-            : j;
+    final qRaw = _valueFor(
+      j,
+      const ['quantitySummary', 'QuantitySummary', 'quantity_Summary'],
+    );
+    final q = (qRaw is Map<String, dynamic>) ? qRaw : j;
     return QuantitySummary(
       ut: _readDouble(q, const ['ut', 'UT']),
       input: _readInt(q, const ['input']),
@@ -462,13 +578,10 @@ class RackDetail {
     yr: _readDouble(j, const ['yr', 'YR']),
     runtime: _readDouble(j, const ['runtime']),
     totalTime: _readDouble(j, const ['totalTime', 'total_Time']),
-    slotDetails:
-        (j['slotDetails'] is List)
-            ? (j['slotDetails'] as List)
-                .whereType<Map<String, dynamic>>()
-                .map(SlotDetail.fromJson)
-                .toList()
-            : const <SlotDetail>[],
+    slotDetails: GroupDataMonitoring._asMapList(_valueFor(j,
+            const ['slotDetails', 'SlotDetails', 'slot_Details', 'Slot_Details']))
+        .map(SlotDetail.fromJson)
+        .toList(),
   );
 }
 
@@ -513,31 +626,42 @@ class GroupDataMonitoring {
     required this.modelDetails,
   });
 
-  factory GroupDataMonitoring.fromJson(Map<String, dynamic> j) =>
-      GroupDataMonitoring(
-        slotStatic:
-            (j['slotStatic'] is List)
-                ? (j['slotStatic'] as List)
-                .whereType<Map<String, dynamic>>()
-                .map(SlotStaticItem.fromJson)
-                .toList()
-            : const <SlotStaticItem>[],
-        quantitySummary: QuantitySummary.fromJson(j),
-        rackDetails:
-            (j['rackDetails'] is List)
-                ? (j['rackDetails'] as List)
-                    .whereType<Map<String, dynamic>>()
-                    .map(RackDetail.fromJson)
-                    .toList()
-                : const <RackDetail>[],
-        modelDetails:
-            (j['modelDetails'] is List)
-                ? (j['modelDetails'] as List)
-                    .whereType<Map<String, dynamic>>()
-                    .map(ModelDetail.fromJson)
-                    .toList()
-                : const <ModelDetail>[],
-      );
+  static List<Map<String, dynamic>> _asMapList(dynamic source) {
+    dynamic raw = source;
+
+    // Một số API trả về chuỗi JSON thay vì list object
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        raw = jsonDecode(raw);
+      } catch (_) {
+        // nếu decode thất bại thì coi như không có data
+        raw = null;
+      }
+    }
+
+    if (raw is List) {
+      return raw.whereType<Map<String, dynamic>>().toList();
+    }
+
+    return const <Map<String, dynamic>>[];
+  }
+
+  factory GroupDataMonitoring.fromJson(Map<String, dynamic> j) {
+    final slotSrc =
+        _valueFor(j, const ['slotStatic', 'SlotStatic', 'slot_static']);
+    final rackSrc =
+        _valueFor(j, const ['rackDetails', 'RackDetails', 'rack_Details']);
+    final modelSrc =
+        _valueFor(j, const ['modelDetails', 'ModelDetails', 'model_Details']);
+
+    return GroupDataMonitoring(
+      slotStatic:
+          _asMapList(slotSrc).map(SlotStaticItem.fromJson).toList(),
+      quantitySummary: QuantitySummary.fromJson(j),
+      rackDetails: _asMapList(rackSrc).map(RackDetail.fromJson).toList(),
+      modelDetails: _asMapList(modelSrc).map(ModelDetail.fromJson).toList(),
+    );
+  }
 }
 
 // -------------------------- Helpers --------------------------

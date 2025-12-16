@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:smart_factory/screen/home/widget/aoivi/avi_dashboard_screen.dart';
-import 'package:smart_factory/screen/home/widget/clean_room/clean_room_screen.dart';
 import 'package:smart_factory/screen/home/widget/racks_monitor/racks_monitor_screen.dart';
 import 'package:smart_factory/screen/home/widget/yield_report/yield_report_screen.dart';
 import 'package:smart_factory/features/te_management/presentation/views/te_management_screen.dart';
@@ -21,11 +20,50 @@ import '../features/nvidia_lc_switch_kanban/presentation/pages/upd_tracking_page
 import '../features/lcr_machine/presentation/pages/lcr_dashboard_page.dart';
 import '../features/automation_resistor_machine/presentation/pages/automation_resistor_dashboard_page.dart';
 import '../screen/home/widget/project_list_page.dart';
+import '../features/clean_room/presentation/pages/clean_room_monitor_page.dart';
 
 final Map<String, Widget Function(AppProject)> screenBuilderMap = {
   'pth_dashboard': (project) => AOIVIDashboardScreen(),
   'resistor_analysis': (project) => AutomationResistorDashboardPage(),
   'racks_monitor': (project) => GroupMonitorScreen(),
+  'racks_monitor_f16': (project) => const GroupMonitorScreen(
+        initialFactory: 'F16',
+        initialFloor: '3F',
+      ),
+  'racks_monitor_f16_cto': (project) => const GroupMonitorScreen(
+        initialFactory: 'F16',
+        initialFloor: '3F',
+        initialGroup: 'CTO',
+      ),
+  'racks_monitor_f16_ft': (project) => const GroupMonitorScreen(
+        initialFactory: 'F16',
+        initialFloor: '3F',
+        initialGroup: 'FT',
+      ),
+  'racks_monitor_f16_jtag': (project) => const GroupMonitorScreen(
+        initialFactory: 'F16',
+        initialFloor: '3F',
+        initialGroup: 'J_TAG',
+      ),
+  'racks_monitor_f17': (project) => const GroupMonitorScreen(
+        initialFactory: 'F17',
+        initialFloor: '3F',
+      ),
+  'racks_monitor_f17_cto': (project) => const GroupMonitorScreen(
+        initialFactory: 'F17',
+        initialFloor: '3F',
+        initialGroup: 'CTO',
+      ),
+  'racks_monitor_f17_ft': (project) => const GroupMonitorScreen(
+        initialFactory: 'F17',
+        initialFloor: '3F',
+        initialGroup: 'FT',
+      ),
+  'racks_monitor_f17_jtag': (project) => const GroupMonitorScreen(
+        initialFactory: 'F17',
+        initialFloor: '3F',
+        initialGroup: 'J_TAG',
+      ),
   'yield_report': (project) => YieldReportScreen(
         title: project.name,
         controllerTag: 'yield_report_all',
@@ -97,7 +135,6 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
         title: project.name,
         controllerTag: 'te_management_adapter',
       ),
-  'clean_room': (project) => CleanRoomScreen(),
   'pcba_line_dashboard': (project) => PcbaLineDashboardScreen(),
   'stencil_monitor': (project) => StencilMonitorScreen(
         title: project.name,
@@ -128,6 +165,8 @@ final Map<String, Widget Function(AppProject)> screenBuilderMap = {
     );
     return CduMonitoringScreen(controller: ctrl);
   },
+
+  'clean_room': (project) => const CleanRoomMonitorPage(),
 
   /// Mở trực tiếp từng tầng
   'f16_3f': (project) {

@@ -13,7 +13,7 @@ class LcrRemoteDataSource {
 
   final HttpHelper _http;
 
-  static const String _base = 'https://10.220.130.117/newweb/api/smt/LCR';
+  static const String _base = 'https://10.220.130.117/api/smt/LCR';
   static const Duration _timeout = Duration(seconds: 40);
 
   Map<String, String> _headers() {

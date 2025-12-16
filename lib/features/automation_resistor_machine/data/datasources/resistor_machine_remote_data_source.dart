@@ -17,7 +17,7 @@ class ResistorMachineRemoteDataSource {
   final HttpHelper _http;
 
   static const String _base =
-      'https://10.220.130.117/newweb/api/Automation/ResistorMachine';
+      'https://10.220.130.117/api/Automation/ResistorMachine';
   static const Duration _timeout = Duration(seconds: 40);
 
   Map<String, String> _headers() {

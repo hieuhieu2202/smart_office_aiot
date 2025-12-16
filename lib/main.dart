@@ -19,13 +19,7 @@ import 'package:smart_factory/screen/camera/camera_capture_page.dart';
 import 'package:smart_factory/lang/controller/language_controller.dart';
 import 'package:smart_factory/lang/language_selection_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
-import 'package:smart_factory/service/auth/token_manager.dart';
-
 import 'screen/notification/controller/notification_controller.dart';
-
-
-
-
 
 class MyHttpOverrides extends HttpOverrides {
   @override

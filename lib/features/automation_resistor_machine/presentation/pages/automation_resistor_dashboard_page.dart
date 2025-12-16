@@ -2603,7 +2603,7 @@ class _SnAnalysisTabState extends State<_SnAnalysisTab>
     }
 
     const baseImageUrl =
-        'https://10.220.130.117/newweb/api/image/raw';
+        'https://10.220.130.117/api/image/raw';
     final sanitizedPath = normalized.startsWith('/')
         ? normalized
         : '/$normalized';

@@ -1,6 +1,6 @@
 const String _defaultImageHost = 'https://10.220.130.117';
-const String _defaultImageRoot = '/newweb';
-const String _imageProxyPath = '$_defaultImageRoot/api/image/raw';
+const String _defaultImageRoot = '';
+const String _imageProxyPath = '/api/image/raw';
 const String _defaultHost = '10.220.130.117';
 const String _proxyMarker = '/api/image/raw/';
 

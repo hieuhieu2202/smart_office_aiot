@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -13,7 +15,22 @@ import 'rack_monitor_states.dart';
 import 'rack_partition.dart';
 
 class GroupMonitorScreen extends StatefulWidget {
-  const GroupMonitorScreen({super.key});
+  final String? initialFactory;
+  final String? initialFloor;
+  final String? initialRoom;
+  final String? initialGroup;
+  final String? initialModel;
+  final String? controllerTag;
+
+  const GroupMonitorScreen({
+    super.key,
+    this.initialFactory,
+    this.initialFloor,
+    this.initialRoom,
+    this.initialGroup,
+    this.initialModel,
+    this.controllerTag,
+  });
 
   @override
   State<GroupMonitorScreen> createState() => _GroupMonitorScreenState();
@@ -23,11 +40,33 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
     with SingleTickerProviderStateMixin {
   late final GroupMonitorController controller;
   late final TabController _tabController;
+  late final String _tag;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(GroupMonitorController());
+    _tag = widget.controllerTag ??
+        [
+          'racks_monitor',
+          widget.initialFactory ?? 'any',
+          widget.initialFloor ?? 'any',
+          widget.initialRoom ?? 'any',
+          widget.initialGroup ?? 'any',
+          widget.initialModel ?? 'any',
+        ].join('_');
+    if (Get.isRegistered<GroupMonitorController>(tag: _tag)) {
+      Get.delete<GroupMonitorController>(tag: _tag);
+    }
+    controller = Get.put(
+      GroupMonitorController(
+        initialFactory: widget.initialFactory,
+        initialFloor: widget.initialFloor,
+        initialRoom: widget.initialRoom,
+        initialGroup: widget.initialGroup,
+        initialModel: widget.initialModel,
+      ),
+      tag: _tag,
+    );
     _tabController = TabController(length: RackListFilter.values.length, vsync: this)
       ..addListener(_handleTabChange);
   }
@@ -37,6 +76,9 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
     _tabController
       ..removeListener(_handleTabChange)
       ..dispose();
+    if (Get.isRegistered<GroupMonitorController>(tag: _tag)) {
+      Get.delete<GroupMonitorController>(tag: _tag);
+    }
     super.dispose();
   }
 
@@ -53,18 +95,41 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: const Color(0xFF76B900),
         title: Obx(() {
           final f = controller.selFactory.value;
           final fl = controller.selFloor.value;
           final g = controller.selGroup.value;
           final m = controller.selModel.value;
-          final parts = <String>[
-            f,
-            if (fl != 'ALL') fl,
-            if (g != 'ALL') g,
+          final filters = <String>[
+            if (f.isNotEmpty) f,
+            if (fl.isNotEmpty && fl != 'ALL') fl,
+            if (controller.selRoom.value != 'ALL') controller.selRoom.value,
+            if (g.isNotEmpty && g != 'ALL') g,
             if (m != 'ALL') m,
           ];
-          return Text(parts.isEmpty ? 'Rack Monitor' : parts.join('  ·  '));
+          final parts = <String>['NVIDIA', ...filters, 'RACK MONITOR'];
+          final text = parts.join('  ·  ');
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.22)),
+            ),
+            child: Text(
+              text.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    letterSpacing: 0.9,
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+          );
         }),
         actions: [
           RackFilterPanel(controller: controller),
@@ -120,7 +185,13 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
+                const sidePanelWidth = 360.0;
+                const sidePanelGap = 20.0;
                 final wide = constraints.maxWidth >= 1180;
+                final leftViewportWidth = wide
+                    ? math.max(
+                        0.0, constraints.maxWidth - sidePanelWidth - sidePanelGap)
+                    : constraints.maxWidth;
                 final insights = RackInsightsColumn(
                   controller: controller,
                   totalRacks: partition.total,
@@ -130,7 +201,8 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
                 );
 
                 final headerViewportWidth = wide
-                    ? (constraints.maxWidth - 336).clamp(0.0, constraints.maxWidth)
+                    ? (constraints.maxWidth - sidePanelWidth - sidePanelGap)
+                        .clamp(0.0, constraints.maxWidth)
                     : constraints.maxWidth;
                 final headerHeight = RackPinnedHeader.estimateHeight(
                   context: context,
@@ -166,7 +238,10 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
                       ),
                     )
                   else ...[
-                    RackLeftPanel(racks: selectedRacks),
+                    RackLeftPanel(
+                      racks: selectedRacks,
+                      maxWidthHint: leftViewportWidth,
+                    ),
                     const SliverToBoxAdapter(child: SizedBox(height: 24)),
                   ],
                 ];
@@ -186,11 +261,11 @@ class _GroupMonitorScreenState extends State<GroupMonitorScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: sidePanelGap),
                       SizedBox(
-                        width: 320,
+                        width: sidePanelWidth,
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
+                          padding: const EdgeInsets.fromLTRB(12, 18, 12, 26),
                           physics: const BouncingScrollPhysics(),
                           child: insights,
                         ),
