@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../model/AppModel.dart';
-import 'package:smart_factory/routes/screen_factory.dart'; // <-- Import hàm mapping
+import 'package:smart_factory/routes/screen_factory.dart';
 
 class ProjectListPage extends StatelessWidget {
   final AppProject project;

@@ -7,6 +7,7 @@ import 'package:smart_factory/screen/notification/notification_tab.dart';
 import 'package:smart_factory/screen/setting/setting_tab.dart';
 import 'package:smart_factory/screen/stp/stp_tab.dart';
 import 'package:smart_factory/screen/camera/camera_capture_page.dart';
+import 'package:smart_factory/screen/camera/camera_menu_screen.dart';
 import '../home/controller/home_controller.dart';
 import '../setting/controller/setting_controller.dart';
 import 'package:smart_factory/generated/l10n.dart';
@@ -52,7 +53,7 @@ class NavbarScreen extends StatelessWidget {
             const HomeTab(),
             const SftpScreen(),
             currentIndex == 2
-                ? (cameraScreenCache ??= const CameraCapturePage())
+                ? (cameraScreenCache ??= const CameraMenuScreen())
                 : const SizedBox.shrink(),
             currentIndex == 3
                 ? (qrScreenCache ??= const QRScanScreen())
