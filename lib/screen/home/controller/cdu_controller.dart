@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
 import '../../../service/cdu_api.dart';
@@ -25,7 +26,7 @@ class CduController extends GetxController {
 
   // ====== Raw JSON ======
   final dashboard = Rxn<Map<String, dynamic>>();
-  final history = Rxn<Map<String, dynamic>>();
+  final history = Rxn<List<dynamic>>();
 
   // ====== Nodes for canvas ======
   final nodes = <CduNode>[].obs;
@@ -103,8 +104,8 @@ class CduController extends GetxController {
 
       history.value = data; // nếu UI cũ còn xài raw
 
-      // Lấy list theo JSON { Data: [ ... ] }
-      final list = (data['Data'] as List? ?? const [])
+      // Data is now a direct array
+      final list = (data as List? ?? const [])
           .whereType<Map>()
           .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
           .toList();
@@ -143,34 +144,40 @@ class CduController extends GetxController {
       CduApi.webDashboardUrl(factory: factory.value, floor: floor.value);
 
   // ====== Computed ======
-  Map<String, dynamic>? get root =>
-      dashboard.value?['Data'] as Map<String, dynamic>?;
+  Map<String, dynamic>? get root => dashboard.value;
 
-  String? get layoutImage => root?['Image'] as String?;
+  String? get layoutImage => root?['image'] as String?;
 
-  Map<String, dynamic>? get summary =>
-      root?['Summary'] as Map<String, dynamic>?;
+  Map<String, dynamic>? get summary => null; // New API doesn't have summary, compute from data
 
   List<Map<String, dynamic>> get rawDevices {
-    final list = root?['Data'];
-    if (list is List) return list.cast<Map<String, dynamic>>();
+    // data field contains JSON string, need to parse it
+    final dataStr = root?['data'];
+    if (dataStr is String && dataStr.isNotEmpty) {
+      try {
+        final parsed = jsonDecode(dataStr);
+        if (parsed is List) return parsed.cast<Map<String, dynamic>>();
+      } catch (e) {
+        if (kDebugMode) {
+          print('[CDU] Error parsing data field: $e');
+        }
+      }
+    }
     return const [];
   }
 
   int _sumGet(List<String> keys) {
-    final s = summary;
-    if (s == null) return 0;
-    for (final k in keys) {
-      final v = s[k];
-      if (v != null) return int.tryParse('$v') ?? 0;
-    }
-    return 0;
+    // Since new API doesn't have summary, calculate from nodes
+    return 0; // Will be calculated from nodes instead
   }
 
-  int get totalCdu => _sumGet(['TotalCDU', 'Total']);
-  int get runningCdu => _sumGet(['RunningNormally', 'Running', 'Normal']);
-  int get warningCdu => _sumGet(['Warning']);
-  int get abnormalCdu => _sumGet(['Abnormal']);
+  int get totalCdu => nodes.length;
+  
+  int get runningCdu => nodes.where((n) => n.status == 'running').length;
+  
+  int get warningCdu => nodes.where((n) => n.status == 'warning').length;
+  
+  int get abnormalCdu => nodes.where((n) => n.status == 'abnormal').length;
 
 
   // ====== Build nodes for canvas ======
@@ -178,54 +185,37 @@ class CduController extends GetxController {
     final List<CduNode> out = [];
 
     for (final item in rawDevices) {
-      final monitor = item['DataMonitor'] as Map<String, dynamic>?;
-
+      // New API structure: Top, Left, Width, Height are direct fields
       final x = _asNum(item['Left']) / 100.0;
       final y = _asNum(item['Top']) / 100.0;
       final w = _asNum(item['Width']) / 100.0;
       final h = _asNum(item['Height']) / 100.0;
 
       final cduName = (item['CDUName'] ?? '').toString();
+      final hostName = (item['HostName'] ?? '').toString();
+      final ipAddress = (item['IPAddress'] ?? '').toString();
 
-      String status;
-      if (monitor == null) {
-        status = 'no_connect';
-      } else {
-        // Ưu tiên tool_status cho màu badge như đã thống nhất
-        final tool = (monitor['tool_status'] ?? '').toString().toUpperCase();
-        final run  = (monitor['run_status']  ?? '').toString().toUpperCase();
-
-        if (tool == 'OFF') {
-          status = 'abnormal';
-        } else if (run.contains('WARN')) {
-          status = 'warning';
-        } else if (run.contains('STOP') ||
-            run.contains('ABNORMAL') ||
-            run.contains('ERROR') ||
-            run.contains('ALARM') ||
-            run.contains('FAIL')) {
-          status = 'abnormal';
-        } else if (run.isNotEmpty || tool == 'ON') {
-          status = 'running';
-        } else {
-          status = 'no_connect';
-        }
-      }
+      // For now, assume no real-time status data from layout API
+      // Status will need to come from another source or default to 'no_connect'
+      String status = 'no_connect';
+      
+      // Create basic detail map
+      final detail = <String, dynamic>{
+        'IPAddress': ipAddress,
+        'CDUName': cduName,
+        'HostName': hostName,
+        'Status': 'NO DATA',
+      };
 
       out.add(
         CduNode(
-          id: cduName.isEmpty ? (item['HostName'] ?? '').toString() : cduName,
+          id: cduName.isEmpty ? hostName : cduName,
           x: x.clamp(0.0, 1.0),
           y: y.clamp(0.0, 1.0),
           w: (w <= 0 ? 0.06 : w).clamp(0.02, 0.5),
           h: (h <= 0 ? 0.06 : h).clamp(0.02, 0.5),
           status: status,
-          detail: monitor ?? {
-            'Status': 'NO DATA',
-            'IPAddress': item['IPAddress'],
-            'CDUName': cduName,
-            'HostName': item['HostName'],
-          },
+          detail: detail,
         ),
       );
     }
@@ -290,7 +280,8 @@ class CduController extends GetxController {
 
   // ====== Date helpers for history sort ======
   int _startMs(Map<String, dynamic> m) {
-    final s = (m['StartTime'] ?? m['Starttime'] ?? m['Start'])?.toString() ?? '';
+    // New API uses camelCase: startTime instead of StartTime
+    final s = (m['startTime'] ?? m['StartTime'] ?? m['Starttime'] ?? m['Start'])?.toString() ?? '';
     final mm = RegExp(r'\/Date\((\d+)\)\/').firstMatch(s);
     if (mm != null) {
       final g = mm.group(1);
@@ -308,7 +299,8 @@ class CduController extends GetxController {
   }
 
   int _cduOrder(Map<String, dynamic> m) {
-    final id = (m['CDUName'] ?? m['Id'] ?? m['Name'] ?? '').toString();
+    // New API uses camelCase: cduName instead of CDUName
+    final id = (m['cduName'] ?? m['CDUName'] ?? m['Id'] ?? m['Name'] ?? '').toString();
     final mm = RegExp(r'(\d+)$').firstMatch(id);
     return mm != null ? int.tryParse(mm.group(1)!) ?? 0 : 0;
   }
@@ -316,7 +308,8 @@ class CduController extends GetxController {
   // ====== Merge history êm ======
   void _mergeHistory(List<Map<String, dynamic>> incoming) {
     String keyOf(Map<String, dynamic> m) {
-      final id = (m['CDUName'] ?? m['Id'] ?? m['Name'] ?? 'Unknown').toString();
+      // New API uses camelCase: cduName instead of CDUName
+      final id = (m['cduName'] ?? m['CDUName'] ?? m['Id'] ?? m['Name'] ?? 'Unknown').toString();
       return '$id@${_startMs(m)}';
     }
 

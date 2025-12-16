@@ -101,7 +101,8 @@ class CduHistoryPanel extends StatelessWidget {
     // - Nhóm theo ngày StartTime (YYYYMMDD) giảm dần
     // - Trong mỗi ngày: StartTime tăng dần
     int _startMs(Map<String, dynamic> m) {
-      final raw = (m['StartTime'] ?? m['Starttime'] ?? m['Start'])?.toString() ?? '';
+      // Support both camelCase (new API) and PascalCase (old API)
+      final raw = (m['startTime'] ?? m['StartTime'] ?? m['Starttime'] ?? m['Start'])?.toString() ?? '';
       final match = RegExp(r'\/Date\((\d+)\)\/').firstMatch(raw);
       if (match != null) {
         final g = match.group(1);
@@ -119,7 +120,8 @@ class CduHistoryPanel extends StatelessWidget {
     }
 
     int _cduOrder(Map<String, dynamic> m) {
-      final id = (m['CDUName'] ?? m['Id'] ?? m['Name'] ?? '').toString();
+      // Support both camelCase (new API) and PascalCase (old API)
+      final id = (m['cduName'] ?? m['CDUName'] ?? m['Id'] ?? m['Name'] ?? '').toString();
       final mm = RegExp(r'(\d+)$').firstMatch(id);
       return mm != null ? int.tryParse(mm.group(1)!) ?? 0 : 0;
     }
@@ -180,18 +182,19 @@ class _HistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final id = _s(item['CDUName'] ?? item['Id'] ?? item['Name'] ?? 'Unknown');
-    final host = _s(item['HostName'] ?? '');
-    final ip = _s(item['IPAddress'] ?? '');
-    final runStatus = _s(item['RunStatus'] ?? '');
-    final stInt = int.tryParse(_s(item['Status'])) ?? 0;
+    // Support both camelCase (new API) and PascalCase (old API)
+    final id = _s(item['cduName'] ?? item['CDUName'] ?? item['Id'] ?? item['Name'] ?? 'Unknown');
+    final host = _s(item['hostName'] ?? item['HostName'] ?? '');
+    final ip = _s(item['ipAddress'] ?? item['IPAddress'] ?? '');
+    final runStatus = _s(item['runStatus'] ?? item['RunStatus'] ?? '');
+    final stInt = int.tryParse(_s(item['status'] ?? item['Status'])) ?? 0;
 
     const message = 'Warning about liquid storage.';
 
-    final start = _fmtDate(item['StartTime'] ?? item['Starttime'] ?? item['Start']);
+    final start = _fmtDate(item['startTime'] ?? item['StartTime'] ?? item['Starttime'] ?? item['Start']);
     final end   = (stInt == 1) ? 'is warning'
-        : _fmtDate(item['EndTime'] ?? item['Endtime'] ?? item['End']);
-    final total = _s(item['TotalTime'] ?? item['Duration'] ?? '-');
+        : _fmtDate(item['endTime'] ?? item['EndTime'] ?? item['Endtime'] ?? item['End']);
+    final total = _s(item['totalTime'] ?? item['TotalTime'] ?? item['Duration'] ?? '-');
 
     final barColor = _severityColor();
 
