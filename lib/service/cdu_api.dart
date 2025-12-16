@@ -14,12 +14,12 @@ class CduApi {
     'Accept': 'application/json',
   };
 
-  /// GET /GetLastestLayout
+  /// GET /GetLatestLayout
   /// Returns the latest CDU layout with factory, floor, image, and device data
   static Future<CduLayout> getLatestLayout({
     Duration timeout = const Duration(seconds: 25),
   }) async {
-    final uri = Uri.parse('$_base/GetLastestLayout');
+    final uri = Uri.parse('$_base/GetLatestLayout');
 
     final res = await http.get(uri, headers: _headers()).timeout(timeout);
 
