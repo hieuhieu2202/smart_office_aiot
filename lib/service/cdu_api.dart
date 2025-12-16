@@ -13,14 +13,19 @@ class CduApi {
     'Accept': 'application/json',
   };
 
-  /// GET /GetLastestLayout
+  /// GET /GetLastestLayout?factory=F16&floor=3F
   /// Returns layout configuration with CDU positions
   static Future<Map<String, dynamic>> fetchDashboard({
     required String factory,
     required String floor,
     Duration timeout = const Duration(seconds: 25),
   }) async {
-    final uri = Uri.parse('$_base/GetLastestLayout');
+    final uri = Uri.parse('$_base/GetLastestLayout').replace(
+      queryParameters: {
+        'factory': factory,
+        'floor': floor,
+      },
+    );
 
     final res = await http.get(uri, headers: _headers()).timeout(timeout);
 
@@ -30,14 +35,19 @@ class CduApi {
     throw Exception('CDU fetchDashboard ${res.statusCode}: ${res.reasonPhrase}\n${res.body}');
   }
 
-  /// GET /GetHistoryWarningDatas
+  /// GET /GetHistoryWarningDatas?factory=F16&floor=3F
   /// Returns array of warning history items directly
   static Future<List<dynamic>> fetchDetailHistory({
     required String factory,
     required String floor,
     Duration timeout = const Duration(seconds: 25),
   }) async {
-    final uri = Uri.parse('$_base/GetHistoryWarningDatas');
+    final uri = Uri.parse('$_base/GetHistoryWarningDatas').replace(
+      queryParameters: {
+        'factory': factory,
+        'floor': floor,
+      },
+    );
 
     final res = await http.get(uri, headers: _headers()).timeout(timeout);
 
@@ -47,7 +57,7 @@ class CduApi {
     throw Exception('CDU fetchDetailHistory ${res.statusCode}: ${res.reasonPhrase}\n${res.body}');
   }
 
-  /// Link Web dashboard (để mở WebView/Browser khi cần đối chiếu)
+  /// Link Web dashboard (note: may need to be updated based on actual web URL structure)
   static String webDashboardUrl({
     required String factory,
     required String floor,
