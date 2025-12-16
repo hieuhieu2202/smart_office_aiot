@@ -23,7 +23,7 @@ class NvidiaKanbanRemoteDataSource {
   final HttpHelper _http;
 
   static const String _base =
-      'https://10.220.130.117/newweb/api/nvidia/kanban';
+      'https://10.220.130.117/api/nvidia/kanban';
   static const Duration _timeout = Duration(seconds: 45);
 
   Future<List<String>> fetchGroups({required KanbanRequest request}) async {

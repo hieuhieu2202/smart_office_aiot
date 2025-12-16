@@ -16,7 +16,7 @@ class CleanRoomRemoteDataSource {
   final bool _logVerbose = true;
 
   static const String _baseUrl =
-      'https://10.220.130.117/newweb/api/nvidia/cleanroom';
+      'https://10.220.130.117/api/nvidia/cleanroom';
   static const Duration _timeout = Duration(seconds: 30);
 
   Map<String, String> _headers({bool includeContentType = false}) {

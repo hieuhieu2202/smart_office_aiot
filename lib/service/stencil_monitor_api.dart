@@ -7,7 +7,7 @@ import '../model/smt/stencil_detail.dart';
 
 class StencilMonitorApi {
   static const String _url =
-      'https://10.220.130.117/newweb/api/smt/stencil/StencilMonitor';
+      'https://10.220.130.117/api/smt/stencil/StencilMonitor';
 
   static Future<List<StencilDetail>> fetchStencilDetails() async {
     final stopwatch = Stopwatch()..start();

@@ -4,9 +4,9 @@ import 'auth/auth_config.dart';
 
 class CuringMonitoringApi {
   static const String _url =
-      'https://10.220.130.117/newweb/api/nvidia/dashboard/CuringMonitor/GetCuringData';
+      'https://10.220.130.117/api/nvidia/dashboard/CuringMonitor/GetCuringData';
   static const String _trayUrl =
-      'https://10.220.130.117/newweb/api/nvidia/dashboard/CuringMonitor/GetCuringTrayData';
+      'https://10.220.130.117/api/nvidia/dashboard/CuringMonitor/GetCuringTrayData';
 
   /// Gọi API lấy dữ liệu Curing Monitoring (POST)
   static Future<Map<String, dynamic>> fetch({

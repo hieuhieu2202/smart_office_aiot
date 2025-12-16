@@ -12,7 +12,7 @@ import '../models/te_yield_rate_models.dart';
 
 class TEManagementRemoteDataSource {
   static const String _baseUrl =
-      'https://10.220.130.117/newweb/api/nvidia/temanagement/TEManagement';
+      'https://10.220.130.117/api/nvidia/temanagement/TEManagement';
 
   Map<String, String> _headers({bool includeContentType = false}) {
     final headers = Map<String, String>.from(AuthConfig.getAuthorizedHeaders());

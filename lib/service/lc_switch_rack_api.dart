@@ -13,7 +13,7 @@ class CuringApiLog {
 class RackMonitorApi {
   RackMonitorApi._();
 
-  static const String _base = 'https://10.220.130.117/newweb/api/nvidia/rack';
+  static const String _base = 'https://10.220.130.117/api/nvidia/rack';
   static const Duration _timeout = Duration(seconds: 45);
 
   static Map<String, String> _headers() => const {
