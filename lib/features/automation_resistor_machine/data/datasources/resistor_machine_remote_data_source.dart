@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 
 import '../../../../service/http_helper.dart';
@@ -16,73 +15,87 @@ class ResistorMachineRemoteDataSource {
 
   final HttpHelper _http;
 
-  static const String _base =
-      'https://10.220.130.117/api/Automation/ResistorMachine';
+  // ===============================
+  // BASE CONFIG
+  // ===============================
+  static const String _host = 'https://10.220.130.117';
+  static const String _apiPrefix = '/api/auto';
+  static const String _controller = '/ResistorMachine';
+
   static const Duration _timeout = Duration(seconds: 40);
 
-  Map<String, String> _headers() {
-    return const <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-  }
+  String _endpoint(String path) =>
+      '$_host$_apiPrefix$_controller/$path';
 
+  Map<String, String> _headers() => const {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  // ===============================
+  // API METHODS
+  // ===============================
+
+  /// GET: GetResistorMachineNames
   Future<List<String>> fetchMachineNames() async {
-    final uri = Uri.parse('$_base/GetResistorMachineNames');
-    final http.Response res = await _http
-        .get(uri, headers: _headers(), timeout: _timeout)
-        .catchError((error) =>
-            throw Exception('GetResistorMachineNames failed: $error'));
+    final uri = Uri.parse(_endpoint('GetResistorMachineNames'));
+    _log(uri);
+
+    final res = await _http.get(
+      uri,
+      headers: _headers(),
+      timeout: _timeout,
+    );
 
     _ensureSuccess(res, 'GetResistorMachineNames');
 
-    final dynamic body = jsonDecode(res.body);
+    final body = jsonDecode(res.body);
     if (body is List) {
       return body.whereType<String>().toList();
     }
     throw Exception('GetResistorMachineNames: unexpected payload');
   }
 
+  /// POST: GetResistorMachineTrackingData
   Future<ResistorMachineTrackingData> fetchTrackingData(
-    ResistorMachineRequest request,
-  ) async {
-    final uri = Uri.parse('$_base/GetResistorMachineTrackingData');
-    final http.Response res = await _http
-        .post(
-          uri,
-          headers: _headers(),
-          body: jsonEncode(request.toBody()),
-          timeout: _timeout,
-        )
-        .catchError((error) => throw Exception(
-            'GetResistorMachineTrackingData failed: $error'));
+      ResistorMachineRequest request,
+      ) async {
+    final uri = Uri.parse(_endpoint('GetResistorMachineTrackingData'));
+    _log(uri, request.toBody());
+
+    final res = await _http.post(
+      uri,
+      headers: _headers(),
+      body: jsonEncode(request.toBody()),
+      timeout: _timeout,
+    );
 
     _ensureSuccess(res, 'GetResistorMachineTrackingData');
 
-    final dynamic body = jsonDecode(res.body);
+    final body = jsonDecode(res.body);
     if (body is Map<String, dynamic>) {
       return ResistorMachineTrackingDataModel.fromJson(body);
     }
     throw Exception('GetResistorMachineTrackingData: unexpected payload');
   }
 
+  /// POST: GetResistorMachineStatusData
   Future<List<ResistorMachineStatus>> fetchStatusData(
-    ResistorMachineRequest request,
-  ) async {
-    final uri = Uri.parse('$_base/GetResistorMachineStatusData');
-    final http.Response res = await _http
-        .post(
-          uri,
-          headers: _headers(),
-          body: jsonEncode(request.toBody()),
-          timeout: _timeout,
-        )
-        .catchError(
-            (error) => throw Exception('GetResistorMachineStatusData: $error'));
+      ResistorMachineRequest request,
+      ) async {
+    final uri = Uri.parse(_endpoint('GetResistorMachineStatusData'));
+    _log(uri, request.toBody());
+
+    final res = await _http.post(
+      uri,
+      headers: _headers(),
+      body: jsonEncode(request.toBody()),
+      timeout: _timeout,
+    );
 
     _ensureSuccess(res, 'GetResistorMachineStatusData');
 
-    final dynamic body = jsonDecode(res.body);
+    final body = jsonDecode(res.body);
     if (body is List) {
       return body
           .whereType<Map<String, dynamic>>()
@@ -92,78 +105,78 @@ class ResistorMachineRemoteDataSource {
     throw Exception('GetResistorMachineStatusData: unexpected payload');
   }
 
+  /// GET: GetResistorMachineDataById
   Future<ResistorMachineRecord?> fetchRecordById(int id) async {
-    final uri = Uri.parse('$_base/GetResistorMachineDataById')
-        .replace(queryParameters: <String, String>{'Id': '$id'});
+    final uri = Uri.parse(_endpoint('GetResistorMachineDataById'))
+        .replace(queryParameters: {'Id': '$id'});
+    _log(uri);
 
-    final http.Response res = await _http
-        .get(uri, headers: _headers(), timeout: _timeout)
-        .catchError(
-            (error) => throw Exception('GetResistorMachineDataById: $error'));
+    final res = await _http.get(
+      uri,
+      headers: _headers(),
+      timeout: _timeout,
+    );
 
-    if (res.statusCode == 204 || res.body.isEmpty) {
-      return null;
-    }
+    if (res.statusCode == 204 || res.body.isEmpty) return null;
 
     _ensureSuccess(res, 'GetResistorMachineDataById');
 
-    final dynamic body = jsonDecode(res.body);
+    final body = jsonDecode(res.body);
     if (body is Map<String, dynamic>) {
       return ResistorMachineRecordModel.fromJson(body);
     }
     throw Exception('GetResistorMachineDataById: unexpected payload');
   }
 
-  Future<ResistorMachineRecord?> fetchRecordBySerial(String serialNumber) async {
-    final uri = Uri.parse('$_base/GetResistorMachineDataBySn').replace(
-      queryParameters: <String, String>{'SerialNumber': serialNumber},
+  /// GET: GetResistorMachineDataBySn
+  Future<ResistorMachineRecord?> fetchRecordBySerial(String serial) async {
+    final uri = Uri.parse(_endpoint('GetResistorMachineDataBySn'))
+        .replace(queryParameters: {'SerialNumber': serial});
+    _log(uri);
+
+    final res = await _http.get(
+      uri,
+      headers: _headers(),
+      timeout: _timeout,
     );
 
-    final http.Response res = await _http
-        .get(uri, headers: _headers(), timeout: _timeout)
-        .catchError(
-            (error) => throw Exception('GetResistorMachineDataBySn: $error'));
-
-    if (res.statusCode == 204 || res.body.isEmpty) {
-      return null;
-    }
+    if (res.statusCode == 204 || res.body.isEmpty) return null;
 
     _ensureSuccess(res, 'GetResistorMachineDataBySn');
 
-    final dynamic body = jsonDecode(res.body);
+    final body = jsonDecode(res.body);
     if (body is Map<String, dynamic>) {
       return ResistorMachineRecordModel.fromJson(body);
     }
     throw Exception('GetResistorMachineDataBySn: unexpected payload');
   }
 
+  /// GET: GetMatchedSerialNumbers
   Future<List<ResistorMachineSerialMatch>> searchSerialNumbers(
-    String query, {
-    int take = 12,
-  }) async {
-    if (query.trim().isEmpty) {
-      return const <ResistorMachineSerialMatch>[];
-    }
+      String query, {
+        int take = 12,
+      }) async {
+    if (query.trim().isEmpty) return const [];
 
-    final uri = Uri.parse('$_base/GetMatchedSerialNumbers').replace(
-      queryParameters: <String, String>{
+    final uri = Uri.parse(_endpoint('GetMatchedSerialNumbers')).replace(
+      queryParameters: {
         'searchInput': query,
         'take': take.toString(),
       },
     );
+    _log(uri);
 
-    final http.Response res = await _http
-        .get(uri, headers: _headers(), timeout: _timeout)
-        .catchError(
-            (error) => throw Exception('GetMatchedSerialNumbers: $error'));
+    final res = await _http.get(
+      uri,
+      headers: _headers(),
+      timeout: _timeout,
+    );
 
-    if (res.statusCode == 204) {
-      return const <ResistorMachineSerialMatch>[];
-    }
+    if (res.statusCode == 204) return const [];
 
     _ensureSuccess(res, 'GetMatchedSerialNumbers');
 
-    final dynamic body = jsonDecode(res.body);
+    final body = jsonDecode(res.body);
     if (body is List) {
       return body
           .whereType<Map<String, dynamic>>()
@@ -173,46 +186,39 @@ class ResistorMachineRemoteDataSource {
     throw Exception('GetMatchedSerialNumbers: unexpected payload');
   }
 
+  /// GET: Test Result
   Future<List<ResistorMachineTestResult>> fetchTestResults(int id) async {
-    final uri = Uri.parse('$_base/GetResistorMachineDataById')
-        .replace(queryParameters: <String, String>{'Id': '$id'});
+    final record = await fetchRecordById(id);
+    final raw = record?.dataDetails;
+    if (raw == null) return const [];
 
-    final http.Response res = await _http
-        .get(uri, headers: _headers(), timeout: _timeout)
-        .catchError(
-            (error) => throw Exception('GetResistorMachineDataById: $error'));
-
-    if (res.statusCode == 204 || res.body.isEmpty) {
-      return const <ResistorMachineTestResult>[];
-    }
-
-    _ensureSuccess(res, 'GetResistorMachineDataById');
-
-    final dynamic body = jsonDecode(res.body);
-    if (body is Map<String, dynamic>) {
-      final dynamic raw = body['DataDetails'] ?? body['dataDetails'];
-      if (raw != null) {
-        try {
-          final dynamic parsed =
-              raw is String ? jsonDecode(raw) : raw as dynamic;
-          if (parsed is List) {
-            return parsed
-                .whereType<Map<String, dynamic>>()
-                .map(ResistorMachineTestResultModel.fromJson)
-                .toList();
-          }
-        } catch (_) {
-          // Ignore parsing errors and fall through to empty list.
-        }
+    try {
+      final parsed = raw is String ? jsonDecode(raw) : raw;
+      if (parsed is List) {
+        return parsed
+            .whereType<Map<String, dynamic>>()
+            .map(ResistorMachineTestResultModel.fromJson)
+            .toList();
       }
-    }
-
-    return const <ResistorMachineTestResult>[];
+    } catch (_) {}
+    return const [];
   }
 
+  // ===============================
+  // HELPERS
+  // ===============================
   void _ensureSuccess(http.Response res, String action) {
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception('$action failed (${res.statusCode}): ${res.body}');
+    }
+  }
+
+  void _log(Uri uri, [Map<String, dynamic>? body]) {
+    // ignore: avoid_print
+    print('[ResistorAPI] ${uri.toString()}');
+    if (body != null) {
+      // ignore: avoid_print
+      print('[ResistorAPI] payload: $body');
     }
   }
 }
