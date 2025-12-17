@@ -129,18 +129,18 @@ class CduApi {
         dataMonitor = {
           // ===== Tooltip fields (MATCH WEB) =====
           'amb_temp_t4': mon['ambTempT4'],
-          'tcs_temp_t1_1': mon['tcsSupplyTempT11'],
-          'tcs_temp_t1_2': mon['tcsSupplyTempT12'],
-          'tcs_temp_t2': mon['tcsReturnTempT2'],
+          'tcs_supply_temp_t1_1': mon['tcsSupplyTempT11'],
+          'tcs_supply_temp_t1_2': mon['tcsSupplyTempT12'],
+          'tcs_return_temp_t2': mon['tcsReturnTempT2'],
           'tcs_flow_f1': mon['tcsFlowF1'],
-          'pressure_p1': mon['tcsSupplyPressureP1'],
-          'pressure_p2': mon['tcsReturnPressureP2'],
+          'tcs_supply_pressure_p1': mon['tcsSupplyPressureP1'],
+          'tcs_return_pressure_p2': mon['tcsReturnPressureP2'],
           'liquid_storage': mon['liquidStorage'],
 
           // ===== Status fields =====
           'run_status': mon['runStatus'],
           'tool_status': 'ON',
-          'update_time': mon['datetime'],
+          'DateTime': mon['datetime'],
         };
       }
 
