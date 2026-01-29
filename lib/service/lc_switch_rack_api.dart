@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'http_helper.dart';
 
 /// ===== LOG GATE cho service (tùy chọn bật/tắt từ controller/màn hình) =====
@@ -287,16 +288,67 @@ class RackMonitorApi {
   }
 
   // -------------------------- Monitor (POST JSON) --------------------------
+  static Map<String, dynamic> _monitorBody(Map<String, dynamic>? rawBody) {
+    Map<String, dynamic> body = {...?rawBody};
+
+    String _normalized(String? v, {bool allowAll = true}) {
+      final trimmed = v?.trim() ?? '';
+      if (trimmed.isEmpty && allowAll) return 'ALL';
+      return trimmed.isEmpty ? '' : trimmed;
+    }
+
+    String _defaultDateRange() {
+      final now = DateTime.now();
+      final formatter = DateFormat('yyyy-MM-dd');
+      final today = formatter.format(now);
+      return '$today 07:30 - $today 19:30';
+    }
+
+    List<String> _ensureProductNames(dynamic value) {
+      if (value is List) {
+        final list = value.whereType<String>().map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        if (list.isNotEmpty) return list;
+      } else if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isNotEmpty && trimmed != 'ALL') return [trimmed];
+      }
+      return const [];
+    }
+
+    final normalizedFactory = _normalized(body['factory']);
+    final normalizedFloor = _normalized(body['floor']);
+    final normalizedRoom = _normalized(body['room']);
+    final normalizedGroup = _normalized(body['groupName'] ?? body['group']);
+    final productNames = _ensureProductNames(body['productNames'] ?? body['model']);
+    final productName = _normalized(body['productName'], allowAll: false);
+    final dateRange = (body['dateRange']?.toString().trim() ?? '').isEmpty
+        ? _defaultDateRange()
+        : body['dateRange'].toString().trim();
+
+    return {
+      'factory': normalizedFactory,
+      'floor': normalizedFloor,
+      'room': normalizedRoom,
+      'productNames': productNames,
+      'productName': productName,
+      'groupName': normalizedGroup,
+      'dateRange': dateRange,
+      'detailType': body['detailType']?.toString() ?? '',
+      'slotName': body['slotName']?.toString() ?? '',
+    };
+  }
+
   static Future<GroupDataMonitoring> getDataMonitoring({
     Map<String, dynamic>? body,
   }) async {
+    final normalizedBody = _monitorBody(body);
     final uri = Uri.parse('$_base/Monitor/GetDataMonitoring');
     CuringApiLog.net(() => '[CuringApi] POST $uri');
-    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body ?? {})}');
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(normalizedBody)}');
     final res = await HttpHelper().post(
       uri,
       headers: _headers(),
-      body: jsonEncode(body ?? {}),
+      body: jsonEncode(normalizedBody),
       timeout: _timeout,
     );
     _logResponse('GetDataMonitoring', res);
@@ -388,7 +440,7 @@ class LocationEntry {
     group: _readString(j, const ['group', 'Group', 'groupName', 'GroupName']),
     model: _readString(
       j,
-      const ['model', 'Model', 'modelName', 'modelSerial', 'ModelSerial'],
+      const ['product', 'Product', 'productName', 'ProductName', 'model', 'Model'],
     ),
   );
 }
@@ -407,6 +459,7 @@ class SlotStaticItem {
 
 class QuantitySummary {
   final double ut;
+  final int wip;
   final int input;
   final int firstPass;
   final int secondPass;
@@ -414,13 +467,20 @@ class QuantitySummary {
   final int rePass;
   final int totalPass;
   final int firstFail;
+  final int secondFail;
   final int fail;
+  final int repair;
+  final int repairPass;
+  final int repairFail;
+  final int totalFail;
   final double fpr;
+  final double spr;
+  final double rr;
   final double yr;
-  final int wip;
 
   QuantitySummary({
     required this.ut,
+    required this.wip,
     required this.input,
     required this.firstPass,
     required this.secondPass,
@@ -428,10 +488,16 @@ class QuantitySummary {
     required this.rePass,
     required this.totalPass,
     required this.firstFail,
+    required this.secondFail,
     required this.fail,
+    required this.repair,
+    required this.repairPass,
+    required this.repairFail,
+    required this.totalFail,
     required this.fpr,
+    required this.spr,
+    required this.rr,
     required this.yr,
-    required this.wip,
   });
 
   factory QuantitySummary.fromJson(Map<String, dynamic> j) {
@@ -442,26 +508,35 @@ class QuantitySummary {
     final q = (qRaw is Map<String, dynamic>) ? qRaw : j;
     return QuantitySummary(
       ut: _readDouble(q, const ['ut', 'UT']),
-      input: _readInt(q, const ['input']),
-      firstPass: _readInt(q, const ['firstPass', 'first_Pass']),
-      secondPass: _readInt(q, const ['secondPass', 'second_Pass']),
-      pass: _readInt(q, const ['pass']),
-      rePass: _readInt(q, const ['rePass', 're_Pass']),
-      totalPass: _readInt(q, const ['totalPass', 'total_Pass']),
-      firstFail: _readInt(q, const ['firstFail', 'first_Fail']),
-      fail: _readInt(q, const ['fail']),
-      fpr: _readDouble(q, const ['fpr', 'FPR']),
-      yr: _readDouble(q, const ['yr', 'YR']),
       wip: _readInt(q, const ['wip', 'WIP']),
+      input: _readInt(q, const ['input', 'Input']),
+      firstPass: _readInt(q, const ['firstPass', 'first_Pass', 'First_Pass']),
+      secondPass: _readInt(q, const ['secondPass', 'second_Pass', 'Second_Pass']),
+      pass: _readInt(q, const ['pass', 'Pass']),
+      rePass: _readInt(q, const ['rePass', 're_Pass', 'Repair_Pass']),
+      totalPass: _readInt(q, const ['totalPass', 'total_Pass', 'Total_Pass']),
+      firstFail: _readInt(q, const ['firstFail', 'first_Fail', 'First_Fail']),
+      secondFail: _readInt(q, const ['secondFail', 'second_Fail', 'Second_Fail']),
+      fail: _readInt(q, const ['fail', 'Fail']),
+      repair: _readInt(q, const ['repair', 'Repair']),
+      repairPass: _readInt(q, const ['repairPass', 'repair_Pass', 'Repair_Pass']),
+      repairFail: _readInt(q, const ['repairFail', 'repair_Fail', 'Repair_Fail']),
+      totalFail: _readInt(q, const ['totalFail', 'total_Fail', 'Total_Fail']),
+      fpr: _readDouble(q, const ['fpr', 'FPR']),
+      spr: _readDouble(q, const ['spr', 'SPR']),
+      rr: _readDouble(q, const ['rr', 'RR']),
+      yr: _readDouble(q, const ['yr', 'YR']),
     );
   }
 }
 
 class SlotDetail {
   final String nickName;
+  final String productName;
   final String slotNumber;
   final String slotName;
   final String modelName;
+  final int wip;
   final int input;
   final int firstPass;
   final int secondPass;
@@ -469,8 +544,15 @@ class SlotDetail {
   final int rePass;
   final int totalPass;
   final int firstFail;
+  final int secondFail;
   final int fail;
+  final int repair;
+  final int repairPass;
+  final int repairFail;
+  final int totalFail;
   final double fpr;
+  final double spr;
+  final double rr;
   final double yr;
   final String status;
   final double runtime;
@@ -478,9 +560,11 @@ class SlotDetail {
 
   SlotDetail({
     required this.nickName,
+    required this.productName,
     required this.slotNumber,
     required this.slotName,
     required this.modelName,
+    required this.wip,
     required this.input,
     required this.firstPass,
     required this.secondPass,
@@ -488,8 +572,15 @@ class SlotDetail {
     required this.rePass,
     required this.totalPass,
     required this.firstFail,
+    required this.secondFail,
     required this.fail,
+    required this.repair,
+    required this.repairPass,
+    required this.repairFail,
+    required this.totalFail,
     required this.fpr,
+    required this.spr,
+    required this.rr,
     required this.yr,
     required this.status,
     required this.runtime,
@@ -498,32 +589,42 @@ class SlotDetail {
 
   factory SlotDetail.fromJson(Map<String, dynamic> j) => SlotDetail(
     nickName: _readString(j, const ['nickName', 'nickname']),
-    slotNumber: _readString(j, const ['slotNumber', 'slotNo', 'slot_No']),
-    slotName: _readString(j, const ['slotName', 'slot_name']),
-    modelName:
-        _readString(j, const ['modelName', 'model', 'modelSerial', 'ModelSerial']),
-    input: _readInt(j, const ['input']),
-    firstPass: _readInt(j, const ['firstPass', 'first_Pass']),
-    secondPass: _readInt(j, const ['secondPass', 'second_Pass']),
-    pass: _readInt(j, const ['pass']),
-    rePass: _readInt(j, const ['rePass', 're_Pass']),
-    totalPass: _readInt(j, const ['totalPass', 'total_Pass']),
-    firstFail: _readInt(j, const ['firstFail', 'first_Fail']),
-    fail: _readInt(j, const ['fail']),
+    productName: _readString(j, const ['productName', 'ProductName', 'product']),
+    slotNumber: _readString(j, const ['slotNumber', 'SlotNumber', 'slotNo', 'slot_No']),
+    slotName: _readString(j, const ['slotName', 'SlotName', 'slot_name']),
+    modelName: _readString(j, const ['modelName', 'ModelName', 'model']),
+    wip: _readInt(j, const ['wip', 'WIP']),
+    input: _readInt(j, const ['input', 'Input']),
+    firstPass: _readInt(j, const ['firstPass', 'first_Pass', 'First_Pass']),
+    secondPass: _readInt(j, const ['secondPass', 'second_Pass', 'Second_Pass']),
+    pass: _readInt(j, const ['pass', 'Pass']),
+    rePass: _readInt(j, const ['rePass', 're_Pass', 'Repair_Pass']),
+    totalPass: _readInt(j, const ['totalPass', 'total_Pass', 'Total_Pass']),
+    firstFail: _readInt(j, const ['firstFail', 'first_Fail', 'First_Fail']),
+    secondFail: _readInt(j, const ['secondFail', 'second_Fail', 'Second_Fail']),
+    fail: _readInt(j, const ['fail', 'Fail']),
+    repair: _readInt(j, const ['repair', 'Repair']),
+    repairPass: _readInt(j, const ['repairPass', 'repair_Pass', 'Repair_Pass']),
+    repairFail: _readInt(j, const ['repairFail', 'repair_Fail', 'Repair_Fail']),
+    totalFail: _readInt(j, const ['totalFail', 'total_Fail', 'Total_Fail']),
     fpr: _readDouble(j, const ['fpr', 'FPR']),
+    spr: _readDouble(j, const ['spr', 'SPR']),
+    rr: _readDouble(j, const ['rr', 'RR']),
     yr: _readDouble(j, const ['yr', 'YR']),
-    status: _readString(j, const ['status', 'slotStatus']),
-    runtime: _readDouble(j, const ['runtime']),
-    totalTime: _readDouble(j, const ['totalTime', 'total_Time']),
+    status: _readString(j, const ['status', 'Status', 'slotStatus']),
+    runtime: _readDouble(j, const ['runtime', 'Runtime']),
+    totalTime: _readDouble(j, const ['totalTime', 'total_Time', 'TotalTime']),
   );
 }
 
 class RackDetail {
   final String nickName;
+  final String productName;
   final String groupName;
   final String rackName;
   final String modelName;
   final double ut;
+  final int wip;
   final int input;
   final int firstPass;
   final int secondPass;
@@ -531,8 +632,15 @@ class RackDetail {
   final int rePass;
   final int totalPass;
   final int firstFail;
+  final int secondFail;
   final int fail;
+  final int repair;
+  final int repairPass;
+  final int repairFail;
+  final int totalFail;
   final double fpr;
+  final double spr;
+  final double rr;
   final double yr;
   final double runtime;
   final double totalTime;
@@ -540,10 +648,12 @@ class RackDetail {
 
   RackDetail({
     required this.nickName,
+    required this.productName,
     required this.groupName,
     required this.rackName,
     required this.modelName,
     required this.ut,
+    required this.wip,
     required this.input,
     required this.firstPass,
     required this.secondPass,
@@ -551,8 +661,15 @@ class RackDetail {
     required this.rePass,
     required this.totalPass,
     required this.firstFail,
+    required this.secondFail,
     required this.fail,
+    required this.repair,
+    required this.repairPass,
+    required this.repairFail,
+    required this.totalFail,
     required this.fpr,
+    required this.spr,
+    required this.rr,
     required this.yr,
     required this.runtime,
     required this.totalTime,
@@ -561,27 +678,34 @@ class RackDetail {
 
   factory RackDetail.fromJson(Map<String, dynamic> j) => RackDetail(
     nickName: _readString(j, const ['nickName', 'nickname']),
+    productName: _readString(j, const ['productName', 'ProductName', 'product']),
     groupName: _readString(j, const ['groupName', 'GroupName']),
-    rackName: _readString(j, const ['rackName', 'rack']),
-    modelName:
-        _readString(j, const ['modelName', 'model', 'modelSerial', 'ModelSerial']),
+    rackName: _readString(j, const ['rackName', 'RackName', 'rack']),
+    modelName: _readString(j, const ['modelName', 'ModelName', 'model']),
     ut: _readDouble(j, const ['ut', 'UT']),
-    input: _readInt(j, const ['input']),
-    firstPass: _readInt(j, const ['firstPass', 'first_Pass']),
-    secondPass: _readInt(j, const ['secondPass', 'second_Pass']),
-    pass: _readInt(j, const ['pass']),
-    rePass: _readInt(j, const ['rePass', 're_Pass']),
-    totalPass: _readInt(j, const ['totalPass', 'total_Pass']),
-    firstFail: _readInt(j, const ['firstFail', 'first_Fail']),
-    fail: _readInt(j, const ['fail']),
+    wip: _readInt(j, const ['wip', 'WIP']),
+    input: _readInt(j, const ['input', 'Input']),
+    firstPass: _readInt(j, const ['firstPass', 'first_Pass', 'First_Pass']),
+    secondPass: _readInt(j, const ['secondPass', 'second_Pass', 'Second_Pass']),
+    pass: _readInt(j, const ['pass', 'Pass']),
+    rePass: _readInt(j, const ['rePass', 're_Pass', 'Repair_Pass']),
+    totalPass: _readInt(j, const ['totalPass', 'total_Pass', 'Total_Pass']),
+    firstFail: _readInt(j, const ['firstFail', 'first_Fail', 'First_Fail']),
+    secondFail: _readInt(j, const ['secondFail', 'second_Fail', 'Second_Fail']),
+    fail: _readInt(j, const ['fail', 'Fail']),
+    repair: _readInt(j, const ['repair', 'Repair']),
+    repairPass: _readInt(j, const ['repairPass', 'repair_Pass', 'Repair_Pass']),
+    repairFail: _readInt(j, const ['repairFail', 'repair_Fail', 'Repair_Fail']),
+    totalFail: _readInt(j, const ['totalFail', 'total_Fail', 'Total_Fail']),
     fpr: _readDouble(j, const ['fpr', 'FPR']),
+    spr: _readDouble(j, const ['spr', 'SPR']),
+    rr: _readDouble(j, const ['rr', 'RR']),
     yr: _readDouble(j, const ['yr', 'YR']),
-    runtime: _readDouble(j, const ['runtime']),
-    totalTime: _readDouble(j, const ['totalTime', 'total_Time']),
-    slotDetails: GroupDataMonitoring._asMapList(_valueFor(j,
-            const ['slotDetails', 'SlotDetails', 'slot_Details', 'Slot_Details']))
-        .map(SlotDetail.fromJson)
-        .toList(),
+    runtime: _readDouble(j, const ['runtime', 'Runtime']),
+    totalTime: _readDouble(j, const ['totalTime', 'total_Time', 'TotalTime']),
+    slotDetails: GroupDataMonitoring._asMapList(
+      _valueFor(j, const ['slotDetails', 'SlotDetails', 'slot_Details', 'Slot_Details']),
+    ).map(SlotDetail.fromJson).toList(),
   );
 }
 
@@ -599,10 +723,10 @@ class ModelDetail {
   factory ModelDetail.fromJson(Map<String, dynamic> j) {
     final model = _readString(
       j,
-      const ['modelName', 'model', 'modelSerial', 'ModelSerial'],
+      const ['modelName', 'ModelName', 'model', 'modelSerial'],
     );
-    final total = _readInt(j, const ['totalPass', 'total_Pass', 'output']);
-    final pass = _readInt(j, const ['pass']);
+    final total = _readInt(j, const ['totalPass', 'TotalPass', 'total_Pass', 'output']);
+    final pass = _readInt(j, const ['pass', 'Pass']);
     final derivedTotal = total != 0 ? total : pass;
     final derivedPass = pass != 0 ? pass : derivedTotal;
     return ModelDetail(
