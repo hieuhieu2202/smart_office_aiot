@@ -415,74 +415,76 @@ class _QRScanScreenState extends State<QRScanScreen>
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Quét QR trên màn hình lớn',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Quét QR trên màn hình lớn',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Giữ mã QR trước camera ở khoảng cách 15-20cm và đảm bảo khu vực quét được chiếu sáng tốt.',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 24),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            _buildInfoChip(
-                              context,
-                              icon: Icons.flash_on,
-                              label: 'Bật/Tắt đèn',
-                              onPressed: _scannerAvailable ? _toggleTorch : null,
-                            ),
-                            _buildInfoChip(
-                              context,
-                              icon: Icons.cameraswitch,
-                              label: 'Đổi camera',
-                              onPressed: _scannerAvailable ? _switchCamera : null,
-                            ),
-                            _buildInfoChip(
-                              context,
-                              icon: Icons.qr_code_scanner,
-                              label: 'Tự động nhận diện',
-                              onPressed: null,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        Divider(color: theme.dividerColor.withOpacity(0.4)),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Mẹo quét thành công:',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                          const SizedBox(height: 12),
+                          Text(
+                            'Giữ mã QR trước camera ở khoảng cách 15-20cm và đảm bảo khu vực quét được chiếu sáng tốt.',
+                            style: theme.textTheme.bodyMedium,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildHintRow(
-                          context,
-                          icon: Icons.check_circle_outline,
-                          text: 'Giữ tay chắc và tránh rung lắc khi đưa mã QR vào khung.',
-                        ),
-                        const SizedBox(height: 8),
-                        _buildHintRow(
-                          context,
-                          icon: Icons.light_mode_outlined,
-                          text: 'Đảm bảo khu vực đủ sáng hoặc bật đèn flash nếu cần.',
-                        ),
-                        const SizedBox(height: 8),
-                        _buildHintRow(
-                          context,
-                          icon: Icons.phonelink_setup,
-                          text: 'Nếu không thấy camera, hãy kiểm tra lại quyền truy cập thiết bị.',
-                        ),
-                      ],
+                          const SizedBox(height: 24),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              _buildInfoChip(
+                                context,
+                                icon: Icons.flash_on,
+                                label: 'Bật/Tắt đèn',
+                                onPressed: _scannerAvailable ? _toggleTorch : null,
+                              ),
+                              _buildInfoChip(
+                                context,
+                                icon: Icons.cameraswitch,
+                                label: 'Đổi camera',
+                                onPressed: _scannerAvailable ? _switchCamera : null,
+                              ),
+                              _buildInfoChip(
+                                context,
+                                icon: Icons.qr_code_scanner,
+                                label: 'Tự động nhận diện',
+                                onPressed: null,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          Divider(color: theme.dividerColor.withOpacity(0.4)),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Mẹo quét thành công:',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildHintRow(
+                            context,
+                            icon: Icons.check_circle_outline,
+                            text: 'Giữ tay chắc và tránh rung lắc khi đưa mã QR vào khung.',
+                          ),
+                          const SizedBox(height: 8),
+                          _buildHintRow(
+                            context,
+                            icon: Icons.light_mode_outlined,
+                            text: 'Đảm bảo khu vực đủ sáng hoặc bật đèn flash nếu cần.',
+                          ),
+                          const SizedBox(height: 8),
+                          _buildHintRow(
+                            context,
+                            icon: Icons.phonelink_setup,
+                            text: 'Nếu không thấy camera, hãy kiểm tra lại quyền truy cập thiết bị.',
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

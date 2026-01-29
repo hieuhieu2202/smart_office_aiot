@@ -237,21 +237,24 @@ class _SideNavigationBar extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          for (int i = 0; i < tabLabels.length; i++)
-            _SideNavItem(
-              label: tabLabels[i],
-              icon: _iconForIndex(i),
-              isSelected: currentIndex == i,
-              onTap: () => onTap(i),
-              indicatorColor: indicatorColor,
-              inactiveColor: inactiveColor,
-              badgeCount: i == 4
-                  ? notificationController.unreadCount.value
-                  : 0,
-            ),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (int i = 0; i < tabLabels.length; i++)
+              _SideNavItem(
+                label: tabLabels[i],
+                icon: _iconForIndex(i),
+                isSelected: currentIndex == i,
+                onTap: () => onTap(i),
+                indicatorColor: indicatorColor,
+                inactiveColor: inactiveColor,
+                badgeCount: i == 4
+                    ? notificationController.unreadCount.value
+                    : 0,
+              ),
+          ],
+        ),
       ),
     );
   }

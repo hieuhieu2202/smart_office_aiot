@@ -7,9 +7,7 @@ class ApiConfig {
       ? 'https://10.220.130.117:5555' // Server thật
       : 'http://192.168.0.197:5511'; // Server local/dev
 
-  /// Context path (prefix) for the RemoteControl notification API.
-  ///
-  /// Đổi giá trị này nếu server dev/prod đặt ở đường dẫn khác.
+
   static const String _notificationContextPath = '/SendNoti';
 
   static String get _notificationHost => isProduction

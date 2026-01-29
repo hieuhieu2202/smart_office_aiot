@@ -128,42 +128,44 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SlideTransition(
-                        position: _fAnimation,
-                        child: Image.asset(
-                          'assets/images/f.png',
-                          height: 160,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      SlideTransition(
-                        position: _iBeAnimation,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 0),
+                  FittedBox(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SlideTransition(
+                          position: _fAnimation,
                           child: Image.asset(
-                            'assets/images/ingan.png',
+                            'assets/images/f.png',
                             height: 160,
                             fit: BoxFit.contain,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 2),
-                      SlideTransition(
-                        position: _iToAnimation,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 0),
-                          child: Image.asset(
-                            'assets/images/idai.png',
-                            height: 160,
-                            fit: BoxFit.contain,
+                        const SizedBox(width: 2),
+                        SlideTransition(
+                          position: _iBeAnimation,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 0),
+                            child: Image.asset(
+                              'assets/images/ingan.png',
+                              height: 160,
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 2),
+                        SlideTransition(
+                          position: _iToAnimation,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 0),
+                            child: Image.asset(
+                              'assets/images/idai.png',
+                              height: 160,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   SlideTransition(
                     position: _textAnimation,

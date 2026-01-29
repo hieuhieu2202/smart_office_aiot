@@ -36,7 +36,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   final noteCtrl = TextEditingController();
   String status = "PASS";
 
-  final String apiUrl = "http://192.168.0.74:9090/api/ProductCapture/upload";
+  final String apiUrl = "http://192.168.0.62:9090/api/ProductCapture/upload";
 
   @override
   void initState() {

@@ -5,7 +5,7 @@ import 'dart:convert';
 
 class PTHDashboardApi {
   static final String _baseUrl =
-      "https://10.220.130.117/api/Automation/CCDMachine/";
+      "https://10.220.130.117/api/auto/CcdMachine/GetMonitoringData";
 
   static Future<List<String>> getGroupNames() async {
     var url = Uri.parse("${_baseUrl}GetGroupNames");
