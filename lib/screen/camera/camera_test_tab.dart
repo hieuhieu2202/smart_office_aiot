@@ -180,32 +180,41 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   // SEND API
   // -----------------------------------------------------
   Future<void> sendToApi(List<XFile> images) async {
-    if (images.isEmpty) {
+    if (status == "FAIL" && images.isEmpty) {
       Get.snackbar("Lỗi", "Chưa có ảnh");
+      return;
+    }
+    if (status == "FAIL" && errorCodeCtrl.text.trim().isEmpty) {
+      Get.snackbar("Lỗi", "Vui lòng nhập ErrorCode");
       return;
     }
 
     setState(() => state = TestState.uploading);
 
     try {
-      List<String> listBase64 = [];
-
-      for (var file in images) {
-        final compressed = await FlutterImageCompress.compressWithFile(file.path, quality: 60);
-
-        listBase64.add(
-          base64Encode(compressed ?? await File(file.path).readAsBytes()),
-        );
-      }
-
       final payload = {
         "Serial": serialCtrl.text,
         "Status": status,
         "UserName": userCtrl.text,
-        "Images": listBase64,
         "Time": DateTime.now().toIso8601String(),
         "Note": noteCtrl.text,
       };
+      if (status == "FAIL") {
+        List<String> listBase64 = [];
+
+        for (var file in images) {
+          final compressed = await FlutterImageCompress.compressWithFile(
+            file.path,
+            quality: 60,
+          );
+
+          listBase64.add(
+            base64Encode(compressed ?? await File(file.path).readAsBytes()),
+          );
+        }
+
+        payload["Images"] = listBase64;
+      }
 
       final res = await http.post(
         Uri.parse(apiUrl),
@@ -666,6 +675,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             status = v!;
             if (status == "PASS") {
               errorCodeCtrl.clear();
+              captured.clear();
             }
           }),
         ),
