@@ -184,10 +184,6 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       Get.snackbar("Lỗi", "Chưa có ảnh");
       return;
     }
-    if (status == "FAIL" && errorCodeCtrl.text.trim().isEmpty) {
-      Get.snackbar("Lỗi", "Vui lòng nhập ErrorCode");
-      return;
-    }
 
     setState(() => state = TestState.uploading);
 
@@ -205,7 +201,6 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       final payload = {
         "Serial": serialCtrl.text,
         "Status": status,
-        "ErrorCode": errorCodeCtrl.text,
         "UserName": userCtrl.text,
         "Images": listBase64,
         "Time": DateTime.now().toIso8601String(),
@@ -604,23 +599,39 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   Widget _formContent() {
     return Column(
       children: [
-        // TODO: Replace with Dropdown loaded from database
-        TextField(
-          controller: factoryCtrl,
-          style: const TextStyle(color: Colors.white),
-          decoration: _inputStyle("Factory"),
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: TextField(
+                controller: factoryCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputStyle("Factory"),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: TextField(
+                controller: floorCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputStyle("Floor"),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 3,
+              child: TextField(
+                controller: userCtrl,
+                readOnly: true,
+                style: const TextStyle(color: Colors.white70),
+                decoration: _inputStyle("Người thực hiện"),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
 
-        // TODO: Replace with Dropdown loaded from database
-        TextField(
-          controller: floorCtrl,
-          style: const TextStyle(color: Colors.white),
-          decoration: _inputStyle("Floor"),
-        ),
-        const SizedBox(height: 12),
-
-        // TODO: Replace with Dropdown loaded from database
         TextField(
           controller: productNameCtrl,
           style: const TextStyle(color: Colors.white),
@@ -628,7 +639,6 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         ),
         const SizedBox(height: 12),
 
-        // TODO: Replace with Dropdown loaded from database
         TextField(
           controller: modelCtrl,
           style: const TextStyle(color: Colors.white),
@@ -662,7 +672,6 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         const SizedBox(height: 12),
 
         if (status == "FAIL") ...[
-          // TODO: Replace with Dropdown loaded from database
           TextField(
             controller: errorCodeCtrl,
             style: const TextStyle(color: Colors.white),
@@ -670,14 +679,6 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
           ),
           const SizedBox(height: 12),
         ],
-
-        TextField(
-          controller: userCtrl,
-          readOnly: true,
-          style: const TextStyle(color: Colors.white70),
-          decoration: _inputStyle("Người thực hiện"),
-        ),
-        const SizedBox(height: 12),
 
         TextField(
           controller: noteCtrl,
