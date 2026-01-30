@@ -192,7 +192,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     setState(() => state = TestState.uploading);
 
     try {
-      final payload = {
+      final Map<String, dynamic> payload = {
         "Serial": serialCtrl.text,
         "Status": status,
         "UserName": userCtrl.text,
