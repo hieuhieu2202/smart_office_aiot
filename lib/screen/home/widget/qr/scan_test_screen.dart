@@ -137,11 +137,10 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                       _emptyFrameCount++;
 
                       if (_emptyFrameCount >= _maxEmptyFramesBeforeExpand) {
-
                         if (_scanBoxScale < _maxScale - 0.01) {
                           _setScanScale(_scanBoxScale + _scaleStep);
                         }
-                        _emptyFrameCount = 0; // reset counter after expanding
+                        _emptyFrameCount = 0;
                       }
 
                       if (_emptyFrameCount > _maxEmptyFramesBeforeReset) {
@@ -152,33 +151,41 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                     }
 
                     // ---------- HAVE BARCODE ----------
-                    final bcRaw = barcodes.first.rawValue ?? "";
+                    String? snCandidate;
 
-                    if (bcRaw.isEmpty) {
-                      _candidateButNoDecodeCount++;
-                      if (_candidateButNoDecodeCount >= _maxCandidateNoDecodeBeforeShrink) {
-                        if (_scanBoxScale > _minScale + 0.01) {
-                          _setScanScale(_scanBoxScale - _scaleStep);
-                        }
-                        _candidateButNoDecodeCount = 0;
+                    for (final barcode in barcodes) {
+                      final raw = barcode.rawValue?.trim() ?? "";
+                      if (raw.isEmpty) continue;
+
+                      // BỎ PN (có dấu '-')
+                      if (raw.contains('-')) continue;
+
+                      // RULE SN: chữ + số, không '-', độ dài >= 8
+                      if (RegExp(r'^[A-Z0-9]{8,}$').hasMatch(raw)) {
+                        snCandidate = raw;
+                        break;
                       }
+                    }
+
+                    // Chưa có SN → tiếp tục scan
+                    if (snCandidate == null) {
                       return;
                     }
 
                     _found = true;
-                    _foundCode = bcRaw;
+                    _foundCode = snCandidate;
 
                     try {
                       await _controller.stop();
                     } catch (_) {}
+
                     if (!mounted) return;
 
                     Navigator.pop(context, {
                       "serial": _foundCode,
                       "format": capture.barcodes.first.format.name,
                     });
-                  } catch (e) {
-                    // swallow, keep scanning
+                  } catch (_) {
                     _emptyFrameCount++;
                     _isProcessing = false;
                   }
