@@ -24,6 +24,8 @@ class _ScanTestScreenState extends State<ScanTestScreen>
   bool _isProcessing = false;
   bool _found = false;
   String _foundCode = "";
+  String _foundPartNumber = "";
+  String _foundSerialNumber = "";
   bool _torchOn = false;
 
   // scan window parameters
@@ -83,9 +85,20 @@ class _ScanTestScreenState extends State<ScanTestScreen>
     if (!keepFound) {
       _found = false;
       _foundCode = "";
+      _foundPartNumber = "";
+      _foundSerialNumber = "";
     }
   }
 
+  bool _isPartNumber(String value) {
+    final hasLetter = RegExp(r"[A-Za-z]").hasMatch(value);
+    final hasSeparator = value.contains("-") || value.contains("_");
+    return hasLetter && hasSeparator;
+  }
+
+  bool _isSerialNumber(String value) {
+    return RegExp(r"^[0-9]{8,}$").hasMatch(value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,9 +165,31 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                     }
 
                     // ---------- HAVE BARCODE ----------
-                    final bcRaw = barcodes.first.rawValue ?? "";
+                    _emptyFrameCount = 0;
+                    bool hasDecodedValue = false;
 
-                    if (bcRaw.isEmpty) {
+                    for (final barcode in barcodes) {
+                      final rawValue = barcode.rawValue ?? "";
+                      if (rawValue.isEmpty) {
+                        continue;
+                      }
+
+                      hasDecodedValue = true;
+
+                      if (_foundPartNumber.isEmpty && _isPartNumber(rawValue)) {
+                        _foundPartNumber = rawValue;
+                      }
+
+                      if (_foundSerialNumber.isEmpty && _isSerialNumber(rawValue)) {
+                        _foundSerialNumber = rawValue;
+                      }
+
+                      if (_foundPartNumber.isNotEmpty && _foundSerialNumber.isNotEmpty) {
+                        break;
+                      }
+                    }
+
+                    if (!hasDecodedValue) {
                       _candidateButNoDecodeCount++;
                       if (_candidateButNoDecodeCount >= _maxCandidateNoDecodeBeforeShrink) {
                         if (_scanBoxScale > _minScale + 0.01) {
@@ -165,8 +200,12 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                       return;
                     }
 
+                    if (_foundPartNumber.isEmpty || _foundSerialNumber.isEmpty) {
+                      return;
+                    }
+
                     _found = true;
-                    _foundCode = bcRaw;
+                    _foundCode = "${_foundPartNumber}_$_foundSerialNumber";
 
                     try {
                       await _controller.stop();
@@ -174,8 +213,8 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                     if (!mounted) return;
 
                     Navigator.pop(context, {
-                      "serial": _foundCode,
-                      "format": capture.barcodes.first.format.name,
+                      "partNumber": _foundPartNumber,
+                      "serialNumber": _foundSerialNumber,
                     });
                   } catch (e) {
                     // swallow, keep scanning
