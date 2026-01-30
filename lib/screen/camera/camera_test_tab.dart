@@ -31,7 +31,10 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   double minZoom = 1.0;
   double maxZoom = 1.0;
 
-  final partNumberCtrl = TextEditingController();
+  final factoryCtrl = TextEditingController();
+  final floorCtrl = TextEditingController();
+  final productNameCtrl = TextEditingController();
+  final modelCtrl = TextEditingController();
   final serialCtrl = TextEditingController();
   final userCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
@@ -54,7 +57,10 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     controller?.dispose();
-    partNumberCtrl.dispose();
+    factoryCtrl.dispose();
+    floorCtrl.dispose();
+    productNameCtrl.dispose();
+    modelCtrl.dispose();
     serialCtrl.dispose();
     userCtrl.dispose();
     noteCtrl.dispose();
@@ -591,11 +597,35 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   Widget _formContent() {
     return Column(
       children: [
-        // TODO: Replace TextField with Dropdown when PartNumber is loaded from database
+        // TODO: Replace with Dropdown loaded from database
         TextField(
-          controller: partNumberCtrl,
+          controller: factoryCtrl,
           style: const TextStyle(color: Colors.white),
-          decoration: _inputStyle("PartNumber"),
+          decoration: _inputStyle("Factory"),
+        ),
+        const SizedBox(height: 12),
+
+        // TODO: Replace with Dropdown loaded from database
+        TextField(
+          controller: floorCtrl,
+          style: const TextStyle(color: Colors.white),
+          decoration: _inputStyle("Floor"),
+        ),
+        const SizedBox(height: 12),
+
+        // TODO: Replace with Dropdown loaded from database
+        TextField(
+          controller: productNameCtrl,
+          style: const TextStyle(color: Colors.white),
+          decoration: _inputStyle("ProductName"),
+        ),
+        const SizedBox(height: 12),
+
+        // TODO: Replace with Dropdown loaded from database
+        TextField(
+          controller: modelCtrl,
+          style: const TextStyle(color: Colors.white),
+          decoration: _inputStyle("Model"),
         ),
         const SizedBox(height: 12),
 
