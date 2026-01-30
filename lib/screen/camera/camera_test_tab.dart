@@ -31,6 +31,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   double minZoom = 1.0;
   double maxZoom = 1.0;
 
+  final partNumberCtrl = TextEditingController();
   final serialCtrl = TextEditingController();
   final userCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
@@ -53,6 +54,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     controller?.dispose();
+    partNumberCtrl.dispose();
     serialCtrl.dispose();
     userCtrl.dispose();
     noteCtrl.dispose();
@@ -589,6 +591,14 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   Widget _formContent() {
     return Column(
       children: [
+        // TODO: Replace TextField with Dropdown when PartNumber is loaded from database
+        TextField(
+          controller: partNumberCtrl,
+          style: const TextStyle(color: Colors.white),
+          decoration: _inputStyle("PartNumber"),
+        ),
+        const SizedBox(height: 12),
+
         TextField(
           controller: serialCtrl,
           style: const TextStyle(color: Colors.white),
