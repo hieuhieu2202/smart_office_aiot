@@ -31,6 +31,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   double minZoom = 1.0;
   double maxZoom = 1.0;
 
+  final partNumberCtrl = TextEditingController();
   final serialCtrl = TextEditingController();
   final userCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
@@ -53,6 +54,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     controller?.dispose();
+    partNumberCtrl.dispose();
     serialCtrl.dispose();
     userCtrl.dispose();
     noteCtrl.dispose();
@@ -89,7 +91,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     }
 
     product = qr;
-    serialCtrl.text = product?["serial"] ?? "";
+    partNumberCtrl.text = product?["partNumber"] ?? "";
+    serialCtrl.text = product?["serialNumber"] ?? "";
 
     await initCamera();
     state = TestState.productDetected;
@@ -227,6 +230,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         controller = null;
 
         captured.clear();
+        partNumberCtrl.clear();
         serialCtrl.clear();
         noteCtrl.clear();
         status = "PASS";
@@ -590,9 +594,16 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     return Column(
       children: [
         TextField(
+          controller: partNumberCtrl,
+          style: const TextStyle(color: Colors.white),
+          decoration: _inputStyle("PartNumber"),
+        ),
+        const SizedBox(height: 12),
+
+        TextField(
           controller: serialCtrl,
           style: const TextStyle(color: Colors.white),
-          decoration: _inputStyle("Serial"),
+          decoration: _inputStyle("SerialNumber"),
         ),
         const SizedBox(height: 12),
 
