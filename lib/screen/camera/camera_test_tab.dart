@@ -38,6 +38,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   final serialCtrl = TextEditingController();
   final userCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
+  final errorCodeCtrl = TextEditingController();
   String status = "PASS";
 
   final String apiUrl = "http://192.168.0.74:9090/api/ProductCapture/upload";
@@ -64,6 +65,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     serialCtrl.dispose();
     userCtrl.dispose();
     noteCtrl.dispose();
+    errorCodeCtrl.dispose();
     super.dispose();
   }
 
@@ -182,6 +184,10 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       Get.snackbar("Lỗi", "Chưa có ảnh");
       return;
     }
+    if (status == "FAIL" && errorCodeCtrl.text.trim().isEmpty) {
+      Get.snackbar("Lỗi", "Vui lòng nhập ErrorCode");
+      return;
+    }
 
     setState(() => state = TestState.uploading);
 
@@ -199,6 +205,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       final payload = {
         "Serial": serialCtrl.text,
         "Status": status,
+        "ErrorCode": errorCodeCtrl.text,
         "UserName": userCtrl.text,
         "Images": listBase64,
         "Time": DateTime.now().toIso8601String(),
@@ -645,9 +652,24 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             DropdownMenuItem(value: "PASS", child: Text("PASS")),
             DropdownMenuItem(value: "FAIL", child: Text("FAIL")),
           ],
-          onChanged: (v) => setState(() => status = v!),
+          onChanged: (v) => setState(() {
+            status = v!;
+            if (status == "PASS") {
+              errorCodeCtrl.clear();
+            }
+          }),
         ),
         const SizedBox(height: 12),
+
+        if (status == "FAIL") ...[
+          // TODO: Replace with Dropdown loaded from database
+          TextField(
+            controller: errorCodeCtrl,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputStyle("ErrorCode"),
+          ),
+          const SizedBox(height: 12),
+        ],
 
         TextField(
           controller: userCtrl,
