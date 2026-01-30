@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -91,74 +92,120 @@ class _LcrDashboardPageState extends State<LcrDashboardPage>
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 1100; // tablet + mobile
+          final isHandset = constraints.maxWidth < 600;
+
+          final titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+                fontSize: isHandset ? 18 : null,
+              );
+
+          Widget buildNavigationRow() {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      Get.back<void>();
+                    }
+                  },
+                  icon: Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white70,
+                    size: isHandset ? 18 : 20,
+                  ),
+                  splashRadius: isHandset ? 20 : 22,
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.memory,
+                  color: Colors.cyanAccent,
+                  size: isHandset ? 24 : 28,
+                ),
+                SizedBox(width: isHandset ? 8 : 12),
+                Flexible(
+                  child: Text(
+                    'LCR MACHINE',
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  ),
+                ),
+              ],
+            );
+          }
+
+          final actions = Wrap(
+            spacing: isHandset ? 8 : 12,
+            runSpacing: isHandset ? 8 : 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              IconButton(
-                onPressed: () {
-                  if (Navigator.of(context).canPop()) {
-                    Navigator.of(context).pop();
-                  } else {
-                    Get.back<void>();
-                  }
-                },
-                icon: const Icon(Icons.arrow_back_ios_new,
-                    color: Colors.white70, size: 20),
-                splashRadius: 22,
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.memory, color: Colors.cyanAccent, size: 28),
-              const SizedBox(width: 12),
-              Text(
-                'LCR MACHINE',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 2,
-                    ),
-              ),
-              const Spacer(),
               SizedBox(
-                height: 44,
+                height: isHandset ? 36 : 44,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.cyanAccent,
                     side: const BorderSide(color: Colors.cyanAccent),
                     backgroundColor: const Color(0xFF03132D),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isHandset ? 14 : 18,
+                      vertical: isHandset ? 6 : 8,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  onPressed: () {
-                    _showFilterSheet(context);
-                  },
-                  icon: const Icon(Icons.tune, size: 20),
-                  label: const Text(
+                  onPressed: () => _showFilterSheet(context),
+                  icon: Icon(Icons.tune, size: isHandset ? 18 : 20),
+                  label: Text(
                     'FILTER',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.1,
+                      fontSize: isHandset ? 12 : 14,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
               IconButton(
                 onPressed: () => controller.resetToCurrentShiftAndReload(),
                 icon: const Icon(Icons.refresh, color: Colors.white70),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-        ],
+          );
+
+          // ✅ Gộp lại trên cùng một hàng cho mobile và tablet
+          if (isCompact) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: buildNavigationRow()),
+                const SizedBox(width: 12),
+                actions,
+              ],
+            );
+          }
+
+          // Desktop giữ nguyên
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: buildNavigationRow()),
+              const SizedBox(width: 12),
+              actions,
+            ],
+          );
+        },
       ),
     );
   }
-
   Future<DateTimeRange?> _pickDashboardDateTimeRange(
     BuildContext context,
     DateTimeRange initialRange,
@@ -799,23 +846,305 @@ class _DashboardTab extends StatelessWidget {
   final LcrDashboardController controller;
 
   double _factoryDistributionHeight(int itemCount) {
-    const baseHeight = 190.0;
-    const perTile = 68.0;
-    final computed = baseHeight + (itemCount * perTile);
-    return math.max(320.0, computed);
+    if (itemCount <= 0) {
+      return 240.0;
+    }
+
+    const headerHeight = 150.0;
+    const perTile = 74.0;
+    final computed = headerHeight + (itemCount * perTile);
+    return math.max(240.0, computed);
   }
 
-  double _machinePerformanceHeight(int itemCount) {
+  double _machinePerformanceHeight({
+    required int itemCount,
+    required double maxWidth,
+    required bool isMobile,
+    required bool isTablet,
+  }) {
     if (itemCount <= 0) {
-      return 300.0;
+      return 260.0;
     }
-    if (itemCount <= 4) {
-      return 300.0;
+
+    if (!isMobile && !isTablet) {
+      return 320.0;
     }
-    if (itemCount <= 8) {
-      return 360.0;
+
+    const double chartPadding = 36.0; // LcrChartCard vertical padding (18 top + 18 bottom)
+    const double headerHeight = 42.0; // title row + spacing before content
+    const double crossAxisSpacing = 16.0;
+    const double mainAxisSpacing = 16.0;
+    const int crossAxisCount = 2;
+    final int effectiveCount = math.max(4, itemCount);
+    final int rows = math.max(1, (effectiveCount / crossAxisCount).ceil());
+
+    final double layoutHorizontalPadding = isMobile ? 16.0 : 24.0;
+    final double cardHorizontalPadding = 40.0; // default padding inside LcrChartCard
+    final double availableWidth = math.max(
+      0,
+      maxWidth - (layoutHorizontalPadding * 2) - cardHorizontalPadding -
+          crossAxisSpacing * (crossAxisCount - 1),
+    );
+
+    if (availableWidth <= 0) {
+      return 320.0;
     }
-    return 480.0;
+
+    final double tileWidth = availableWidth / crossAxisCount;
+    final double aspectRatio = isMobile ? 1.0 : 1.15;
+    final double tileHeight = tileWidth / aspectRatio;
+    final double gridHeight =
+        (rows * tileHeight) + ((rows - 1) * mainAxisSpacing);
+
+    return chartPadding + headerHeight + gridHeight;
+  }
+
+  Widget _buildPrimaryCharts({
+    required LcrDashboardViewState data,
+    required bool isMobile,
+    required bool isTablet,
+    required double primaryRowHeight,
+  }) {
+    final factoryCard = LcrChartCard(
+      title: 'FACTORY DISTRIBUTION',
+      height: primaryRowHeight,
+      child: _FactoryDistributionList(data.factorySlices),
+    );
+
+    final machineCard = LcrChartCard(
+      title: 'MACHINE PERFORMANCE',
+      height: primaryRowHeight,
+      child: _MachinesGrid(data.machineGauges),
+    );
+
+    final employeeCard = LcrChartCard(
+      title: 'EMPLOYEE STATISTICS',
+      height: primaryRowHeight,
+      child: _EmployeeStatisticsChart(data.employeeSeries),
+    );
+
+    if (!isMobile && !isTablet) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 2, child: factoryCard),
+          const SizedBox(width: 24),
+          Expanded(flex: 6, child: machineCard),
+          const SizedBox(width: 24),
+          Expanded(flex: 2, child: employeeCard),
+        ],
+      );
+    }
+
+    if (isTablet) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          machineCard,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: factoryCard),
+              const SizedBox(width: 16),
+              Expanded(child: employeeCard),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        machineCard,
+        const SizedBox(height: 16),
+        factoryCard,
+        const SizedBox(height: 16),
+        employeeCard,
+      ],
+    );
+  }
+
+  Widget _buildSecondaryCharts({
+    required LcrDashboardViewState data,
+    required bool isMobile,
+    required bool isTablet,
+    double? availableHeight,
+  }) {
+    double resolveHeight(double base) {
+      if (availableHeight == null || !availableHeight.isFinite) {
+        return base;
+      }
+      return availableHeight!;
+    }
+
+    final departmentCard = LcrChartCard(
+      title: 'DEPARTMENT ANALYSIS',
+      height: resolveHeight(340),
+      child: _StackedBarChart(data.departmentSeries),
+    );
+
+    final outputCard = LcrChartCard(
+      title: 'YIELD RATE & OUTPUT',
+      height: resolveHeight(360),
+      backgroundGradient: const LinearGradient(
+        colors: [
+          Color(0xFF062349),
+          Color(0xFF041127),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
+      child: _OutputChart(data.outputTrend),
+    );
+
+    final typeCard = LcrChartCard(
+      title: 'TYPE ANALYSIS',
+      height: resolveHeight(340),
+      child: _StackedBarChart(
+        data.typeSeries,
+        xLabelStyle: const TextStyle(
+          color: Color(0xFFE8F4FF),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+          shadows: [
+            Shadow(
+              color: Color(0x88000000),
+              offset: Offset(0, 1),
+              blurRadius: 2,
+            ),
+          ],
+        ),
+        xLabelIntersectAction: AxisLabelIntersectAction.wrap,
+        maximumLabelWidth: 90,
+      ),
+    );
+
+    if (!isMobile && !isTablet) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 2, child: departmentCard),
+          const SizedBox(width: 24),
+          Expanded(flex: 5, child: outputCard),
+          const SizedBox(width: 24),
+          Expanded(flex: 3, child: typeCard),
+        ],
+      );
+    }
+
+    if (isTablet) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          outputCard,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: departmentCard),
+              const SizedBox(width: 16),
+              Expanded(child: typeCard),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        outputCard,
+        const SizedBox(height: 16),
+        departmentCard,
+        const SizedBox(height: 16),
+        typeCard,
+      ],
+    );
+  }
+
+  Future<void> _showStatusOverview(BuildContext context, bool showPass) async {
+    final overview = controller.dashboardView.value?.overview;
+    final expectedCount = overview == null
+        ? null
+        : showPass
+            ? overview.pass
+            : overview.fail;
+
+    if (expectedCount != null && expectedCount <= 0) {
+      final snackBar = SnackBar(
+        backgroundColor: Colors.blueGrey.shade900,
+        content: Text(
+          'No ${showPass ? 'pass' : 'fail'} records available for the current filters.',
+          style: const TextStyle(color: Colors.white),
+        ),
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      }
+      return;
+    }
+
+    final accentColor = showPass
+        ? const Color(0xFF2DE5FF)
+        : const Color(0xFFFF77A9);
+
+    final messenger = ScaffoldMessenger.of(context);
+
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.65),
+      builder: (_) => _StatusOverviewLoader(
+        title: showPass ? 'PASS OVERVIEW' : 'FAIL OVERVIEW',
+        highlightColor: accentColor,
+        loadRecords: () async {
+          final fetched = await controller.loadStatusRecords(pass: showPass);
+          final filtered = fetched
+              .where((record) => record.isPass == showPass)
+              .toList();
+          final records = filtered.isEmpty && fetched.isNotEmpty
+              ? List<LcrRecord>.from(fetched)
+              : filtered;
+
+          if (records.isEmpty) {
+            throw const _EmptyRecordsException();
+          }
+
+          final sorted = List<LcrRecord>.from(records)
+            ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+          return List<LcrRecord>.unmodifiable(sorted);
+        },
+        onEmpty: () {
+          if (!context.mounted) {
+            return;
+          }
+          messenger.showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.blueGrey.shade900,
+              content: Text(
+                'No ${showPass ? 'pass' : 'fail'} records available for the current filters.',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          );
+        },
+        onError: () {
+          if (!context.mounted) {
+            return;
+          }
+          messenger.showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.redAccent.shade200,
+              content: Text(
+                'Unable to load ${showPass ? 'pass' : 'fail'} records. Please try again.',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -840,95 +1169,128 @@ class _DashboardTab extends StatelessWidget {
             );
           }
 
-          final machineHeight =
-              _machinePerformanceHeight(data.machineGauges.length);
+          final maxWidth = constraints.maxWidth;
+          final isMobile = maxWidth < 720;
+          final isTablet = !isMobile && maxWidth < 1100;
+
+          final machineHeight = _machinePerformanceHeight(
+            itemCount: data.machineGauges.length,
+            maxWidth: maxWidth,
+            isMobile: isMobile,
+            isTablet: isTablet,
+          );
+          final factoryHeight =
+              _factoryDistributionHeight(data.factorySlices.length);
           final primaryRowHeight = math.max(
-            machineHeight,
-            math.max(
-              _factoryDistributionHeight(data.factorySlices.length),
-              300.0,
-            ),
+            260.0,
+            math.max(machineHeight, factoryHeight),
+          );
+          final horizontalPadding = isMobile ? 16.0 : 24.0;
+          final verticalPadding = isMobile ? 16.0 : 24.0;
+          final resolvedPrimaryHeight = (isMobile || isTablet)
+              ? primaryRowHeight
+              : math.max(320.0, machineHeight);
+
+          final summaryWidget = _SummaryRow(
+            overview: data.overview,
+            onPassOverview: () => _showStatusOverview(context, true),
+            onFailOverview: () => _showStatusOverview(context, false),
           );
 
+          if (!isMobile && !isTablet) {
+            const summaryEstimate = 140.0;
+            const betweenSummaryAndPrimary = 12.0;
+            const betweenRows = 16.0;
+            const minSecondaryHeight = 360.0;
+
+            final minRequiredHeight = (verticalPadding * 2) +
+                summaryEstimate +
+                betweenSummaryAndPrimary +
+                resolvedPrimaryHeight +
+                betweenRows +
+                minSecondaryHeight;
+
+            if (constraints.maxHeight >= minRequiredHeight) {
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 140),
+                      child: summaryWidget,
+                    ),
+                    SizedBox(height: betweenSummaryAndPrimary),
+                    Expanded(
+                      flex: 8,
+                      child: LayoutBuilder(
+                        builder: (context, innerConstraints) {
+                          final height = innerConstraints.maxHeight.isFinite
+                              ? innerConstraints.maxHeight
+                              : resolvedPrimaryHeight;
+                          return _buildPrimaryCharts(
+                            data: data,
+                            isMobile: isMobile,
+                            isTablet: isTablet,
+                            primaryRowHeight: height,
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(height: betweenRows),
+                    Expanded(
+                      flex: 11,
+                      child: LayoutBuilder(
+                        builder: (context, innerConstraints) {
+                          final secondaryHeight =
+                              innerConstraints.maxHeight.isFinite
+                                  ? innerConstraints.maxHeight
+                                  : null;
+                          return _buildSecondaryCharts(
+                            data: data,
+                            isMobile: isMobile,
+                            isTablet: isTablet,
+                            availableHeight: secondaryHeight,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
+
           return SizedBox(
-            width: constraints.maxWidth,
+            width: maxWidth,
             height: constraints.maxHeight,
             child: SingleChildScrollView(
               primary: false,
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
+              ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _SummaryRow(overview: data.overview),
-                    const SizedBox(height: 24),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: LcrChartCard(
-                            title: 'FACTORY DISTRIBUTION',
-                            height: primaryRowHeight,
-                            child: _FactoryDistributionList(
-                              data.factorySlices,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          flex: 6,
-                          child: LcrChartCard(
-                            title: 'MACHINE PERFORMANCE',
-                            height: primaryRowHeight,
-                            child: _MachinesGrid(data.machineGauges),
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          flex: 2,
-                          child: LcrChartCard(
-                            title: 'EMPLOYEE STATISTICS',
-                            height: primaryRowHeight,
-                            child: _EmployeeStatisticsChart(
-                              data.employeeSeries,
-                            ),
-                          ),
-                        ),
-                      ],
+                    summaryWidget,
+                    SizedBox(height: isMobile ? 16 : 24),
+                    _buildPrimaryCharts(
+                      data: data,
+                      isMobile: isMobile,
+                      isTablet: isTablet,
+                      primaryRowHeight: resolvedPrimaryHeight,
                     ),
-                    const SizedBox(height: 24),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: LcrChartCard(
-                            title: 'DEPARTMENT ANALYSIS',
-                            height: 280,
-                            child: _StackedBarChart(data.departmentSeries),
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          flex: 4,
-                          child: LcrChartCard(
-                            title: 'YIELD RATE & OUTPUT',
-                            height: 360,
-                            child: _OutputChart(data.outputTrend),
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          flex: 3,
-                          child: LcrChartCard(
-                            title: 'TYPE ANALYSIS',
-                            height: 280,
-                            child: _StackedBarChart(data.typeSeries),
-                          ),
-                        ),
-                      ],
+                    SizedBox(height: isMobile ? 16 : 24),
+                    _buildSecondaryCharts(
+                      data: data,
+                      isMobile: isMobile,
+                      isTablet: isTablet,
                     ),
                   ],
                 ),
@@ -942,50 +1304,1290 @@ class _DashboardTab extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.overview});
+  const _SummaryRow({
+    required this.overview,
+    this.onPassOverview,
+    this.onFailOverview,
+  });
 
   final LcrOverview overview;
+  final VoidCallback? onPassOverview;
+  final VoidCallback? onFailOverview;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: LcrSummaryTile(
-            title: 'INPUT',
-            value: overview.total.toString(),
-            suffix: 'PCS',
-            color: Colors.blueAccent,
+    final tiles = <Widget>[
+      LcrSummaryTile(
+        title: 'INPUT',
+        value: overview.total.toString(),
+        suffix: 'PCS',
+        color: const Color(0xFF2D7DD2),
+      ),
+      LcrSummaryTile(
+        title: 'PASS',
+        value: overview.pass.toString(),
+        suffix: 'PCS',
+        color: const Color(0xFF38A169),
+        actionLabel: 'Overview',
+        onActionTap: onPassOverview,
+      ),
+      LcrSummaryTile(
+        title: 'FAIL',
+        value: overview.fail.toString(),
+        suffix: 'PCS',
+        color: const Color(0xFFE53E3E),
+        actionLabel: 'Overview',
+        onActionTap: onFailOverview,
+      ),
+      LcrSummaryTile(
+        title: 'Y.R',
+        value: overview.yieldRate.toStringAsFixed(2),
+        suffix: '%',
+        color: const Color(0xFFF6AD55),
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+
+        // 🖥 Desktop ≥1100px: 4 card trên 1 hàng (giữ nguyên)
+        if (width >= 1100) {
+          return Row(
+            children: [
+              for (int i = 0; i < tiles.length; i++) ...[
+                Expanded(child: tiles[i]),
+                if (i != tiles.length - 1) const SizedBox(width: 16),
+              ],
+            ],
+          );
+        }
+
+        // 💻 Tablet & 📱 Mobile: luôn hiển thị 2 cột × 2 hàng
+        final crossAxisCount = 2;
+        final spacing = 12.0;
+        final itemWidth = (width - spacing) / 2;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          alignment: WrapAlignment.center,
+          children: tiles
+              .map((tile) => SizedBox(width: itemWidth, child: tile))
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+
+
+class _StatusOverviewLoader extends StatefulWidget {
+  const _StatusOverviewLoader({
+    required this.title,
+    required this.highlightColor,
+    required this.loadRecords,
+    this.onEmpty,
+    this.onError,
+  });
+
+  final String title;
+  final Color highlightColor;
+  final Future<List<LcrRecord>> Function() loadRecords;
+  final VoidCallback? onEmpty;
+  final VoidCallback? onError;
+
+  @override
+  State<_StatusOverviewLoader> createState() => _StatusOverviewLoaderState();
+}
+
+class _StatusOverviewLoaderState extends State<_StatusOverviewLoader> {
+  List<LcrRecord>? _records;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadRecords());
+  }
+
+  Future<void> _loadRecords() async {
+    try {
+      final records = await widget.loadRecords();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _records = records;
+      });
+    } on _EmptyRecordsException {
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
+      widget.onEmpty?.call();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
+      widget.onError?.call();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final records = _records;
+
+    if (records == null) {
+      return Dialog(
+        backgroundColor: const Color(0xFF03132D).withOpacity(0.9),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: SizedBox(
+          width: 320,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: widget.highlightColor),
+                const SizedBox(height: 18),
+                Text(
+                  'Loading ${widget.title.toLowerCase()}...',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: LcrSummaryTile(
-            title: 'PASS',
-            value: overview.pass.toString(),
-            suffix: 'PCS',
-            color: Colors.greenAccent,
+      );
+    }
+
+    return _StatusOverviewDialog(
+      title: widget.title,
+      highlightColor: widget.highlightColor,
+      records: records,
+    );
+  }
+}
+
+class _EmptyRecordsException implements Exception {
+  const _EmptyRecordsException();
+}
+
+
+
+class _StatusOverviewDialog extends StatefulWidget {
+  const _StatusOverviewDialog({
+    required this.title,
+    required this.records,
+    required this.highlightColor,
+  });
+
+  final String title;
+  final List<LcrRecord> records;
+  final Color highlightColor;
+
+  @override
+  State<_StatusOverviewDialog> createState() => _StatusOverviewDialogState();
+}
+
+class _StatusOverviewDialogState extends State<_StatusOverviewDialog> {
+  late final ScrollController _verticalController;
+  late final ScrollController _horizontalHeaderController;
+  late final ScrollController _horizontalBodyController;
+  late final TextEditingController _searchController;
+  static const String _kAllFilter = 'ALL';
+  static const String _kMissingValue = '-';
+  static const double _kHeaderHeight = 48;
+  static const double _kColumnSpacing = 6;
+  static const double _kHorizontalMargin = 8;
+
+  static const List<DataColumn> _tableColumns = <DataColumn>[
+    DataColumn(label: _TableHeader('#')),
+    DataColumn(label: _TableHeader('DATE TIME')),
+    DataColumn(label: _TableHeader('SERIAL NO.')),
+    DataColumn(label: _TableHeader('CUSTOMER P/N')),
+    DataColumn(label: _TableHeader('DATE CODE')),
+    DataColumn(label: _TableHeader('LOT CODE')),
+    DataColumn(label: _TableHeader('QTY')),
+    DataColumn(label: _TableHeader('EXT QTY')),
+    DataColumn(label: _TableHeader('DESCRIPTION', maxLines: 2)),
+    DataColumn(label: _TableHeader('MATERIAL TYPE')),
+    DataColumn(label: _TableHeader('LOW SPEC')),
+    DataColumn(label: _TableHeader('HIGH SPEC')),
+    DataColumn(label: _TableHeader('MEASURE VALUE')),
+    DataColumn(label: _TableHeader('EMPLOYEE ID')),
+    DataColumn(label: _TableHeader('FACTORY')),
+    DataColumn(label: _TableHeader('DEPARTMENT')),
+    DataColumn(label: _TableHeader('MACHINE NO.')),
+  ];
+
+  late List<LcrRecord> _filteredRecords;
+  List<String> _typeOptions = const <String>[];
+  List<String> _employeeOptions = const <String>[];
+  List<String> _factoryOptions = const <String>[];
+  List<String> _departmentOptions = const <String>[];
+  List<String> _machineOptions = const <String>[];
+
+  String _selectedType = _kAllFilter;
+  String _selectedEmployee = _kAllFilter;
+  String _selectedFactory = _kAllFilter;
+  String _selectedDepartment = _kAllFilter;
+  String _selectedMachine = _kAllFilter;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _verticalController = ScrollController();
+    _horizontalHeaderController = ScrollController();
+    _horizontalBodyController = ScrollController();
+    _horizontalBodyController.addListener(_syncHorizontalControllers);
+    _searchController = TextEditingController();
+    _initializeFilters();
+  }
+
+  @override
+  void dispose() {
+    _verticalController.dispose();
+    _horizontalBodyController.removeListener(_syncHorizontalControllers);
+    _horizontalHeaderController.dispose();
+    _horizontalBodyController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _StatusOverviewDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.records, widget.records)) {
+      setState(_initializeFilters);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.title;
+    final totalRecords = widget.records.length;
+    final records = _filteredRecords;
+    final highlightColor = widget.highlightColor;
+    final theme = Theme.of(context);
+    final media = MediaQuery.of(context);
+    final width = math.min(
+      math.max(media.size.width * 0.96, media.size.width - 32),
+      1920.0,
+    );
+    final tableMinWidth = math.max(width * 0.9, width - 56);
+    final height = math.min(media.size.height * 0.9, 820.0);
+    final dateTimeFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
+    final hasActiveFilters = _hasActiveFilters;
+    final recordChipLabel = hasActiveFilters
+        ? '${records.length} / $totalRecords records'
+        : '${records.length} records';
+    final emptyMessage = hasActiveFilters
+        ? 'No records match the current filters.'
+        : 'No records available for this status.';
+    final headingTextStyle = theme.textTheme.labelSmall?.copyWith(
+          color: Colors.white70,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+        ) ??
+        const TextStyle(
+          color: Colors.white70,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+        );
+    final dataTextStyle = theme.textTheme.bodySmall?.copyWith(
+          color: Colors.white.withOpacity(0.9),
+          fontWeight: FontWeight.w600,
+        ) ??
+        const TextStyle(
+          color: Color(0xE6FFFFFF),
+          fontWeight: FontWeight.w600,
+        );
+    final infoTextStyle = theme.textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF20E0FF),
+          fontWeight: FontWeight.w700,
+        ) ??
+        const TextStyle(
+          color: Color(0xFF20E0FF),
+          fontWeight: FontWeight.w700,
+        );
+    final warningTextStyle = theme.textTheme.bodySmall?.copyWith(
+          color: const Color(0xFFFF77A9),
+          fontWeight: FontWeight.w700,
+        ) ??
+        const TextStyle(
+          color: Color(0xFFFF77A9),
+          fontWeight: FontWeight.w700,
+        );
+    final successTextStyle = theme.textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF5CFF8F),
+          fontWeight: FontWeight.w700,
+        ) ??
+        const TextStyle(
+          color: Color(0xFF5CFF8F),
+          fontWeight: FontWeight.w700,
+        );
+    final chipTextStyle = theme.textTheme.labelSmall?.copyWith(
+          color: highlightColor,
+          fontWeight: FontWeight.w700,
+        ) ??
+        TextStyle(
+          color: highlightColor,
+          fontWeight: FontWeight.w700,
+        );
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(24),
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: const Color(0xFF020D24).withOpacity(0.96),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white24),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black54,
+              blurRadius: 32,
+              offset: Offset(0, 18),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+              child: LayoutBuilder(
+                builder: (context, headerConstraints) {
+                  final isCompact = headerConstraints.maxWidth < 360;
+                  final titleText = Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ) ??
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ),
+                  );
+
+                  Widget buildChip() {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: highlightColor.withOpacity(0.16),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        recordChipLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: chipTextStyle,
+                      ),
+                    );
+                  }
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: titleText),
+                            IconButton(
+                              splashRadius: 22,
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.close, color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        buildChip(),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: titleText),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: buildChip(),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        splashRadius: 22,
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.white70),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Divider(color: Colors.white12, height: 1),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isHorizontal = constraints.maxWidth >= 900;
+                    final gap = isHorizontal ? 20.0 : 0.0;
+                    final filterWidth = isHorizontal
+                        ? math.min(340.0, constraints.maxWidth * 0.28)
+                        : constraints.maxWidth;
+                    final tableAvailableWidth = isHorizontal
+                        ? math.max(0.0, constraints.maxWidth - filterWidth - gap)
+                        : constraints.maxWidth;
+                    final allowTwoColumns = isHorizontal
+                        ? filterWidth >= 260.0
+                        : constraints.maxWidth >= 560.0;
+                    final tableMinWidth = math.max(tableAvailableWidth, 720.0);
+                    final tableWidget = records.isEmpty
+                        ? _buildEmptyTableShell(theme, emptyMessage)
+                        : _buildRecordsTable(
+                            records: records,
+                            tableMinWidth: tableMinWidth,
+                            dateTimeFormatter: dateTimeFormatter,
+                            headingTextStyle: headingTextStyle,
+                            dataTextStyle: dataTextStyle,
+                            infoTextStyle: infoTextStyle,
+                            warningTextStyle: warningTextStyle,
+                            successTextStyle: successTextStyle,
+                          );
+
+                    if (isHorizontal) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            width: filterWidth,
+                            child: _buildFilterPane(
+                              allowTwoColumns: allowTwoColumns,
+                              scrollable: true,
+                            ),
+                          ),
+                          SizedBox(width: gap),
+                          Expanded(child: tableWidget),
+                        ],
+                      );
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: _buildFilterPane(
+                            allowTwoColumns: allowTwoColumns,
+                            scrollable: true,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(child: tableWidget),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildFilterPane({
+    required bool allowTwoColumns,
+    required bool scrollable,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 320.0;
+        final contentWidth = math.max(0.0, availableWidth - 32.0);
+        final useTwoColumns = allowTwoColumns && contentWidth >= 320.0;
+        final fieldWidth = useTwoColumns
+            ? (contentWidth - 12.0) / 2.0
+            : contentWidth;
+        final resolvedFieldWidth = fieldWidth > 0
+            ? fieldWidth
+            : (contentWidth > 0 ? contentWidth : availableWidth);
+
+        final dropdowns = <Widget>[
+          _FilterDropdown(
+            label: 'TYPE',
+            value: _selectedType,
+            options: _typeOptions,
+            onChanged: (value) => _onFilterChanged(type: value),
+            width: resolvedFieldWidth,
+          ),
+          _FilterDropdown(
+            label: 'EMPLOYEE ID',
+            value: _selectedEmployee,
+            options: _employeeOptions,
+            onChanged: (value) => _onFilterChanged(employee: value),
+            width: resolvedFieldWidth,
+          ),
+          _FilterDropdown(
+            label: 'FACTORY',
+            value: _selectedFactory,
+            options: _factoryOptions,
+            onChanged: (value) => _onFilterChanged(factory: value),
+            width: resolvedFieldWidth,
+          ),
+          _FilterDropdown(
+            label: 'DEPARTMENT',
+            value: _selectedDepartment,
+            options: _departmentOptions,
+            onChanged: (value) => _onFilterChanged(department: value),
+            width: resolvedFieldWidth,
+          ),
+          _FilterDropdown(
+            label: 'MACHINE NO.',
+            value: _selectedMachine,
+            options: _machineOptions,
+            onChanged: (value) => _onFilterChanged(machine: value),
+            width: resolvedFieldWidth,
+          ),
+        ];
+
+        final column = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: dropdowns,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: _SearchField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+              ),
+            ),
+          ],
+        );
+
+        Widget content = column;
+        if (scrollable) {
+          final minHeight = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : 0.0;
+          content = SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: minHeight),
+              child: column,
+            ),
+          );
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: content,
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyTableShell(ThemeData theme, String message) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white12),
+        color: Colors.white.withOpacity(0.03),
+      ),
+      child: _buildEmptyState(theme, message),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme, String message) {
+    final style = theme.textTheme.titleMedium?.copyWith(
+          color: Colors.white60,
+          fontWeight: FontWeight.w600,
+        ) ??
+        const TextStyle(
+          color: Colors.white60,
+          fontWeight: FontWeight.w600,
+        );
+
+    return Center(
+      child: Text(
+        message,
+        style: style,
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildRecordsTable({
+    required List<LcrRecord> records,
+    required double tableMinWidth,
+    required DateFormat dateTimeFormatter,
+    required TextStyle headingTextStyle,
+    required TextStyle dataTextStyle,
+    required TextStyle infoTextStyle,
+    required TextStyle warningTextStyle,
+    required TextStyle successTextStyle,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white12),
+        color: Colors.white.withOpacity(0.03),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          children: [
+            _StickyTableHeader(
+              horizontalController: _horizontalHeaderController,
+              minWidth: tableMinWidth,
+              columns: _tableColumns,
+              headingTextStyle: headingTextStyle,
+            ),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: Colors.white12,
+            ),
+            Expanded(
+              child: Scrollbar(
+                controller: _verticalController,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  controller: _verticalController,
+                  primary: false,
+                  child: SingleChildScrollView(
+                    controller: _horizontalBodyController,
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: tableMinWidth,
+                      ),
+                      child: DataTable(
+                        headingRowHeight: 0,
+                        dataRowMinHeight: 44,
+                        dataRowMaxHeight: 60,
+                        headingRowColor: MaterialStateProperty.all(
+                          Colors.white.withOpacity(0.05),
+                        ),
+                        headingTextStyle: headingTextStyle,
+                        dataTextStyle: dataTextStyle,
+                        columnSpacing: _kColumnSpacing,
+                        horizontalMargin: _kHorizontalMargin,
+                        columns: _tableColumns,
+                        rows: records.asMap().entries.map((entry) {
+                          final index = entry.key + 1;
+                          final record = entry.value;
+                          final rowTint = record.isPass
+                              ? Colors.white.withOpacity(0.01)
+                              : const Color(0xFFFF77A9).withOpacity(0.08);
+
+                          return DataRow(
+                            color: MaterialStateProperty.all(rowTint),
+                            cells: <DataCell>[
+                              DataCell(
+                                _TableText(index.toString()),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  dateTimeFormatter.format(record.dateTime),
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.serialNumber ?? '-',
+                                  style: infoTextStyle,
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(record.customerPn ?? '-'),
+                              ),
+                              DataCell(
+                                _TableText(record.dateCode ?? '-'),
+                              ),
+                              DataCell(
+                                _TableText(record.lotCode ?? '-'),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.qty?.toString() ?? '-',
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.extQty?.toString() ?? '-',
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.description ?? '-',
+                                  maxLines: 2,
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  _stringValue(record.materialType),
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.lowSpec ?? '-',
+                                  style: infoTextStyle,
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.highSpec ?? '-',
+                                  style: warningTextStyle,
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  record.measureValue ?? '-',
+                                  style: successTextStyle,
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  _stringValue(record.employeeId),
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  _stringValue(record.factory),
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  _stringValue(record.department),
+                                ),
+                              ),
+                              DataCell(
+                                _TableText(
+                                  _machineValue(record.machineNo),
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool get _hasActiveFilters =>
+      _selectedType != _kAllFilter ||
+      _selectedEmployee != _kAllFilter ||
+      _selectedFactory != _kAllFilter ||
+      _selectedDepartment != _kAllFilter ||
+      _selectedMachine != _kAllFilter ||
+      _searchQuery.isNotEmpty;
+
+  void _initializeFilters() {
+    final records = widget.records;
+    _typeOptions = _buildStringOptions(records.map((record) => record.materialType));
+    _employeeOptions =
+        _buildStringOptions(records.map((record) => record.employeeId));
+    _factoryOptions = _buildStringOptions(records.map((record) => record.factory));
+    _departmentOptions =
+        _buildStringOptions(records.map((record) => record.department));
+    _machineOptions = _buildMachineOptions(records.map((record) => record.machineNo));
+    _selectedType = _kAllFilter;
+    _selectedEmployee = _kAllFilter;
+    _selectedFactory = _kAllFilter;
+    _selectedDepartment = _kAllFilter;
+    _selectedMachine = _kAllFilter;
+    _searchQuery = '';
+    if (_searchController.text.isNotEmpty) {
+      _searchController.clear();
+    }
+    _filteredRecords = List<LcrRecord>.from(records);
+    _resetScrollPositions();
+  }
+
+  void _onFilterChanged({
+    String? type,
+    String? employee,
+    String? factory,
+    String? department,
+    String? machine,
+  }) {
+    setState(() {
+      if (type != null) _selectedType = type;
+      if (employee != null) _selectedEmployee = employee;
+      if (factory != null) _selectedFactory = factory;
+      if (department != null) _selectedDepartment = department;
+      if (machine != null) _selectedMachine = machine;
+      _filteredRecords = _applyFilters();
+    });
+    _resetScrollPositions();
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value.trim();
+      _filteredRecords = _applyFilters();
+    });
+    _resetScrollPositions();
+  }
+
+  List<LcrRecord> _applyFilters() {
+    final query = _searchQuery.toLowerCase();
+    final hasQuery = query.isNotEmpty;
+
+    return widget.records.where((record) {
+      if (_selectedType != _kAllFilter &&
+          _stringValue(record.materialType) != _selectedType) {
+        return false;
+      }
+      if (_selectedEmployee != _kAllFilter &&
+          _stringValue(record.employeeId) != _selectedEmployee) {
+        return false;
+      }
+      if (_selectedFactory != _kAllFilter &&
+          _stringValue(record.factory) != _selectedFactory) {
+        return false;
+      }
+      if (_selectedDepartment != _kAllFilter &&
+          _stringValue(record.department) != _selectedDepartment) {
+        return false;
+      }
+      if (_selectedMachine != _kAllFilter &&
+          _machineValue(record.machineNo) != _selectedMachine) {
+        return false;
+      }
+      if (hasQuery && !_matchesSearch(record, query)) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  bool _matchesSearch(LcrRecord record, String query) {
+    bool matchString(String? value) =>
+        value != null && value.toLowerCase().contains(query);
+    bool matchInt(int? value) =>
+        value != null && value != 0 && value.toString().contains(query);
+
+    if (matchString(record.serialNumber)) return true;
+    if (matchString(record.customerPn)) return true;
+    if (matchString(record.dateCode)) return true;
+    if (matchString(record.lotCode)) return true;
+    if (matchString(record.description)) return true;
+    if (matchString(record.materialType)) return true;
+    if (_stringValue(record.materialType).toLowerCase().contains(query)) {
+      return true;
+    }
+    if (matchString(record.lowSpec)) return true;
+    if (matchString(record.highSpec)) return true;
+    if (matchString(record.measureValue)) return true;
+    if (matchString(record.employeeId)) return true;
+    if (_stringValue(record.employeeId).toLowerCase().contains(query)) {
+      return true;
+    }
+    if (matchString(record.vendor)) return true;
+    if (matchString(record.vendorNo)) return true;
+    if (matchString(record.location)) return true;
+    if (matchInt(record.qty)) return true;
+    if (matchInt(record.extQty)) return true;
+    if (record.workDate.isNotEmpty &&
+        record.workDate.toLowerCase().contains(query)) {
+      return true;
+    }
+    if (record.className.isNotEmpty &&
+        record.className.toLowerCase().contains(query)) {
+      return true;
+    }
+    if (record.classDate.isNotEmpty &&
+        record.classDate.toLowerCase().contains(query)) {
+      return true;
+    }
+    if (record.recordId.isNotEmpty &&
+        record.recordId.toLowerCase().contains(query)) {
+      return true;
+    }
+    final factoryValue = record.factory.toLowerCase();
+    if (factoryValue.contains(query)) return true;
+    if (matchString(record.department)) return true;
+    if (_stringValue(record.department).toLowerCase().contains(query)) {
+      return true;
+    }
+    final machineValue = _machineValue(record.machineNo).toLowerCase();
+    if (machineValue.contains(query)) return true;
+    final statusLabel = record.isPass ? 'pass' : 'fail';
+    if (statusLabel.contains(query)) return true;
+    final dateString = record.dateTime.toIso8601String().toLowerCase();
+    if (dateString.contains(query)) return true;
+    if (matchInt(record.workSection)) return true;
+    return false;
+  }
+
+  List<String> _buildStringOptions(Iterable<String?> values) {
+    final unique = <String, String>{};
+    var includeMissing = false;
+    for (final raw in values) {
+      final trimmed = raw?.trim();
+      if (trimmed == null || trimmed.isEmpty) {
+        includeMissing = true;
+        continue;
+      }
+      final key = trimmed.toLowerCase();
+      unique.putIfAbsent(key, () => trimmed);
+    }
+    final options = <String>[_kAllFilter];
+    if (includeMissing) {
+      options.add(_kMissingValue);
+    }
+    final sortedKeys = SplayTreeSet<String>()..addAll(unique.keys);
+    for (final key in sortedKeys) {
+      options.add(unique[key]!);
+    }
+    return options;
+  }
+
+  List<String> _buildMachineOptions(Iterable<int> values) {
+    final sorted = SplayTreeSet<int>();
+    var includeMissing = false;
+    for (final machine in values) {
+      if (machine == 0) {
+        includeMissing = true;
+      } else {
+        sorted.add(machine);
+      }
+    }
+    final options = <String>[_kAllFilter];
+    if (includeMissing) {
+      options.add(_kMissingValue);
+    }
+    for (final machine in sorted) {
+      options.add(machine.toString());
+    }
+    return options;
+  }
+
+  String _stringValue(String? raw) {
+    final trimmed = raw?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return _kMissingValue;
+    }
+    return trimmed;
+  }
+
+  String _machineValue(int machine) {
+    return machine == 0 ? _kMissingValue : machine.toString();
+  }
+
+  void _syncHorizontalControllers() {
+    if (!_horizontalHeaderController.hasClients) {
+      return;
+    }
+    final offset = _horizontalBodyController.offset;
+    if (_horizontalHeaderController.offset == offset) {
+      return;
+    }
+    _horizontalHeaderController.jumpTo(offset);
+  }
+
+  void _resetScrollPositions() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_verticalController.hasClients) {
+        _verticalController.jumpTo(0);
+      }
+      if (_horizontalBodyController.hasClients) {
+        _horizontalBodyController.jumpTo(0);
+      }
+      if (_horizontalHeaderController.hasClients) {
+        _horizontalHeaderController.jumpTo(0);
+      }
+    });
+  }
+}
+
+class _StickyTableHeader extends StatelessWidget {
+  const _StickyTableHeader({
+    required this.horizontalController,
+    required this.minWidth,
+    required this.columns,
+    required this.headingTextStyle,
+  });
+
+  final ScrollController horizontalController;
+  final double minWidth;
+  final List<DataColumn> columns;
+  final TextStyle headingTextStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _StatusOverviewDialogState._kHeaderHeight,
+      child: SingleChildScrollView(
+        controller: horizontalController,
+        physics: const NeverScrollableScrollPhysics(),
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: minWidth),
+          child: DataTable(
+            headingRowHeight: _StatusOverviewDialogState._kHeaderHeight,
+            dataRowMinHeight: 0,
+            dataRowMaxHeight: 0,
+            headingRowColor: MaterialStateProperty.all(
+              Colors.white.withOpacity(0.05),
+            ),
+            headingTextStyle: headingTextStyle,
+            columnSpacing: _StatusOverviewDialogState._kColumnSpacing,
+            horizontalMargin: _StatusOverviewDialogState._kHorizontalMargin,
+            columns: columns,
+            rows: const <DataRow>[],
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: LcrSummaryTile(
-            title: 'FAIL',
-            value: overview.fail.toString(),
-            suffix: 'PCS',
-            color: Colors.redAccent,
-          ),
+      ),
+    );
+  }
+}
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader(this.label, {this.maxLines = 1});
+
+  final String label;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 56),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+        softWrap: maxLines > 1,
+      ),
+    );
+  }
+}
+
+class _TableText extends StatelessWidget {
+  const _TableText(
+    this.value, {
+    this.style,
+    this.maxLines = 1,
+  });
+
+  final String value;
+  final TextStyle? style;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      value,
+      style: style,
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+      softWrap: maxLines > 1,
+    );
+  }
+}
+
+class _SearchField extends StatelessWidget {
+  const _SearchField({
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hintStyle = theme.textTheme.bodySmall?.copyWith(
+          color: Colors.white54,
+          fontWeight: FontWeight.w500,
+          fontSize: 12,
+        ) ??
+        const TextStyle(
+          color: Colors.white54,
+          fontWeight: FontWeight.w500,
+          fontSize: 12,
+        );
+    final textStyle = theme.textTheme.bodyMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        ) ??
+        const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        );
+
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      style: textStyle,
+      cursorColor: const Color(0xFF20E0FF),
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        isDense: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.05),
+        hintText: 'Search records',
+        hintStyle: hintStyle,
+        prefixIcon:
+            const Icon(Icons.search, color: Colors.white54, size: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.white24),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: LcrSummaryTile(
-            title: 'Y.R',
-            value: overview.yieldRate.toStringAsFixed(2),
-            suffix: '%',
-            color: Colors.amberAccent,
-          ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.white24),
         ),
-      ],
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF20E0FF)),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterDropdown extends StatelessWidget {
+  const _FilterDropdown({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    this.width = 180,
+  });
+
+  final String label;
+  final String value;
+  final List<String> options;
+  final ValueChanged<String?> onChanged;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+          color: Colors.white60,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+          fontSize: 11,
+        ) ??
+        const TextStyle(
+          color: Colors.white60,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+          fontSize: 11,
+        );
+    final valueStyle = theme.textTheme.bodySmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+          fontSize: 13,
+        ) ??
+        const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+          fontSize: 13,
+        );
+
+    return SizedBox(
+      width: width,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: labelStyle),
+          const SizedBox(height: 4),
+          Container(
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: value,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Colors.white70,
+                  size: 18,
+                ),
+                dropdownColor: const Color(0xFF04122F),
+                isExpanded: true,
+                style: valueStyle,
+                onChanged: (newValue) {
+                  if (newValue == null) return;
+                  onChanged(newValue);
+                },
+                items: options
+                    .map(
+                      (option) => DropdownMenuItem<String>(
+                        value: option,
+                        child: Text(
+                          option,
+                          overflow: TextOverflow.ellipsis,
+                          style: valueStyle,
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1021,6 +2623,7 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
     'F17': [Color(0xFF6DD5FA), Color(0xFF2980B9)],
     'F16': [Color(0xFFFFD26F), Color(0xFFFB8D34)],
     'B03': [Color(0xFFFF758C), Color(0xFFFED6E3)],
+    'F06': [Color(0xFFFFB88C), Color(0xFFDE6262)],
   };
 
   static const List<List<Color>> _fallbackGradients = <List<Color>>[
@@ -1062,15 +2665,17 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.cyanAccent.withOpacity(0.9),
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.4,
+                    letterSpacing: 1.05,
+                    fontSize: 11,
                   ) ??
                   const TextStyle(
                     color: Colors.cyanAccent,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.4,
+                    letterSpacing: 1.05,
+                    fontSize: 11,
                   ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             _PulsingTotalBadge(total: total),
           ],
         ),
@@ -1089,8 +2694,8 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
       );
     }
 
-    const headerEstimate = 130.0;
-    const tileEstimate = 82.0;
+    const headerEstimate = 120.0;
+    const tileEstimate = 62.0;
     final estimatedHeight =
         headerEstimate + (sorted.length * tileEstimate); // conservative
 
@@ -1105,11 +2710,11 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
-              const SizedBox(height: 22),
+              const SizedBox(height: 12),
               ...List.generate(sorted.length, (index) {
                 return Padding(
                   padding: EdgeInsets.only(
-                    bottom: index == sorted.length - 1 ? 0 : 16,
+                    bottom: index == sorted.length - 1 ? 0 : 10,
                   ),
                   child: buildTile(index),
                 );
@@ -1122,7 +2727,7 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildHeader(),
-            const SizedBox(height: 22),
+            const SizedBox(height: 12),
             Expanded(
               child: Scrollbar(
                 controller: _scrollController,
@@ -1133,7 +2738,7 @@ class _FactoryDistributionListState extends State<_FactoryDistributionList> {
                   physics: const BouncingScrollPhysics(),
                   itemCount: sorted.length,
                   itemBuilder: (context, index) => buildTile(index),
-                  separatorBuilder: (context, index) => const SizedBox(height: 16),
+                  separatorBuilder: (context, index) => const SizedBox(height: 10),
                 ),
               ),
             ),
@@ -1173,17 +2778,18 @@ class _FactoryDistributionTile extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       waitDuration: const Duration(milliseconds: 120),
       showDuration: const Duration(milliseconds: 3500),
       verticalOffset: 18,
       preferBelow: false,
+      triggerMode: TooltipTriggerMode.tap,
       richMessage: TextSpan(
         text: label,
         style: const TextStyle(
           fontWeight: FontWeight.w700,
-          fontSize: 13,
-          letterSpacing: 0.6,
+          fontSize: 11,
+          letterSpacing: 0.4,
           color: Colors.white,
         ),
         children: [
@@ -1192,7 +2798,7 @@ class _FactoryDistributionTile extends StatelessWidget {
             text: '$value pcs',
             style: const TextStyle(
               fontWeight: FontWeight.w500,
-              fontSize: 12,
+              fontSize: 10,
               color: Colors.white70,
             ),
           ),
@@ -1201,7 +2807,7 @@ class _FactoryDistributionTile extends StatelessWidget {
             text: '$percentText%',
             style: const TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 12,
+              fontSize: 10,
               color: Colors.cyanAccent,
             ),
           ),
@@ -1213,21 +2819,22 @@ class _FactoryDistributionTile extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 12,
-                height: 12,
+                width: 9,
+                height: 9,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: gradient),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 5),
               Expanded(
                 child: Text(
                   label,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
+                    letterSpacing: 0.3,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -1236,19 +2843,20 @@ class _FactoryDistributionTile extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
+                  fontSize: 12,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 3),
           _GradientProgressBar(
             value: percent.clamp(0.0, 1.0),
             gradient: gradient,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             '$value pcs',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            style: const TextStyle(color: Colors.white70, fontSize: 10),
           ),
         ],
       ),
@@ -1297,30 +2905,30 @@ class _PulsingTotalBadgeState extends State<_PulsingTotalBadge>
     final textStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w800,
-          fontSize: 22,
-          letterSpacing: 1.1,
+          fontSize: 18,
+          letterSpacing: 0.8,
         ) ??
         const TextStyle(
           color: Colors.white,
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: FontWeight.w800,
-          letterSpacing: 1.1,
+          letterSpacing: 0.8,
         );
 
     final badge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF56CCF2), Color(0xFF2F80ED)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(
             color: Color(0x332980B9),
-            blurRadius: 24,
-            offset: Offset(0, 10),
+            blurRadius: 18,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -1362,7 +2970,7 @@ class _GradientProgressBar extends StatelessWidget {
         return ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
-            height: 10,
+            height: 6,
             child: Stack(
               children: [
                 Positioned.fill(
@@ -1394,10 +3002,31 @@ class _GradientProgressBar extends StatelessWidget {
 }
 
 class _StackedBarChart extends StatelessWidget {
-  const _StackedBarChart(this.series, {this.rotateLabels = false});
+  const _StackedBarChart(
+    this.series, {
+    this.rotateLabels = false,
+    this.xLabelStyle,
+    this.xLabelIntersectAction,
+    this.maximumLabelWidth,
+  });
 
   final LcrStackedSeries series;
   final bool rotateLabels;
+  final TextStyle? xLabelStyle;
+  final AxisLabelIntersectAction? xLabelIntersectAction;
+  final double? maximumLabelWidth;
+
+  static const LinearGradient _passGradient = LinearGradient(
+    colors: [Color(0xFF21D4FD), Color(0xFF2152FF)],
+    begin: Alignment.bottomCenter,
+    end: Alignment.topCenter,
+  );
+
+  static const LinearGradient _failGradient = LinearGradient(
+    colors: [Color(0xFFFF9CCF), Color(0xFFFF3D7F)],
+    begin: Alignment.bottomCenter,
+    end: Alignment.topCenter,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -1428,13 +3057,18 @@ class _StackedBarChart extends StatelessWidget {
             title: bar.category,
             pass: bar.pass,
             fail: bar.fail,
+            yieldRate: bar.yieldRate,
           );
         },
       ),
       primaryXAxis: CategoryAxis(
-        labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
+        labelStyle: xLabelStyle ??
+            const TextStyle(color: Colors.white70, fontSize: 12),
         majorGridLines: const MajorGridLines(width: 0),
         labelRotation: rotateLabels ? -45 : 0,
+        labelIntersectAction:
+            xLabelIntersectAction ?? AxisLabelIntersectAction.hide,
+        maximumLabelWidth: maximumLabelWidth,
       ),
       primaryYAxis: NumericAxis(
         labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
@@ -1452,20 +3086,25 @@ class _StackedBarChart extends StatelessWidget {
           dataSource: data,
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
           yValueMapper: (item, _) => (item as _StackedBarItem).pass,
-          color: Colors.cyanAccent,
+          gradient: _passGradient,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          width: 0.6,
+          spacing: 0.2,
+          legendIconType: LegendIconType.rectangle,
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
-            textStyle: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+            labelAlignment: ChartDataLabelAlignment.outer,
             builder: (dynamic item, dynamic point, dynamic series,
                 int pointIndex, int seriesIndex) {
               final bar = item as _StackedBarItem;
               final total = bar.pass + bar.fail;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text('$total'),
+              return Text(
+                '$total',
+                style: const TextStyle(
+                  color: Colors.cyanAccent,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
               );
             },
           ),
@@ -1475,8 +3114,47 @@ class _StackedBarChart extends StatelessWidget {
           dataSource: data,
           xValueMapper: (item, _) => (item as _StackedBarItem).category,
           yValueMapper: (item, _) => (item as _StackedBarItem).fail,
-          color: Colors.pinkAccent,
-          dataLabelSettings: const DataLabelSettings(isVisible: false),
+          gradient: _failGradient,
+          color: _EmployeeStatisticsChart._failColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          width: 0.6,
+          spacing: 0.2,
+          legendIconType: LegendIconType.rectangle,
+          dataLabelSettings: DataLabelSettings(
+            isVisible: true,
+            labelAlignment: ChartDataLabelAlignment.outer,
+            builder: (dynamic item, dynamic point, dynamic series,
+                int pointIndex, int seriesIndex) {
+              final bar = item as _StackedBarItem;
+              if (bar.fail <= 0) {
+                return const SizedBox.shrink();
+              }
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0x33FF3D7F),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: const Color(0xFFFF5FA5),
+                    width: 1,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  child: Text(
+                    '${bar.fail}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFD6EC),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -1493,6 +3171,14 @@ class _EmployeeStatisticsChart extends StatelessWidget {
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
+
+  static const _failGradient = LinearGradient(
+    colors: [Color(0xFFFF77A9), Color(0xFFFF3D7F)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
+  static const _failColor = Color(0xFFFF3D7F);
 
   @override
   Widget build(BuildContext context) {
@@ -1587,6 +3273,7 @@ class _EmployeeStatBarState extends State<_EmployeeStatBar> {
                   title: widget.data.name,
                   pass: widget.data.pass,
                   fail: widget.data.fail,
+                  yieldRate: widget.data.yieldRate,
                 ),
               ),
             ),
@@ -1605,17 +3292,13 @@ class _EmployeeStatBarState extends State<_EmployeeStatBar> {
 
   @override
   Widget build(BuildContext context) {
-    final widthFactor =
-        widget.data.total == 0 ? 0.0 : widget.data.total / widget.maxTotal;
-    final totalLabel = widget.data.total.toString();
-    final double clampedFactor = widthFactor.clamp(0.0, 1.0).toDouble();
-
     return CompositedTransformTarget(
       link: _layerLink,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _toggleTooltip,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
               width: 96,
@@ -1631,42 +3314,93 @@ class _EmployeeStatBarState extends State<_EmployeeStatBar> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Stack(
-                alignment: Alignment.centerLeft,
-                children: [
-                  Container(
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: Colors.white10,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  FractionallySizedBox(
-                    widthFactor: clampedFactor,
-                    child: Container(
-                      height: 24,
-                      decoration: BoxDecoration(
-                        gradient: _EmployeeStatisticsChart._barGradient,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          totalLabel,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxTotal = widget.maxTotal == 0 ? 1 : widget.maxTotal;
+
+                  Widget buildBar({
+                    required String label,
+                    required int value,
+                    Gradient? gradient,
+                    Color? color,
+                  }) {
+                    final widthFactor =
+                        (value / maxTotal).clamp(0.0, 1.0).toDouble();
+                    final barWidth = constraints.maxWidth * widthFactor;
+
+                    return SizedBox(
+                      height: 22,
+                      child: Stack(
+                        children: [
+                          Container(
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Colors.white10,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ),
+                          if (barWidth > 0)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: barWidth,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  gradient: gradient,
+                                ),
+                              ),
+                            ),
+                          Positioned.fill(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    value.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  Text(
+                                    '($label)',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                ],
+                    );
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      buildBar(
+                        label: 'PASS',
+                        value: widget.data.pass,
+                        gradient: _EmployeeStatisticsChart._barGradient,
+                      ),
+                      const SizedBox(height: 8),
+                      buildBar(
+                        label: 'FAIL',
+                        value: widget.data.fail,
+                        gradient: _EmployeeStatisticsChart._failGradient,
+                        color: _EmployeeStatisticsChart._failColor,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -1696,11 +3430,13 @@ class _BarTooltip extends StatelessWidget {
     required this.title,
     required this.pass,
     required this.fail,
+    required this.yieldRate,
   });
 
   final String title;
   final num pass;
   final num fail;
+  final double yieldRate;
 
   @override
   Widget build(BuildContext context) {
@@ -1725,13 +3461,38 @@ class _BarTooltip extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            _TooltipEntry(label: 'PASS', value: pass, color: Colors.cyanAccent),
+            _TooltipEntry(
+              label: 'PASS',
+              value: pass.toString(),
+              color: Colors.cyanAccent,
+            ),
             const SizedBox(height: 4),
-            _TooltipEntry(label: 'FAIL', value: fail, color: Colors.pinkAccent),
+            _TooltipEntry(
+              label: 'FAIL',
+              value: fail.toString(),
+              color: _EmployeeStatisticsChart._failColor,
+            ),
+            const SizedBox(height: 4),
+            _TooltipEntry(
+              label: 'YIELD RATE',
+              value: _formatYieldRate(yieldRate),
+              color: Colors.amberAccent,
+            ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatYieldRate(double value) {
+    if (value.isNaN || value.isInfinite) {
+      return '0%';
+    }
+    final rounded = value.roundToDouble();
+    final text = rounded == value
+        ? rounded.toInt().toString()
+        : value.toStringAsFixed(1);
+    return '$text%';
   }
 }
 
@@ -1743,7 +3504,7 @@ class _TooltipEntry extends StatelessWidget {
   });
 
   final String label;
-  final num value;
+  final String value;
   final Color color;
 
   @override
@@ -1765,7 +3526,7 @@ class _TooltipEntry extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         const SizedBox(width: 6),
-        Text(value.toString()),
+        Text(value),
       ],
     );
   }
@@ -1792,54 +3553,119 @@ class _OutputChart extends StatelessWidget {
       );
     });
 
-    final maxOutput = data.fold<int>(0, (prev, item) {
-      final value = item.total;
-      return value > prev ? value : prev;
-    });
-    final double yMax;
-    final double interval;
-    if (maxOutput == 0) {
-      yMax = 10;
-      interval = 2;
-    } else {
-      final step = (maxOutput / 5).ceil().clamp(1, 1000);
-      interval = step.toDouble();
-      yMax = (step * 6).toDouble();
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxWidth = constraints.maxWidth;
+        final bool isMobile = maxWidth < 640;
+        final bool isTablet = !isMobile && maxWidth < 1024;
+        final bool shouldWrapSlots = isMobile || isTablet;
+        final bool isTightMobile = maxWidth < 420;
+        final double slotWidth =
+            data.isEmpty ? maxWidth : maxWidth / data.length;
+        final double? maxLabelWidth = shouldWrapSlots
+            ? math.max(48.0, math.min(slotWidth, 96.0))
+            : null;
 
-    final annotations = <CartesianChartAnnotation>[];
-    if (data.isNotEmpty) {
-      annotations.add(
-        CartesianChartAnnotation(
-          widget: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.greenAccent.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+        String _formatSlotLabel(String label) {
+          if (!label.contains(' - ')) {
+            return label;
+          }
+          final parts = label.split(' - ');
+          if (parts.length < 2) {
+            return label;
+          }
+          final String start = parts.first.trim();
+          final String end = parts.last.trim();
+          return '$start\n$end';
+        }
+
+        final TextStyle axisLabelStyle = TextStyle(
+          color: const Color(0xFFE8F4FF),
+          fontSize: shouldWrapSlots
+              ? (isTightMobile
+                  ? 8.5
+                  : 10)
+              : 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: shouldWrapSlots
+              ? (isTightMobile ? 0.0 : 0.05)
+              : 0.2,
+          height: shouldWrapSlots
+              ? (isTightMobile
+                  ? 1.18
+                  : 1.22)
+              : 1.0,
+          shadows: const [
+            Shadow(
+              color: Color(0x99000000),
+              blurRadius: 6,
+              offset: Offset(0, 2),
             ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Text(
-                'Target (98%)',
-                style: TextStyle(
-                  color: Colors.greenAccent,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
+          ],
+        );
+
+        final maxOutput = data.fold<int>(0, (prev, item) {
+          final value = item.total;
+          return value > prev ? value : prev;
+        });
+        final double yMax;
+        final double interval;
+        if (maxOutput == 0) {
+          yMax = 10;
+          interval = 2;
+        } else {
+          final step = (maxOutput / 5).ceil().clamp(1, 1000);
+          interval = step.toDouble();
+          yMax = (step * 6).toDouble();
+        }
+
+        final EdgeInsets targetPadding = isMobile
+            ? const EdgeInsets.symmetric(horizontal: 6, vertical: 2)
+            : const EdgeInsets.symmetric(horizontal: 10, vertical: 4);
+        final TextStyle targetTextStyle = TextStyle(
+          color: Colors.greenAccent,
+          fontWeight: FontWeight.w700,
+          fontSize: isMobile ? 9 : 11,
+          height: 1.1,
+        );
+
+        final annotations = <CartesianChartAnnotation>[
+          if (data.isNotEmpty)
+            CartesianChartAnnotation(
+              widget: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.greenAccent.withOpacity(0.16),
+                  borderRadius: BorderRadius.circular(isMobile ? 10 : 12),
+                  border:
+                      Border.all(color: Colors.greenAccent.withOpacity(0.6)),
+                ),
+                child: Padding(
+                  padding: targetPadding,
+                  child: Text(
+                    'Target (98%)',
+                    style: targetTextStyle,
+                  ),
                 ),
               ),
+              region: AnnotationRegion.plotArea,
+              coordinateUnit: isMobile
+                  ? CoordinateUnit.logicalPixel
+                  : CoordinateUnit.point,
+              x: isMobile ? maxWidth - 12 : data.last.category,
+              y: isMobile ? 12 : 98,
+              yAxisName: isMobile ? null : 'yrAxis',
+              horizontalAlignment: ChartAlignment.far,
+              verticalAlignment: ChartAlignment.near,
             ),
-          ),
-          coordinateUnit: CoordinateUnit.point,
-          x: data.last.category,
-          y: 98,
-          yAxisName: 'yrAxis',
-        ),
-      );
-    }
+        ];
 
     return SfCartesianChart(
+      margin: shouldWrapSlots
+          ? const EdgeInsets.fromLTRB(12, 18, 12, 34)
+          : const EdgeInsets.fromLTRB(12, 18, 12, 12),
+      backgroundColor: Colors.transparent,
       plotAreaBorderWidth: 0,
-      plotAreaBackgroundColor: const Color(0x1A2B3A5A),
+      plotAreaBackgroundColor: Colors.transparent,
       tooltipBehavior: TooltipBehavior(
         enable: true,
         activationMode: ActivationMode.singleTap,
@@ -1847,14 +3673,14 @@ class _OutputChart extends StatelessWidget {
         header: '',
         builder: (dynamic item, dynamic point, dynamic series, int pointIndex,
             int seriesIndex) {
-          if (item is! _OutputItem ||
-              series is! ColumnSeries<dynamic, dynamic>) {
+          if (item is! _OutputItem) {
             return const SizedBox.shrink();
           }
           return _BarTooltip(
             title: item.category,
             pass: item.pass,
             fail: item.fail,
+            yieldRate: item.yr,
           );
         },
       ),
@@ -1875,18 +3701,27 @@ class _OutputChart extends StatelessWidget {
       ),
       legend: const Legend(isVisible: false),
       primaryXAxis: CategoryAxis(
-        labelStyle: const TextStyle(color: Colors.white70),
+        labelStyle: axisLabelStyle,
         majorGridLines: const MajorGridLines(width: 0),
         majorTickLines: const MajorTickLines(size: 0),
-        axisLine: AxisLine(color: Colors.white24.withOpacity(0.35)),
+        axisLine: AxisLine(color: Colors.white.withOpacity(0.25), width: 0.8),
         labelAlignment: LabelAlignment.center,
+        labelIntersectAction: shouldWrapSlots
+            ? AxisLabelIntersectAction.wrap
+            : AxisLabelIntersectAction.none,
+        axisLabelFormatter: (AxisLabelRenderDetails details) {
+          final label = details.text;
+          final text = shouldWrapSlots ? _formatSlotLabel(label) : label;
+          return ChartAxisLabel(text, axisLabelStyle);
+        },
+        maximumLabelWidth: maxLabelWidth,
       ),
       primaryYAxis: NumericAxis(
         minimum: 0,
         maximum: yMax,
         interval: interval,
-        labelStyle: const TextStyle(color: Colors.white70),
-        majorGridLines: MajorGridLines(color: Colors.white10.withOpacity(0.2)),
+        isVisible: false,
+        majorGridLines: const MajorGridLines(width: 0),
         majorTickLines: const MajorTickLines(size: 0),
         axisLine: const AxisLine(width: 0),
       ),
@@ -1895,21 +3730,10 @@ class _OutputChart extends StatelessWidget {
           name: 'yrAxis',
           minimum: 0,
           maximum: 100,
-          labelStyle: const TextStyle(color: Colors.amberAccent),
+          isVisible: false,
           axisLine: const AxisLine(width: 0),
           majorGridLines: const MajorGridLines(width: 0),
           majorTickLines: const MajorTickLines(size: 0),
-          labelFormat: '{value}%',
-          plotBands: <PlotBand>[
-            PlotBand(
-              start: 98,
-              end: 98,
-              borderWidth: 1,
-              borderColor: Colors.greenAccent.withOpacity(0.7),
-              dashArray: const <double>[4, 6],
-              shouldRenderAboveSeries: true,
-            ),
-          ],
         ),
       ],
       annotations: annotations,
@@ -1919,9 +3743,9 @@ class _OutputChart extends StatelessWidget {
           dataSource: data,
           xValueMapper: (item, _) => (item as _OutputItem).category,
           yValueMapper: (item, _) => (item as _OutputItem).total,
-          width: 0.6,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(12)),
+          width: 0.58,
+          spacing: 0.22,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
           gradient: const LinearGradient(
             colors: [Color(0xFF21D4FD), Color(0xFF2152FF)],
             begin: Alignment.bottomCenter,
@@ -1930,23 +3754,37 @@ class _OutputChart extends StatelessWidget {
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
             labelAlignment: ChartDataLabelAlignment.outer,
-            textStyle: const TextStyle(
-              color: Colors.cyanAccent,
-              fontWeight: FontWeight.w700,
-            ),
             builder: (dynamic item, dynamic point, dynamic series, int pointIndex,
                 int seriesIndex) {
               final entry = item as _OutputItem;
               return Text(
                 '${entry.total}',
                 style: const TextStyle(
-                  color: Colors.cyanAccent,
+                  color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
+                  shadows: [
+                    Shadow(
+                      color: Color(0xAA000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
               );
             },
           ),
+        ),
+        LineSeries<dynamic, dynamic>(
+          name: 'TARGET',
+          dataSource: data,
+          xValueMapper: (item, _) => (item as _OutputItem).category,
+          yValueMapper: (_, __) => 98,
+          yAxisName: 'yrAxis',
+          color: Colors.greenAccent,
+          width: 2,
+          dashArray: const <double>[6, 6],
+          markerSettings: const MarkerSettings(isVisible: false),
         ),
         SplineSeries<dynamic, dynamic>(
           name: 'YIELD RATE',
@@ -1955,24 +3793,22 @@ class _OutputChart extends StatelessWidget {
           yValueMapper: (item, _) => (item as _OutputItem).yr,
           yAxisName: 'yrAxis',
           color: Colors.amberAccent,
-          width: 2,
-          enableTooltip: false,
+          width: 3,
+          splineType: SplineType.monotonic,
+          enableTooltip: true,
           markerSettings: const MarkerSettings(
-            isVisible: false,
+            isVisible: true,
             shape: DataMarkerType.circle,
             borderColor: Colors.black,
-            borderWidth: 1.5,
+            borderWidth: 2,
             height: 10,
             width: 10,
           ),
+          emptyPointSettings:
+              const EmptyPointSettings(mode: EmptyPointMode.zero),
           dataLabelSettings: DataLabelSettings(
             isVisible: true,
             labelAlignment: ChartDataLabelAlignment.top,
-            textStyle: const TextStyle(
-              color: Colors.amberAccent,
-              fontWeight: FontWeight.w700,
-              fontSize: 10,
-            ),
             builder: (dynamic item, dynamic point, dynamic series,
                 int pointIndex, int seriesIndex) {
               final entry = item as _OutputItem;
@@ -1980,24 +3816,19 @@ class _OutputChart extends StatelessWidget {
               final formatted = value == value.roundToDouble()
                   ? value.toInt().toString()
                   : value.toStringAsFixed(1);
-              return DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xAA041026),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 3,
-                  ),
-                  child: Text(
-                    '$formatted%',
-                    style: const TextStyle(
-                      color: Colors.amberAccent,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
+              return Text(
+                '$formatted%',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  shadows: [
+                    Shadow(
+                      color: Color(0xAA000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
                     ),
-                  ),
+                  ],
                 ),
               );
             },
@@ -2005,11 +3836,13 @@ class _OutputChart extends StatelessWidget {
         ),
       ],
     );
+      },
+    );
   }
 }
 
 class _MachinesGrid extends StatelessWidget {
-  const _MachinesGrid(this.list);
+  const _MachinesGrid(this.list, {super.key});
 
   final List<LcrMachineGauge> list;
 
@@ -2028,21 +3861,68 @@ class _MachinesGrid extends StatelessWidget {
             ),
     ];
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < cards.length; i++)
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(right: i == cards.length - 1 ? 0 : 16),
-              child: LcrMachineCard(data: cards[i]),
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // 🖥 Desktop: 4 ngang
+    if (screenWidth >= 1100) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < cards.length; i++)
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: i == cards.length - 1 ? 0 : 16),
+                child: LcrMachineCard(data: cards[i]),
+              ),
             ),
+        ],
+      );
+    }
+
+    // 💻📱 Tablet/Mobile: 2 hàng × 2 cột
+    final bool isTablet = screenWidth >= 700;
+    final double aspectRatio = isTablet ? 1.15 : 1.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const int crossAxisCount = 2;
+        const double crossAxisSpacing = 16.0;
+        const double mainAxisSpacing = 16.0;
+
+        final double availableWidth = math.max(
+          0.0,
+          constraints.maxWidth - crossAxisSpacing * (crossAxisCount - 1),
+        );
+        final double tileWidth =
+            crossAxisCount > 0 ? availableWidth / crossAxisCount : 0.0;
+        final double tileHeight = tileWidth > 0
+            ? tileWidth / aspectRatio
+            : constraints.maxWidth / aspectRatio;
+        final int rows = math.max(1, (cards.length / crossAxisCount).ceil());
+        final double totalHeight =
+            (rows * tileHeight) + ((rows - 1) * mainAxisSpacing);
+
+        return SizedBox(
+          height: totalHeight,
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: crossAxisSpacing,
+              mainAxisSpacing: mainAxisSpacing,
+              childAspectRatio: aspectRatio,
+            ),
+            itemCount: cards.length,
+            itemBuilder: (context, index) {
+              return LcrMachineCard(data: cards[index]);
+            },
           ),
-      ],
+        );
+      },
     );
   }
 }
-
 
 class _AnalysisTab extends StatelessWidget {
   const _AnalysisTab({
@@ -2057,99 +3937,113 @@ class _AnalysisTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: SizedBox(
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: searchController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Serial Number Search',
-                          hintStyle: const TextStyle(color: Colors.white54),
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            color: Colors.cyanAccent,
-                          ),
-                          filled: true,
-                          fillColor: const Color(0xFF03132D),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.white24),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.white24),
-                          ),
-                        ),
-                        onChanged: controller.searchSerial,
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: Obx(() {
-                          final RxList<LcrRecord> reactiveList =
-                              controller.serialSearchResults.isNotEmpty
-                                  ? controller.serialSearchResults
-                                  : controller.analysisRecords;
-                          final results = reactiveList.toList();
-                          if (controller.isSearching.value) {
-                            return const Center(
-                              child:
-                                  CircularProgressIndicator(color: Colors.cyanAccent),
-                            );
-                          }
-                          if (results.isEmpty) {
-                            return const Center(
-                              child: Text('No serial numbers',
-                                  style: TextStyle(color: Colors.white54)),
-                            );
-                          }
-                          return ListView.separated(
-                            itemCount: results.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final record = results[index];
-                              return _ResultTile(
-                                record: record,
-                                onTap: () => controller.selectRecord(record.id),
-                              );
-                            },
-                          );
-                        }),
-                      ),
-                    ],
+        final isCompact = constraints.maxWidth < 860;
+
+        Widget buildSearchPane() {
+          Widget buildResultsList() {
+            return Obx(() {
+              final RxList<LcrRecord> reactiveList =
+                  controller.serialSearchResults.isNotEmpty
+                      ? controller.serialSearchResults
+                      : controller.analysisRecords;
+              final results = reactiveList.toList();
+              if (controller.isSearching.value) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.cyanAccent),
+                );
+              }
+              if (results.isEmpty) {
+                return const Center(
+                  child: Text('No serial numbers',
+                      style: TextStyle(color: Colors.white54)),
+                );
+              }
+              return ListView.separated(
+                padding: EdgeInsets.zero,
+                primary: false,
+                shrinkWrap: false,
+                itemCount: results.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final record = results[index];
+                  return _ResultTile(
+                    record: record,
+                    onTap: () => controller.selectRecord(record.id),
+                  );
+                },
+              );
+            });
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Serial Number Search',
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Colors.cyanAccent,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFF03132D),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.white24),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.white24),
                   ),
                 ),
-                const SizedBox(width: 24),
-                Expanded(
-                  flex: 5,
-                  child: Obx(() {
-                    if (controller.isLoadingRecord.value) {
-                      return const Center(
-                        child: CircularProgressIndicator(color: Colors.cyanAccent),
-                      );
-                    }
-                    final record = controller.selectedRecord.value;
-                    if (record == null) {
-                      return const Center(
-                        child: Text('Select a record to view details',
-                            style: TextStyle(color: Colors.white54)),
-                      );
-                    }
-                    return LcrRecordDetail(record: record);
-                  }),
+                onChanged: controller.searchSerial,
+              ),
+              const SizedBox(height: 16),
+              Expanded(child: buildResultsList()),
+            ],
+          );
+        }
+
+        Widget buildDetailPane() {
+          return Obx(() {
+            if (controller.isLoadingRecord.value) {
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.cyanAccent),
+              );
+            }
+            final record = controller.selectedRecord.value;
+            if (record == null) {
+              return const Center(
+                child: Text('Select a record to view details',
+                    style: TextStyle(color: Colors.white54)),
+              );
+            }
+            return LcrRecordDetail(record: record);
+          });
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: isCompact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Flexible(flex: 3, child: buildSearchPane()),
+                    const SizedBox(height: 16),
+                    Flexible(flex: 7, child: buildDetailPane()),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(flex: 3, child: buildSearchPane()),
+                    const SizedBox(width: 24),
+                    Expanded(flex: 5, child: buildDetailPane()),
+                  ],
                 ),
-              ],
-            ),
-          ),
         );
       },
     );
@@ -2201,6 +4095,14 @@ class _StackedBarItem {
   final String category;
   final int pass;
   final int fail;
+
+  double get yieldRate {
+    final total = pass + fail;
+    if (total == 0) {
+      return 0;
+    }
+    return pass / total * 100;
+  }
 }
 
 class _OutputItem {

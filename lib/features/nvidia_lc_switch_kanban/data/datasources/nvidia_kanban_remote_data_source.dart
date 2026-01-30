@@ -8,6 +8,7 @@ import '../../domain/entities/kanban_entities.dart';
 import '../models/detail_models.dart';
 import '../models/output_tracking_model.dart';
 import '../models/uph_tracking_model.dart';
+import '../models/upd_tracking_model.dart';
 
 class NvidiaKanbanLogger {
   NvidiaKanbanLogger._();
@@ -22,7 +23,7 @@ class NvidiaKanbanRemoteDataSource {
   final HttpHelper _http;
 
   static const String _base =
-      'https://10.220.130.117/newweb/api/nvidia/kanban';
+      'https://10.220.130.117/api/nvidia/kanban';
   static const Duration _timeout = Duration(seconds: 45);
 
   Future<List<String>> fetchGroups({required KanbanRequest request}) async {
@@ -42,6 +43,27 @@ class NvidiaKanbanRemoteDataSource {
       timeout: _timeout,
     );
     _ensure200(res, 'GetGroupsByShift');
+    return _parseStringList(res.body);
+  }
+
+  Future<List<String>> fetchGroupsByDateRange({
+    required KanbanRequest request,
+  }) async {
+    final uri = Uri.parse('$_base/Sfis/GetGroupsByDateRange');
+    final body = request.copyWith(
+      groups: const <String>[],
+    ).toBody();
+
+    NvidiaKanbanLogger.net(() => '[NvidiaKanban] POST $uri');
+    NvidiaKanbanLogger.net(() => '[NvidiaKanban] body => ${_safeBody(body)}');
+
+    final http.Response res = await _http.post(
+      uri,
+      headers: _headers(),
+      body: jsonEncode(body),
+      timeout: _timeout,
+    );
+    _ensure200(res, 'GetGroupsByDateRange');
     return _parseStringList(res.body);
   }
 
@@ -91,6 +113,30 @@ class NvidiaKanbanRemoteDataSource {
       return UphTrackingModel.fromJson(data);
     }
     throw Exception('GetUphTrackingData: invalid payload');
+  }
+
+  Future<UpdTrackingModel> fetchUpdTracking({
+    required KanbanRequest request,
+  }) async {
+    final uri = Uri.parse('$_base/UpdTracking/GetUpdTrackingData');
+    final body = request.toBody();
+
+    NvidiaKanbanLogger.net(() => '[NvidiaKanban] POST $uri');
+    NvidiaKanbanLogger.net(() => '[NvidiaKanban] body => ${_safeBody(body)}');
+
+    final http.Response res = await _http.post(
+      uri,
+      headers: _headers(),
+      body: jsonEncode(body),
+      timeout: _timeout,
+    );
+    _ensure200(res, 'GetUpdTrackingData');
+
+    final dynamic data = jsonDecode(res.body);
+    if (data is Map<String, dynamic>) {
+      return UpdTrackingModel.fromJson(data);
+    }
+    throw Exception('GetUpdTrackingData: invalid payload');
   }
 
   Future<OutputTrackingDetailModel> fetchOutputTrackingDetail({

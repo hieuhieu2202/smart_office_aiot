@@ -1,5 +1,7 @@
 import '../../domain/entities/te_report.dart';
 import '../../domain/entities/te_retest_rate.dart';
+import '../../domain/entities/te_top_error.dart';
+import '../../domain/entities/te_yield_rate.dart';
 import '../../domain/repositories/te_management_repository.dart';
 import '../datasources/te_management_remote_data_source.dart';
 import '../models/te_report_models.dart';
@@ -77,6 +79,62 @@ class TEManagementRepositoryImpl implements TEManagementRepository {
       modelSerial: modelSerial,
       range: range,
       model: model,
+    );
+  }
+
+  @override
+  Future<TEYieldDetailEntity> fetchYieldRateReport({
+    required String modelSerial,
+    required String range,
+    String model = '',
+  }) {
+    return _remoteDataSource.fetchYieldRateReport(
+      modelSerial: modelSerial,
+      range: range,
+      model: model,
+    );
+  }
+
+  @override
+  Future<List<TETopErrorEntity>> fetchTopErrorCodes({
+    required String modelSerial,
+    required String range,
+    String type = 'System',
+  }) {
+    return _remoteDataSource.fetchTopErrorCodes(
+      modelSerial: modelSerial,
+      range: range,
+      type: type,
+    );
+  }
+
+  @override
+  Future<List<TETopErrorTrendPointEntity>> fetchTopErrorTrendByErrorCode({
+    required String modelSerial,
+    required String range,
+    required String errorCode,
+    String type = 'System',
+  }) {
+    return _remoteDataSource.fetchTopErrorTrendByErrorCode(
+      modelSerial: modelSerial,
+      range: range,
+      errorCode: errorCode,
+      type: type,
+    );
+  }
+
+  @override
+  Future<List<TETopErrorTrendPointEntity>> fetchTopErrorTrendByModelStation({
+    required String range,
+    required String errorCode,
+    required String model,
+    required String station,
+  }) {
+    return _remoteDataSource.fetchTopErrorTrendByModelStation(
+      range: range,
+      errorCode: errorCode,
+      model: model,
+      station: station,
     );
   }
 }

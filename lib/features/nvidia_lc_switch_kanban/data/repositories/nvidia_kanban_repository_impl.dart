@@ -4,6 +4,7 @@ import '../datasources/nvidia_kanban_remote_data_source.dart';
 import '../models/detail_models.dart';
 import '../models/output_tracking_model.dart';
 import '../models/uph_tracking_model.dart';
+import '../models/upd_tracking_model.dart';
 
 class NvidiaKanbanRepositoryImpl implements NvidiaKanbanRepository {
   NvidiaKanbanRepositoryImpl({
@@ -18,6 +19,11 @@ class NvidiaKanbanRepositoryImpl implements NvidiaKanbanRepository {
   }
 
   @override
+  Future<List<String>> fetchGroupsByDateRange(KanbanRequest request) {
+    return _remote.fetchGroupsByDateRange(request: request);
+  }
+
+  @override
   Future<OutputTrackingEntity> fetchOutputTracking(KanbanRequest request) async {
     final OutputTrackingModel model =
         await _remote.fetchOutputTracking(request: request);
@@ -28,6 +34,13 @@ class NvidiaKanbanRepositoryImpl implements NvidiaKanbanRepository {
   Future<UphTrackingEntity> fetchUphTracking(KanbanRequest request) async {
     final UphTrackingModel model =
         await _remote.fetchUphTracking(request: request);
+    return model;
+  }
+
+  @override
+  Future<UpdTrackingEntity> fetchUpdTracking(KanbanRequest request) async {
+    final UpdTrackingModel model =
+        await _remote.fetchUpdTracking(request: request);
     return model;
   }
 

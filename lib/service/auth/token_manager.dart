@@ -98,4 +98,22 @@ class TokenManager {
     }
     return 0;
   }
+
+  String get userId {
+    if (civetToken.value.isEmpty) return "";
+
+    try {
+      Map<String, dynamic> decoded = JwtDecoder.decode(civetToken.value);
+
+      return decoded["sub"] ??
+          decoded["employeeId"] ??
+          decoded["id"] ??
+          decoded["cardId"] ??
+          decoded["UserId"] ??
+          decoded["preferred_username"] ??
+          "";
+    } catch (e) {
+      return "";
+    }
+  }
 }

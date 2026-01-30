@@ -52,7 +52,17 @@ class _LcrMachineCardState extends State<LcrMachineCard>
     final double failRatio =
     (data.fail / total).clamp(0.0, 1.0).toDouble();
 
-    const gaugeDesignSize = 260.0;
+    final screenWidth = MediaQuery.of(context).size.width;
+    double gaugeDesignSize;
+
+    if (screenWidth >= 1100) {
+      gaugeDesignSize = 260; // Desktop
+    } else if (screenWidth >= 700) {
+      gaugeDesignSize = 180; // Tablet
+    } else {
+      gaugeDesignSize = 160; // Mobile
+    }
+
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -66,6 +76,9 @@ class _LcrMachineCardState extends State<LcrMachineCard>
         children: [
           Text(
             'MACHINE ${data.machineNo}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: theme.textTheme.titleSmall?.copyWith(
               color: Colors.cyanAccent,
               fontWeight: FontWeight.bold,

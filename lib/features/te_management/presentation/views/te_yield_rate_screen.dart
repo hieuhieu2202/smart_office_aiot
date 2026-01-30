@@ -1,0 +1,2582 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:responsive_builder/responsive_builder.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+
+import '../../data/datasources/te_management_remote_data_source.dart';
+import '../../data/repositories/te_management_repository_impl.dart';
+import '../../domain/entities/te_report.dart';
+import '../../domain/usecases/get_model_names.dart';
+import '../../domain/usecases/get_retest_rate_error_detail.dart';
+import '../../domain/usecases/get_yield_rate_report.dart';
+import '../controllers/te_yield_rate_controller.dart';
+import '../widgets/search_bar.dart';
+import '../widgets/te_yield_rate_table.dart';
+
+const LinearGradient _kBackgroundGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFF041830), Color(0xFF010712)],
+);
+const Color _kSurfaceColor = Color(0xFF0A233C);
+const Color _kAccentColor = Color(0xFF22D3EE);
+const Color _kAppBarTitleColor = Color(0xFF8FE9FF);
+const Color _kAppBarIconColor = Color(0xFFB6F4FF);
+const Color _kStatusChipColor = Color(0xFF0E2F4A);
+const Color _kErrorChipColor = Color(0xFF3E1A2F);
+
+class TEYieldRateScreen extends StatefulWidget {
+  const TEYieldRateScreen({
+    super.key,
+    this.initialModelSerial = 'SWITCH',
+    this.initialModels = const [],
+    this.controllerTag,
+    this.title,
+  });
+
+  final String initialModelSerial;
+  final List<String> initialModels;
+  final String? controllerTag;
+  final String? title;
+
+  @override
+  State<TEYieldRateScreen> createState() => _TEYieldRateScreenState();
+}
+
+class _TEYieldRateScreenState extends State<TEYieldRateScreen> {
+  late final String _controllerTag;
+  late final TEYieldRateController _controller;
+  late final TextEditingController _searchController;
+  final TextEditingController _modelSearchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = widget.controllerTag ??
+        'TE_YIELD_${widget.initialModelSerial}_${DateTime.now().millisecondsSinceEpoch}';
+    final dataSource = TEManagementRemoteDataSource();
+    final repository = TEManagementRepositoryImpl(dataSource);
+    _controller = Get.put(
+      TEYieldRateController(
+        getYieldRateReportUseCase: GetYieldRateReportUseCase(repository),
+        getModelNamesUseCase: GetModelNamesUseCase(repository),
+        getRetestRateErrorDetailUseCase:
+            GetRetestRateErrorDetailUseCase(repository),
+        initialModelSerial: widget.initialModelSerial,
+        initialModels: widget.initialModels,
+      ),
+      tag: _controllerTag,
+    );
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<TEYieldRateController>(tag: _controllerTag)) {
+      Get.delete<TEYieldRateController>(tag: _controllerTag);
+    }
+    _searchController.dispose();
+    _modelSearchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: _kBackgroundGradient),
+      child: DefaultTextStyle(
+        style: const TextStyle(fontFamily: 'Arial'),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: _kAppBarIconColor),
+            leading: const BackButton(color: _kAppBarIconColor),
+            title: Text(
+              widget.title ?? 'TE Yield Rate Report',
+              style: const TextStyle(
+                color: _kAppBarTitleColor,
+                fontFamily: 'Arial',
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+              ),
+            ),
+            centerTitle: true,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                child: ElevatedButton.icon(
+                  onPressed: _openFilterSheet,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF12506F),
+                    foregroundColor: Colors.white,
+                    elevation: 8,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    minimumSize: const Size(0, 36),
+                    textStyle: const TextStyle(
+                      fontFamily: 'Arial',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.tune_rounded, size: 18),
+                  label: const Text('Filters'),
+                ),
+              ),
+              Obx(
+                () => IconButton(
+                  icon: const Icon(Icons.refresh, color: _kAppBarIconColor),
+                  tooltip: 'Refresh',
+                  onPressed: _controller.isLoading.value
+                      ? null
+                      : () => _controller.fetchReport(showLoading: true),
+                ),
+              ),
+            ],
+          ),
+          body: ResponsiveBuilder(
+            builder: (context, sizing) {
+              final horizontalPadding = sizing.isDesktop ? 24.0 : 16.0;
+              final verticalPadding = sizing.isDesktop ? 20.0 : 12.0;
+              return SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: verticalPadding,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildTopBar(sizing),
+                      const SizedBox(height: 20),
+                      Expanded(
+                        child: Obx(() {
+                          final rawDetail = _controller.detail.value;
+                          final filteredDetail = _controller.filteredDetail;
+                          final loading = _controller.isLoading.value;
+                          final hasError = _controller.hasError;
+                          final message = _controller.errorMessage.value;
+                          final hasSearch = _controller.searchQuery.isNotEmpty;
+
+                          if (hasError && !loading) {
+                            return _buildErrorState(message);
+                          }
+
+                          if (!loading && !rawDetail.hasData) {
+                            return const Center(
+                              child: Text(
+                                'No data available for the selected filters.',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            );
+                          }
+
+                          if (!loading && hasSearch && !filteredDetail.hasData) {
+                            return const Center(
+                              child: Text(
+                                'No rows match your search.',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            );
+                          }
+
+                          return Stack(
+                            children: [
+                              Positioned.fill(
+                                child: TEYieldRateTable(
+                                  detail: filteredDetail,
+                                  formattedDates: _controller.formattedDates,
+                                  onCellTap: _showCellDetailDialog,
+                                  onGroupTap: _showGroupTrendDialog,
+                                  highlightCells: Set.unmodifiable(
+                                    _controller.highlightCells.value,
+                                  ),
+                                ),
+                              ),
+                              if (loading)
+                                Positioned.fill(
+                                  child: Container(
+                                    color: Colors.black.withOpacity(0.35),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: _kAccentColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar(SizingInformation sizing) {
+    final isCompact = sizing.isMobile || sizing.screenSize.width < 900;
+    final searchWidth = isCompact
+        ? double.infinity
+        : (sizing.screenSize.width * 0.3).clamp(260.0, 420.0) as double;
+
+    return Obx(() {
+      final loading = _controller.isLoading.value;
+      final lastUpdated = _controller.lastUpdated.value;
+      final hasError = _controller.hasError;
+      final formatter = DateFormat('yyyy/MM/dd HH:mm:ss');
+
+      Widget buildLastUpdateChip() {
+        return Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          decoration: BoxDecoration(
+            color: _kStatusChipColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x2216D7FF),
+                blurRadius: 16,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.schedule_rounded, color: Color(0xFF6EDCFF), size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Last updated: ${formatter.format(lastUpdated)}',
+                style: const TextStyle(
+                  color: Color(0xFFBCEAFF),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      Widget buildErrorChip() {
+        if (!hasError) {
+          return const SizedBox.shrink();
+        }
+        return Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: _kErrorChipColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.redAccent.withOpacity(0.45)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.warning_amber_rounded, color: Color(0xFFFCCF6B), size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Auto refresh pending',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (isCompact) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                buildLastUpdateChip(),
+                if (hasError) buildErrorChip(),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TESearchBar(
+              controller: _searchController,
+              onChanged: _controller.updateSearch,
+            ),
+          ],
+        );
+      }
+
+      final searchField = SizedBox(
+        width: searchWidth,
+        child: TESearchBar(
+          controller: _searchController,
+          onChanged: _controller.updateSearch,
+        ),
+      );
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                buildLastUpdateChip(),
+                if (hasError) buildErrorChip(),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          searchField,
+        ],
+      );
+    });
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 420),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: _kSurfaceColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.redAccent.withOpacity(0.35)),
+          boxShadow: const [
+            BoxShadow(color: Colors.black54, blurRadius: 20, offset: Offset(0, 12)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 42),
+            const SizedBox(height: 16),
+            const Text(
+              'Failed to load report',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: const TextStyle(color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _controller.fetchReport(showLoading: true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent.withOpacity(0.8),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDateRange({bool triggerFetch = true}) async {
+    final result = await _pickDashboardDateTimeRange(
+      context,
+      DateTimeRange(
+        start: _controller.startDate.value,
+        end: _controller.endDate.value,
+      ),
+    );
+    if (result != null) {
+      _controller.setDateRange(start: result.start, end: result.end);
+      if (triggerFetch) {
+        await _controller.fetchReport(showLoading: true);
+      }
+    }
+  }
+
+  Future<DateTimeRange?> _pickDashboardDateTimeRange(
+    BuildContext context,
+    DateTimeRange initialRange,
+  ) async {
+    final pickedDates = await showDateRangePicker(
+      context: context,
+      initialDateRange: DateTimeRange(
+        start: DateTime(
+          initialRange.start.year,
+          initialRange.start.month,
+          initialRange.start.day,
+        ),
+        end: DateTime(
+          initialRange.end.year,
+          initialRange.end.month,
+          initialRange.end.day,
+        ),
+      ),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      helpText: 'Date',
+      builder: (context, child) {
+        final theme = Theme.of(context);
+        return Theme(
+          data: theme.copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: _kAccentColor,
+              surface: _kSurfaceColor,
+              onSurface: Colors.white,
+            ),
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 840, maxHeight: 640),
+              child: child!,
+            ),
+          ),
+        );
+      },
+    );
+
+    if (pickedDates == null) {
+      return null;
+    }
+
+    return showDialog<DateTimeRange>(
+      context: context,
+      builder: (context) {
+        final hours = List<int>.generate(24, (index) => index);
+        const minutes = <int>[0, 30];
+
+        int startHour = initialRange.start.hour;
+        int startMinute = initialRange.start.minute >= 30 ? 30 : 0;
+        int endHour = initialRange.end.hour;
+        int endMinute = initialRange.end.minute >= 30 ? 30 : 0;
+
+        if (startHour == 0 && startMinute == 0 && endHour == 0 && endMinute == 0) {
+          startHour = 7;
+          startMinute = 30;
+          endHour = 19;
+          endMinute = 30;
+        }
+
+        DateTime buildStartDate() => DateTime(
+              pickedDates.start.year,
+              pickedDates.start.month,
+              pickedDates.start.day,
+              startHour,
+              startMinute,
+            );
+
+        DateTime buildEndDate() => DateTime(
+              pickedDates.end.year,
+              pickedDates.end.month,
+              pickedDates.end.day,
+              endHour,
+              endMinute,
+            );
+
+        String previewText() {
+          final format = DateFormat('yyyy/MM/dd HH:mm');
+          return '${format.format(buildStartDate())} → ${format.format(buildEndDate())}';
+        }
+
+        void applySelection() {
+          final start = buildStartDate();
+          final end = buildEndDate();
+          final normalizedEnd = end.isBefore(start) ? start : end;
+          Navigator.of(context).pop(
+            DateTimeRange(start: start, end: normalizedEnd),
+          );
+        }
+
+        Widget buildDropdown({
+          required String label,
+          required int value,
+          required List<int> items,
+          required ValueChanged<int?> onChanged,
+        }) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: Colors.white60)),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF052043),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _kAccentColor.withOpacity(0.5)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: value,
+                    isExpanded: true,
+                    dropdownColor: const Color(0xFF041733),
+                    borderRadius: BorderRadius.circular(12),
+                    menuMaxHeight: 280,
+                    iconEnabledColor: _kAccentColor,
+                    style: const TextStyle(color: Colors.white),
+                    items: items
+                        .map(
+                          (item) => DropdownMenuItem<int>(
+                            value: item,
+                            child: Center(
+                              child: Text(
+                                item.toString().padLeft(2, '0'),
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: onChanged,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: _kSurfaceColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text(
+                'Select Time Range',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Start',
+                              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: buildDropdown(
+                                    label: 'Hour',
+                                    value: startHour,
+                                    items: hours,
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        setState(() {
+                                          startHour = value;
+                                          if (buildEndDate().isBefore(buildStartDate())) {
+                                            endHour = startHour;
+                                            endMinute = startMinute;
+                                          }
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: buildDropdown(
+                                    label: 'Minute',
+                                    value: startMinute,
+                                    items: minutes,
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        setState(() {
+                                          startMinute = value;
+                                          if (buildEndDate().isBefore(buildStartDate())) {
+                                            endHour = startHour;
+                                            endMinute = startMinute;
+                                          }
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'End',
+                              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: buildDropdown(
+                                    label: 'Hour',
+                                    value: endHour,
+                                    items: hours,
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        setState(() {
+                                          endHour = value;
+                                          if (buildEndDate().isBefore(buildStartDate())) {
+                                            startHour = endHour;
+                                            startMinute = endMinute;
+                                          }
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: buildDropdown(
+                                    label: 'Minute',
+                                    value: endMinute,
+                                    items: minutes,
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        setState(() {
+                                          endMinute = value;
+                                          if (buildEndDate().isBefore(buildStartDate())) {
+                                            startHour = endHour;
+                                            startMinute = endMinute;
+                                          }
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF052043),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _kAccentColor.withOpacity(0.4)),
+                    ),
+                    child: Text(
+                      previewText(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: applySelection,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kAccentColor,
+                    foregroundColor: Colors.black,
+                  ),
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openModelSelector({bool triggerFetch = true}) async {
+    final available = _controller.availableModels.toList();
+    if (available.isEmpty) {
+      await _controller.refreshModelNames();
+    }
+    final options = _controller.availableModels.toList();
+    if (options.isEmpty) {
+      Get.snackbar('Models', 'No models available for this customer.');
+      return;
+    }
+    final currentSelection = _controller.selectedModels.toSet();
+    _modelSearchController.clear();
+    final result = await showDialog<List<String>>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        final tempSelection = currentSelection.toSet();
+        String filter = '';
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final allSelected = tempSelection.length == options.length;
+            final selectAllValue = allSelected
+                ? true
+                : tempSelection.isNotEmpty
+                    ? null
+                    : false;
+
+            final filtered = options
+                .where(
+                  (model) => filter.isEmpty
+                      ? true
+                      : model.toLowerCase().contains(filter.toLowerCase()),
+                )
+                .toList();
+            return AlertDialog(
+              backgroundColor: _kSurfaceColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text(
+                'Select Models',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              ),
+              content: SizedBox(
+                width: math.min(MediaQuery.of(context).size.width * 0.6, 420),
+                height: math.min(MediaQuery.of(context).size.height * 0.6, 420),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _modelSearchController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                        hintText: 'Search model',
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        filled: true,
+                        fillColor: const Color(0xFF0E2642),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          filter = value.trim();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      value: selectAllValue,
+                      tristate: true,
+                      onChanged: (value) {
+                        setState(() {
+                          if (value == true) {
+                            tempSelection
+                              ..clear()
+                              ..addAll(options);
+                          } else {
+                            tempSelection.clear();
+                          }
+                        });
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text(
+                        'Select All',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                      activeColor: _kAccentColor,
+                      checkboxShape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Expanded(
+                      child: Scrollbar(
+                        thumbVisibility: true,
+                        child: ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final model = filtered[index];
+                            final selected = tempSelection.contains(model);
+                            return CheckboxListTile(
+                              value: selected,
+                              onChanged: (value) {
+                                setState(() {
+                                  if (value == true) {
+                                    tempSelection.add(model);
+                                  } else {
+                                    tempSelection.remove(model);
+                                  }
+                                });
+                              },
+                              controlAffinity: ListTileControlAffinity.leading,
+                              title: Text(
+                                model,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              activeColor: _kAccentColor,
+                              checkboxShape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(currentSelection.toList()),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    tempSelection.clear();
+                    Navigator.of(context).pop(<String>[]);
+                  },
+                  child: const Text('Clear'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(tempSelection.toList()),
+                  style: ElevatedButton.styleFrom(backgroundColor: _kAccentColor, foregroundColor: Colors.black),
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      _controller.setSelectedModels(result);
+      if (triggerFetch) {
+        await _controller.fetchReport(showLoading: true);
+      }
+    }
+  }
+
+  void _openFilterSheet() {
+    final media = MediaQuery.of(context);
+    final isWide = media.size.width > 720;
+    final panelWidth = isWide
+        ? math.min(420.0, media.size.width * 0.38)
+        : math.min(media.size.width, 420.0);
+
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Filters',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: Material(
+            color: Colors.transparent,
+            child: SafeArea(
+              child: Container(
+                margin: EdgeInsets.only(
+                  right: isWide ? 24 : 0,
+                  left: isWide ? 16 : 0,
+                  top: 16,
+                  bottom: 16,
+                ),
+                width: panelWidth,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF07172D),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x55061D33),
+                      blurRadius: 28,
+                      offset: Offset(0, 18),
+                    ),
+                  ],
+                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                      child: Row(
+                        children: [
+                          const Text(
+                            'Filters',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'Arial',
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Obx(
+                              () => _FilterTile(
+                                icon: Icons.date_range,
+                                label: 'Date Range',
+                                value: _controller.rangeLabel,
+                                onTap: () => _pickDateRange(triggerFetch: false),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Obx(
+                              () {
+                                final selection = _controller.selectedModels;
+                                final text = selection.isEmpty
+                                    ? 'All Models'
+                                    : 'Selected ${selection.length}';
+                                return _FilterTile(
+                                  icon: Icons.widgets,
+                                  label: 'Models',
+                                  value: text,
+                                  onTap: () => _openModelSelector(triggerFetch: false),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            Obx(
+                              () => _controller.selectedModels.isEmpty
+                                  ? const SizedBox.shrink()
+                                  : TextButton(
+                                      onPressed: _controller.clearSelectedModels,
+                                      child: const Text('Clear model selection'),
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                      child: Obx(
+                        () => ElevatedButton.icon(
+                          onPressed: _controller.isLoading.value
+                              ? null
+                              : () async {
+                                  Navigator.of(context).pop();
+                                  await _controller.fetchReport(showLoading: true);
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _kAccentColor,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          icon: _controller.isLoading.value
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: Colors.black,
+                                  ),
+                                )
+                              : const Icon(Icons.playlist_add_check_rounded),
+                          label: const Text(
+                            'Apply Filters',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              fontFamily: 'Arial',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCellDetailDialog(TEYieldCellDetail detail) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return _CellErrorDetailDialog(
+          controller: _controller,
+          cellDetail: detail,
+        );
+      },
+    );
+  }
+
+  void _showGroupTrendDialog(TEYieldGroupDetail detail) {
+    final hasData = detail.cells.any((cell) => cell.yieldRate != null);
+    if (!hasData) {
+      showDialog<void>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: _kSurfaceColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            content: const Text(
+              'Không có dữ liệu cho nhóm này để hiển thị.',
+              style: TextStyle(color: Colors.white, fontFamily: 'Arial'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'Đóng',
+                  style: TextStyle(color: Colors.white70, fontFamily: 'Arial'),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
+    final labels = <String>[];
+    final daySeries = <_ChartPoint>[];
+    final nightSeries = <_ChartPoint>[];
+
+    for (final cell in detail.cells) {
+      if (!labels.contains(cell.dateLabel)) {
+        labels.add(cell.dateLabel);
+      }
+    }
+
+    TEYieldCellDetail? _findCell(String label, bool isDay) {
+      for (final cell in detail.cells) {
+        if (cell.dateLabel == label && cell.isDayShift == isDay) {
+          return cell;
+        }
+      }
+      return null;
+    }
+
+    for (final label in labels) {
+      final dayCell = _findCell(label, true);
+      final nightCell = _findCell(label, false);
+
+      daySeries.add(_ChartPoint(
+        label: label,
+        shiftLabel: 'Day',
+        value: dayCell?.yieldRate,
+        detail: dayCell,
+      ));
+
+      nightSeries.add(_ChartPoint(
+        label: label,
+        shiftLabel: 'Night',
+        value: nightCell?.yieldRate,
+        detail: nightCell,
+      ));
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: _kSurfaceColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Text(
+            '${detail.groupName} Trend',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+          content: SizedBox(
+            width: math.min(MediaQuery.of(context).size.width * 0.8, 720),
+            height: 420,
+            child: SfCartesianChart(
+              legend: Legend(
+                isVisible: true,
+                textStyle: const TextStyle(color: Colors.white70),
+              ),
+              primaryXAxis: CategoryAxis(
+                labelStyle: const TextStyle(color: Colors.white70),
+                majorGridLines: const MajorGridLines(width: 0),
+              ),
+              primaryYAxis: NumericAxis(
+                minimum: 0,
+                maximum: 100,
+                labelFormat: '{value}%',
+                labelStyle: const TextStyle(color: Colors.white70),
+                majorGridLines: const MajorGridLines(color: Colors.white24, width: 0.5),
+              ),
+              tooltipBehavior: TooltipBehavior(
+                enable: true,
+                header: '',
+                activationMode: ActivationMode.singleTap,
+                color: Colors.transparent,
+                builder: (
+                  dynamic data,
+                  dynamic point,
+                  dynamic series,
+                  int pointIndex,
+                  int seriesIndex,
+                ) {
+                  final chartPoint = data is _ChartPoint ? data : null;
+                  final cell = chartPoint?.detail;
+                  final dateLabel = cell?.dateLabel ?? chartPoint?.label ?? '';
+                  final shift = cell?.shiftLabel ?? chartPoint?.shiftLabel ?? '';
+                  final yieldRate = cell?.yieldRate ?? chartPoint?.value;
+
+                  String formatRate(double? value) =>
+                      value != null ? '${value.toStringAsFixed(2)}%' : 'N/A';
+                  String formatQty(int? value) =>
+                      NumberFormat.decimalPattern().format(value ?? 0);
+
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xF0152645), Color(0xF0020B1D)],
+                      ),
+                      border: Border.all(
+                        color: const Color(0xFF3DD6FF),
+                        width: 1.1,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x553DD6FF),
+                          blurRadius: 18,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$dateLabel (${shift.isEmpty ? 'N/A' : shift})',
+                          style: const TextStyle(
+                            color: Color(0xFFA3F4FF),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.25,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        _TooltipStatRow(
+                          label: 'Yield Rate',
+                          value: formatRate(yieldRate),
+                        ),
+                        _TooltipStatRow(
+                          label: 'WIP Qty',
+                          value: formatQty(cell?.input),
+                        ),
+                        _TooltipStatRow(
+                          label: 'First Fail',
+                          value: formatQty(cell?.firstFail),
+                        ),
+                        _TooltipStatRow(
+                          label: 'Yield Fail',
+                          value: formatQty(cell?.repairQty),
+                        ),
+                        _TooltipStatRow(
+                          label: 'Pass Qty',
+                          value: formatQty(cell?.pass),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              series: <CartesianSeries<_ChartPoint, String>>[
+                ColumnSeries<_ChartPoint, String>(
+                  name: 'Day',
+                  dataSource: daySeries,
+                  xValueMapper: (point, _) => point.label,
+                  yValueMapper: (point, _) => point.value,
+                  borderRadius: BorderRadius.circular(4),
+                  color: const Color(0xFF34D399),
+                  dataLabelSettings: const DataLabelSettings(
+                    isVisible: true,
+                    textStyle: TextStyle(color: Colors.white),
+                  ),
+                ),
+                ColumnSeries<_ChartPoint, String>(
+                  name: 'Night',
+                  dataSource: nightSeries,
+                  xValueMapper: (point, _) => point.label,
+                  yValueMapper: (point, _) => point.value,
+                  borderRadius: BorderRadius.circular(4),
+                  color: const Color(0xFF6366F1),
+                  dataLabelSettings: const DataLabelSettings(
+                    isVisible: true,
+                    textStyle: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white60, fontWeight: FontWeight.w600),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CellErrorDetailDialog extends StatefulWidget {
+  const _CellErrorDetailDialog({
+    required this.controller,
+    required this.cellDetail,
+  });
+
+  final TEYieldRateController controller;
+  final TEYieldCellDetail cellDetail;
+
+  @override
+  State<_CellErrorDetailDialog> createState() => _CellErrorDetailDialogState();
+}
+
+class _CellErrorDetailDialogState extends State<_CellErrorDetailDialog> {
+  late Future<TEErrorDetailEntity?> _future;
+  late final String _rangeLabel;
+  int? _selectedClusterIndex;
+  bool _showingMachines = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _rangeLabel = widget.controller.buildRangeLabelForCell(
+          dateKey: widget.cellDetail.dateKey,
+          isDayShift: widget.cellDetail.isDayShift,
+        ) ??
+        widget.controller.rangeLabel;
+    _future = _load();
+  }
+
+  Future<TEErrorDetailEntity?> _load() {
+    return widget.controller.fetchErrorDetailForCell(
+      dateKey: widget.cellDetail.dateKey,
+      isDayShift: widget.cellDetail.isDayShift,
+      modelName: widget.cellDetail.modelName,
+      groupName: widget.cellDetail.groupName,
+    );
+  }
+
+  void _retry() {
+    setState(() {
+      _future = _load();
+      _selectedClusterIndex = null;
+      _showingMachines = false;
+    });
+  }
+
+  void _selectCluster(List<TEErrorDetailClusterEntity> clusters, int index) {
+    if (index < 0 || index >= clusters.length) {
+      return;
+    }
+    setState(() {
+      _selectedClusterIndex = index;
+      _showingMachines = true;
+    });
+  }
+
+  void _returnToErrorChart() {
+    setState(() {
+      _showingMachines = false;
+    });
+  }
+
+  List<Widget> _buildMetricChips(TEYieldCellDetail detail) {
+    String _formatRate(double? value) {
+      if (value == null) {
+        return 'N/A';
+      }
+      return '${value.toStringAsFixed(value >= 100 ? 0 : 2)}%';
+    }
+
+    String _formatInt(int? value) {
+      if (value == null) {
+        return '—';
+      }
+      return NumberFormat.decimalPattern().format(value);
+    }
+
+    return [
+      _DetailMetricChip(
+        label: 'Yield Rate',
+        value: _formatRate(detail.yieldRate),
+      ),
+      _DetailMetricChip(
+        label: 'WIP Qty',
+        value: _formatInt(detail.input),
+      ),
+      _DetailMetricChip(
+        label: 'First Fail',
+        value: _formatInt(detail.firstFail),
+      ),
+      _DetailMetricChip(
+        label: 'Yield Fail',
+        value: _formatInt(detail.repairQty),
+      ),
+      _DetailMetricChip(
+        label: 'Pass Qty',
+        value: _formatInt(detail.pass),
+      ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: _kSurfaceColor,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1220, maxHeight: 640),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 24, 28, 8),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 26,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF082345), Color(0xFF114B8A)],
+                            ),
+                            border: Border.all(color: const Color(0x6639D2FF)),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x4D15A0FF),
+                                blurRadius: 38,
+                                spreadRadius: 3,
+                                offset: Offset(0, 24),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              _GradientTitle(
+                                text:
+                                    '${widget.cellDetail.modelName} — ${widget.cellDetail.groupName}',
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          runAlignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 18,
+                          runSpacing: 12,
+                          children: [
+                            _DetailInfoChip(
+                              icon: Icons.event_note_rounded,
+                              label:
+                                  '${widget.cellDetail.dateLabel} · ${widget.cellDetail.shiftLabel}',
+                            ),
+                            _DetailInfoChip(
+                              icon: Icons.schedule_rounded,
+                              label: _rangeLabel,
+                            ),
+                            ..._buildMetricChips(widget.cellDetail),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    top: -8,
+                    right: -8,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF6CFFF4), Color(0xFF1C9DFF)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x883BE4FF),
+                            blurRadius: 20,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: IconButton.styleFrom(
+                          padding: const EdgeInsets.all(10),
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          overlayColor: Colors.white.withOpacity(0.22),
+                        ),
+                        icon: const Icon(Icons.close_rounded, color: Colors.white),
+                        splashRadius: 24,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<TEErrorDetailEntity?>(
+              future: _future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Expanded(
+                    child: Center(
+                      child: CircularProgressIndicator(color: _kAccentColor),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  final error = snapshot.error!;
+                  final friendly = widget.controller.friendlyErrorMessage(error);
+                  final message = widget.controller.isNetworkError(error)
+                      ? friendly
+                      : 'Failed to load error details.\n$friendly';
+                  return Expanded(
+                    child: _ErrorDetailMessage(
+                      message: message,
+                      onRetry: _retry,
+                    ),
+                  );
+                }
+
+                final data = snapshot.data;
+                if (data == null || !data.hasData) {
+                  return const Expanded(
+                    child: _ErrorDetailMessage(
+                      message: 'Không có dữ liệu chi tiết cho ô này.',
+                    ),
+                  );
+                }
+
+                final errorClusters = data.byErrorCode
+                    .where((cluster) => cluster.totalFail > 0 || cluster.label.isNotEmpty)
+                    .toList();
+
+                if (errorClusters.isEmpty) {
+                  return const Expanded(
+                    child: _ErrorDetailMessage(
+                      message: 'Không có dữ liệu mã lỗi cho ô này.',
+                    ),
+                  );
+                }
+
+                int? selectedIndex = _selectedClusterIndex;
+                if (selectedIndex != null &&
+                    (selectedIndex < 0 || selectedIndex >= errorClusters.length)) {
+                  selectedIndex = null;
+                }
+
+                final selectedCluster =
+                    selectedIndex != null ? errorClusters[selectedIndex] : null;
+                final showMachines = _showingMachines && selectedCluster != null;
+
+                if (showMachines) {
+                  return Expanded(
+                    child: _MachineBreakdownView(
+                      cluster: selectedCluster!,
+                      onBack: _returnToErrorChart,
+                    ),
+                  );
+                }
+
+                return Expanded(
+                  child: _ErrorCodeChart(
+                    clusters: errorClusters,
+                    selectedIndex: selectedIndex ?? -1,
+                    onSelect: (index) => _selectCluster(errorClusters, index),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorDetailMessage extends StatelessWidget {
+  const _ErrorDetailMessage({
+    required this.message,
+    this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, color: Colors.white70, size: 40),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white60),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, color: _kAccentColor),
+              label: const Text(
+                'Retry',
+                style: TextStyle(color: _kAccentColor),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorCodeChart extends StatelessWidget {
+  const _ErrorCodeChart({
+    required this.clusters,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final List<TEErrorDetailClusterEntity> clusters;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    const axisLabelMaxChars = 22;
+    final points = clusters
+        .map((cluster) {
+          final raw = cluster.label.isEmpty ? 'N/A' : cluster.label;
+          final display = _truncateLabel(raw, axisLabelMaxChars);
+          return _BarPoint(display, cluster.totalFail, fullLabel: raw);
+        })
+        .toList();
+
+    final hasSelection =
+        selectedIndex >= 0 && selectedIndex < clusters.length && points.isNotEmpty;
+    const tooltipValueLabelStyle = TextStyle(
+      color: Colors.white,
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+    );
+    final axisLabelTextStyle = const TextStyle(
+      color: Color(0xFF9EE5FF),
+      fontSize: 11,
+      fontFamily: 'Inter',
+      letterSpacing: 0.3,
+      fontStyle: FontStyle.italic,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 1200.0;
+        final targetWidth = math.min(
+          availableWidth,
+          availableWidth.isFinite
+              ? math.max(availableWidth * 0.95, 1080.0)
+              : 1080.0,
+        );
+
+        final resolvedHeight = constraints.maxHeight.isFinite
+            ? math.max(constraints.maxHeight * 0.7, 420.0)
+            : 520.0;
+
+        final tooltipBehavior = TooltipBehavior(
+          enable: true,
+          header: '',
+          animationDuration: 250,
+          activationMode: ActivationMode.singleTap,
+          color: Colors.transparent,
+          builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
+              int seriesIndex) {
+            final barPoint = data is _BarPoint ? data : null;
+            final value = point?.y?.toString() ?? barPoint?.value.toString() ?? '0';
+            final label = barPoint?.fullLabel ?? point?.x?.toString() ?? '';
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xF0152645), Color(0xF0020B1D)],
+                ),
+                border: Border.all(
+                  color: const Color(0xFF3DD6FF),
+                  width: 1.1,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x553DD6FF),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFA3F4FF),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.25,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tooltipValueLabelStyle,
+                  ),
+                  const SizedBox(height: 2),
+                ],
+              ),
+            );
+          },
+        );
+
+        return Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: targetWidth,
+            child: Container(
+              decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment(-0.45, -0.95),
+              radius: 1.45,
+              colors: [Color(0xFF021433), Color(0xFF010511)],
+            ),
+            borderRadius: BorderRadius.all(Radius.circular(26)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x3300E1FF),
+                blurRadius: 38,
+                spreadRadius: 4,
+                offset: Offset(0, 26),
+              ),
+            ],
+          ),
+            constraints: BoxConstraints(minHeight: resolvedHeight),
+            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 12),
+                Expanded(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0x3D39D2FF)),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0x66223C66), Color(0x33254B7E)],
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x2600D9FF),
+                          blurRadius: 26,
+                          spreadRadius: 2,
+                          offset: Offset(0, 18),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      child: SfCartesianChart(
+                        backgroundColor: Colors.transparent,
+                        plotAreaBorderWidth: 0,
+                        plotAreaBackgroundColor: const Color(0x110B8CFF),
+                        margin: const EdgeInsets.fromLTRB(0, 8, 0, 16),
+                        enableAxisAnimation: true,
+                        tooltipBehavior: tooltipBehavior,
+                        primaryXAxis: CategoryAxis(
+                          axisLine: const AxisLine(width: 0),
+                          labelRotation: -18,
+                          labelStyle: axisLabelTextStyle,
+                          labelIntersectAction: AxisLabelIntersectAction.rotate45,
+                          majorGridLines: MajorGridLines(
+                            color: Colors.white.withOpacity(0.04),
+                            width: 0.35,
+                          ),
+                          majorTickLines: const MajorTickLines(size: 0),
+                          axisLabelFormatter: (AxisLabelRenderDetails details) {
+                            final display =
+                                _truncateLabel(details.text, axisLabelMaxChars);
+                            return ChartAxisLabel(display, axisLabelTextStyle);
+                          },
+                        ),
+                        primaryYAxis: NumericAxis(
+                          minimum: 0,
+                          labelStyle: const TextStyle(
+                            color: Color(0xFF8BCFF8),
+                            fontSize: 11,
+                            fontFamily: 'Inter',
+                          ),
+                          axisLine: const AxisLine(width: 0),
+                          majorGridLines: MajorGridLines(
+                            color: Colors.white.withOpacity(0.04),
+                            width: 0.32,
+                          ),
+                          majorTickLines: const MajorTickLines(size: 0),
+                        ),
+                        series: <CartesianSeries<_BarPoint, String>>[
+                          ColumnSeries<_BarPoint, String>(
+                            onCreateRenderer: (ChartSeries<_BarPoint, String> series) =>
+                                _GlowingColumnSeriesRenderer(),
+                            dataSource: points,
+                            width: 0.64,
+                            spacing: 0.16,
+                            animationDuration: 1100,
+                            xValueMapper: (point, _) => point.label,
+                            yValueMapper: (point, _) => point.value,
+                          pointColorMapper: (point, index) {
+                            const base = Color(0xFF1DAEFF);
+                            if (index == null) return base;
+                            final isSelected =
+                                hasSelection && index == selectedIndex;
+                            return isSelected
+                                ? const Color(0xFF33E8FF)
+                                : base.withOpacity(hasSelection ? 0.45 : 0.9);
+                          },
+                          dataLabelSettings: const DataLabelSettings(
+                              isVisible: true,
+                              labelAlignment: ChartDataLabelAlignment.auto,
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          borderRadius:
+                              const BorderRadius.vertical(top: Radius.circular(18)),
+                          onPointTap: (details) {
+                            final index = details.pointIndex;
+                            if (index != null) {
+                              onSelect(index);
+                              final seriesIndex = details.seriesIndex ?? 0;
+                              tooltipBehavior.showByIndex(seriesIndex, index);
+                            }
+                          },
+                          onPointLongPress: (details) {
+                            final index = details.pointIndex;
+                            if (index != null) {
+                              final seriesIndex = details.seriesIndex ?? 0;
+                              tooltipBehavior.showByIndex(seriesIndex, index);
+                            }
+                          },
+                        ),
+                        SplineSeries<_BarPoint, String>(
+                          dataSource: points,
+                          xValueMapper: (point, _) => point.label,
+                            yValueMapper: (point, _) => point.value,
+                            color: const Color(0xFF7DFAFF),
+                            width: 2.6,
+                            markerSettings: const MarkerSettings(
+                              isVisible: true,
+                              color: Color(0xFF33E8FF),
+                              height: 9,
+                              width: 9,
+                              borderWidth: 2,
+                              borderColor: Colors.white,
+                            ),
+                            opacity: 0.95,
+                            enableTooltip: false,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (hasSelection)
+                  const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ));
+      },
+    );
+  }
+}
+
+class _MachineBreakdownView extends StatelessWidget {
+  const _MachineBreakdownView({
+    required this.cluster,
+    required this.onBack,
+  });
+
+  final TEErrorDetailClusterEntity cluster;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    const axisLabelMaxChars = 22;
+    final machines = cluster.breakdowns
+        .where((breakdown) => breakdown.failQty > 0 || breakdown.label.isNotEmpty)
+        .map((breakdown) {
+          final raw = breakdown.label.isEmpty ? 'N/A' : breakdown.label;
+          final display = _truncateLabel(raw, axisLabelMaxChars);
+          return _BarPoint(display, breakdown.failQty, fullLabel: raw);
+        })
+        .toList();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 1200.0;
+        final targetWidth = math.min(
+          availableWidth,
+          availableWidth.isFinite
+              ? math.max(availableWidth * 0.95, 1080.0)
+              : 1080.0,
+        );
+
+        final resolvedHeight = constraints.maxHeight.isFinite
+            ? math.max(constraints.maxHeight * 0.72, 420.0)
+            : 520.0;
+
+        const axisLabelTextStyle = TextStyle(
+          color: Color(0xFF9EE5FF),
+          fontSize: 11,
+          fontFamily: 'Inter',
+          letterSpacing: 0.3,
+          fontStyle: FontStyle.italic,
+        );
+
+        final tooltipBehavior = TooltipBehavior(
+          enable: true,
+          header: '',
+          animationDuration: 250,
+          activationMode: ActivationMode.singleTap,
+          color: Colors.transparent,
+          builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
+              int seriesIndex) {
+            final barPoint = data is _BarPoint ? data : null;
+            final value = point?.y?.toString() ?? barPoint?.value.toString() ?? '0';
+            final label = barPoint?.fullLabel ?? point?.x?.toString() ?? '';
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xF0152645), Color(0xF0020B1D)],
+                ),
+                border: Border.all(
+                  color: const Color(0xFF3DD6FF),
+                  width: 1.1,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x553DD6FF),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFA3F4FF),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.25,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                ],
+              ),
+            );
+          },
+        );
+
+        return Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: targetWidth,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(-0.42, -0.95),
+                  radius: 1.5,
+                  colors: [Color(0xFF02122C), Color(0xFF01040C)],
+                ),
+                borderRadius: BorderRadius.all(Radius.circular(26)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x3300E1FF),
+                    blurRadius: 36,
+                    spreadRadius: 4,
+                    offset: Offset(0, 24),
+                  ),
+                ],
+              ),
+              constraints: BoxConstraints(minHeight: resolvedHeight),
+              padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextButton.icon(
+                        onPressed: onBack,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF33E8FF),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                        ),
+                        icon: const Icon(Icons.arrow_back, size: 18),
+                        label: const Text(
+                          'Back',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: targetWidth * 0.8),
+                            child: Text(
+                              _truncateErrorLabel(
+                                cluster.label.isEmpty
+                                    ? 'Selected Error Signature'
+                                    : cluster.label,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Expanded(
+                    child: machines.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No machine failures recorded for this error code.',
+                              style: TextStyle(color: Colors.white54),
+                            ),
+                          )
+                        : DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(color: const Color(0x3D39D2FF)),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0x66223C66), Color(0x33254B7E)],
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x2600D9FF),
+                                  blurRadius: 24,
+                                  spreadRadius: 2,
+                                  offset: Offset(0, 18),
+                                ),
+                              ],
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 18,
+                              ),
+                              child: SfCartesianChart(
+                                backgroundColor: Colors.transparent,
+                                plotAreaBorderWidth: 0,
+                                plotAreaBackgroundColor: const Color(0x110B8CFF),
+                                margin: const EdgeInsets.fromLTRB(0, 8, 0, 16),
+                                enableAxisAnimation: true,
+                                tooltipBehavior: tooltipBehavior,
+                                primaryXAxis: CategoryAxis(
+                                  axisLine: const AxisLine(width: 0),
+                                  labelStyle: axisLabelTextStyle,
+                                  labelRotation: -18,
+                                  labelIntersectAction: AxisLabelIntersectAction.rotate45,
+                                  majorGridLines: MajorGridLines(
+                                    color: Colors.white.withOpacity(0.04),
+                                    width: 0.32,
+                                  ),
+                                  majorTickLines: const MajorTickLines(size: 0),
+                                  axisLabelFormatter: (AxisLabelRenderDetails details) {
+                                    final display =
+                                        _truncateLabel(details.text, axisLabelMaxChars);
+                                    return ChartAxisLabel(display, axisLabelTextStyle);
+                                  },
+                                ),
+                                primaryYAxis: NumericAxis(
+                                  minimum: 0,
+                                  labelStyle: const TextStyle(
+                                    color: Color(0xFF8BCFF8),
+                                    fontSize: 11,
+                                    fontFamily: 'Inter',
+                                  ),
+                                  axisLine: const AxisLine(width: 0),
+                                  majorGridLines: MajorGridLines(
+                                    color: Colors.white.withOpacity(0.04),
+                                    width: 0.3,
+                                  ),
+                                  majorTickLines: const MajorTickLines(size: 0),
+                                ),
+                                series: <CartesianSeries<_BarPoint, String>>[
+                                  ColumnSeries<_BarPoint, String>(
+                                    onCreateRenderer:
+                                        (ChartSeries<_BarPoint, String> series) =>
+                                            _GlowingColumnSeriesRenderer(),
+                                    dataSource: machines,
+                                    width: 0.64,
+                                    spacing: 0.16,
+                                    animationDuration: 1000,
+                                    xValueMapper: (point, _) => point.label,
+                                    yValueMapper: (point, _) => point.value,
+                                    pointColorMapper: (point, index) =>
+                                        const Color(0xFF33E8FF),
+                                    dataLabelSettings: const DataLabelSettings(
+                                      isVisible: true,
+                                      labelAlignment: ChartDataLabelAlignment.auto,
+                                      textStyle: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.4,
+                                      ),
+                                    ),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(18),
+                                  ),
+                                  onPointTap: (details) {
+                                    final index = details.pointIndex;
+                                    if (index != null) {
+                                      final seriesIndex = details.seriesIndex ?? 0;
+                                      tooltipBehavior.showByIndex(seriesIndex, index);
+                                    }
+                                  },
+                                  onPointLongPress: (details) {
+                                    final index = details.pointIndex;
+                                    if (index != null) {
+                                      final seriesIndex = details.seriesIndex ?? 0;
+                                      tooltipBehavior.showByIndex(seriesIndex, index);
+                                    }
+                                  },
+                                ),
+                                  SplineSeries<_BarPoint, String>(
+                                    dataSource: machines,
+                                    xValueMapper: (point, _) => point.label,
+                                    yValueMapper: (point, _) => point.value,
+                                    color: const Color(0xFF7DFAFF),
+                                    width: 2.4,
+                                    markerSettings: const MarkerSettings(
+                                      isVisible: true,
+                                      color: Color(0xFF33E8FF),
+                                      height: 9,
+                                      width: 9,
+                                      borderWidth: 2,
+                                      borderColor: Colors.white,
+                                    ),
+                                    opacity: 0.9,
+                                    enableTooltip: false,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+class _GradientTitle extends StatelessWidget {
+  const _GradientTitle({
+    required this.text,
+    this.fontSize = 18,
+    this.fontWeight = FontWeight.w600,
+  });
+
+  final String text;
+  final double fontSize;
+  final FontWeight fontWeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: const Color(0xFF8EEBFF),
+        fontSize: fontSize,
+        fontFamily: 'Inter',
+        fontWeight: fontWeight,
+        letterSpacing: 0.6,
+        shadows: const [
+          Shadow(
+            color: Color(0x6639D2FF),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailInfoChip extends StatelessWidget {
+  const _DetailInfoChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0x3324A6FF), Color(0x6616C2FF)],
+        ),
+        border: Border.all(color: const Color(0x5539D2FF)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x2622B8FF),
+            blurRadius: 18,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFF77E3FF)),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFFEBF6FF),
+                fontSize: 12.5,
+                letterSpacing: 0.3,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailMetricChip extends StatelessWidget {
+  const _DetailMetricChip({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0x2629D5FF), Color(0x6624A8FF)],
+        ),
+        border: Border.all(color: const Color(0x5539D2FF)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x3322B8FF),
+            blurRadius: 18,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                color: Color(0xFFA8E7FF),
+                fontSize: 10.5,
+                letterSpacing: 1.1,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TooltipStatRow extends StatelessWidget {
+  const _TooltipStatRow({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1.5),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              color: Color(0xFF7DD6FF),
+              fontSize: 11.5,
+              letterSpacing: 0.25,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlowingColumnSeriesRenderer extends ColumnSeriesRenderer<_BarPoint, String> {
+  @override
+  ColumnSegment<_BarPoint, String> createSegment() => _GlowingColumnSegment();
+}
+
+class _GlowingColumnSegment extends ColumnSegment<_BarPoint, String> {
+  @override
+  void onPaint(Canvas canvas) {
+    if (segmentRect == null) {
+      return;
+    }
+
+    final RRect rect = segmentRect!;
+    final Rect outerRect = rect.outerRect;
+    final RRect roundedRect = RRect.fromRectAndCorners(
+      outerRect,
+      topLeft: const Radius.circular(16),
+      topRight: const Radius.circular(16),
+    );
+
+    final Paint basePaint = getFillPaint();
+    final Color accent = basePaint.color;
+
+    final Paint shadowPaint = Paint()
+      ..color = accent.withOpacity(0.35)
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 12);
+    canvas.drawRRect(roundedRect.shift(const Offset(0, 6)), shadowPaint);
+
+    final gradient = LinearGradient(
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
+      colors: [
+        const Color(0xFF082C55),
+        accent,
+      ],
+    );
+
+    final Paint fillPaint = Paint()
+      ..shader = gradient.createShader(outerRect)
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(roundedRect, fillPaint);
+
+    final Paint glossPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.center,
+        colors: [
+          Colors.white.withOpacity(0.18),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(outerRect.left, outerRect.top, outerRect.width, outerRect.height / 1.6));
+    canvas.drawRRect(roundedRect, glossPaint);
+  }
+}
+
+class _BarPoint {
+  const _BarPoint(this.label, this.value, {String? fullLabel})
+      : fullLabel = fullLabel ?? label;
+
+  final String label;
+  final String fullLabel;
+  final int value;
+}
+
+String _truncateLabel(String input, int maxChars) {
+  final trimmed = input.trim();
+  if (trimmed.length <= maxChars || maxChars < 2) {
+    return trimmed;
+  }
+  return '${trimmed.substring(0, maxChars - 1)}…';
+}
+
+String _truncateErrorLabel(String input) {
+  final normalized = input.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (normalized.isEmpty) {
+    return 'Selected Error Signature';
+  }
+  return _truncateLabel(normalized, 200);
+}
+
+class _FilterTile extends StatelessWidget {
+  const _FilterTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF123755), Color(0xFF0A2441)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x331DAFFF),
+              blurRadius: 20,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Icon(icon, color: _kAccentColor),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChartPoint {
+  const _ChartPoint({
+    required this.label,
+    required this.shiftLabel,
+    required this.value,
+    this.detail,
+  });
+
+  final String label;
+  final String shiftLabel;
+  final double? value;
+  final TEYieldCellDetail? detail;
+}

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'http_helper.dart';
 
 /// ===== LOG GATE cho service (tùy chọn bật/tắt từ controller/màn hình) =====
@@ -13,7 +14,7 @@ class CuringApiLog {
 class RackMonitorApi {
   RackMonitorApi._();
 
-  static const String _base = 'https://10.220.130.117/newweb/api/nvidia/rack';
+  static const String _base = 'https://10.220.130.117/api/nvidia/rack';
   static const Duration _timeout = Duration(seconds: 45);
 
   static Map<String, String> _headers() => const {
@@ -22,66 +23,175 @@ class RackMonitorApi {
   };
 
   // -------------------------- Location APIs --------------------------
+  static Map<String, dynamic> _locationBody({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) {
+    String normalized(String? v, {bool allowAll = true}) {
+      final trimmed = v?.trim() ?? '';
+      if (trimmed.isEmpty && allowAll) return 'ALL';
+      return trimmed;
+    }
+
+    return {
+      'factory': normalized(factory),
+      'floor': normalized(floor),
+      'room': normalized(room),
+      'model': normalized(model),
+      'nickName': normalized(nickName, allowAll: false),
+      'group': normalized(group),
+      'dateRange': normalized(dateRange, allowAll: false),
+    };
+  }
+
   static Future<List<String>> getModels() async {
     final uri = Uri.parse('$_base/Location/GetModels');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    CuringApiLog.net(() => '[CuringApi] POST body => {}');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode({}),
       timeout: _timeout,
     );
+    _logResponse('GetModels', res);
     _ensure200(res, 'GetModels');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getGroups() async {
+  static Future<List<String>> getGroups({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetGroups');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetGroups', res);
     _ensure200(res, 'GetGroups');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getFactories() async {
+  static Future<List<String>> getFactories({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetFactories');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetFactories', res);
     _ensure200(res, 'GetFactories');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getFloors() async {
+  static Future<List<String>> getFloors({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetFloors');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetFloors', res);
     _ensure200(res, 'GetFloors');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
   }
 
-  static Future<List<String>> getRooms() async {
+  static Future<List<String>> getRooms({
+    String? factory,
+    String? floor,
+    String? room,
+    String? model,
+    String? nickName,
+    String? group,
+    String? dateRange,
+  }) async {
     final uri = Uri.parse('$_base/Location/GetRooms');
-    CuringApiLog.net(() => '[CuringApi] GET $uri');
-    final res = await HttpHelper().get(
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    final body = _locationBody(
+      factory: factory,
+      floor: floor,
+      room: room,
+      model: model,
+      nickName: nickName,
+      group: group,
+      dateRange: dateRange,
+    );
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body)}');
+    final res = await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode(body),
       timeout: _timeout,
     );
+    _logResponse('GetRooms', res);
     _ensure200(res, 'GetRooms');
     final data = jsonDecode(res.body);
     return data is List ? data.map((e) => e.toString()).toList() : <String>[];
@@ -169,75 +279,132 @@ class RackMonitorApi {
   static Future<void> quickPing() async {
     final uri = Uri.parse('$_base/Location/GetModels');
     CuringApiLog.net(() => '[CuringApi] quickPing $uri');
-    await HttpHelper().get(
+    await HttpHelper().post(
       uri,
       headers: _headers(),
+      body: jsonEncode({}),
       timeout: const Duration(seconds: 5),
     );
   }
 
   // -------------------------- Monitor (POST JSON) --------------------------
+  static Map<String, dynamic> _monitorBody(Map<String, dynamic>? rawBody) {
+    Map<String, dynamic> body = {...?rawBody};
+
+    String _normalized(String? v, {bool allowAll = true}) {
+      final trimmed = v?.trim() ?? '';
+      if (trimmed.isEmpty && allowAll) return 'ALL';
+      return trimmed.isEmpty ? '' : trimmed;
+    }
+
+    String _defaultDateRange() {
+      final now = DateTime.now();
+      final formatter = DateFormat('yyyy-MM-dd');
+      final today = formatter.format(now);
+      return '$today 07:30 - $today 19:30';
+    }
+
+    List<String> _ensureProductNames(dynamic value) {
+      if (value is List) {
+        final list = value.whereType<String>().map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        if (list.isNotEmpty) return list;
+      } else if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isNotEmpty && trimmed != 'ALL') return [trimmed];
+      }
+      return const [];
+    }
+
+    final normalizedFactory = _normalized(body['factory']);
+    final normalizedFloor = _normalized(body['floor']);
+    final normalizedRoom = _normalized(body['room']);
+    final normalizedGroup = _normalized(body['groupName'] ?? body['group']);
+    final productNames = _ensureProductNames(body['productNames'] ?? body['model']);
+    final productName = _normalized(body['productName'], allowAll: false);
+    final dateRange = (body['dateRange']?.toString().trim() ?? '').isEmpty
+        ? _defaultDateRange()
+        : body['dateRange'].toString().trim();
+
+    return {
+      'factory': normalizedFactory,
+      'floor': normalizedFloor,
+      'room': normalizedRoom,
+      'productNames': productNames,
+      'productName': productName,
+      'groupName': normalizedGroup,
+      'dateRange': dateRange,
+      'detailType': body['detailType']?.toString() ?? '',
+      'slotName': body['slotName']?.toString() ?? '',
+    };
+  }
+
+  static Future<GroupDataMonitoring> getDataMonitoring({
+    Map<String, dynamic>? body,
+  }) async {
+    final normalizedBody = _monitorBody(body);
+    final uri = Uri.parse('$_base/Monitor/GetDataMonitoring');
+    CuringApiLog.net(() => '[CuringApi] POST $uri');
+    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(normalizedBody)}');
+    final res = await HttpHelper().post(
+      uri,
+      headers: _headers(),
+      body: jsonEncode(normalizedBody),
+      timeout: _timeout,
+    );
+    _logResponse('GetDataMonitoring', res);
+    _ensure200(res, 'GetDataMonitoring');
+    final data = _decodeJsonLoose(res.body);
+    if (data is Map<String, dynamic>) return GroupDataMonitoring.fromJson(data);
+    throw Exception('GetDataMonitoring: invalid payload');
+  }
+
   static Future<GroupDataMonitoring> getGroupDataMonitoring({
     Map<String, dynamic>? body,
-  }) async {
-    final uri = Uri.parse('$_base/Monitor/GetGroupDataMonitoring');
-    CuringApiLog.net(() => '[CuringApi] POST $uri');
-    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body ?? {})}');
-    final res = await HttpHelper().post(
-      uri,
-      headers: _headers(),
-      body: jsonEncode(body ?? {}),
-      timeout: _timeout,
-    );
-    _ensure200(res, 'GetGroupDataMonitoring');
-    final data = jsonDecode(res.body);
-    if (data is Map<String, dynamic>) return GroupDataMonitoring.fromJson(data);
-    throw Exception('GetGroupDataMonitoring: invalid payload');
-  }
-
-  static Future<GroupDataMonitoring> getGroupDataMonitoring1({
-    Map<String, dynamic>? body,
-  }) async {
-    final uri = Uri.parse('$_base/Monitor/GetGroupDataMonitoring1');
-    CuringApiLog.net(() => '[CuringApi] POST $uri');
-    CuringApiLog.net(() => '[CuringApi] POST body => ${_safeBody(body ?? {})}');
-    final res = await HttpHelper().post(
-      uri,
-      headers: _headers(),
-      body: jsonEncode(body ?? {}),
-      timeout: _timeout,
-    );
-    _ensure200(res, 'GetGroupDataMonitoring1');
-    final data = jsonDecode(res.body);
-    if (data is Map<String, dynamic>) return GroupDataMonitoring.fromJson(data);
-    throw Exception('GetGroupDataMonitoring1: invalid payload');
-  }
-
-  static Future<GroupDataMonitoring> getByTower({
-    required Tower tower,
-    Map<String, dynamic>? body,
   }) {
-    return tower == Tower.f17
-        ? getGroupDataMonitoring1(body: body)
-        : getGroupDataMonitoring(body: body);
+    return getDataMonitoring(body: body);
   }
 
   static Future<GroupDataMonitoring> getByFactory({
     required String factory,
     Map<String, dynamic>? body,
   }) {
-    final isF17 = factory.trim().toUpperCase() == 'F17';
-    final merged = {...?body, 'factory': isF17 ? 'F17' : 'F16'};
-    return getByTower(tower: isF17 ? Tower.f17 : Tower.f16, body: merged);
+    final merged = {...?body, 'factory': factory.trim()};
+    return getDataMonitoring(body: merged);
   }
 }
-
-enum Tower { f16, f17 }
 
 void _ensure200(http.Response res, String apiName) {
   if (res.statusCode != 200) {
     throw Exception('$apiName failed: ${res.statusCode} ${res.body}');
   }
+}
+
+void _logResponse(String apiName, http.Response res) {
+  CuringApiLog.net(() {
+    final preview = res.body.length > 400
+        ? '${res.body.substring(0, 400)}...(+${res.body.length - 400} chars)'
+        : res.body;
+    return '[CuringApi] $apiName response ${res.statusCode}: $preview';
+  });
+}
+
+dynamic _decodeJsonLoose(String body) {
+  dynamic first;
+  try {
+    first = jsonDecode(body);
+  } catch (_) {
+    return null;
+  }
+
+  if (first is String) {
+    try {
+      return jsonDecode(first);
+    } catch (_) {
+      return first;
+    }
+  }
+
+  return first;
 }
 
 // -------------------------- Safe body logger --------------------------
@@ -273,7 +440,7 @@ class LocationEntry {
     group: _readString(j, const ['group', 'Group', 'groupName', 'GroupName']),
     model: _readString(
       j,
-      const ['model', 'Model', 'modelName', 'modelSerial', 'ModelSerial'],
+      const ['product', 'Product', 'productName', 'ProductName', 'model', 'Model'],
     ),
   );
 }
@@ -292,6 +459,7 @@ class SlotStaticItem {
 
 class QuantitySummary {
   final double ut;
+  final int wip;
   final int input;
   final int firstPass;
   final int secondPass;
@@ -299,13 +467,20 @@ class QuantitySummary {
   final int rePass;
   final int totalPass;
   final int firstFail;
+  final int secondFail;
   final int fail;
+  final int repair;
+  final int repairPass;
+  final int repairFail;
+  final int totalFail;
   final double fpr;
+  final double spr;
+  final double rr;
   final double yr;
-  final int wip;
 
   QuantitySummary({
     required this.ut,
+    required this.wip,
     required this.input,
     required this.firstPass,
     required this.secondPass,
@@ -313,39 +488,55 @@ class QuantitySummary {
     required this.rePass,
     required this.totalPass,
     required this.firstFail,
+    required this.secondFail,
     required this.fail,
+    required this.repair,
+    required this.repairPass,
+    required this.repairFail,
+    required this.totalFail,
     required this.fpr,
+    required this.spr,
+    required this.rr,
     required this.yr,
-    required this.wip,
   });
 
   factory QuantitySummary.fromJson(Map<String, dynamic> j) {
-    final q =
-        (j['quantitySummary'] is Map<String, dynamic>)
-            ? (j['quantitySummary'] as Map<String, dynamic>)
-            : j;
+    final qRaw = _valueFor(
+      j,
+      const ['quantitySummary', 'QuantitySummary', 'quantity_Summary'],
+    );
+    final q = (qRaw is Map<String, dynamic>) ? qRaw : j;
     return QuantitySummary(
       ut: _readDouble(q, const ['ut', 'UT']),
-      input: _readInt(q, const ['input']),
-      firstPass: _readInt(q, const ['firstPass', 'first_Pass']),
-      secondPass: _readInt(q, const ['secondPass', 'second_Pass']),
-      pass: _readInt(q, const ['pass']),
-      rePass: _readInt(q, const ['rePass', 're_Pass']),
-      totalPass: _readInt(q, const ['totalPass', 'total_Pass']),
-      firstFail: _readInt(q, const ['firstFail', 'first_Fail']),
-      fail: _readInt(q, const ['fail']),
-      fpr: _readDouble(q, const ['fpr', 'FPR']),
-      yr: _readDouble(q, const ['yr', 'YR']),
       wip: _readInt(q, const ['wip', 'WIP']),
+      input: _readInt(q, const ['input', 'Input']),
+      firstPass: _readInt(q, const ['firstPass', 'first_Pass', 'First_Pass']),
+      secondPass: _readInt(q, const ['secondPass', 'second_Pass', 'Second_Pass']),
+      pass: _readInt(q, const ['pass', 'Pass']),
+      rePass: _readInt(q, const ['rePass', 're_Pass', 'Repair_Pass']),
+      totalPass: _readInt(q, const ['totalPass', 'total_Pass', 'Total_Pass']),
+      firstFail: _readInt(q, const ['firstFail', 'first_Fail', 'First_Fail']),
+      secondFail: _readInt(q, const ['secondFail', 'second_Fail', 'Second_Fail']),
+      fail: _readInt(q, const ['fail', 'Fail']),
+      repair: _readInt(q, const ['repair', 'Repair']),
+      repairPass: _readInt(q, const ['repairPass', 'repair_Pass', 'Repair_Pass']),
+      repairFail: _readInt(q, const ['repairFail', 'repair_Fail', 'Repair_Fail']),
+      totalFail: _readInt(q, const ['totalFail', 'total_Fail', 'Total_Fail']),
+      fpr: _readDouble(q, const ['fpr', 'FPR']),
+      spr: _readDouble(q, const ['spr', 'SPR']),
+      rr: _readDouble(q, const ['rr', 'RR']),
+      yr: _readDouble(q, const ['yr', 'YR']),
     );
   }
 }
 
 class SlotDetail {
   final String nickName;
+  final String productName;
   final String slotNumber;
   final String slotName;
   final String modelName;
+  final int wip;
   final int input;
   final int firstPass;
   final int secondPass;
@@ -353,8 +544,15 @@ class SlotDetail {
   final int rePass;
   final int totalPass;
   final int firstFail;
+  final int secondFail;
   final int fail;
+  final int repair;
+  final int repairPass;
+  final int repairFail;
+  final int totalFail;
   final double fpr;
+  final double spr;
+  final double rr;
   final double yr;
   final String status;
   final double runtime;
@@ -362,9 +560,11 @@ class SlotDetail {
 
   SlotDetail({
     required this.nickName,
+    required this.productName,
     required this.slotNumber,
     required this.slotName,
     required this.modelName,
+    required this.wip,
     required this.input,
     required this.firstPass,
     required this.secondPass,
@@ -372,8 +572,15 @@ class SlotDetail {
     required this.rePass,
     required this.totalPass,
     required this.firstFail,
+    required this.secondFail,
     required this.fail,
+    required this.repair,
+    required this.repairPass,
+    required this.repairFail,
+    required this.totalFail,
     required this.fpr,
+    required this.spr,
+    required this.rr,
     required this.yr,
     required this.status,
     required this.runtime,
@@ -382,32 +589,42 @@ class SlotDetail {
 
   factory SlotDetail.fromJson(Map<String, dynamic> j) => SlotDetail(
     nickName: _readString(j, const ['nickName', 'nickname']),
-    slotNumber: _readString(j, const ['slotNumber', 'slotNo', 'slot_No']),
-    slotName: _readString(j, const ['slotName', 'slot_name']),
-    modelName:
-        _readString(j, const ['modelName', 'model', 'modelSerial', 'ModelSerial']),
-    input: _readInt(j, const ['input']),
-    firstPass: _readInt(j, const ['firstPass', 'first_Pass']),
-    secondPass: _readInt(j, const ['secondPass', 'second_Pass']),
-    pass: _readInt(j, const ['pass']),
-    rePass: _readInt(j, const ['rePass', 're_Pass']),
-    totalPass: _readInt(j, const ['totalPass', 'total_Pass']),
-    firstFail: _readInt(j, const ['firstFail', 'first_Fail']),
-    fail: _readInt(j, const ['fail']),
+    productName: _readString(j, const ['productName', 'ProductName', 'product']),
+    slotNumber: _readString(j, const ['slotNumber', 'SlotNumber', 'slotNo', 'slot_No']),
+    slotName: _readString(j, const ['slotName', 'SlotName', 'slot_name']),
+    modelName: _readString(j, const ['modelName', 'ModelName', 'model']),
+    wip: _readInt(j, const ['wip', 'WIP']),
+    input: _readInt(j, const ['input', 'Input']),
+    firstPass: _readInt(j, const ['firstPass', 'first_Pass', 'First_Pass']),
+    secondPass: _readInt(j, const ['secondPass', 'second_Pass', 'Second_Pass']),
+    pass: _readInt(j, const ['pass', 'Pass']),
+    rePass: _readInt(j, const ['rePass', 're_Pass', 'Repair_Pass']),
+    totalPass: _readInt(j, const ['totalPass', 'total_Pass', 'Total_Pass']),
+    firstFail: _readInt(j, const ['firstFail', 'first_Fail', 'First_Fail']),
+    secondFail: _readInt(j, const ['secondFail', 'second_Fail', 'Second_Fail']),
+    fail: _readInt(j, const ['fail', 'Fail']),
+    repair: _readInt(j, const ['repair', 'Repair']),
+    repairPass: _readInt(j, const ['repairPass', 'repair_Pass', 'Repair_Pass']),
+    repairFail: _readInt(j, const ['repairFail', 'repair_Fail', 'Repair_Fail']),
+    totalFail: _readInt(j, const ['totalFail', 'total_Fail', 'Total_Fail']),
     fpr: _readDouble(j, const ['fpr', 'FPR']),
+    spr: _readDouble(j, const ['spr', 'SPR']),
+    rr: _readDouble(j, const ['rr', 'RR']),
     yr: _readDouble(j, const ['yr', 'YR']),
-    status: _readString(j, const ['status', 'slotStatus']),
-    runtime: _readDouble(j, const ['runtime']),
-    totalTime: _readDouble(j, const ['totalTime', 'total_Time']),
+    status: _readString(j, const ['status', 'Status', 'slotStatus']),
+    runtime: _readDouble(j, const ['runtime', 'Runtime']),
+    totalTime: _readDouble(j, const ['totalTime', 'total_Time', 'TotalTime']),
   );
 }
 
 class RackDetail {
   final String nickName;
+  final String productName;
   final String groupName;
   final String rackName;
   final String modelName;
   final double ut;
+  final int wip;
   final int input;
   final int firstPass;
   final int secondPass;
@@ -415,8 +632,15 @@ class RackDetail {
   final int rePass;
   final int totalPass;
   final int firstFail;
+  final int secondFail;
   final int fail;
+  final int repair;
+  final int repairPass;
+  final int repairFail;
+  final int totalFail;
   final double fpr;
+  final double spr;
+  final double rr;
   final double yr;
   final double runtime;
   final double totalTime;
@@ -424,10 +648,12 @@ class RackDetail {
 
   RackDetail({
     required this.nickName,
+    required this.productName,
     required this.groupName,
     required this.rackName,
     required this.modelName,
     required this.ut,
+    required this.wip,
     required this.input,
     required this.firstPass,
     required this.secondPass,
@@ -435,8 +661,15 @@ class RackDetail {
     required this.rePass,
     required this.totalPass,
     required this.firstFail,
+    required this.secondFail,
     required this.fail,
+    required this.repair,
+    required this.repairPass,
+    required this.repairFail,
+    required this.totalFail,
     required this.fpr,
+    required this.spr,
+    required this.rr,
     required this.yr,
     required this.runtime,
     required this.totalTime,
@@ -445,30 +678,34 @@ class RackDetail {
 
   factory RackDetail.fromJson(Map<String, dynamic> j) => RackDetail(
     nickName: _readString(j, const ['nickName', 'nickname']),
+    productName: _readString(j, const ['productName', 'ProductName', 'product']),
     groupName: _readString(j, const ['groupName', 'GroupName']),
-    rackName: _readString(j, const ['rackName', 'rack']),
-    modelName:
-        _readString(j, const ['modelName', 'model', 'modelSerial', 'ModelSerial']),
+    rackName: _readString(j, const ['rackName', 'RackName', 'rack']),
+    modelName: _readString(j, const ['modelName', 'ModelName', 'model']),
     ut: _readDouble(j, const ['ut', 'UT']),
-    input: _readInt(j, const ['input']),
-    firstPass: _readInt(j, const ['firstPass', 'first_Pass']),
-    secondPass: _readInt(j, const ['secondPass', 'second_Pass']),
-    pass: _readInt(j, const ['pass']),
-    rePass: _readInt(j, const ['rePass', 're_Pass']),
-    totalPass: _readInt(j, const ['totalPass', 'total_Pass']),
-    firstFail: _readInt(j, const ['firstFail', 'first_Fail']),
-    fail: _readInt(j, const ['fail']),
+    wip: _readInt(j, const ['wip', 'WIP']),
+    input: _readInt(j, const ['input', 'Input']),
+    firstPass: _readInt(j, const ['firstPass', 'first_Pass', 'First_Pass']),
+    secondPass: _readInt(j, const ['secondPass', 'second_Pass', 'Second_Pass']),
+    pass: _readInt(j, const ['pass', 'Pass']),
+    rePass: _readInt(j, const ['rePass', 're_Pass', 'Repair_Pass']),
+    totalPass: _readInt(j, const ['totalPass', 'total_Pass', 'Total_Pass']),
+    firstFail: _readInt(j, const ['firstFail', 'first_Fail', 'First_Fail']),
+    secondFail: _readInt(j, const ['secondFail', 'second_Fail', 'Second_Fail']),
+    fail: _readInt(j, const ['fail', 'Fail']),
+    repair: _readInt(j, const ['repair', 'Repair']),
+    repairPass: _readInt(j, const ['repairPass', 'repair_Pass', 'Repair_Pass']),
+    repairFail: _readInt(j, const ['repairFail', 'repair_Fail', 'Repair_Fail']),
+    totalFail: _readInt(j, const ['totalFail', 'total_Fail', 'Total_Fail']),
     fpr: _readDouble(j, const ['fpr', 'FPR']),
+    spr: _readDouble(j, const ['spr', 'SPR']),
+    rr: _readDouble(j, const ['rr', 'RR']),
     yr: _readDouble(j, const ['yr', 'YR']),
-    runtime: _readDouble(j, const ['runtime']),
-    totalTime: _readDouble(j, const ['totalTime', 'total_Time']),
-    slotDetails:
-        (j['slotDetails'] is List)
-            ? (j['slotDetails'] as List)
-                .whereType<Map<String, dynamic>>()
-                .map(SlotDetail.fromJson)
-                .toList()
-            : const <SlotDetail>[],
+    runtime: _readDouble(j, const ['runtime', 'Runtime']),
+    totalTime: _readDouble(j, const ['totalTime', 'total_Time', 'TotalTime']),
+    slotDetails: GroupDataMonitoring._asMapList(
+      _valueFor(j, const ['slotDetails', 'SlotDetails', 'slot_Details', 'Slot_Details']),
+    ).map(SlotDetail.fromJson).toList(),
   );
 }
 
@@ -486,10 +723,10 @@ class ModelDetail {
   factory ModelDetail.fromJson(Map<String, dynamic> j) {
     final model = _readString(
       j,
-      const ['modelName', 'model', 'modelSerial', 'ModelSerial'],
+      const ['modelName', 'ModelName', 'model', 'modelSerial'],
     );
-    final total = _readInt(j, const ['totalPass', 'total_Pass', 'output']);
-    final pass = _readInt(j, const ['pass']);
+    final total = _readInt(j, const ['totalPass', 'TotalPass', 'total_Pass', 'output']);
+    final pass = _readInt(j, const ['pass', 'Pass']);
     final derivedTotal = total != 0 ? total : pass;
     final derivedPass = pass != 0 ? pass : derivedTotal;
     return ModelDetail(
@@ -513,31 +750,42 @@ class GroupDataMonitoring {
     required this.modelDetails,
   });
 
-  factory GroupDataMonitoring.fromJson(Map<String, dynamic> j) =>
-      GroupDataMonitoring(
-        slotStatic:
-            (j['slotStatic'] is List)
-                ? (j['slotStatic'] as List)
-                .whereType<Map<String, dynamic>>()
-                .map(SlotStaticItem.fromJson)
-                .toList()
-            : const <SlotStaticItem>[],
-        quantitySummary: QuantitySummary.fromJson(j),
-        rackDetails:
-            (j['rackDetails'] is List)
-                ? (j['rackDetails'] as List)
-                    .whereType<Map<String, dynamic>>()
-                    .map(RackDetail.fromJson)
-                    .toList()
-                : const <RackDetail>[],
-        modelDetails:
-            (j['modelDetails'] is List)
-                ? (j['modelDetails'] as List)
-                    .whereType<Map<String, dynamic>>()
-                    .map(ModelDetail.fromJson)
-                    .toList()
-                : const <ModelDetail>[],
-      );
+  static List<Map<String, dynamic>> _asMapList(dynamic source) {
+    dynamic raw = source;
+
+    // Một số API trả về chuỗi JSON thay vì list object
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        raw = jsonDecode(raw);
+      } catch (_) {
+        // nếu decode thất bại thì coi như không có data
+        raw = null;
+      }
+    }
+
+    if (raw is List) {
+      return raw.whereType<Map<String, dynamic>>().toList();
+    }
+
+    return const <Map<String, dynamic>>[];
+  }
+
+  factory GroupDataMonitoring.fromJson(Map<String, dynamic> j) {
+    final slotSrc =
+        _valueFor(j, const ['slotStatic', 'SlotStatic', 'slot_static']);
+    final rackSrc =
+        _valueFor(j, const ['rackDetails', 'RackDetails', 'rack_Details']);
+    final modelSrc =
+        _valueFor(j, const ['modelDetails', 'ModelDetails', 'model_Details']);
+
+    return GroupDataMonitoring(
+      slotStatic:
+          _asMapList(slotSrc).map(SlotStaticItem.fromJson).toList(),
+      quantitySummary: QuantitySummary.fromJson(j),
+      rackDetails: _asMapList(rackSrc).map(RackDetail.fromJson).toList(),
+      modelDetails: _asMapList(modelSrc).map(ModelDetail.fromJson).toList(),
+    );
+  }
 }
 
 // -------------------------- Helpers --------------------------

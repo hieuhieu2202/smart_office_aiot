@@ -41,9 +41,9 @@ class RackNumbersBox extends StatelessWidget {
           color: const Color(0xFF1E88E5),
         ),
         _SummaryMetric(
-          label: 'FPR',
-          value: '${qs.fpr.toStringAsFixed(2)} %',
-          icon: Icons.flag_rounded,
+          label: 'INPUT',
+          value: qs.input.toString(),
+          icon: Icons.input_rounded,
           color: const Color(0xFF7E57C2),
         ),
         _SummaryMetric(

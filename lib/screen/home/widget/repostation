@@ -1,0 +1,608 @@
+using Microsoft.EntityFrameworkCore;
+using Oracle.ManagedDataAccess.Client;
+using System.Data;
+using System.Globalization;
+using WebApplication.Common.Constants;
+using WebApplication.Common.Helpers;
+using WebApplication.Common.Helpers.Customer.Nvidia.KanBan;
+using WebApplication.Configurations;
+using WebApplication.Data.DbContexts.Config;
+using WebApplication.Models.Customer.Nvidia.Dashboard.StationOverview;
+using Type = WebApplication.UI.Customer.Nvidia.Dashboard.Type;
+
+namespace WebApplication.Repositories.Customer.Nvidia.DashBoard
+{
+    public class StationOverviewRepo(SfcContext _sfcContext)
+    {
+        private readonly SfcContext SfcContext = _sfcContext ?? throw new ArgumentNullException(nameof(_sfcContext));
+
+        public async Task<EntityResult<List<ProductName>>> GetSfcProductAndModelNames(Request request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request.MODEL_SERIAL))
+                {
+                    return EntityResult<List<ProductName>>.Failed("ModelSerial is require.");
+                }
+
+                var result = await SfcContext.NickNames
+                    .AsNoTracking()
+                    .Join(SfcContext.ModelNames,
+                          nickName => nickName.Id,
+                          modelName => modelName.NickNameId,
+                          (nickNames, modelNames) => new { nickNames, modelNames }
+                    )
+                    .Where(m => m.nickNames.Type == request.MODEL_SERIAL)
+                    .Select(j => new
+                    {
+                        PRODUCT_NAME = j.nickNames.Name.Trim(),
+                        MODEL_NAME = j.modelNames.ModelName1.Trim()
+                    })
+                    .GroupBy(j => j.PRODUCT_NAME)
+                    .Select(g => new ProductName
+                    {
+                        PRODUCT_NAME = g.Key,
+                        MODEL_NAMES = g.Select(g => g.MODEL_NAME).ToList()
+                    })
+                    .ToListAsync();
+
+                return EntityResult<List<ProductName>>.Success(result);
+            }
+            catch (Exception ex)
+            {
+                return EntityResult<List<ProductName>>.Failed($"GetStationOverviewData Error: {ex.Message}");
+            }
+        }
+
+        #region GetStationOverviewDatas
+        public async Task<EntityResult<List<StationOverviewData>>> GetStationOverviewDatas(Request request)
+        {
+            try
+            {
+                using var connection = new OracleConnection(ConnectionStrings.SFIS_NVIDIA);
+                await connection.OpenAsync();
+
+                // 0)
+                var GetSfcProductAndModelNamesResult = await GetSfcProductAndModelNames(request);
+                if (!GetSfcProductAndModelNamesResult.Succeeded) throw new KeyNotFoundException("GetStationOverviewData Error: No data.");
+                var Products = GetSfcProductAndModelNamesResult.Value;
+
+                using var cmd = CreateStationOverviewCmd(connection, request, [.. Products.SelectMany(p => p.MODEL_NAMES)]);
+                if (cmd == null)
+                {
+                    await connection.CloseAsync();
+                    return EntityResult<List<StationOverviewData>>.Failed("GetStationOverviewData Error: Invalid request parameters.");
+                }
+
+                // 1) Query dữ liệu
+                var SFIS_DATAS = new List<SFIS_DATA_GetStationOverviewDatas>();
+                using (var rdr = await cmd.ExecuteReaderAsync())
+                {
+                    while (await rdr.ReadAsync())
+                    {
+                        string MODEL_NAME = rdr["MODEL_NAME"].ToString() ?? string.Empty;
+                        string PRODUCT_NAME = Products.First(p => p.MODEL_NAMES.Any(m => m == MODEL_NAME)).PRODUCT_NAME;
+
+                        var data = new SFIS_DATA_GetStationOverviewDatas
+                        {
+                            PRODUCT_NAME = PRODUCT_NAME,
+                            MODEL_NAME = rdr["MODEL_NAME"].ToString() ?? string.Empty,
+                            GROUP_NAME = rdr["GROUP_NAME"].ToString() ?? string.Empty,
+                            STATION_NAME = rdr["STATION_NAME"].ToString() ?? string.Empty,
+                            INPUT = Helpers.NumberHelpers.ToInt(rdr["INPUT"].ToString() ?? "0"),
+                            FIRST_FAIL = Helpers.NumberHelpers.ToInt(rdr["FIRST_FAIL"].ToString() ?? "0"),
+                            REPAIR_QTY = Helpers.NumberHelpers.ToInt(rdr["REPAIR_QTY"].ToString() ?? "0"),
+                            FIRST_PASS = Helpers.NumberHelpers.ToInt(rdr["FIRST_PASS"].ToString() ?? "0"),
+                            PASS = Helpers.NumberHelpers.ToInt(rdr["PASS"].ToString() ?? "0"),
+                            SECOND_PASS = Helpers.NumberHelpers.ToInt(rdr["SECOND_PASS"].ToString() ?? "0")
+                        };
+
+                        SFIS_DATAS.Add(data);
+                    }
+                }
+
+                // 2) Xử lý dữ liệu và trả về kết quả
+                var result = SFIS_DATAS
+                    .GroupBy(d => d.PRODUCT_NAME)
+                    .Select(gp => new StationOverviewData
+                    {
+                        PRODUCT_NAME = gp.Key,
+                        GROUP_DATAS = [.. gp
+                            .GroupBy(d => d.GROUP_NAME)
+                            .Select(gg => new GROUP_DATA
+                            {
+                                GROUP_NAME = gg.Key,
+                                STATION_DATAS = [.. gg
+                                    .GroupBy(s => s.STATION_NAME)
+                                    .Select(d => new STATION_DATA
+                                    {
+                                        STATION_NAME = d.Key,
+                                        INPUT = d.Sum(d => d.INPUT),
+                                        FIRST_FAIL = d.Sum(d => d.FIRST_FAIL),
+                                        REPAIR_QTY = d.Sum(d => d.REPAIR_QTY),
+                                        FIRST_PASS = d.Sum(d => d.FIRST_PASS),
+                                        PASS = d.Sum(d => d.PASS),
+                                        SECOND_PASS = d.Sum(d => d.SECOND_PASS)
+                                    })
+                                    .OrderBy(s => s.STATION_NAME)]
+                            })
+                            .OrderBy(g => request.GROUP_NAMES.IndexOf(g.GROUP_NAME))]
+                    })
+                    .OrderByDescending(p => p.GROUP_DATAS.SelectMany(g => g.STATION_DATAS).Count())
+                    .ToList();
+
+                return EntityResult<List<StationOverviewData>>.Success(result);
+            }
+            catch (Exception ex)
+            {
+                return EntityResult<List<StationOverviewData>>.Failed($"GetStationOverviewData Error: {ex.Message}");
+            }
+        }
+        private static OracleCommand CreateStationOverviewCmd(OracleConnection connection, Request request, List<string> ModelNames)
+        {
+            var cmd = connection.CreateCommand();
+            cmd.BindByName = true;
+
+            // Build Parameter
+            string startKey = Helpers.DateTimeHelpers.StartDateRangeToWorkDate(request.DateRange) + Helpers.DateTimeHelpers.StartDateRangeToWorkSection(request.DateRange);
+            string endKey = Helpers.DateTimeHelpers.EndDateRangeToWorkDate(request.DateRange) + Helpers.DateTimeHelpers.EndDateRangeToWorkSection(request.DateRange);
+
+            var pStart = cmd.Parameters.Add("startKey", OracleDbType.Varchar2, 10);
+            pStart.Value = startKey;
+
+            var pEnd = cmd.Parameters.Add("endKey", OracleDbType.Varchar2, 10);
+            pEnd.Value = endKey;
+
+            var pSerial = cmd.Parameters.Add("modelSerialKey", OracleDbType.Varchar2, 100);
+            pSerial.Value = request.MODEL_SERIAL.Trim();
+
+            string modelIn = KanBanHelpers.BuildParameter(cmd, "A.MODEL_NAME", ModelNames, "m");
+            string groupIn = KanBanHelpers.BuildParameter(cmd, "A.GROUP_NAME", request.GROUP_NAMES, "s");
+
+            // Query
+            cmd.CommandText = @$"
+                SELECT A.STATION_NAME,
+                       A.MODEL_NAME,
+                       A.GROUP_NAME,
+                       (NVL(SUM(A.FIRST_PASS_QTY), 0) + NVL(SUM(A.FIRST_FAIL_QTY), 0)) AS INPUT,
+                       SUM(A.FIRST_FAIL_QTY) AS FIRST_FAIL,
+                       SUM(A.REPAIR_QTY)     AS REPAIR_QTY,
+                       NVL(SUM(A.FIRST_PASS_QTY), 0)   AS FIRST_PASS,
+                       SUM(A.PASS_QTY)       AS PASS,
+                       NVL(SUM(A.SECOND_PASS_QTY), 0)  AS SECOND_PASS
+                  FROM SFISM4.R_STATION_ATE_T A
+                  JOIN SFIS1.C_MODEL_DESC_T  B ON A.MODEL_NAME = B.MODEL_NAME
+                 WHERE B.MODEL_SERIAL = UPPER(:modelSerialKey)
+                   AND {modelIn}
+                   AND {groupIn}
+                   AND (A.WORK_DATE || LPAD(A.WORK_SECTION, 2, '0')) >= :startKey
+                   AND (A.WORK_DATE || LPAD(A.WORK_SECTION, 2, '0')) <= :endKey
+              GROUP BY A.STATION_NAME, A.MODEL_NAME, A.GROUP_NAME
+              ORDER BY A.STATION_NAME, A.MODEL_NAME, A.GROUP_NAME";
+
+            return cmd;
+        }
+        #endregion
+
+        #region GetProductTrackingDatas
+        public async Task<EntityResult<List<ProductTrackingData>>> GetProductTrackingDatas(Request request)
+        {
+            try
+            {
+                using var connection = new OracleConnection(ConnectionStrings.SFIS_NVIDIA);
+                await connection.OpenAsync();
+
+                // 0) Lấy data từ SFC và tạo cmd
+                var GetSfcProductAndModelNamesResult = await GetSfcProductAndModelNames(request);
+                if (!GetSfcProductAndModelNamesResult.Succeeded) throw new KeyNotFoundException("GetProductTrackingDatas Error: No data.");
+                var Products = GetSfcProductAndModelNamesResult.Value;
+
+                var fromDate = Helpers.DateTimeHelpers.StartDateRangeToDateTime(request.DateRange);
+                var toDate = Helpers.DateTimeHelpers.EndDateRangeToDateTime(request.DateRange);
+                var shift = Helpers.DateTimeHelpers.GetShift(fromDate);
+
+                using var cmd = CreateProductTrackingDatasCmd(connection, request, [.. Products.SelectMany(p => p.MODEL_NAMES)]);
+                if (cmd == null)
+                {
+                    await connection.CloseAsync();
+                    return EntityResult<List<ProductTrackingData>>.Failed("GetProductTrackingDatas Error: Invalid request parameters.");
+                }
+
+                // 1) Query dữ liệu
+                var SFIS_DATAS = new List<SFIS_DATA_GetProductTrackingDatas>();
+                using (var rdr = await cmd.ExecuteReaderAsync())
+                {
+                    while (await rdr.ReadAsync())
+                    {
+                        string MODEL_NAME = rdr["MODEL_NAME"].ToString() ?? string.Empty;
+                        string PRODUCT_NAME = Products.First(p => p.MODEL_NAMES.Any(m => m == MODEL_NAME)).PRODUCT_NAME;
+
+                        var data = new SFIS_DATA_GetProductTrackingDatas
+                        {
+                            PRODUCT_NAME = PRODUCT_NAME,
+                            GROUP_NAME = rdr["GROUP_NAME"].ToString() ?? string.Empty,
+                            WORK_DATE = rdr["WORK_DATE"].ToString() ?? string.Empty,
+                            WORK_SECTION = rdr["WORK_SECTION"].ToString() ?? string.Empty,
+                            SECTION_STATION = Helpers.NumberHelpers.ToInt(rdr["SECTION_STATION"].ToString()),
+                            TOTAL_STATION = Helpers.NumberHelpers.ToInt(rdr["TOTAL_STATION"].ToString()),
+                        };
+
+                        SFIS_DATAS.Add(data);
+                    }
+                }
+
+                // 2) Trả về kết quả
+                var result = SFIS_DATAS
+                    .GroupBy(d => d.PRODUCT_NAME)
+                    .Select(g => new ProductTrackingData
+                    {
+                        PRODUCT_NAME = g.Key,
+                        GROUP_DATAS = [.. g.GroupBy(g => g.GROUP_NAME)
+                            .Select(gg => new TRACKING_GROUP_DATA
+                            {
+                                GROUP_NAME = gg.Key,
+                                TOTAL_STATION = gg.Max(gg => gg.TOTAL_STATION),
+                                SECTION_DATAS = [.. gg.GroupBy(gg => new { gg.WORK_DATE, gg.WORK_SECTION })
+                                    .Select(gs => new TRACKING_SECTION_DATA
+                                    {
+                                        WORK_DATE = gs.Key.WORK_DATE,
+                                        WORK_SECTION = gs.Key.WORK_SECTION,
+                                        SECTION_STATION = gs.Sum(gs => gs.SECTION_STATION)
+                                    })
+                                    .OrderBy(gs => gs.WORK_DATE)
+                                    .ThenBy(gs => Helpers.NumberHelpers.ToInt(gs.WORK_SECTION))]
+                            })]
+                    })
+                    .ToList();
+
+                return EntityResult<List<ProductTrackingData>>.Success(result);
+            }
+            catch (Exception ex)
+            {
+                return EntityResult<List<ProductTrackingData>>.Failed($"GetProductTrackingDatas Error: {ex.Message}");
+            }
+        }
+        private static OracleCommand CreateProductTrackingDatasCmd(OracleConnection connection, Request request, List<string> ModelNames)
+        {
+            var cmd = connection.CreateCommand();
+            cmd.BindByName = true;
+
+            string startKey = Helpers.DateTimeHelpers.StartDateRangeToWorkDate(request.DateRange) + Helpers.DateTimeHelpers.StartDateRangeToWorkSection(request.DateRange);
+            string endKey = Helpers.DateTimeHelpers.EndDateRangeToWorkDate(request.DateRange) + Helpers.DateTimeHelpers.EndDateRangeToWorkSection(request.DateRange);
+
+            // Build Parameter
+            var pStart = cmd.Parameters.Add("startKey", OracleDbType.Varchar2, 10);
+            pStart.Value = startKey;
+
+            var pEnd = cmd.Parameters.Add("endKey", OracleDbType.Varchar2, 10);
+            pEnd.Value = endKey;
+
+            var pSerial = cmd.Parameters.Add("modelSerialKey", OracleDbType.Varchar2, 100);
+            pSerial.Value = request.MODEL_SERIAL.Trim();
+
+            string modelIn = KanBanHelpers.BuildParameter(cmd, "MODEL_NAME", ModelNames, "m");
+            string groupIn = KanBanHelpers.BuildParameter(cmd, "GROUP_NAME", request.GROUP_NAMES, "s");
+
+            // Query
+            cmd.CommandText = $@"
+                SELECT
+                    T.MODEL_NAME,
+                    T.GROUP_NAME,
+                    T.WORK_DATE,
+                    T.WORK_SECTION,
+                    COUNT(DISTINCT T.STATION_NAME) AS SECTION_STATION,
+                    (
+                        SELECT COUNT(DISTINCT S2.STATION_NAME)
+                          FROM SFISM4.R_STATION_ATE_T S2
+                         WHERE S2.MODEL_NAME = T.MODEL_NAME
+                           AND S2.GROUP_NAME = T.GROUP_NAME
+                           AND {modelIn.Replace("R_STATION_ATE_T", "S2")}
+                           AND {groupIn.Replace("R_STATION_ATE_T", "S2")}
+                           AND (S2.WORK_DATE || LPAD(S2.WORK_SECTION, 2, '0')) >= :startKey
+                           AND (S2.WORK_DATE || LPAD(S2.WORK_SECTION, 2, '0')) <= :endKey
+                    ) AS TOTAL_STATION
+                FROM SFISM4.R_STATION_ATE_T T
+                WHERE {modelIn}
+                  AND {groupIn}
+                  AND (T.WORK_DATE || LPAD(T.WORK_SECTION, 2, '0')) >= :startKey
+                  AND (T.WORK_DATE || LPAD(T.WORK_SECTION, 2, '0')) <= :endKey
+                GROUP BY T.MODEL_NAME, T.GROUP_NAME, T.WORK_DATE, T.WORK_SECTION
+                ORDER BY T.MODEL_NAME, T.GROUP_NAME, T.WORK_DATE, T.WORK_SECTION";
+
+            return cmd;
+        }
+        #endregion
+
+        #region GetStationAnalysisDatas
+        public async Task<EntityResult<List<StationAnalysisData>>> GetStationAnalysisDatas(Request request)
+        {
+            try
+            {
+                using var connection = new OracleConnection(ConnectionStrings.SFIS_NVIDIA);
+                await connection.OpenAsync();
+
+                // 0) Tạo cmd
+                // 0)
+                var GetSfcProductAndModelNamesResult = await GetSfcProductAndModelNames(request);
+                if (!GetSfcProductAndModelNamesResult.Succeeded) throw new KeyNotFoundException("GetStationDetailDatas Error: No data.");
+                var Products = GetSfcProductAndModelNamesResult.Value;
+                var ModelNames = Products.Where(p => p.PRODUCT_NAME == request.PRODUCT_NAME).SelectMany(p => p.MODEL_NAMES).ToList();
+
+                using var cmd = CreateStationAnalysisDatasCmd(connection, request, ModelNames);
+                if (cmd == null)
+                {
+                    await connection.CloseAsync();
+                    return EntityResult<List<StationAnalysisData>>.Failed("GetStationAnalysisDatas Error: Invalid request parameters.");
+                }
+
+                // 1) Query dữ liệu
+                var result = new List<StationAnalysisData>();
+                using (var rdr = await cmd.ExecuteReaderAsync())
+                {
+                    while (await rdr.ReadAsync())
+                    {
+                        var data = new StationAnalysisData
+                        {
+                            CLASS_DATE = rdr["CLASS_DATE"].ToString() ?? string.Empty,
+                            ERROR_CODE = rdr["ERROR_CODE"].ToString() ?? string.Empty,
+                            FAIL_COUNT = Helpers.NumberHelpers.ToInt(rdr["FAIL_COUNT"].ToString()),
+                        };
+
+                        result.Add(data);
+                    }
+                }
+
+                return EntityResult<List<StationAnalysisData>>.Success(result);
+            }
+            catch (Exception ex)
+            {
+                return EntityResult<List<StationAnalysisData>>.Failed($"GetStationAnalysisDatas Error: {ex.Message}");
+            }
+        }
+        private static OracleCommand CreateStationAnalysisDatasCmd(OracleConnection connection, Request request, List<string> ModelNames)
+        {
+            var cmd = connection.CreateCommand();
+            cmd.BindByName = true;
+
+            var startDateStr = Helpers.DateTimeHelpers.StartDateRangeToWorkDate(request.DateRange);
+            var startSection = Helpers.DateTimeHelpers.StartDateRangeToWorkSection(request.DateRange);
+            var endDateStr = Helpers.DateTimeHelpers.EndDateRangeToWorkDate(request.DateRange);
+            var endSection = Helpers.DateTimeHelpers.EndDateRangeToWorkSection(request.DateRange);
+
+            var startDate = DateTime.ParseExact(startDateStr, "yyyyMMdd", CultureInfo.InvariantCulture);
+            var endDate = DateTime.ParseExact(endDateStr, "yyyyMMdd", CultureInfo.InvariantCulture);
+
+            var daysInclusive = (endDate - startDate).TotalDays + 1;
+            if (daysInclusive < 15)
+            {
+                startDate = endDate.AddDays(-14);
+            }
+
+            string startKey = startDate.ToString("yyyyMMdd") + startSection.PadLeft(2, '0');
+            string endKey = endDateStr + endSection.PadLeft(2, '0');
+
+            // Build Parameter
+            var pStart = cmd.Parameters.Add("startKey", OracleDbType.Varchar2, 10);
+            pStart.Value = startKey;
+
+            var pEnd = cmd.Parameters.Add("endKey", OracleDbType.Varchar2, 10);
+            pEnd.Value = endKey;
+
+            string stationPattern = request.STATION_NAME.Trim().Replace("-bf", "") + "%";
+            cmd.Parameters.Add("stationKey", OracleDbType.Varchar2, 100).Value = stationPattern;
+
+            string modelIn = KanBanHelpers.BuildParameter(cmd, "MODEL_NAME", ModelNames, "m");
+            string groupIn = KanBanHelpers.BuildParameter(cmd, "GROUP_NAME", request.GROUP_NAMES, "s");
+
+            // Query
+            cmd.CommandText = $@"
+                SELECT ERROR_CODE,
+                       SUM(TEST_FAIL_QTY + FAIL_QTY) AS FAIL_COUNT,
+                       TO_CHAR(
+                           CASE
+                               WHEN TO_NUMBER(WORK_SECTION) < 8 THEN TO_DATE(WORK_DATE, 'YYYYMMDD') - 1
+                               ELSE TO_DATE(WORK_DATE, 'YYYYMMDD')
+                           END,
+                           'YYYY-MM-DD'
+                       ) AS CLASS_DATE
+                 FROM  SFISM4.R_ATE_ERRCODE_T
+                WHERE  (WORK_DATE || LPAD(WORK_SECTION, 2, '0')) >= :startKey
+                  AND  (WORK_DATE || LPAD(WORK_SECTION, 2, '0')) <= :endKey
+                  AND  STATION_NAME LIKE :stationKey
+                  AND {modelIn}
+                  AND {groupIn}
+                GROUP  BY ERROR_CODE,
+                       TO_CHAR(
+                           CASE
+                               WHEN TO_NUMBER(WORK_SECTION) < 8 THEN TO_DATE(WORK_DATE, 'YYYYMMDD') - 1
+                               ELSE TO_DATE(WORK_DATE, 'YYYYMMDD')
+                           END,
+                           'YYYY-MM-DD'
+                       )";
+
+            return cmd;
+        }
+        #endregion
+
+        #region GetStationDetail
+        public async Task<EntityResult<List<StationDetailData>>> GetStationDetailDatas(Request request)
+        {
+            try
+            {
+                using var connection = new OracleConnection(ConnectionStrings.SFIS_NVIDIA);
+                await connection.OpenAsync();
+
+                // 0)
+                var GetSfcProductAndModelNamesResult = await GetSfcProductAndModelNames(request);
+                if (!GetSfcProductAndModelNamesResult.Succeeded) throw new KeyNotFoundException("GetStationDetailDatas Error: No data.");
+                var Products = GetSfcProductAndModelNamesResult.Value;
+                var ModelNames = Products.Where(p => p.PRODUCT_NAME == request.PRODUCT_NAME).SelectMany(p => p.MODEL_NAMES).ToList();
+
+                // 1) Tạo command
+                using var cmd = CreateGetStationDetailDatasInputCmd(connection, request, ModelNames);
+                if (cmd == null)
+                {
+                    await connection.CloseAsync();
+                    return EntityResult<List<StationDetailData>>.Failed("GetStationDetailDatas Error: Invalid request parameters.");
+                }
+
+                // 2) Đọc dữ liệu
+                var result = new List<StationDetailData>();
+                using (var rdr = await cmd.ExecuteReaderAsync())
+                {
+                    while (await rdr.ReadAsync())
+                    {
+                        var data = new StationDetailData
+                        {
+                            EMP_NO = rdr["EMP_NO"]?.ToString() ?? string.Empty,
+                            MO_NUMBER = rdr["MO_NUMBER"]?.ToString() ?? string.Empty,
+                            MODEL_NAME = rdr["MODEL_NAME"]?.ToString() ?? string.Empty,
+                            SERIAL_NUMBER = rdr["SERIAL_NUMBER"]?.ToString() ?? string.Empty,
+                            LINE_NAME = rdr["LINE_NAME"]?.ToString() ?? string.Empty,
+                            GROUP_NAME = rdr["GROUP_NAME"]?.ToString() ?? string.Empty,
+                            STATION_NAME = rdr["STATION_NAME"]?.ToString() ?? string.Empty,
+                            ERROR_CODE = rdr["ERROR_CODE"]?.ToString() ?? string.Empty,
+                            DESCRIPTION = rdr["DESCRIPTION"]?.ToString() ?? string.Empty,
+                            CYCLE_TIME = rdr["CYCLE_TIME"]?.ToString() ?? string.Empty,
+                            IN_STATION_TIME = rdr["IN_STATION_TIME"] == DBNull.Value ? null : Convert.ToDateTime(rdr["IN_STATION_TIME"])
+                        };
+
+                        result.Add(data);
+                    }
+                }
+
+                // 3) Trả về kết quả
+                return EntityResult<List<StationDetailData>>.Success([.. result.OrderByDescending(d => d.IN_STATION_TIME)]);
+            }
+            catch (Exception ex)
+            {
+                return EntityResult<List<StationDetailData>>.Failed($"GetStationDetailDatas Error: {ex.Message}");
+            }
+        }
+        public static OracleCommand CreateGetStationDetailDatasInputCmd(OracleConnection connection, Request request, List<string> ModelNames)
+        {
+            var cmd = connection.CreateCommand();
+            cmd.BindByName = true;
+
+            var startKey = Helpers.DateTimeHelpers.StartDateRangeToDateTime(request.DateRange);
+            var endKey = Helpers.DateTimeHelpers.EndDateRangeToDateTime(request.DateRange);
+
+            // Build Parameter
+            var pStart = cmd.Parameters.Add("startKey", OracleDbType.Date);
+            pStart.Value = startKey;
+
+            var pEnd = cmd.Parameters.Add("endKey", OracleDbType.Date);
+            pEnd.Value = endKey;
+
+            string stationPattern = request.STATION_NAME.Trim().Replace("-bf", "") + "%";
+            cmd.Parameters.Add("stationKey", OracleDbType.Varchar2, 100).Value = stationPattern;
+
+            string modelIn = KanBanHelpers.BuildParameter(cmd, "MODEL_NAME", ModelNames, "m");
+            string groupIn = KanBanHelpers.BuildParameter(cmd, "GROUP_NAME", request.GROUP_NAMES, "s");
+
+            // Query
+            cmd.CommandText = request.DETAIL_TYPE switch
+            {
+                Type.INPUT => @$"
+                        SELECT EMP_NO,
+                               MO_NUMBER,
+                               MODEL_NAME,
+                               SERIAL_NUMBER,
+                               LINE_NAME,
+                               GROUP_NAME,
+                               STATION_NAME,
+                               ERROR_CODE,
+                               IN_STATION_TIME,
+                               DATA4 AS DESCRIPTION,
+                               DATA6 AS CYCLE_TIME
+                          FROM SFISM4.R_FAIL_ATEDATA_T
+                         WHERE IN_STATION_TIME >= :startKey
+                           AND IN_STATION_TIME <  :endKey
+                           AND STATION_NAME LIKE :stationKey
+                           AND {modelIn}
+                           AND {groupIn}",
+                Type.PASS => @$"
+                        SELECT EMP_NO,
+                               MO_NUMBER,
+                               MODEL_NAME,
+                               SERIAL_NUMBER,
+                               LINE_NAME,
+                               GROUP_NAME,
+                               STATION_NAME,
+                               ERROR_CODE,
+                               IN_STATION_TIME,
+                               DATA4 AS DESCRIPTION,
+                               DATA6 AS CYCLE_TIME
+                          FROM SFISM4.R_FAIL_ATEDATA_T
+                         WHERE IN_STATION_TIME >= :startKey
+                           AND IN_STATION_TIME <  :endKey
+                           AND STATION_NAME LIKE :stationKey
+                           AND DATA4 = 'Test passed'
+                           AND {modelIn}
+                           AND {groupIn}",
+                Type.FIRST_FAIL => @$"
+                        SELECT EMP_NO,
+                               MO_NUMBER,
+                               MODEL_NAME,
+                               SERIAL_NUMBER,
+                               LINE_NAME,
+                               GROUP_NAME,
+                               STATION_NAME,
+                               ERROR_CODE,
+                               IN_STATION_TIME,
+                         DATA4 AS DESCRIPTION,
+                         DATA6 AS CYCLE_TIME
+                          FROM SFISM4.R_FAIL_ATEDATA_T
+                         WHERE IN_STATION_TIME >= :startKey
+                           AND IN_STATION_TIME <  :endKey
+                           AND STATION_NAME LIKE :stationKey
+                           AND UPPER(DATA1) = 'FAIL'
+                           AND RETEST_COUNT = 1
+                           AND {modelIn}
+                           AND {groupIn}",
+                Type.SECOND_FAIL => @$"
+                        SELECT EMP_NO,
+                               MO_NUMBER,
+                               MODEL_NAME,
+                               SERIAL_NUMBER,
+                               LINE_NAME,
+                               GROUP_NAME,
+                               STATION_NAME,
+                               ERROR_CODE,
+                               IN_STATION_TIME,
+                         DATA4 AS DESCRIPTION,
+                         DATA6 AS CYCLE_TIME
+                          FROM SFISM4.R_FAIL_ATEDATA_T
+                         WHERE IN_STATION_TIME >= :startKey
+                           AND IN_STATION_TIME <  :endKey
+                           AND STATION_NAME LIKE :stationKey
+                           AND UPPER(DATA1) = 'FAIL'
+                           AND RETEST_COUNT = 2
+                           AND {modelIn}
+                           AND {groupIn}",
+                Type.RETEST_RATE or Type.YIELD_RATE => @$"
+                        SELECT EMP_NO,
+                               MO_NUMBER,
+                               MODEL_NAME,
+                               SERIAL_NUMBER,
+                               LINE_NAME,
+                               GROUP_NAME,
+                               STATION_NAME,
+                               ERROR_CODE,
+                               IN_STATION_TIME,
+                         DATA4 AS DESCRIPTION,
+                         DATA6 AS CYCLE_TIME
+                          FROM SFISM4.R_FAIL_ATEDATA_T
+                         WHERE IN_STATION_TIME >= :startKey
+                           AND IN_STATION_TIME <  :endKey
+                           AND STATION_NAME LIKE :stationKey
+                           AND UPPER(DATA1) = 'FAIL'
+                           AND {modelIn}
+                           AND {groupIn}",
+                _ => throw new ArgumentOutOfRangeException(nameof(request.DETAIL_TYPE), $"Unsupported DETAIL_TYPE: {request.DETAIL_TYPE}"),
+            };
+            return cmd;
+        }
+        #endregion
+    }
+}

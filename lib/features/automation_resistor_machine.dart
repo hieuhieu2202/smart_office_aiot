@@ -1,0 +1,2 @@
+export 'automation_resistor_machine/presentation/pages/automation_resistor_dashboard_page.dart';
+export 'automation_resistor_machine/presentation/controllers/automation_resistor_dashboard_controller.dart';

@@ -60,6 +60,7 @@ class LcrDashboardController extends GetxController {
   final RxList<LcrRecord> trackingRecords = <LcrRecord>[].obs;
   final Rxn<LcrDashboardViewState> dashboardView = Rxn<LcrDashboardViewState>();
   final RxList<LcrRecord> analysisRecords = <LcrRecord>[].obs;
+  final Map<bool, List<LcrRecord>> _statusCache = <bool, List<LcrRecord>>{};
 
   final RxList<LcrRecord> serialSearchResults = <LcrRecord>[].obs;
   final Rxn<LcrRecord> selectedRecord = Rxn<LcrRecord>();
@@ -101,6 +102,7 @@ class LcrDashboardController extends GetxController {
   Future<void> loadTrackingData() async {
     isLoading.value = true;
     error.value = null;
+    _invalidateStatusCache();
     try {
       final request = _buildRequest();
       final results = await Future.wait([
@@ -120,6 +122,7 @@ class LcrDashboardController extends GetxController {
   }
 
   Future<void> refreshAnalysis() async {
+    _invalidateStatusCache();
     try {
       final request = _buildRequest();
       final list = await _getAnalysisData(request);
@@ -127,6 +130,19 @@ class LcrDashboardController extends GetxController {
     } catch (e) {
       error.value = e.toString();
     }
+  }
+
+  Future<List<LcrRecord>> loadStatusRecords({required bool pass}) async {
+    final cached = _statusCache[pass];
+    if (cached != null) {
+      return List<LcrRecord>.from(cached);
+    }
+
+    final baseRequest = _buildRequest();
+    final override = baseRequest.copyWith(status: pass ? 'PASS' : 'FAIL');
+    final list = await _getAnalysisData(override);
+    _statusCache[pass] = List<LcrRecord>.from(list);
+    return List<LcrRecord>.from(list);
   }
 
   Future<void> searchSerial(String query) async {
@@ -160,19 +176,23 @@ class LcrDashboardController extends GetxController {
   void updateFactory(String value) {
     selectedFactory.value = value;
     _refreshDepartmentMachineOptions();
+    _invalidateStatusCache();
   }
 
   void updateDepartment(String value) {
     selectedDepartment.value = value;
     _refreshMachineOptions();
+    _invalidateStatusCache();
   }
 
   void updateMachine(String value) {
     selectedMachine.value = value;
+    _invalidateStatusCache();
   }
 
   void updateStatus(String value) {
     selectedStatus.value = value;
+    _invalidateStatusCache();
   }
 
   Future<void> updateDateRange(DateTimeRange range) async {
@@ -279,6 +299,10 @@ class LcrDashboardController extends GetxController {
 
   String _normalize(String value) {
     return value.toUpperCase() == 'ALL' ? '' : value;
+  }
+
+  void _invalidateStatusCache() {
+    _statusCache.clear();
   }
 
   LcrFactory? _findFactory(String name) {

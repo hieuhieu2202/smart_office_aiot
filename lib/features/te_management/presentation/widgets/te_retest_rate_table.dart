@@ -6,36 +6,56 @@ import '../../domain/entities/te_retest_rate.dart';
 
 const double _kIndexBaseWidth = 58;
 const double _kIndexMinWidth = 46;
-const double _kModelBaseWidth = 220;
-const double _kModelMinWidth = 160;
-const double _kGroupBaseWidth = 360;
-const double _kGroupMinWidth = 240;
+const double _kModelBaseWidth = 211.2;
+const double _kModelMinWidth = 153.6;
+const double _kGroupBaseWidth = 307.8;
+const double _kGroupMinWidth = 205.2;
 const double _kCellBaseWidth = 108;
 const double _kCellMinWidth = 72;
 const double _kHeaderTopHeight = 40;
 const double _kHeaderBottomHeight = 32;
 const double _kRowHeight = 54;
 
-const Color _kHeaderColor = Color(0xFF0D3B5B);
-const Color _kHeaderAccent = Color(0xFF082A44);
+const Color _kHeaderColor = Color(0xFF1E40AF);
+const Color _kHeaderAccent = Color(0xFF1D4ED8);
+const Color _kHeaderLabelTextColor = Color(0xFFE9F3FF);
+const Color _kHeaderDateTextColor = Color(0xFFF3F8FF);
+const Color _kHeaderShiftTextColor = Color(0xFFD6E8FF);
 const LinearGradient _kTableBackgroundGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFF063356), Color(0xFF03172C)],
+  colors: [Color(0xFF0B1628), Color(0xFF10243F)],
 );
-const Color _kRowEvenColor = Color(0xFF0A3654);
-const Color _kRowOddColor = Color(0xFF072C47);
-const Color _kSpanBackground = Color(0xFF0E3F61);
-const Color _kBorderColor = Color(0x553AD2FF);
+const Color _kRowEvenColor = Color(0xFF142942);
+const Color _kRowOddColor = Color(0xFF112135);
+const Color _kSpanBackground = Color(0xFF1F3555);
+const Color _kBorderColor = Color(0xFF2C4F7F);
 const List<BoxShadow> _kTableShadows = [
-  const BoxShadow(
-    color: Color(0x2229C6FF),
-    blurRadius: 34,
-    spreadRadius: 2,
-    offset: const Offset(0, 26),
+  BoxShadow(
+    color: Color(0xAA051529),
+    blurRadius: 24,
+    spreadRadius: 0,
+    offset: Offset(0, 22),
   ),
 ];
-const BorderSide _kGridBorder = BorderSide(color: Color(0x335FE0FF), width: 1.05);
+const BorderSide _kGridBorder = BorderSide(color: Color(0xFF2C4F7F), width: 1.0);
+const LinearGradient _kCompactCardGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFF142A46), Color(0xFF1F3656)],
+);
+const Color _kCompactCardBorder = Color(0xFF3C6BA6);
+const Color _kCompactCardShadow = Color(0x6607132A);
+const Color _kCompactGroupBar = Color(0xFF27436B);
+const Color _kCompactChipBackground = Color(0xFF1B2F4C);
+const Color _kCompactChipBorder = Color(0xFF4B82C5);
+const Color _kPrimaryTextColor = Color(0xFFE2F1FF);
+const Color _kSecondaryTextColor = Color(0xFFA5C7F5);
+const Color _kModelTextColor = Color(0xFFE5F1FF);
+const Color _kGroupTextColor = Color(0xFFEBF6FF);
+const Color _kHighlightBlendColor = Color(0xFF4F9BFF);
+const Color _kHighlightGlowColor = Color(0x332F64B8);
+const Color _kHighlightBorderColor = Color(0xFF64B5FF);
 
 class TERetestRateTable extends StatefulWidget {
   const TERetestRateTable({
@@ -176,14 +196,14 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
   @override
   Widget build(BuildContext context) {
     return DefaultTextStyle.merge(
-      style: const TextStyle(fontFamily: 'Arial'),
+      style: const TextStyle(fontFamily: 'Arial', color: _kPrimaryTextColor),
       child: Builder(
         builder: (context) {
           if (!widget.detail.hasData || widget.formattedDates.isEmpty) {
             return const Center(
               child: Text(
                 'No data available',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: _kSecondaryTextColor),
               ),
             );
           }
@@ -207,12 +227,31 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
               final hasBoundedHeight =
                   constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
 
-              final width = hasBoundedWidth
+              final availableWidth = hasBoundedWidth
                   ? constraints.maxWidth
                   : math.max(fallbackTotalWidth.toDouble(), constraints.minWidth);
               final height = hasBoundedHeight
                   ? constraints.maxHeight
                   : math.max(naturalHeight, constraints.minHeight.toDouble());
+
+              final isCompact = availableWidth < 900;
+
+              if (isCompact) {
+                return SizedBox(
+                  width: availableWidth,
+                  height: height,
+                  child: _CompactRetestRateView(
+                    detail: widget.detail,
+                    formattedDates: widget.formattedDates,
+                    rawDates: widget.detail.dates,
+                    onCellTap: widget.onCellTap,
+                    onGroupTap: widget.onGroupTap,
+                    highlightCells: widget.highlightCells,
+                  ),
+                );
+              }
+
+              final width = math.max(availableWidth, fallbackTotalWidth.toDouble());
               final metrics = _resolveMetrics(width);
               final tableWidth = metrics.totalWidth > 0 ? metrics.totalWidth : width;
 
@@ -302,6 +341,552 @@ class _TERetestRateTableState extends State<TERetestRateTable> {
   }
 }
 
+class _CompactRetestRateView extends StatelessWidget {
+  const _CompactRetestRateView({
+    required this.detail,
+    required this.formattedDates,
+    required this.rawDates,
+    required this.onCellTap,
+    required this.onGroupTap,
+    required this.highlightCells,
+  });
+
+  final TERetestDetailEntity detail;
+  final List<String> formattedDates;
+  final List<String> rawDates;
+  final ValueChanged<TERetestCellDetail>? onCellTap;
+  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final Set<String> highlightCells;
+
+  int get _totalColumns => formattedDates.length * 2;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!detail.hasData || formattedDates.isEmpty) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: _kTableBackgroundGradient,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _kBorderColor),
+          boxShadow: _kTableShadows,
+        ),
+        child: const Center(
+          child: Text(
+            'No data available',
+            style: TextStyle(color: _kSecondaryTextColor),
+          ),
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: _kTableBackgroundGradient,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _kBorderColor),
+        boxShadow: _kTableShadows,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+          physics: const ClampingScrollPhysics(),
+          itemCount: detail.rows.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 18),
+          itemBuilder: (context, index) {
+            final row = detail.rows[index];
+            return _CompactModelCard(
+              index: index + 1,
+              row: row,
+              formattedDates: formattedDates,
+              rawDates: rawDates,
+              totalColumns: _totalColumns,
+              onCellTap: onCellTap,
+              onGroupTap: onGroupTap,
+              highlightCells: highlightCells,
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactModelCard extends StatelessWidget {
+  const _CompactModelCard({
+    required this.index,
+    required this.row,
+    required this.formattedDates,
+    required this.rawDates,
+    required this.totalColumns,
+    required this.onCellTap,
+    required this.onGroupTap,
+    required this.highlightCells,
+  });
+
+  final int index;
+  final TERetestDetailRowEntity row;
+  final List<String> formattedDates;
+  final List<String> rawDates;
+  final int totalColumns;
+  final ValueChanged<TERetestCellDetail>? onCellTap;
+  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final Set<String> highlightCells;
+
+  List<TERetestCellDetail> _buildCells(String groupName) {
+    final rr = row.retestRate[groupName] ?? const <double?>[];
+    final input = row.input[groupName] ?? const <int?>[];
+    final firstFail = row.firstFail[groupName] ?? const <int?>[];
+    final retestFail = row.retestFail[groupName] ?? const <int?>[];
+    final pass = row.pass[groupName] ?? const <int?>[];
+
+    return List.generate(totalColumns, (i) {
+      final dateIndex = i ~/ 2;
+      final isDay = i.isEven;
+      final safeIndex = dateIndex < formattedDates.length
+          ? dateIndex
+          : (formattedDates.isEmpty ? 0 : formattedDates.length - 1);
+      final rawDate = safeIndex < rawDates.length ? rawDates[safeIndex] : '';
+
+      return TERetestCellDetail(
+        modelName: row.modelName,
+        groupName: groupName,
+        dateLabel: formattedDates[safeIndex],
+        dateKey: rawDate,
+        shiftLabel: isDay ? 'Day' : 'Night',
+        isDayShift: isDay,
+        retestRate: i < rr.length ? rr[i] : null,
+        input: i < input.length ? input[i] : null,
+        firstFail: i < firstFail.length ? firstFail[i] : null,
+        retestFail: i < retestFail.length ? retestFail[i] : null,
+        pass: i < pass.length ? pass[i] : null,
+      );
+    });
+  }
+
+  List<TERetestCellDetail> _buildPlaceholderCells() {
+    return List.generate(totalColumns, (i) {
+      final dateIndex = i ~/ 2;
+      final safeIndex = dateIndex < formattedDates.length
+          ? dateIndex
+          : (formattedDates.isEmpty ? 0 : formattedDates.length - 1);
+      final rawDate = safeIndex < rawDates.length ? rawDates[safeIndex] : '';
+      final label = formattedDates.isEmpty ? '-' : formattedDates[safeIndex];
+      final isDay = i.isEven;
+
+      return TERetestCellDetail(
+        modelName: row.modelName,
+        groupName: '-',
+        dateLabel: label,
+        dateKey: rawDate,
+        shiftLabel: isDay ? 'Day' : 'Night',
+        isDayShift: isDay,
+        retestRate: null,
+        input: null,
+        firstFail: null,
+        retestFail: null,
+        pass: null,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: _kCompactCardGradient,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kCompactCardBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: _kCompactCardShadow,
+            blurRadius: 28,
+            offset: Offset(0, 18),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _CompactIndexBadge(index: index),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  row.modelName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _kPrimaryTextColor,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (row.groupNames.isEmpty)
+            _CompactGroupSection(
+              modelName: row.modelName,
+              groupName: '-',
+              cells: _buildPlaceholderCells(),
+              onCellTap: onCellTap,
+              onGroupTap: onGroupTap,
+              highlightCells: highlightCells,
+              isPlaceholder: true,
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var g = 0; g < row.groupNames.length; g++)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: g == row.groupNames.length - 1 ? 0 : 16),
+                    child: _CompactGroupSection(
+                      modelName: row.modelName,
+                      groupName: row.groupNames[g],
+                      cells: _buildCells(row.groupNames[g]),
+                      onCellTap: onCellTap,
+                      onGroupTap: onGroupTap,
+                      highlightCells: highlightCells,
+                      isPlaceholder: false,
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactGroupSection extends StatelessWidget {
+  const _CompactGroupSection({
+    required this.modelName,
+    required this.groupName,
+    required this.cells,
+    required this.onCellTap,
+    required this.onGroupTap,
+    required this.highlightCells,
+    required this.isPlaceholder,
+  });
+
+  final String modelName;
+  final String groupName;
+  final List<TERetestCellDetail> cells;
+  final ValueChanged<TERetestCellDetail>? onCellTap;
+  final ValueChanged<TERetestGroupDetail>? onGroupTap;
+  final Set<String> highlightCells;
+  final bool isPlaceholder;
+
+  @override
+  Widget build(BuildContext context) {
+    final groupTap = onGroupTap == null || isPlaceholder
+        ? null
+        : () => onGroupTap!(
+              TERetestGroupDetail(
+                modelName: modelName,
+                groupName: groupName,
+                cells: List.unmodifiable(cells),
+              ),
+            );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: groupTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _kCompactGroupBar,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _kCompactChipBorder),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    groupName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _kPrimaryTextColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                if (groupTap != null)
+                  const Icon(Icons.area_chart_rounded,
+                      color: Color(0xFF38BDF8), size: 18),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (cells.isEmpty)
+          const Text(
+            'No shift data',
+            style: TextStyle(color: _kSecondaryTextColor),
+          )
+        else ...[
+          for (var i = 0; i < cells.length; i += 2)
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: i >= cells.length - 2 ? 0 : 12,
+              ),
+              child: _CompactDayNightRow(
+                pair: _DayNightPair(
+                  day: cells[i],
+                  night: i + 1 < cells.length ? cells[i + 1] : null,
+                  dayColumnIndex: i,
+                  nightColumnIndex: i + 1,
+                ),
+                highlightCells: highlightCells,
+                onCellTap: onCellTap,
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DayNightPair {
+  const _DayNightPair({
+    required this.day,
+    required this.night,
+    required this.dayColumnIndex,
+    required this.nightColumnIndex,
+  });
+
+  final TERetestCellDetail day;
+  final TERetestCellDetail? night;
+  final int dayColumnIndex;
+  final int nightColumnIndex;
+}
+
+class _CompactDayNightRow extends StatelessWidget {
+  const _CompactDayNightRow({
+    required this.pair,
+    required this.highlightCells,
+    required this.onCellTap,
+  });
+
+  final _DayNightPair pair;
+  final Set<String> highlightCells;
+  final ValueChanged<TERetestCellDetail>? onCellTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final day = pair.day;
+    final night = pair.night;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF13233B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _kCompactChipBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            day.dateLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFFCFF1FF),
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _CompactShiftTile(
+                  label: 'Day',
+                  detail: day,
+                  highlighted: highlightCells.contains(
+                    buildRetestCellKey(day.modelName, day.groupName, pair.dayColumnIndex),
+                  ),
+                  onTap: onCellTap,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: night == null
+                    ? _CompactShiftTile.placeholder(label: 'Night')
+                    : _CompactShiftTile(
+                        label: 'Night',
+                        detail: night,
+                        highlighted: highlightCells.contains(
+                          buildRetestCellKey(
+                            night.modelName,
+                            night.groupName,
+                            pair.nightColumnIndex,
+                          ),
+                        ),
+                        onTap: onCellTap,
+                      ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactShiftTile extends StatelessWidget {
+  const _CompactShiftTile({
+    required this.label,
+    required this.detail,
+    required this.highlighted,
+    required this.onTap,
+  }) : _isPlaceholder = false;
+
+  const _CompactShiftTile.placeholder({required this.label})
+      : detail = null,
+        highlighted = false,
+        onTap = null,
+        _isPlaceholder = true;
+
+  final String label;
+  final TERetestCellDetail? detail;
+  final bool highlighted;
+  final ValueChanged<TERetestCellDetail>? onTap;
+  final bool _isPlaceholder;
+
+  @override
+  Widget build(BuildContext context) {
+    final rate = detail?.retestRate;
+    final rateText = rate == null ? 'N/A' : '${rate.toStringAsFixed(2)}%';
+      final rateColor = rate == null
+          ? const Color(0xFF94A3B8)
+          : (rate >= 5
+              ? const Color(0xFFE11D48)
+              : (rate >= 3
+                  ? const Color(0xFFF59E0B)
+                  : const Color(0xFF38BDF8)));
+
+    final tile = AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _isPlaceholder ? const Color(0xFF1B314F) : _kCompactChipBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: highlighted ? _kHighlightBorderColor : _kCompactChipBorder,
+          width: highlighted ? 1.2 : 1.0,
+        ),
+        boxShadow: highlighted
+            ? const [
+                BoxShadow(
+                  color: _kHighlightGlowColor,
+                  blurRadius: 20,
+                  spreadRadius: 0.6,
+                  offset: Offset(0, 10),
+                ),
+              ]
+            : const [],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A3150),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _kCompactChipBorder),
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: _kPrimaryTextColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            rateText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: rateColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (_isPlaceholder || detail == null || onTap == null) {
+      return tile;
+    }
+
+    return GestureDetector(
+      onTap: () => onTap!(detail!),
+      child: tile,
+    );
+  }
+}
+
+class _CompactIndexBadge extends StatelessWidget {
+  const _CompactIndexBadge({required this.index});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1E40AF), Color(0xFF2563EB)],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x3307132A),
+            blurRadius: 14,
+            offset: Offset(0, 7),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '$index',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 class _TableMetrics {
   const _TableMetrics({
     required this.indexWidth,
@@ -378,7 +963,7 @@ class _HeaderRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Color(0xFFCBE8FF),
+                        color: _kHeaderDateTextColor,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.45,
@@ -465,7 +1050,7 @@ class _HeaderLabel extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            color: Color(0xFFD6F0FF),
+            color: _kHeaderLabelTextColor,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.45,
           ),
@@ -504,7 +1089,7 @@ class _HeaderShiftCell extends StatelessWidget {
         child: Text(
           label,
           style: const TextStyle(
-            color: Color(0xFF9EDBFF),
+            color: _kHeaderShiftTextColor,
             fontSize: 12,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.25,
@@ -702,11 +1287,11 @@ class _ModelBlock extends StatelessWidget {
             width: metrics.modelWidth,
             height: blockHeight,
             label: row.modelName,
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.center,
             isFirst: isFirstBlock,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             textStyle: const TextStyle(
-              color: Color(0xFFE8F6FF),
+              color: _kModelTextColor,
               fontWeight: FontWeight.w700,
               fontSize: 14,
               letterSpacing: 0.3,
@@ -748,7 +1333,7 @@ class _SpanCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = textStyle ??
         const TextStyle(
-          color: Color(0xFFBFE6FF),
+          color: _kPrimaryTextColor,
           fontWeight: FontWeight.w600,
           fontSize: 13,
         );
@@ -758,13 +1343,10 @@ class _SpanCell extends StatelessWidget {
       height: height,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color.alphaBlend(const Color(0x183DD0FF), _kSpanBackground),
-              _kSpanBackground,
-            ],
+            colors: [Color(0xFF152741), _kSpanBackground],
           ),
           border: Border(
             top: isFirst ? _kGridBorder : BorderSide.none,
@@ -818,7 +1400,7 @@ class _GroupCell extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFFE2F4FF),
+              color: _kGroupTextColor,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.25,
             ),
@@ -826,7 +1408,7 @@ class _GroupCell extends StatelessWidget {
         ),
         if (onTap != null) ...[
           const SizedBox(width: 6),
-          const Icon(Icons.area_chart, size: 16, color: Color(0xFF7DEAFF)),
+          const Icon(Icons.area_chart, size: 16, color: Color(0xFF38BDF8)),
         ],
       ],
     );
@@ -835,10 +1417,7 @@ class _GroupCell extends StatelessWidget {
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Color.alphaBlend(const Color(0x142CD7FF), background),
-          background,
-        ],
+        colors: [Color(0xFF152741), background],
       ),
       border: Border(
         left: _kGridBorder,
@@ -848,8 +1427,8 @@ class _GroupCell extends StatelessWidget {
       ),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x1514C4FF),
-          blurRadius: 12,
+          color: Color(0xFF2C4F7F),
+          blurRadius: 10,
           offset: Offset(0, 6),
         ),
       ],
@@ -872,7 +1451,7 @@ class _GroupCell extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      splashColor: Colors.white10,
+      splashColor: const Color(0x332569A4),
       borderRadius: BorderRadius.zero,
       child: child,
     );
@@ -896,38 +1475,42 @@ class _RetestValueCell extends StatelessWidget {
   final bool showRightBorder;
   final bool highlighted;
 
-  static const Color _dangerColor = Color(0xFFFF8BA3);
-  static const Color _warningColor = Color(0xFFF7D77E);
-  static const Color _normalColor = Color(0xFF6EF2CE);
+  static const Color _dangerColor = Color(0xFFFDA4AF);
+  static const Color _warningColor = Color(0xFFFACF7F);
+  static const Color _normalColor = Color(0xFF38BDF8);
+  static const Color _dangerFill = Color(0x55EF4444);
+  static const Color _warningFill = Color(0x55F59E0B);
+  static const Color _normalFill = Color(0x5538BDF8);
+  static const Color _naFill = Color(0x55325674);
 
   @override
   Widget build(BuildContext context) {
     final value = detail.retestRate;
-    Color fillColor = Color.alphaBlend(const Color(0x143DD0FF), background);
-    Color textColor = const Color(0xFFE4F5FF);
+    Color fillColor = _naFill;
+    Color textColor = _kSecondaryTextColor;
     if (value != null) {
       if (value >= 5) {
-        fillColor = Color.alphaBlend(const Color(0x44FF6B81), background);
+        fillColor = _dangerFill;
         textColor = _dangerColor;
       } else if (value >= 3) {
-        fillColor = Color.alphaBlend(const Color(0x44F9D262), background);
+        fillColor = _warningFill;
         textColor = _warningColor;
       } else {
-        fillColor = Color.alphaBlend(const Color(0x4437F4C5), background);
+        fillColor = _normalFill;
         textColor = _normalColor;
       }
     } else {
-      textColor = Colors.white60;
-      fillColor = Color.alphaBlend(const Color(0x0F2C5A80), background);
+      textColor = _kSecondaryTextColor;
+      fillColor = _naFill;
     }
 
     final tooltip = _buildTooltip(detail);
 
     final animatedColor = highlighted
-        ? Color.lerp(fillColor, const Color(0xFF3BD5FF), 0.45) ?? fillColor
+        ? Color.lerp(fillColor, _kHighlightBlendColor, 0.22) ?? fillColor
         : fillColor;
     final effectiveTextColor = highlighted
-        ? Color.lerp(textColor, Colors.white, 0.35) ?? textColor
+        ? Color.lerp(textColor, _kPrimaryTextColor, 0.2) ?? textColor
         : textColor;
 
     Widget cell = AnimatedContainer(
@@ -944,9 +1527,10 @@ class _RetestValueCell extends StatelessWidget {
         boxShadow: highlighted
             ? const [
                 BoxShadow(
-                  color: Color(0x5528D8FF),
-                  blurRadius: 18,
-                  spreadRadius: 1.2,
+                  color: _kHighlightGlowColor,
+                  blurRadius: 22,
+                  spreadRadius: 0.8,
+                  offset: Offset(0, 10),
                 ),
               ]
             : null,
@@ -965,15 +1549,15 @@ class _RetestValueCell extends StatelessWidget {
 
     cell = Tooltip(
       message: tooltip,
-      textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+      textStyle: const TextStyle(color: _kPrimaryTextColor, fontSize: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF123A5C), Color(0xFF0A2038)],
+          colors: [Color(0xFF152741), Color(0xFF203B5A)],
         ),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: const Color(0xFF2F567F)),
       ),
       child: cell,
     );

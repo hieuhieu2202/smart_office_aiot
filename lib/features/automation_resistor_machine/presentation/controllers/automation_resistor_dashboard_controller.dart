@@ -1,0 +1,566 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
+import '../../data/datasources/resistor_machine_remote_data_source.dart';
+import '../../data/repositories/resistor_machine_repository_impl.dart';
+import '../../data/utils/image_path_utils.dart';
+import '../../domain/entities/resistor_machine_entities.dart';
+import '../../domain/usecases/get_machine_names.dart';
+import '../../domain/usecases/get_record_by_id.dart';
+import '../../domain/usecases/get_status_data.dart';
+import '../../domain/usecases/get_tracking_data.dart';
+import '../../domain/usecases/search_serial_numbers.dart';
+import '../viewmodels/resistor_dashboard_view_state.dart';
+
+class AutomationResistorDashboardController extends GetxController {
+  AutomationResistorDashboardController({
+    ResistorMachineRepositoryImpl? repository,
+    GetResistorMachineNames? getMachineNames,
+    GetResistorMachineTrackingData? getTrackingData,
+    GetResistorMachineStatusData? getStatusData,
+    GetResistorMachineRecordById? getRecordById,
+    SearchResistorMachineSerialNumbers? searchSerialNumbers,
+  }) : _repository = repository ??
+      ResistorMachineRepositoryImpl(
+        remoteDataSource: ResistorMachineRemoteDataSource(),
+      ) {
+    final repo = _repository;
+    _getMachineNames = getMachineNames ?? GetResistorMachineNames(repo);
+    _getTrackingData = getTrackingData ?? GetResistorMachineTrackingData(repo);
+    _getStatusData = getStatusData ?? GetResistorMachineStatusData(repo);
+    _getRecordById = getRecordById ?? GetResistorMachineRecordById(repo);
+    _searchSerialNumbers =
+        searchSerialNumbers ?? SearchResistorMachineSerialNumbers(repo);
+  }
+
+  final ResistorMachineRepositoryImpl _repository;
+  late final GetResistorMachineNames _getMachineNames;
+  late final GetResistorMachineTrackingData _getTrackingData;
+  late final GetResistorMachineStatusData _getStatusData;
+  late final GetResistorMachineRecordById _getRecordById;
+  late final SearchResistorMachineSerialNumbers _searchSerialNumbers;
+
+  final RxBool isLoading = false.obs;
+  final RxBool isLoadingStatus = false.obs;
+  final RxBool isSearchingSerial = false.obs;
+  final RxnString error = RxnString();
+
+  final RxList<String> machineNames = <String>['ALL'].obs;
+  final RxString selectedMachine = 'ALL'.obs;
+  final RxString selectedShift = 'D'.obs;
+  final RxString selectedStatus = 'ALL'.obs;
+  final Rx<DateTimeRange> selectedRange =
+  Rx<DateTimeRange>(_defaultRange());
+
+  final Rxn<ResistorDashboardViewState> dashboardView =
+  Rxn<ResistorDashboardViewState>();
+  final Rx<ResistorMachineTrackingData?> rawTracking =
+  Rx<ResistorMachineTrackingData?>(null);
+  final RxList<ResistorMachineStatus> statusEntries =
+      <ResistorMachineStatus>[].obs;
+  final RxList<ResistorMachineSerialMatch> serialMatches =
+      <ResistorMachineSerialMatch>[].obs;
+  final Rxn<ResistorMachineRecord> selectedRecord =
+  Rxn<ResistorMachineRecord>();
+  final RxList<ResistorMachineTestResult> recordTestResults =
+      <ResistorMachineTestResult>[].obs;
+  final Rxn<ResistorMachineSerialMatch> selectedSerial =
+  Rxn<ResistorMachineSerialMatch>();
+  final Rxn<ResistorMachineTestResult> selectedTestResult =
+  Rxn<ResistorMachineTestResult>();
+  final RxBool isLoadingRecord = false.obs;
+  final RxBool isMultiDayRange = false.obs;
+
+  /// 🔹 Thêm biến startSection để xác định ca bắt đầu (dựa theo API)
+  final RxInt startSection = 1.obs;
+  final Rx<DateTime> shiftStartTime = Rx<DateTime>(_defaultRange().start);
+
+  Timer? _autoRefresh;
+  bool _isSilentRefreshing = false;
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadInitial();
+    _startAutoRefresh();
+  }
+
+  @override
+  void onClose() {
+    _autoRefresh?.cancel();
+    super.onClose();
+  }
+
+  Future<void> loadInitial() async {
+    await Future.wait([_loadMachines(), loadDashboard()]);
+    await loadStatus();
+  }
+
+  Future<void> _loadMachines() async {
+    try {
+      final names = await _getMachineNames();
+      machineNames
+        ..clear()
+        ..add('ALL')
+        ..addAll(names);
+    } catch (e) {
+      error.value = e.toString();
+    }
+  }
+
+  Future<void> loadDashboard() async {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      final multiDay = _isMultiDayRange(selectedRange.value);
+      isMultiDayRange.value = multiDay;
+      final request = _buildTrackingRequest();
+      _logRequest('Tracking', request);
+
+      final tracking = await _getTrackingData(request);
+
+      if (tracking == null ||
+          (tracking.summary.pass == 0 &&
+              tracking.summary.fail == 0 &&
+              tracking.machines.isEmpty &&
+              tracking.outputs.isEmpty)) {
+        debugPrint('[ResistorDashboard] ⚠️ No data from API — using empty dataset');
+        final empty = ResistorMachineTrackingData.empty();
+        rawTracking.value = empty;
+        dashboardView.value = ResistorDashboardViewState.fromTracking(
+          empty,
+          aggregateOutputsByDay: multiDay,
+        );
+      } else {
+        _logTrackingData(tracking);
+        rawTracking.value = tracking;
+        if (multiDay) {
+          _resetShiftWindowAnchors();
+        } else {
+          _updateStartSection(tracking.outputs);
+        }
+        dashboardView.value = ResistorDashboardViewState.fromTracking(
+          tracking,
+          aggregateOutputsByDay: multiDay,
+        );
+      }
+    } catch (e) {
+      debugPrint('[ResistorDashboard] ❌ API error: $e — fallback to empty data');
+      final empty = ResistorMachineTrackingData.empty();
+      rawTracking.value = empty;
+      dashboardView.value = ResistorDashboardViewState.fromTracking(
+        empty,
+        aggregateOutputsByDay: isMultiDayRange.value,
+      );
+      error.value = e.toString();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> loadStatus() async {
+    isLoadingStatus.value = true;
+    try {
+      final request = _buildStatusRequest();
+      _logRequest('Status', request);
+      final list = await _getStatusData(request);
+      _logStatusData(list);
+      statusEntries.assignAll(list);
+    } catch (e) {
+      error.value = e.toString();
+    } finally {
+      isLoadingStatus.value = false;
+    }
+  }
+
+  Future<void> resetToTodayAndReload() async {
+    resetToToday();
+    await Future.wait([loadDashboard(), loadStatus()]);
+  }
+
+  void resetToToday() {
+    final range = _defaultRange();
+    selectedRange.value = range;
+    final inferredShift = _deriveShift(range.start);
+    selectedShift.value = inferredShift;
+    isMultiDayRange.value = false;
+    _resetShiftWindowAnchors();
+  }
+
+  DateTimeRange defaultRangeForShift(String shift) {
+    final range = _defaultRange();
+    return shift.trim().toUpperCase() == 'D'
+        ? range
+        : rangeForShift(range, shift);
+  }
+
+  Future<void> searchSerial(String query) async {
+    if (query.trim().isEmpty) {
+      serialMatches.clear();
+      return;
+    }
+    isSearchingSerial.value = true;
+    try {
+      final results = await _searchSerialNumbers(query, take: 30);
+      serialMatches.assignAll(results);
+    } catch (e) {
+      error.value = e.toString();
+    } finally {
+      isSearchingSerial.value = false;
+    }
+  }
+
+  void clearSerialSearch() {
+    serialMatches.clear();
+  }
+
+  Future<void> loadRecordDetail(int id) async {
+    isLoadingRecord.value = true;
+    try {
+      final record = await _getRecordById(id);
+      if (record != null) {
+        selectedRecord.value = record;
+        final tests = _parseTestResults(record.dataDetails);
+        recordTestResults.assignAll(tests);
+        if (tests.isNotEmpty) {
+          selectedTestResult.value = tests.first;
+        } else {
+          selectedTestResult.value = null;
+        }
+      } else {
+        selectedRecord.value = null;
+        recordTestResults.clear();
+        selectedTestResult.value = null;
+      }
+    } catch (e) {
+      error.value = e.toString();
+    } finally {
+      isLoadingRecord.value = false;
+    }
+  }
+
+  Future<void> selectSerial(ResistorMachineSerialMatch match) async {
+    selectedSerial.value = match;
+    serialMatches.clear();
+    await loadRecordDetail(match.id);
+  }
+
+  void clearSelectedSerial() {
+    selectedSerial.value = null;
+    selectedRecord.value = null;
+    recordTestResults.clear();
+    selectedTestResult.value = null;
+  }
+
+  void selectTestResult(ResistorMachineTestResult result) {
+    selectedTestResult.value = result;
+  }
+
+  List<ResistorMachineTestResult> _parseTestResults(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return const <ResistorMachineTestResult>[];
+    }
+
+    try {
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map((Map<String, dynamic> item) {
+          final detailsRaw =
+          (item['List_Result'] ?? const <dynamic>[]) as List<dynamic>;
+          final details = detailsRaw
+              .whereType<Map<String, dynamic>>()
+              .map((Map<String, dynamic> detail) {
+            double parseDouble(dynamic value) {
+              if (value is int) return value.toDouble();
+              if (value is double) return value;
+              if (value is String) {
+                return double.tryParse(value) ?? 0;
+              }
+              return 0;
+            }
+
+            return ResistorMachineResultDetail(
+              name: (detail['Name'] ?? '') as String,
+              row: (detail['Row'] ?? 0) as int,
+              column: (detail['Column'] ?? 0) as int,
+              measurementValue:
+              parseDouble(detail['Measurement_Value'] ?? detail['measurementValue']),
+              lowSampleValue:
+              parseDouble(detail['Low_Sample_Value'] ?? detail['lowSampleValue']),
+              highSampleValue:
+              parseDouble(detail['High_Sample_Value'] ?? detail['highSampleValue']),
+              pass: (detail['Pass'] ?? false) as bool,
+            );
+          }).toList();
+
+          return ResistorMachineTestResult(
+            address: (item['Address'] ?? 0) as int,
+            result: (item['Result'] ?? false) as bool,
+            imagePath: normalizeResistorMachineImagePath(
+              (item['ImagePath'] ?? '') as String,
+            ),
+            details: details,
+          );
+        }).toList();
+      }
+    } catch (_) {
+      // Ignore parsing errors.
+    }
+
+    return const <ResistorMachineTestResult>[];
+  }
+
+  void applyFilters({
+    required DateTimeRange range,
+    required String machine,
+    required String status,
+  }) {
+    selectedRange.value = range;
+    selectedMachine.value = machine;
+    selectedStatus.value = status;
+    selectedShift.value = inferShiftFromRange(range);
+    isMultiDayRange.value = _isMultiDayRange(range);
+    loadDashboard();
+    loadStatus();
+  }
+
+  DateTimeRange rangeForShift(DateTimeRange baseRange, String shift) {
+    final current = baseRange.start;
+    final dayAnchor = DateTime(current.year, current.month, current.day);
+
+    if (shift == 'D') {
+      final start = dayAnchor.add(const Duration(hours: 6, minutes: 30));
+      final end = start.add(const Duration(hours: 13));
+      return DateTimeRange(start: start, end: end);
+    }
+
+    final start = dayAnchor.add(const Duration(hours: 19, minutes: 30));
+    final end = start.add(const Duration(hours: 12));
+    return DateTimeRange(start: start, end: end);
+  }
+
+  String inferShiftFromRange(DateTimeRange range) {
+    return _deriveShift(range.start);
+  }
+
+  ResistorMachineRequest _buildTrackingRequest() {
+    final rangeText = _formatRange(selectedRange.value);
+    final machine = _resolveSelection(selectedMachine.value);
+    final status = _resolveSelection(selectedStatus.value);
+
+    return ResistorMachineRequest(
+      dateRange: rangeText,
+      shift: selectedShift.value,
+      machineName: machine,
+      status: status,
+    );
+  }
+
+  ResistorMachineRequest _buildStatusRequest() {
+    final rangeText = _formatRange(selectedRange.value);
+    final machine = _resolveSelection(selectedMachine.value);
+    final status = _resolveSelection(selectedStatus.value);
+
+    return ResistorMachineRequest(
+      dateRange: rangeText,
+      shift: selectedShift.value,
+      machineName: machine,
+      status: status,
+    );
+  }
+
+  String _formatRange(DateTimeRange range) {
+    final formatter = DateFormat('yyyy-MM-dd HH:mm');
+    final start = formatter.format(range.start);
+    final end = formatter.format(range.end);
+    return '$start - $end';
+  }
+
+  String _resolveSelection(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return 'ALL';
+    }
+    return trimmed.toUpperCase() == 'ALL' ? 'ALL' : trimmed;
+  }
+
+  void _startAutoRefresh() {
+    _autoRefresh?.cancel();
+    _autoRefresh = Timer.periodic(const Duration(minutes: 1), (_) {
+      _performSilentRefresh();
+    });
+  }
+
+  Future<void> _performSilentRefresh() async {
+    if (_isSilentRefreshing ||
+        isLoading.value ||
+        isLoadingStatus.value) {
+      return;
+    }
+
+    _isSilentRefreshing = true;
+    try {
+      await _silentRefreshDashboard();
+      if (statusEntries.isNotEmpty) {
+        await _silentRefreshStatus();
+      }
+    } catch (e) {
+      debugPrint('[ResistorDashboard] ⚠️ Silent refresh error: $e');
+    } finally {
+      _isSilentRefreshing = false;
+    }
+  }
+
+  Future<void> _silentRefreshDashboard() async {
+    final request = _buildTrackingRequest();
+    _logRequest('Tracking', request);
+
+    final tracking = await _getTrackingData(request);
+    _logTrackingData(tracking);
+    rawTracking.value = tracking;
+    final multiDay = _isMultiDayRange(selectedRange.value);
+    isMultiDayRange.value = multiDay;
+    if (multiDay) {
+      _resetShiftWindowAnchors();
+    } else {
+      _updateStartSection(tracking.outputs);
+    }
+    dashboardView.value = ResistorDashboardViewState.fromTracking(
+      tracking,
+      aggregateOutputsByDay: multiDay,
+    );
+  }
+
+  Future<void> _silentRefreshStatus() async {
+    final request = _buildStatusRequest();
+    _logRequest('Status', request);
+
+    final list = await _getStatusData(request);
+    _logStatusData(list);
+    statusEntries.assignAll(list);
+  }
+
+  void _logTrackingData(ResistorMachineTrackingData tracking) {
+    final summary = tracking.summary;
+    debugPrint('[ResistorDashboard] Summary: total=${summary.total}, '
+        'pass=${summary.pass}, fail=${summary.fail}, '
+        'yieldRate=${summary.yieldRate}');
+    debugPrint('[ResistorDashboard] Outputs (${tracking.outputs.length} items): '
+        '${tracking.outputs.map((e) => {
+      'label': e.displayLabel,
+      'pass': e.pass,
+      'fail': e.fail,
+      'yr': e.yieldRate
+    }).toList()}');
+    debugPrint('[ResistorDashboard] Machines (${tracking.machines.length} items): '
+        '${tracking.machines.map((e) => {
+      'name': e.name,
+      'pass': e.pass,
+      'fail': e.fail,
+      'yr': e.yieldRate
+    }).toList()}');
+  }
+
+  void _logStatusData(List<ResistorMachineStatus> list) {
+    debugPrint('[ResistorDashboard] Status entries (${list.length} items) loaded');
+    if (list.isNotEmpty) {
+      final preview = list.take(5).map((entry) => {
+        'serial': entry.serialNumber,
+        'machine': entry.machineName,
+        'station': entry.stationSequence,
+        'time': entry.inStationTime.toIso8601String(),
+      });
+      debugPrint('[ResistorDashboard] Status preview: ${preview.toList()}');
+    }
+  }
+
+  void _logRequest(String label, ResistorMachineRequest request) {
+    final payload = request.toBody();
+    debugPrint('[ResistorDashboard] $label request payload: $payload');
+  }
+
+  void _updateStartSection(List<ResistorMachineOutput> outputs) {
+    try {
+      final base = DateTime(
+        selectedRange.value.start.year,
+        selectedRange.value.start.month,
+        selectedRange.value.start.day,
+        7,
+        30,
+      );
+
+      if (outputs.isEmpty) {
+        startSection.value = 9;
+        shiftStartTime.value = base;
+        debugPrint('[ResistorDashboard] ⚠️ outputs empty -> default section=9, startTime=07:30');
+        return;
+      }
+
+      final sections = outputs.map((e) => e.section).whereType<int>().toList();
+      if (sections.isEmpty) {
+        startSection.value = 9;
+        shiftStartTime.value = base;
+        return;
+      }
+
+      final minSection = sections.reduce((a, b) => a < b ? a : b);
+      startSection.value = minSection;
+      final offset = minSection - 8;
+
+      shiftStartTime.value = base.add(Duration(hours: offset));
+
+      debugPrint('[ResistorDashboard] ✅ startSection=$minSection, anchor=07:30, '
+          'sectionStart=${DateFormat('HH:mm').format(shiftStartTime.value)}');
+    } catch (e) {
+      debugPrint('[ResistorDashboard] _updateStartSection error: $e');
+    }
+  }
+
+  void _resetShiftWindowAnchors() {
+    startSection.value = 1;
+    shiftStartTime.value = _resolveShiftBase();
+  }
+
+  DateTime _resolveShiftBase() {
+    final rangeStart = selectedRange.value.start;
+    final shiftCode = selectedShift.value.trim().toUpperCase();
+    final baseHour = shiftCode == 'N' ? 19 : 7;
+    return DateTime(
+      rangeStart.year,
+      rangeStart.month,
+      rangeStart.day,
+      baseHour,
+      30,
+    );
+  }
+
+  static DateTimeRange _defaultRange() {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day, 7, 30);
+    final end = DateTime(now.year, now.month, now.day, 19, 30);
+    return DateTimeRange(start: start, end: end);
+  }
+
+  bool _isMultiDayRange(DateTimeRange range) {
+    final startDate = DateTime(range.start.year, range.start.month, range.start.day);
+    final endDate = DateTime(range.end.year, range.end.month, range.end.day);
+    return !startDate.isAtSameMomentAs(endDate);
+  }
+
+  String _deriveShift(DateTime date) {
+    final totalMinutes = date.hour * 60 + date.minute;
+    final dayStart = 7 * 60 + 30; // 07:30
+    final nightStart = 19 * 60 + 30; // 19:30
+
+    if (totalMinutes >= dayStart && totalMinutes < nightStart) {
+      return 'D';
+    }
+    return 'N';
+  }
+}
