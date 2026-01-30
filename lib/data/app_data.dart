@@ -89,6 +89,15 @@ List<AppProject> appProjects = [
         status: "Running",
         icon: Icons.dashboard,
         screenType: "dashboard",
+        subProjects: [
+          AppProject(
+            name: "STATION OVERVIEW",
+            progress: 1.0,
+            status: "Running",
+            icon: Icons.dashboard_customize,
+            screenType: "station_overview",
+          ),
+        ],
       ),
       AppProject(
         name: "YEILD RATE REPORT (ADAPTER)",
