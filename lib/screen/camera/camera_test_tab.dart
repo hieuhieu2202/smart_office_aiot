@@ -31,7 +31,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   double minZoom = 1.0;
   double maxZoom = 1.0;
 
-  final serialCtrl = TextEditingController();
+  final partNumberCtrl = TextEditingController();
+  final serialNumberCtrl = TextEditingController();
   final userCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
   String status = "PASS";
@@ -53,7 +54,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     controller?.dispose();
-    serialCtrl.dispose();
+    partNumberCtrl.dispose();
+    serialNumberCtrl.dispose();
     userCtrl.dispose();
     noteCtrl.dispose();
     super.dispose();
@@ -89,7 +91,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     }
 
     product = qr;
-    serialCtrl.text = product?["serial"] ?? "";
+    partNumberCtrl.text = product?["partNumber"] ?? "";
+    serialNumberCtrl.text = product?["serialNumber"] ?? "";
 
     await initCamera();
     state = TestState.productDetected;
@@ -189,7 +192,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       }
 
       final payload = {
-        "Serial": serialCtrl.text,
+        "Serial": serialNumberCtrl.text,
         "Status": status,
         "UserName": userCtrl.text,
         "Images": listBase64,
@@ -227,7 +230,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         controller = null;
 
         captured.clear();
-        serialCtrl.clear();
+        partNumberCtrl.clear();
+        serialNumberCtrl.clear();
         noteCtrl.clear();
         status = "PASS";
         product = null;
@@ -590,7 +594,14 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     return Column(
       children: [
         TextField(
-          controller: serialCtrl,
+          controller: partNumberCtrl,
+          style: const TextStyle(color: Colors.white),
+          decoration: _inputStyle("PartNumber"),
+        ),
+        const SizedBox(height: 12),
+
+        TextField(
+          controller: serialNumberCtrl,
           style: const TextStyle(color: Colors.white),
           decoration: _inputStyle("Serial"),
         ),
