@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -26,6 +27,14 @@ class _ScanTestScreenState extends State<ScanTestScreen>
   String? _partNumber;
   String? _serialNumber;
   bool _torchOn = false;
+
+  // Short-lived scan session (collect barcodes within a single label window).
+  static const Duration _scanSessionWindow = Duration(milliseconds: 700);
+  bool _sessionActive = false;
+  int _sessionId = 0;
+  DateTime? _sessionDeadline;
+  Timer? _sessionTimer;
+  final Set<String> _sessionValues = {};
 
   // scan window parameters
   double _scanBoxScale = 0.7;
@@ -56,6 +65,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
   @override
   void dispose() {
     _anim.dispose();
+    _sessionTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -81,11 +91,47 @@ class _ScanTestScreenState extends State<ScanTestScreen>
     _isProcessing = false;
     _emptyFrameCount = 0;
     _candidateButNoDecodeCount = 0;
+    _sessionTimer?.cancel();
+    _resetScanSession();
     if (!keepFound) {
       _hasResult = false;
       _partNumber = null;
       _serialNumber = null;
     }
+  }
+
+  // Start a short-lived session to collect all barcodes from the same label.
+  void _startScanSession() {
+    _sessionId += 1;
+    _sessionActive = true;
+    _sessionValues.clear();
+    _partNumber = null;
+    _serialNumber = null;
+    _sessionDeadline = DateTime.now().add(_scanSessionWindow);
+
+    _sessionTimer?.cancel();
+    final int currentSessionId = _sessionId;
+    _sessionTimer = Timer(_scanSessionWindow, () {
+      if (!mounted) return;
+      if (_hasResult) return;
+      if (_sessionId != currentSessionId) return;
+      _resetScanSession();
+    });
+  }
+
+  // Discard session data and continue scanning for a fresh label.
+  void _resetScanSession() {
+    _sessionActive = false;
+    _sessionValues.clear();
+    _partNumber = null;
+    _serialNumber = null;
+    _sessionDeadline = null;
+  }
+
+  bool _isSessionExpired() {
+    final deadline = _sessionDeadline;
+    if (!_sessionActive || deadline == null) return false;
+    return DateTime.now().isAfter(deadline);
   }
 
   bool _isPartNumber(String value) {
@@ -164,6 +210,14 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                     }
 
                     // ---------- HAVE BARCODE ----------
+                    if (_sessionActive && _isSessionExpired()) {
+                      _resetScanSession();
+                    }
+
+                    if (!_sessionActive) {
+                      _startScanSession();
+                    }
+
                     bool anyDecoded = false;
 
                     for (final barcode in barcodes) {
@@ -171,16 +225,14 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                       if (bcRaw.isEmpty) continue;
                       anyDecoded = true;
 
-                      if (_partNumber == null && _isPartNumber(bcRaw)) {
-                        _partNumber = bcRaw;
-                      }
+                      if (_sessionValues.add(bcRaw)) {
+                        if (_partNumber == null && _isPartNumber(bcRaw)) {
+                          _partNumber = bcRaw;
+                        }
 
-                      if (_serialNumber == null && _isSerialNumber(bcRaw)) {
-                        _serialNumber = bcRaw;
-                      }
-
-                      if (_partNumber != null && _serialNumber != null) {
-                        break;
+                        if (_serialNumber == null && _isSerialNumber(bcRaw)) {
+                          _serialNumber = bcRaw;
+                        }
                       }
                     }
 
@@ -199,6 +251,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                       return;
                     }
 
+                    _sessionTimer?.cancel();
                     _hasResult = true;
 
                     try {
