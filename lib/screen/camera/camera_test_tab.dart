@@ -53,7 +53,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       final res = await http.get(
         Uri.parse("http://192.168.0.62:2020/api/Data/factories"),
       );
-
+      print("FACTORY API: ${res.body}");
       if (res.statusCode == 200) {
         final List data = jsonDecode(res.body);
         setState(() {
@@ -217,6 +217,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     setState(() {
       state = TestState.doneCapture;
     });
+    loadFactories();
   }
 
 
@@ -678,23 +679,31 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             Expanded(
               flex: 2,
               child: DropdownButtonFormField<String>(
+                isExpanded: true,
                 value: selectedFactory,
                 dropdownColor: Colors.black,
                 decoration: _inputStyle("Factory"),
-                items: factories
+                items: factories.isEmpty
+                    ? []
+                    : factories
                     .map(
                       (f) => DropdownMenuItem(
                     value: f,
-                    child: Text(f, style: const TextStyle(color: Colors.white)),
+                    child: Text(
+                      f,
+                      style: const TextStyle(color: Colors.white),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 )
                     .toList(),
-                onChanged: (val) {
+                onChanged: factories.isEmpty
+                    ? null
+                    : (val) {
                   setState(() {
                     selectedFactory = val;
                     factoryCtrl.text = val ?? "";
 
-                    // reset floor khi đổi factory
                     selectedFloor = null;
                     floorCtrl.clear();
                     floors.clear();
@@ -713,18 +722,27 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             Expanded(
               flex: 2,
               child: DropdownButtonFormField<String>(
+                isExpanded: true,
                 value: selectedFloor,
                 dropdownColor: Colors.black,
                 decoration: _inputStyle("Floor"),
-                items: floors
+                items: floors.isEmpty
+                    ? []
+                    : floors
                     .map(
                       (f) => DropdownMenuItem(
                     value: f,
-                    child: Text(f, style: const TextStyle(color: Colors.white)),
+                    child: Text(
+                      f,
+                      style: const TextStyle(color: Colors.white),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 )
                     .toList(),
-                onChanged: (val) {
+                onChanged: floors.isEmpty
+                    ? null
+                    : (val) {
                   setState(() {
                     selectedFloor = val;
                     floorCtrl.text = val ?? "";
