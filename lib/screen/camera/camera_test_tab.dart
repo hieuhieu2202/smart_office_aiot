@@ -41,13 +41,55 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   final errorCodeCtrl = TextEditingController();
   String status = "PASS";
 
-  final String apiUrl = "http://192.168.0.74:9090/api/ProductCapture/upload";
+// Xử lý Factory và Floor
+  List<String> factories = [];
+  List<String> floors = [];
+
+  String? selectedFactory;
+  String? selectedFloor;
+
+  Future<void> loadFactories() async {
+    try {
+      final res = await http.get(
+        Uri.parse("http://192.168.0.62:2020/api/Data/factories"),
+      );
+
+      if (res.statusCode == 200) {
+        final List data = jsonDecode(res.body);
+        setState(() {
+          factories = data.cast<String>();
+        });
+      }
+    } catch (e) {
+      Get.snackbar("Lỗi", "Không load được Factory");
+    }
+  }
+
+  Future<void> loadFloors(String factory) async {
+    try {
+      final res = await http.get(
+        Uri.parse("http://192.168.0.62:2020/api/Data/floors?factory=$factory"),
+      );
+
+      if (res.statusCode == 200) {
+        final List data = jsonDecode(res.body);
+        setState(() {
+          floors = data.cast<String>();
+        });
+      }
+    } catch (e) {
+      Get.snackbar("Lỗi", "Không load được Floor");
+    }
+  }
+  // URL API upload
+  final String apiUrl = "http://192.168.0.62:2020/api/Detail/upload";
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _fillUserFromToken();
+    loadFactories();
 
     if (widget.autoScan) {
       Future.delayed(const Duration(milliseconds: 300), () => scanQr());
@@ -169,51 +211,70 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     }
   }
 
-  // -----------------------------------------------------
+
   // FINISH
-  // -----------------------------------------------------
   void finishCapture() {
-    setState(() => state = TestState.doneCapture);
+    setState(() {
+      state = TestState.doneCapture;
+    });
   }
 
-  // -----------------------------------------------------
+
   // SEND API
-  // -----------------------------------------------------
   Future<void> sendToApi(List<XFile> images) async {
-    if (status == "FAIL" && images.isEmpty) {
-      Get.snackbar("Lỗi", "Chưa có ảnh");
+    if (serialCtrl.text.trim().isEmpty) {
+      Get.snackbar("Lỗi", "Serial không được để trống");
       return;
     }
-    if (status == "FAIL" && errorCodeCtrl.text.trim().isEmpty) {
-      Get.snackbar("Lỗi", "Vui lòng nhập ErrorCode");
-      return;
+
+    if (status == "FAIL") {
+      if (errorCodeCtrl.text.trim().isEmpty) {
+        Get.snackbar("Lỗi", "Vui lòng nhập ErrorCode");
+        return;
+      }
+      if (images.isEmpty) {
+        Get.snackbar("Lỗi", "FAIL phải có ít nhất 1 ảnh");
+        return;
+      }
     }
 
     setState(() => state = TestState.uploading);
 
     try {
+      // BASE PAYLOAD
       final Map<String, dynamic> payload = {
-        "Serial": serialCtrl.text,
-        "Status": status,
-        "UserName": userCtrl.text,
-        "Time": DateTime.now().toIso8601String(),
-        "Note": noteCtrl.text,
-      };
-      if (status == "FAIL") {
-        List<String> listBase64 = [];
+        "factory": factoryCtrl.text.trim(),
+        "floor": floorCtrl.text.trim(),
+        "productName": productNameCtrl.text.trim(),
+        "model": modelCtrl.text.trim(),
 
-        for (var file in images) {
+        "sn": serialCtrl.text.trim(),
+        "time": DateTime.now().toIso8601String(),
+        "userName": userCtrl.text.trim(),
+        "status": status,
+        "comment": noteCtrl.text.trim(),
+      };
+
+
+      // FAIL ONLY
+      if (status == "FAIL") {
+        final List<String> listBase64 = [];
+
+        for (final file in images) {
           final compressed = await FlutterImageCompress.compressWithFile(
             file.path,
             quality: 60,
           );
 
           listBase64.add(
-            base64Encode(compressed ?? await File(file.path).readAsBytes()),
+            base64Encode(
+              compressed ?? await File(file.path).readAsBytes(),
+            ),
           );
         }
 
-        payload["Images"] = listBase64;
+        payload["errorCode"] = errorCodeCtrl.text.trim();
+        payload["images"] = listBase64;
       }
 
       final res = await http.post(
@@ -225,14 +286,17 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       if (res.statusCode == 200) {
         _successDialog();
       } else {
-        Get.snackbar("API lỗi", "Code: ${res.statusCode}");
+        Get.snackbar("API lỗi", "Code: ${res.statusCode}\n${res.body}");
       }
     } catch (e) {
       Get.snackbar("Upload lỗi", e.toString());
     }
 
-    if (mounted) setState(() => state = TestState.doneCapture);
+    if (mounted) {
+      setState(() => state = TestState.doneCapture);
+    }
   }
+
 
   void _successDialog() {
     Get.defaultDialog(
@@ -610,24 +674,68 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       children: [
         Row(
           children: [
+            // ---------- FACTORY DROPDOWN ----------
             Expanded(
               flex: 2,
-              child: TextField(
-                controller: factoryCtrl,
-                style: const TextStyle(color: Colors.white),
+              child: DropdownButtonFormField<String>(
+                value: selectedFactory,
+                dropdownColor: Colors.black,
                 decoration: _inputStyle("Factory"),
+                items: factories
+                    .map(
+                      (f) => DropdownMenuItem(
+                    value: f,
+                    child: Text(f, style: const TextStyle(color: Colors.white)),
+                  ),
+                )
+                    .toList(),
+                onChanged: (val) {
+                  setState(() {
+                    selectedFactory = val;
+                    factoryCtrl.text = val ?? "";
+
+                    // reset floor khi đổi factory
+                    selectedFloor = null;
+                    floorCtrl.clear();
+                    floors.clear();
+                  });
+
+                  if (val != null) {
+                    loadFloors(val);
+                  }
+                },
               ),
             ),
+
             const SizedBox(width: 12),
+
+            // ---------- FLOOR DROPDOWN ----------
             Expanded(
               flex: 2,
-              child: TextField(
-                controller: floorCtrl,
-                style: const TextStyle(color: Colors.white),
+              child: DropdownButtonFormField<String>(
+                value: selectedFloor,
+                dropdownColor: Colors.black,
                 decoration: _inputStyle("Floor"),
+                items: floors
+                    .map(
+                      (f) => DropdownMenuItem(
+                    value: f,
+                    child: Text(f, style: const TextStyle(color: Colors.white)),
+                  ),
+                )
+                    .toList(),
+                onChanged: (val) {
+                  setState(() {
+                    selectedFloor = val;
+                    floorCtrl.text = val ?? "";
+                  });
+                },
               ),
             ),
+
             const SizedBox(width: 12),
+
+            // ---------- USER ----------
             Expanded(
               flex: 3,
               child: TextField(
@@ -639,8 +747,10 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             ),
           ],
         ),
+
         const SizedBox(height: 12),
 
+        // giữ nguyên các field còn lại
         TextField(
           controller: productNameCtrl,
           style: const TextStyle(color: Colors.white),
@@ -679,16 +789,17 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             }
           }),
         ),
-        const SizedBox(height: 12),
 
         if (status == "FAIL") ...[
+          const SizedBox(height: 12),
           TextField(
             controller: errorCodeCtrl,
             style: const TextStyle(color: Colors.white),
             decoration: _inputStyle("ErrorCode"),
           ),
-          const SizedBox(height: 12),
         ],
+
+        const SizedBox(height: 12),
 
         TextField(
           controller: noteCtrl,
@@ -699,7 +810,6 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       ],
     );
   }
-
   InputDecoration _inputStyle(String label) {
     return InputDecoration(
       labelText: label,

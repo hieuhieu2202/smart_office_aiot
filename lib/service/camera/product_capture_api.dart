@@ -5,7 +5,7 @@ import '../../model/Camera/product_capture_response.dart';
 
 class ProductCaptureApi {
   static const String baseUrl =
-      "http://192.168.0.74:9090/api/ProductCapture/upload";
+      "http://192.168.0.62:2020/api/Detail/upload";
 
   static Future<ProductCaptureResponse> send(
       ProductCapturePayload data) async {
