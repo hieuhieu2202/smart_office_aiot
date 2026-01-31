@@ -53,11 +53,19 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       final res = await http.get(
         Uri.parse("http://192.168.0.62:2020/api/Data/factories"),
       );
-      print("FACTORY API: ${res.body}");
       if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
+        final data = jsonDecode(res.body);
+        if (data is! List) {
+          Get.snackbar("Lỗi", "Dữ liệu Factory không hợp lệ");
+          return;
+        }
+        final parsedFactories = data
+            .map((item) => _parseDropdownValue(item))
+            .where((value) => value.isNotEmpty)
+            .toList();
+        if (!mounted) return;
         setState(() {
-          factories = data.cast<String>();
+          factories = parsedFactories;
         });
       }
     } catch (e) {
@@ -72,9 +80,18 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       );
 
       if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
+        final data = jsonDecode(res.body);
+        if (data is! List) {
+          Get.snackbar("Lỗi", "Dữ liệu Floor không hợp lệ");
+          return;
+        }
+        final parsedFloors = data
+            .map((item) => _parseDropdownValue(item))
+            .where((value) => value.isNotEmpty)
+            .toList();
+        if (!mounted) return;
         setState(() {
-          floors = data.cast<String>();
+          floors = parsedFloors;
         });
       }
     } catch (e) {
@@ -836,6 +853,18 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       fillColor: const Color(0xFF111111),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     );
+  }
+
+  String _parseDropdownValue(dynamic item) {
+    if (item == null) return "";
+    if (item is String) return item;
+    if (item is Map) {
+      return item["name"]?.toString() ??
+          item["factory"]?.toString() ??
+          item["floor"]?.toString() ??
+          "";
+    }
+    return item.toString();
   }
 }
 
