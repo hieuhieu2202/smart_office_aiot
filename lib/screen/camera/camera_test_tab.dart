@@ -28,6 +28,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   bool get _isScanMode => widget.autoScan;
 
   bool _showCameraPreview = false;
+  bool _hasScannedQr = false;
+  bool _showScanForm = false;
 
   Map<String, dynamic>? product;
   CameraController? controller;
@@ -247,18 +249,16 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     if (!mounted || _disposed || session != _scanSession) return;
 
     if (qr == null) {
-      // User likely pressed back / closed scanner. In auto-scan flow,
-      // we don't want to stay on this screen showing an empty placeholder.
       if (_isScanMode) {
-        // Prevent any pending actions from re-opening scan.
         _scanSession++;
         _safeSetState(() {
           _showCameraPreview = false;
+          _hasScannedQr = false;
+          _showScanForm = false;
           state = TestState.idle;
         });
-        await _disposeControllerSafe();
 
-        // Close this tab/screen.
+        // In scan mode: if user cancels scanning, just leave this page.
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         } else {
@@ -275,53 +275,85 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     product = qr;
     serialCtrl.text = product?["serial"] ?? "";
 
-    // 2) Immediately move to the next UI (form overlay) and load needed data there.
-    // Do NOT force camera init here; user can choose Capture/Choose image in the form.
+    // Mark that QR has been scanned so we never show the scan prompt again in this cycle.
     _safeSetState(() {
+      _hasScannedQr = true;
+      _showScanForm = true; // Always show form immediately after scan
+      _showCameraPreview = false;
       state = TestState.doneCapture;
     });
 
-    // Load lists for dropdowns (async) – safe guards are inside loadFactories().
     unawaited(loadFactories());
   }
+
+  bool _initializingCamera = false;
 
   // -----------------------------------------------------
   // INIT CAMERA + ZOOM
   // -----------------------------------------------------
   Future<void> initCamera() async {
-    if (!mounted || _disposed || _disposingController) return;
+    if (!mounted || _disposed || _disposingController || _initializingCamera) return;
+
+    // If a controller already exists and is initialized, reuse it.
+    if (controller != null && (controller?.value.isInitialized ?? false)) {
+      return;
+    }
+
+    _initializingCamera = true;
 
     try {
       final cams = await availableCameras();
       if (!mounted || _disposed) return;
 
-      CameraDescription selected = cams.firstWhere(
+      if (cams.isEmpty) {
+        Get.snackbar("Camera lỗi", "Không tìm thấy camera");
+        return;
+      }
+
+      final CameraDescription selected = cams.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.back,
         orElse: () => cams.first,
       );
 
-      // Ensure any previous controller is fully disposed before creating a new one.
+      // Dispose previous controller only if it exists AND is different / broken.
       await _disposeControllerSafe();
       if (!mounted || _disposed) return;
 
-      controller = CameraController(
+      final newController = CameraController(
         selected,
         ResolutionPreset.high,
         enableAudio: false,
       );
 
-      await controller!.initialize();
+      controller = newController;
+
+      await newController.initialize();
       if (!mounted || _disposed) return;
 
-      minZoom = await controller!.getMinZoomLevel();
-      maxZoom = await controller!.getMaxZoomLevel();
+      minZoom = await newController.getMinZoomLevel();
+      maxZoom = await newController.getMaxZoomLevel();
       zoomLevel = 1.0;
 
       if (!mounted || _disposed) return;
-      setState(() => state = TestState.readyToCapture);
+      setState(() {
+        state = TestState.readyToCapture;
+      });
     } catch (e) {
       if (!mounted || _disposed) return;
       Get.snackbar("Camera lỗi", e.toString());
+
+      // If camera fails in scan mode, close preview and keep the form.
+      if (_isScanMode) {
+        _safeSetState(() {
+          _showCameraPreview = false;
+          _showScanForm = true;
+        });
+      }
+    } finally {
+      _initializingCamera = false;
+      if (mounted && !_disposed) {
+        setState(() {});
+      }
     }
   }
 
@@ -348,18 +380,32 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   // CAPTURE
   // -----------------------------------------------------
   Future<void> capture() async {
-    // Two-step UX: first tap opens camera preview, second tap (shutter) takes the photo.
+    // Two-step UX in scan mode: open preview AFTER a successful QR scan.
     if (_isScanMode) {
-      if (!_showCameraPreview) {
-        _safeSetState(() => _showCameraPreview = true);
+      if (!_hasScannedQr) {
+        await scanQr();
+        return;
       }
 
-      if (controller == null || !controller!.value.isInitialized) {
+      // If preview is already open, do nothing here (actual shutter is in preview).
+      if (_showCameraPreview) return;
+
+      _safeSetState(() {
+        _showCameraPreview = true;
+        _showScanForm = true;
+        state = TestState.doneCapture;
+      });
+
+      // Ensure camera controller exists.
+      if (controller == null || !(controller?.value.isInitialized ?? false)) {
         await initCamera();
-        if (!mounted || _disposed) return;
       }
 
-      // Do NOT auto-take picture in scan mode on first tap.
+      // If init failed, close preview and go back to form.
+      if (!mounted || _disposed) return;
+      if (controller == null || !(controller?.value.isInitialized ?? false)) {
+        _safeSetState(() => _showCameraPreview = false);
+      }
       return;
     }
 
@@ -378,206 +424,75 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   }
 
   Future<void> _takePhotoFromPreview() async {
-    if (controller == null || !controller!.value.isInitialized) return;
+    if (controller == null || !controller!.value.isInitialized) {
+      // Can't capture -> go back to form.
+      _safeSetState(() => _showCameraPreview = false);
+      return;
+    }
 
     try {
       final photo = await controller!.takePicture();
       if (!mounted || _disposed) return;
+
       captured.add(photo);
+
+      // After taking a photo, always return to the form.
       _safeSetState(() {
         state = TestState.doneCapture;
         _showCameraPreview = false;
+        _showScanForm = true;
       });
 
-      // After taking a photo, we can dispose camera to avoid emulator issues.
-      await _disposeControllerSafe();
+      // IMPORTANT: do NOT dispose the controller here.
+      // Disposing on emulator often causes surface-abandoned and breaks subsequent captures.
     } catch (e) {
       if (!mounted || _disposed) return;
       Get.snackbar("Chụp lỗi", e.toString());
+
+      // Even on error, return to the form (don't leave user stuck in preview).
+      _safeSetState(() {
+        _showCameraPreview = false;
+        _showScanForm = true;
+      });
     }
   }
 
   void _closeCameraPreview() {
-    _safeSetState(() => _showCameraPreview = false);
-    _disposeControllerSafe();
-  }
-
-
-  // -----------------------------------------------------
-  // RESPONSIVE
-  // -----------------------------------------------------
-  bool isTablet(BuildContext context) => MediaQuery.of(context).size.width > 900;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: !_isBusy,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        final allow = await _onWillPop();
-        if (allow && mounted && Navigator.of(context).canPop()) {
-          Navigator.of(context).pop(result);
-        }
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xff0d0d11),
-        appBar: AppBar(
-          backgroundColor: const Color(0xff0d0d11),
-          title: const Text("Capture"),
-        ),
-        body: SafeArea(
-          child: isTablet(context) ? _tabletUI() : _phoneUI(),
-        ),
-      ),
-    );
-  }
-
-  bool get _isBusy => state == TestState.uploading;
-
-  Future<bool> _onWillPop() async {
-    // Block leaving while uploading to avoid half-sent data / state corruption.
-    if (_isBusy) return false;
-
-    // In scan mode, handle back in a predictable way.
-    if (_isScanMode) {
-      // If camera preview is open -> close preview only.
-      if (_showCameraPreview) {
-        _closeCameraPreview();
-        return false;
+    // Cancel preview -> return to form.
+    _safeSetState(() {
+      _showCameraPreview = false;
+      if (_isScanMode) {
+        _showScanForm = _hasScannedQr;
+        state = _hasScannedQr ? TestState.doneCapture : TestState.idle;
       }
-
-      // If form overlay is open -> treat back like "Hủy" in scan mode: go back to scanner.
-      if (state == TestState.doneCapture || state == TestState.captured) {
-        captured.clear();
-        errorCodeCtrl.clear();
-        noteCtrl.clear();
-        status = "PASS";
-        product = null;
-        serialCtrl.clear();
-        _safeSetState(() => state = TestState.idle);
-        await _disposeControllerSafe();
-
-        final int session = ++_scanSession;
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (!mounted || _disposed || session != _scanSession) return;
-          scanQr();
-        });
-        return false;
-      }
-
-      // If we're on this tab with nothing yet, allow pop.
-      return true;
-    }
-
-    // Non-scan mode: allow normal pop.
-    return true;
-  }
-
-  // -----------------------------------------------------
-  // PHONE UI
-  // -----------------------------------------------------
-  Widget _phoneUI() {
-    final bool isScanMode = widget.autoScan;
-
-    return Stack(
-      children: [
-        Column(
-          children: [
-            Expanded(child: _cameraUI()),
-
-            // In scan mode, hide capture thumbnails + buttons to avoid confusing UI.
-            if (!isScanMode) ...[
-              _thumbnailRow(),
-              _phoneButtons(),
-            ],
-          ],
-        ),
-        if (state == TestState.doneCapture || state == TestState.captured) _formOverlay(),
-        if (state == TestState.uploading)
-          Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
-      ],
-    );
-  }
-
-  // -----------------------------------------------------
-  // TABLET UI
-  // -----------------------------------------------------
-  Widget _tabletUI() {
-    final bool isScanMode = widget.autoScan;
-
-    // When scanning, render a simple full camera view.
-    if (isScanMode) {
-      return Stack(
-        children: [
-          Positioned.fill(child: _cameraUI()),
-          if (state == TestState.doneCapture || state == TestState.captured) _formOverlay(),
-          if (state == TestState.uploading)
-            Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
-        ],
-      );
-    }
-
-    return Stack(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              flex: 6,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: _cameraUI(),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 4,
-              child: Column(
-                children: [
-                  Expanded(child: _thumbnailGrid()),
-                  const SizedBox(height: 12),
-                  _tabletButtons(),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ],
-        ),
-        if (state == TestState.doneCapture || state == TestState.captured) _formOverlay(),
-        if (state == TestState.uploading)
-          Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
-      ],
-    );
+    });
   }
 
   // -----------------------------------------------------
   // CAMERA + ZOOM
   // -----------------------------------------------------
   Widget _cameraUI() {
-    // In scan mode, before scanning (state idle) show a more accurate instruction.
-    if (_isScanMode && !_showCameraPreview && state == TestState.idle) {
+    // Scan mode: before scan -> show prompt. After scan -> show stable background.
+    if (_isScanMode && !_showCameraPreview) {
+      if (!_hasScannedQr) {
+        return const Center(
+          child: Text(
+            "Vui lòng quét QR để bắt đầu.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70),
+          ),
+        );
+      }
+      return const ColoredBox(color: Color(0xff0d0d11));
+    }
+
+    if (_isScanMode && _showCameraPreview && _initializingCamera) {
       return const Center(
-        child: Text(
-          "Vui lòng quét QR để bắt đầu.",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white70),
-        ),
+        child: CircularProgressIndicator(),
       );
     }
 
-    // In scan mode after scanned but before opening preview show the correct instruction.
-    if (_isScanMode && !_showCameraPreview && state != TestState.idle) {
-      return const Center(
-        child: Text(
-          "Quét QR xong. Vui lòng nhập thông tin và chọn Chụp ảnh/Chọn ảnh ở bên dưới.",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white70),
-        ),
-      );
-    }
-
-    if (controller == null || !controller!.value.isInitialized) {
+    if (controller == null || !(controller?.value.isInitialized ?? false)) {
       return const Center(
         child: Text("Đang khởi tạo camera...", style: TextStyle(color: Colors.white70)),
       );
@@ -863,7 +778,11 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
                                   status = "PASS";
                                   product = null;
                                   serialCtrl.clear();
-                                  _safeSetState(() => state = TestState.idle);
+                                  _safeSetState(() {
+                                    state = TestState.idle;
+                                    _hasScannedQr = false;
+                                    _showScanForm = false;
+                                  });
                                   _disposeControllerSafe();
                                   final int session = ++_scanSession;
                                   Future.delayed(const Duration(milliseconds: 200), () {
@@ -1378,7 +1297,11 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             product = null;
             _showCameraPreview = false;
 
-            _safeSetState(() => state = TestState.idle);
+            _safeSetState(() {
+              state = TestState.idle;
+              _hasScannedQr = false;
+              _showScanForm = false;
+            });
 
             if (_isScanMode) {
               final int session = ++_scanSession;
@@ -1398,6 +1321,234 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     }
 
     _safeSetState(() => state = TestState.doneCapture);
+  }
+
+  Widget _phoneUI() {
+    final bool isScanMode = widget.autoScan;
+
+    // In scan mode, NEVER show the form overlay on top of the camera preview.
+    final bool showFormOverlay = isScanMode
+        ? (!_showCameraPreview && ((state == TestState.doneCapture || state == TestState.captured) || _showScanForm))
+        : (state == TestState.doneCapture || state == TestState.captured);
+
+    return Stack(
+      children: [
+        Column(
+          children: [
+            Expanded(child: _cameraUI()),
+
+            // In scan mode, hide capture thumbnails + buttons to avoid confusing UI.
+            if (!isScanMode) ...[
+              _thumbnailRow(),
+              _phoneButtons(),
+            ],
+          ],
+        ),
+        if (showFormOverlay) _formOverlay(),
+        if (state == TestState.uploading)
+          Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
+      ],
+    );
+  }
+
+  Widget _tabletUI() {
+    final bool isScanMode = widget.autoScan;
+
+    // In scan mode, NEVER show the form overlay on top of the camera preview.
+    final bool showFormOverlay = isScanMode
+        ? (!_showCameraPreview && ((state == TestState.doneCapture || state == TestState.captured) || _showScanForm))
+        : (state == TestState.doneCapture || state == TestState.captured);
+
+    if (isScanMode) {
+      return Stack(
+        children: [
+          Positioned.fill(child: _cameraUI()),
+          if (showFormOverlay) _formOverlay(),
+          if (state == TestState.uploading)
+            Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
+        ],
+      );
+    }
+
+    // Non-scan tablet UI: keep using the same camera UI + overlay states.
+    return Stack(
+      children: [
+        Positioned.fill(child: _cameraUI()),
+        if (showFormOverlay) _formOverlay(),
+        if (state == TestState.uploading)
+          Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
+      ],
+    );
+  }
+
+  /// Standalone form (no Positioned) to safely render as a normal page body.
+  /// This is used in scan mode right after QR scanned to avoid the "black screen" issue.
+  Widget _formStandalone() {
+    return Container(
+      color: Colors.black87,
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Column(
+            children: [
+              _imagePreviewStrip(),
+              const SizedBox(height: 16),
+              _formContent(),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade800,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        if (_isScanMode) {
+                          captured.clear();
+                          errorCodeCtrl.clear();
+                          noteCtrl.clear();
+                          status = "PASS";
+                          product = null;
+                          serialCtrl.clear();
+                          _safeSetState(() {
+                            state = TestState.idle;
+                            _hasScannedQr = false;
+                            _showScanForm = false;
+                            _showCameraPreview = false;
+                          });
+
+                          final int session = ++_scanSession;
+                          Future.delayed(const Duration(milliseconds: 150), () {
+                            if (!mounted || _disposed || session != _scanSession) return;
+                            scanQr();
+                          });
+                          return;
+                        }
+
+                        captured.clear();
+                        state = TestState.readyToCapture;
+                        initCamera();
+                        setState(() {});
+                      },
+                      child: const Text("Hủy"),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => sendToApi(captured),
+                      child: const Text("Gửi API"),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Main content for scan mode AFTER scanning.
+  // Render standalone form (no Positioned.fill) to guarantee it shows up.
+  Widget _scanBody() {
+    return Stack(
+      children: [
+        const ColoredBox(color: Color(0xff0d0d11)),
+        _formStandalone(),
+        if (state == TestState.uploading)
+          Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
+      ],
+    );
+  }
+
+  // -----------------------------------------------------
+  // RESPONSIVE + ROOT BUILD
+  // -----------------------------------------------------
+  bool isTablet(BuildContext context) => MediaQuery.of(context).size.width > 900;
+
+  bool get _isBusy => state == TestState.uploading;
+
+  Future<bool> _onWillPop() async {
+    // Block leaving while uploading.
+    if (_isBusy) return false;
+
+    if (_isScanMode) {
+      // If camera preview is open -> just close preview.
+      if (_showCameraPreview) {
+        _closeCameraPreview();
+        return false;
+      }
+
+      // If form is visible (after scan), treat back as cancel -> go back to scan.
+      if (_hasScannedQr || _showScanForm) {
+        captured.clear();
+        errorCodeCtrl.clear();
+        noteCtrl.clear();
+        status = "PASS";
+        product = null;
+        serialCtrl.clear();
+
+        _safeSetState(() {
+          state = TestState.idle;
+          _hasScannedQr = false;
+          _showScanForm = false;
+        });
+
+        final int session = ++_scanSession;
+        Future.delayed(const Duration(milliseconds: 150), () {
+          if (!mounted || _disposed || session != _scanSession) return;
+          scanQr();
+        });
+
+        return false;
+      }
+
+      // Nothing started yet -> allow leaving.
+      return true;
+    }
+
+    // Non-scan mode: allow normal pop.
+    return true;
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_isBusy,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final allow = await _onWillPop();
+        if (allow && mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(result);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xff0d0d11),
+        appBar: AppBar(
+          backgroundColor: const Color(0xff0d0d11),
+          title: const Text("Capture"),
+        ),
+        body: SafeArea(
+          child: _isScanMode && _showScanForm && !_showCameraPreview
+              ? _scanBody()
+              : (isTablet(context) ? _tabletUI() : _phoneUI()),
+        ),
+      ),
+    );
   }
 }
 
