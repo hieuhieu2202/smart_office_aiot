@@ -866,13 +866,21 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
           itemBuilder: (_, i) {
             return Stack(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.file(
-                    File(captured[i].path),
-                    width: 96,
-                    height: 96,
-                    fit: BoxFit.cover,
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FullImageView(path: captured[i].path),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(
+                      File(captured[i].path),
+                      width: 96,
+                      height: 96,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 Positioned(
