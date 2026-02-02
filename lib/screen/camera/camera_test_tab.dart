@@ -27,6 +27,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
   bool get _isScanMode => widget.autoScan;
 
+  bool _showCameraPreview = false;
+
   Map<String, dynamic>? product;
   CameraController? controller;
   final List<XFile> captured = [];
@@ -245,6 +247,26 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     if (!mounted || _disposed || session != _scanSession) return;
 
     if (qr == null) {
+      // User likely pressed back / closed scanner. In auto-scan flow,
+      // we don't want to stay on this screen showing an empty placeholder.
+      if (_isScanMode) {
+        // Prevent any pending actions from re-opening scan.
+        _scanSession++;
+        _safeSetState(() {
+          _showCameraPreview = false;
+          state = TestState.idle;
+        });
+        await _disposeControllerSafe();
+
+        // Close this tab/screen.
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          Get.back();
+        }
+        return;
+      }
+
       Get.snackbar("Lỗi", "Không đọc được mã QR");
       return;
     }
@@ -326,12 +348,22 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   // CAPTURE
   // -----------------------------------------------------
   Future<void> capture() async {
-    // In scan mode, camera might not be initialized yet; initialize lazily.
-    if (_isScanMode && (controller == null || !controller!.value.isInitialized)) {
-      await initCamera();
-      if (!mounted || _disposed) return;
+    // Two-step UX: first tap opens camera preview, second tap (shutter) takes the photo.
+    if (_isScanMode) {
+      if (!_showCameraPreview) {
+        _safeSetState(() => _showCameraPreview = true);
+      }
+
+      if (controller == null || !controller!.value.isInitialized) {
+        await initCamera();
+        if (!mounted || _disposed) return;
+      }
+
+      // Do NOT auto-take picture in scan mode on first tap.
+      return;
     }
 
+    // Normal mode keeps old behavior.
     if (controller == null || !controller!.value.isInitialized) return;
 
     try {
@@ -345,146 +377,31 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     }
   }
 
-  Future<void> pickImagesFromDevice() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: true,
-    );
-
-    if (!mounted || _disposed) return;
-
-    final paths = result?.paths.whereType<String>().toList();
-    if (paths == null || paths.isEmpty) return;
-
-    setState(() {
-      for (final path in paths) {
-        captured.add(XFile(path));
-      }
-      state = TestState.doneCapture;
-    });
-  }
-
-  // FINISH
-  Future<void> finishCapture() async {
-    await loadFactories();
-    if (!mounted || _disposed) return;
-    setState(() {
-      state = TestState.doneCapture;
-    });
-  }
-
-
-  // SEND API
-  Future<void> sendToApi(List<XFile> images) async {
-    if (serialCtrl.text.trim().isEmpty) {
-      if (!mounted || _disposed) return;
-      Get.snackbar("Lỗi", "Serial không được để trống");
-      return;
-    }
-
-    if (status == "FAIL") {
-      if (errorCodeCtrl.text.trim().isEmpty) {
-        if (!mounted || _disposed) return;
-        Get.snackbar("Lỗi", "Vui lòng nhập ErrorCode");
-        return;
-      }
-      if (images.isEmpty) {
-        if (!mounted || _disposed) return;
-        Get.snackbar("Lỗi", "FAIL phải có ít nhất 1 ảnh");
-        return;
-      }
-    }
-
-    _safeSetState(() => state = TestState.uploading);
+  Future<void> _takePhotoFromPreview() async {
+    if (controller == null || !controller!.value.isInitialized) return;
 
     try {
-      // BASE PAYLOAD
-      final Map<String, dynamic> payload = {
-        "factory": factoryCtrl.text.trim(),
-        "floor": floorCtrl.text.trim(),
-        "productName": productNameCtrl.text.trim(),
-        "model": modelCtrl.text.trim(),
-
-        "sn": serialCtrl.text.trim(),
-        "time": DateTime.now().toIso8601String(),
-        "userName": userCtrl.text.trim(),
-        "status": status,
-        "comment": noteCtrl.text.trim(),
-      };
-
-
-      // FAIL ONLY
-      if (status == "FAIL") {
-        final List<String> listBase64 = [];
-
-        for (final file in images) {
-          final compressed = await FlutterImageCompress.compressWithFile(
-            file.path,
-            quality: 60,
-          );
-
-          listBase64.add(
-            base64Encode(
-              compressed ?? await File(file.path).readAsBytes(),
-            ),
-          );
-        }
-
-        payload["errorCode"] = errorCodeCtrl.text.trim();
-        payload["images"] = listBase64;
-      }
-
-      final res = await http.post(
-        Uri.parse(apiUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(payload),
-      );
-
+      final photo = await controller!.takePicture();
       if (!mounted || _disposed) return;
+      captured.add(photo);
+      _safeSetState(() {
+        state = TestState.doneCapture;
+        _showCameraPreview = false;
+      });
 
-      if (res.statusCode == 200) {
-        _successDialog();
-      } else {
-        Get.snackbar("API lỗi", "Code: ${res.statusCode}\n${res.body}");
-      }
+      // After taking a photo, we can dispose camera to avoid emulator issues.
+      await _disposeControllerSafe();
     } catch (e) {
       if (!mounted || _disposed) return;
-      Get.snackbar("Upload lỗi", e.toString());
+      Get.snackbar("Chụp lỗi", e.toString());
     }
-
-    _safeSetState(() => state = TestState.doneCapture);
   }
 
-
-  void _successDialog() {
-    Get.defaultDialog(
-      title: "Thành công",
-      content: const Text("Upload thành công"),
-      textConfirm: "OK",
-      onConfirm: () async {
-        Get.back();
-
-        if (!mounted || _disposed) return;
-
-        await _disposeControllerSafe();
-        if (!mounted || _disposed) return;
-
-        captured.clear();
-        serialCtrl.clear();
-        noteCtrl.clear();
-        status = "PASS";
-        product = null;
-
-        _safeSetState(() => state = TestState.idle);
-
-        final int session = ++_scanSession;
-        Future.delayed(const Duration(milliseconds: 250), () {
-          if (!mounted || _disposed || session != _scanSession) return;
-          scanQr();
-        });
-      },
-    );
+  void _closeCameraPreview() {
+    _safeSetState(() => _showCameraPreview = false);
+    _disposeControllerSafe();
   }
+
 
   // -----------------------------------------------------
   // RESPONSIVE
@@ -493,16 +410,67 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xff0d0d11),
-      appBar: AppBar(
+    return PopScope(
+      canPop: !_isBusy,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final allow = await _onWillPop();
+        if (allow && mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(result);
+        }
+      },
+      child: Scaffold(
         backgroundColor: const Color(0xff0d0d11),
-        title: const Text("Capture"),
-      ),
-      body: SafeArea(
-        child: isTablet(context) ? _tabletUI() : _phoneUI(),
+        appBar: AppBar(
+          backgroundColor: const Color(0xff0d0d11),
+          title: const Text("Capture"),
+        ),
+        body: SafeArea(
+          child: isTablet(context) ? _tabletUI() : _phoneUI(),
+        ),
       ),
     );
+  }
+
+  bool get _isBusy => state == TestState.uploading;
+
+  Future<bool> _onWillPop() async {
+    // Block leaving while uploading to avoid half-sent data / state corruption.
+    if (_isBusy) return false;
+
+    // In scan mode, handle back in a predictable way.
+    if (_isScanMode) {
+      // If camera preview is open -> close preview only.
+      if (_showCameraPreview) {
+        _closeCameraPreview();
+        return false;
+      }
+
+      // If form overlay is open -> treat back like "Hủy" in scan mode: go back to scanner.
+      if (state == TestState.doneCapture || state == TestState.captured) {
+        captured.clear();
+        errorCodeCtrl.clear();
+        noteCtrl.clear();
+        status = "PASS";
+        product = null;
+        serialCtrl.clear();
+        _safeSetState(() => state = TestState.idle);
+        await _disposeControllerSafe();
+
+        final int session = ++_scanSession;
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (!mounted || _disposed || session != _scanSession) return;
+          scanQr();
+        });
+        return false;
+      }
+
+      // If we're on this tab with nothing yet, allow pop.
+      return true;
+    }
+
+    // Non-scan mode: allow normal pop.
+    return true;
   }
 
   // -----------------------------------------------------
@@ -587,8 +555,19 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   // CAMERA + ZOOM
   // -----------------------------------------------------
   Widget _cameraUI() {
-    // In scan mode, before the user chooses to capture, don't show camera preview.
-    if (_isScanMode && (controller == null || !controller!.value.isInitialized)) {
+    // In scan mode, before scanning (state idle) show a more accurate instruction.
+    if (_isScanMode && !_showCameraPreview && state == TestState.idle) {
+      return const Center(
+        child: Text(
+          "Vui lòng quét QR để bắt đầu.",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white70),
+        ),
+      );
+    }
+
+    // In scan mode after scanned but before opening preview show the correct instruction.
+    if (_isScanMode && !_showCameraPreview && state != TestState.idle) {
       return const Center(
         child: Text(
           "Quét QR xong. Vui lòng nhập thông tin và chọn Chụp ảnh/Chọn ảnh ở bên dưới.",
@@ -622,18 +601,58 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
           ),
         ),
 
-        // NÚT ZOOM + / -
-        Positioned(
-          bottom: 20,
-          right: 20,
-          child: Column(
-            children: [
-              _zoomBtn(Icons.add, zoomIn),
-              const SizedBox(height: 10),
-              _zoomBtn(Icons.remove, zoomOut),
-            ],
+        // Scan mode preview controls (close + shutter)
+        if (_isScanMode && _showCameraPreview) ...[
+          Positioned(
+            top: 12,
+            left: 12,
+            child: IconButton(
+              tooltip: "Đóng camera",
+              onPressed: _closeCameraPreview,
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.35),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, color: Colors.white),
+              ),
+            ),
           ),
-        ),
+          Positioned(
+            bottom: 24,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: GestureDetector(
+                onTap: _takePhotoFromPreview,
+                child: Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 4),
+                    color: Colors.white.withOpacity(0.08),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+
+        // NÚT ZOOM + / -
+        if (!_isScanMode || !_showCameraPreview)
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: Column(
+              children: [
+                _zoomBtn(Icons.add, zoomIn),
+                const SizedBox(height: 10),
+                _zoomBtn(Icons.remove, zoomOut),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -836,6 +855,25 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
                                 ),
                               ),
                               onPressed: () {
+                                // In scan mode: cancel should go back to scanning (not to camera/placeholder).
+                                if (_isScanMode) {
+                                  captured.clear();
+                                  errorCodeCtrl.clear();
+                                  noteCtrl.clear();
+                                  status = "PASS";
+                                  product = null;
+                                  serialCtrl.clear();
+                                  _safeSetState(() => state = TestState.idle);
+                                  _disposeControllerSafe();
+                                  final int session = ++_scanSession;
+                                  Future.delayed(const Duration(milliseconds: 200), () {
+                                    if (!mounted || _disposed || session != _scanSession) return;
+                                    scanQr();
+                                  });
+                                  return;
+                                }
+
+                                // Normal mode behavior.
                                 captured.clear();
                                 state = TestState.readyToCapture;
                                 initCamera();
@@ -866,28 +904,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
                 ),
               ),
 
-              // Close button (top-right)
-              Positioned(
-                top: 4,
-                right: 4,
-                child: IconButton(
-                  tooltip: "Đóng",
-                  onPressed: () {
-                    _safeSetState(() {
-                      state = TestState.readyToCapture;
-                    });
-                  },
-                  icon: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.35),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.12)),
-                    ),
-                    child: const Icon(Icons.close, color: Colors.white70, size: 18),
-                  ),
-                ),
-              ),
+              // NOTE: Removed the top-right close (X) button as requested.
             ],
           ),
         ),
@@ -1247,6 +1264,140 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       fillColor: const Color(0xFF111111),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     );
+  }
+
+  Future<void> pickImagesFromDevice() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: true,
+    );
+
+    if (!mounted || _disposed) return;
+
+    final paths = result?.paths.whereType<String>().toList();
+    if (paths == null || paths.isEmpty) return;
+
+    _safeSetState(() {
+      for (final path in paths) {
+        captured.add(XFile(path));
+      }
+      state = TestState.doneCapture;
+    });
+  }
+
+  // FINISH (used by old non-scan capture flow)
+  Future<void> finishCapture() async {
+    await loadFactories();
+    if (!mounted || _disposed) return;
+    _safeSetState(() {
+      state = TestState.doneCapture;
+    });
+  }
+
+  // SEND API
+  Future<void> sendToApi(List<XFile> images) async {
+    if (serialCtrl.text.trim().isEmpty) {
+      if (!mounted || _disposed) return;
+      Get.snackbar("Lỗi", "Serial không được để trống");
+      return;
+    }
+
+    if (status == "FAIL") {
+      if (errorCodeCtrl.text.trim().isEmpty) {
+        if (!mounted || _disposed) return;
+        Get.snackbar("Lỗi", "Vui lòng nhập ErrorCode");
+        return;
+      }
+      if (images.isEmpty) {
+        if (!mounted || _disposed) return;
+        Get.snackbar("Lỗi", "FAIL phải có ít nhất 1 ảnh");
+        return;
+      }
+    }
+
+    _safeSetState(() => state = TestState.uploading);
+
+    try {
+      final Map<String, dynamic> payload = {
+        "factory": factoryCtrl.text.trim(),
+        "floor": floorCtrl.text.trim(),
+        "productName": productNameCtrl.text.trim(),
+        "model": modelCtrl.text.trim(),
+        "sn": serialCtrl.text.trim(),
+        "time": DateTime.now().toIso8601String(),
+        "userName": userCtrl.text.trim(),
+        "status": status,
+        "comment": noteCtrl.text.trim(),
+      };
+
+      if (status == "FAIL") {
+        final List<String> listBase64 = [];
+
+        for (final file in images) {
+          final compressed = await FlutterImageCompress.compressWithFile(
+            file.path,
+            quality: 60,
+          );
+
+          listBase64.add(
+            base64Encode(
+              compressed ?? await File(file.path).readAsBytes(),
+            ),
+          );
+        }
+
+        payload["errorCode"] = errorCodeCtrl.text.trim();
+        payload["images"] = listBase64;
+      }
+
+      final res = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(payload),
+      );
+
+      if (!mounted || _disposed) return;
+
+      if (res.statusCode == 200) {
+        Get.defaultDialog(
+          title: "Thành công",
+          content: const Text("Upload thành công"),
+          textConfirm: "OK",
+          onConfirm: () async {
+            Get.back();
+            if (!mounted || _disposed) return;
+
+            await _disposeControllerSafe();
+            if (!mounted || _disposed) return;
+
+            captured.clear();
+            serialCtrl.clear();
+            noteCtrl.clear();
+            errorCodeCtrl.clear();
+            status = "PASS";
+            product = null;
+            _showCameraPreview = false;
+
+            _safeSetState(() => state = TestState.idle);
+
+            if (_isScanMode) {
+              final int session = ++_scanSession;
+              Future.delayed(const Duration(milliseconds: 250), () {
+                if (!mounted || _disposed || session != _scanSession) return;
+                scanQr();
+              });
+            }
+          },
+        );
+      } else {
+        Get.snackbar("API lỗi", "Code: ${res.statusCode}\n${res.body}");
+      }
+    } catch (e) {
+      if (!mounted || _disposed) return;
+      Get.snackbar("Upload lỗi", e.toString());
+    }
+
+    _safeSetState(() => state = TestState.doneCapture);
   }
 }
 
