@@ -22,7 +22,7 @@ android {
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.smart_office_aiot"
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = 36
         val envVersionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull()
         val envVersionName = System.getenv("ANDROID_VERSION_NAME")?.takeIf { it.isNotBlank() }

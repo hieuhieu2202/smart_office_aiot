@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:smart_factory/screen/home/widget/qr/scan_test_screen.dart';
 import 'package:smart_factory/service/auth/token_manager.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -22,6 +24,8 @@ enum TestState { idle, productDetected, readyToCapture, captured, doneCapture, u
 
 class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserver {
   TestState state = TestState.idle;
+
+  bool get _isScanMode => widget.autoScan;
 
   Map<String, dynamic>? product;
   CameraController? controller;
@@ -62,11 +66,13 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       print("FACTORY API: ${res.body}");
       if (res.statusCode == 200) {
         final List data = jsonDecode(res.body);
+        if (!mounted || _disposed) return;
         setState(() {
           factories = data.cast<String>();
         });
       }
     } catch (e) {
+      if (!mounted || _disposed) return;
       Get.snackbar("Lỗi", "Không load được Factory");
     }
   }
@@ -78,11 +84,13 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
       if (res.statusCode == 200) {
         final List data = jsonDecode(res.body);
+        if (!mounted || _disposed) return;
         setState(() {
           floors = data.cast<String>();
         });
       }
     } catch (e) {
+      if (!mounted || _disposed) return;
       Get.snackbar("Lỗi", "Không load được Floor");
     }
   }
@@ -101,11 +109,13 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
       if (res.statusCode == 200) {
         final List data = jsonDecode(res.body);
+        if (!mounted || _disposed) return;
         setState(() {
           productNames = data.cast<String>();
         });
       }
     } catch (e) {
+      if (!mounted || _disposed) return;
       Get.snackbar("Lỗi", "Không load được ProductName");
     }
   }
@@ -124,17 +134,43 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
       if (res.statusCode == 200) {
         final List data = jsonDecode(res.body);
+        if (!mounted || _disposed) return;
         setState(() {
           models = data.cast<String>();
         });
       }
     } catch (e) {
+      if (!mounted || _disposed) return;
       Get.snackbar("Lỗi", "Không load được Model");
     }
   }
 
   // URL API upload
   final String apiUrl = "http://192.168.0.62:2020/api/Detail/upload";
+
+  /// Used to cancel delayed callbacks (auto-scan / rescan) when screen is disposed.
+  bool _disposed = false;
+  int _scanSession = 0;
+
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted || _disposed) return;
+    setState(fn);
+  }
+
+  Future<void> _fillUserFromToken() async {
+    final token = TokenManager().civetToken.value;
+    if (token.isEmpty) return;
+
+    try {
+      final decoded = JwtDecoder.decode(token);
+      final username = decoded["FoxconnID"] ?? decoded["UserName"] ?? decoded["sub"];
+      if (username == null) return;
+      if (!mounted || _disposed) return;
+      userCtrl.text = username.toString();
+    } catch (_) {
+      // ignore invalid token
+    }
+  }
 
   @override
   void initState() {
@@ -144,14 +180,50 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     loadFactories();
 
     if (widget.autoScan) {
-      Future.delayed(const Duration(milliseconds: 300), () => scanQr());
+      final int session = ++_scanSession;
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted || _disposed || session != _scanSession) return;
+        scanQr();
+      });
     }
+  }
+
+  bool _disposingController = false;
+
+  Future<void> _disposeControllerSafe() async {
+    final c = controller;
+    if (c == null) return;
+
+    controller = null;
+    _disposingController = true;
+
+    try {
+      if (c.value.isStreamingImages) {
+        await c.stopImageStream();
+      }
+    } catch (_) {
+      // ignore
+    }
+
+    try {
+      await c.dispose();
+    } catch (_) {
+      // ignore
+    }
+
+    _disposingController = false;
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    _scanSession++;
     WidgetsBinding.instance.removeObserver(this);
-    controller?.dispose();
+
+    // Dispose camera controller safely to avoid surface/GL callbacks after route is gone.
+    // Fire-and-forget is OK here because widget is being disposed.
+    _disposeControllerSafe();
+
     factoryCtrl.dispose();
     floorCtrl.dispose();
     productNameCtrl.dispose();
@@ -163,53 +235,52 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState stateLifecycle) {
-    if (controller == null) return;
-    if (stateLifecycle == AppLifecycleState.resumed) {
-      if (!controller!.value.isInitialized) initCamera();
-    }
-  }
-
-  Future<void> _fillUserFromToken() async {
-    final token = TokenManager().civetToken.value;
-    if (token.isEmpty) return;
-
-    try {
-      final decoded = JwtDecoder.decode(token);
-      final username = decoded["FoxconnID"] ?? decoded["UserName"] ?? decoded["sub"];
-      if (username != null) userCtrl.text = username.toString();
-    } catch (_) {}
-  }
-
   // -----------------------------------------------------
   // QR SCAN
   // -----------------------------------------------------
   Future<void> scanQr() async {
+    final int session = ++_scanSession;
+
     final qr = await Get.to(() => const ScanTestScreen());
+    if (!mounted || _disposed || session != _scanSession) return;
+
     if (qr == null) {
       Get.snackbar("Lỗi", "Không đọc được mã QR");
       return;
     }
 
+    // 1) set product + fill serial
     product = qr;
     serialCtrl.text = product?["serial"] ?? "";
 
-    await initCamera();
-    state = TestState.productDetected;
-    setState(() {});
+    // 2) Immediately move to the next UI (form overlay) and load needed data there.
+    // Do NOT force camera init here; user can choose Capture/Choose image in the form.
+    _safeSetState(() {
+      state = TestState.doneCapture;
+    });
+
+    // Load lists for dropdowns (async) – safe guards are inside loadFactories().
+    unawaited(loadFactories());
   }
 
   // -----------------------------------------------------
   // INIT CAMERA + ZOOM
   // -----------------------------------------------------
   Future<void> initCamera() async {
+    if (!mounted || _disposed || _disposingController) return;
+
     try {
       final cams = await availableCameras();
+      if (!mounted || _disposed) return;
+
       CameraDescription selected = cams.firstWhere(
-            (c) => c.lensDirection == CameraLensDirection.back,
+        (c) => c.lensDirection == CameraLensDirection.back,
         orElse: () => cams.first,
       );
+
+      // Ensure any previous controller is fully disposed before creating a new one.
+      await _disposeControllerSafe();
+      if (!mounted || _disposed) return;
 
       controller = CameraController(
         selected,
@@ -218,15 +289,16 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       );
 
       await controller!.initialize();
+      if (!mounted || _disposed) return;
 
       minZoom = await controller!.getMinZoomLevel();
       maxZoom = await controller!.getMaxZoomLevel();
       zoomLevel = 1.0;
 
-      if (!mounted) return;
-
+      if (!mounted || _disposed) return;
       setState(() => state = TestState.readyToCapture);
     } catch (e) {
+      if (!mounted || _disposed) return;
       Get.snackbar("Camera lỗi", e.toString());
     }
   }
@@ -238,6 +310,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     if (controller == null) return;
     zoomLevel = min(maxZoom, zoomLevel + 0.2);
     await controller!.setZoomLevel(zoomLevel);
+    if (!mounted || _disposed) return;
     setState(() {});
   }
 
@@ -245,6 +318,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     if (controller == null) return;
     zoomLevel = max(minZoom, zoomLevel - 0.2);
     await controller!.setZoomLevel(zoomLevel);
+    if (!mounted || _disposed) return;
     setState(() {});
   }
 
@@ -252,21 +326,48 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   // CAPTURE
   // -----------------------------------------------------
   Future<void> capture() async {
+    // In scan mode, camera might not be initialized yet; initialize lazily.
+    if (_isScanMode && (controller == null || !controller!.value.isInitialized)) {
+      await initCamera();
+      if (!mounted || _disposed) return;
+    }
+
     if (controller == null || !controller!.value.isInitialized) return;
 
     try {
       final photo = await controller!.takePicture();
+      if (!mounted || _disposed) return;
       captured.add(photo);
-      setState(() => state = TestState.captured);
+      setState(() => state = TestState.doneCapture);
     } catch (e) {
+      if (!mounted || _disposed) return;
       Get.snackbar("Chụp lỗi", e.toString());
     }
   }
 
+  Future<void> pickImagesFromDevice() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: true,
+    );
+
+    if (!mounted || _disposed) return;
+
+    final paths = result?.paths.whereType<String>().toList();
+    if (paths == null || paths.isEmpty) return;
+
+    setState(() {
+      for (final path in paths) {
+        captured.add(XFile(path));
+      }
+      state = TestState.doneCapture;
+    });
+  }
 
   // FINISH
-  void finishCapture() async {
+  Future<void> finishCapture() async {
     await loadFactories();
+    if (!mounted || _disposed) return;
     setState(() {
       state = TestState.doneCapture;
     });
@@ -276,22 +377,25 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   // SEND API
   Future<void> sendToApi(List<XFile> images) async {
     if (serialCtrl.text.trim().isEmpty) {
+      if (!mounted || _disposed) return;
       Get.snackbar("Lỗi", "Serial không được để trống");
       return;
     }
 
     if (status == "FAIL") {
       if (errorCodeCtrl.text.trim().isEmpty) {
+        if (!mounted || _disposed) return;
         Get.snackbar("Lỗi", "Vui lòng nhập ErrorCode");
         return;
       }
       if (images.isEmpty) {
+        if (!mounted || _disposed) return;
         Get.snackbar("Lỗi", "FAIL phải có ít nhất 1 ảnh");
         return;
       }
     }
 
-    setState(() => state = TestState.uploading);
+    _safeSetState(() => state = TestState.uploading);
 
     try {
       // BASE PAYLOAD
@@ -336,18 +440,19 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         body: jsonEncode(payload),
       );
 
+      if (!mounted || _disposed) return;
+
       if (res.statusCode == 200) {
         _successDialog();
       } else {
         Get.snackbar("API lỗi", "Code: ${res.statusCode}\n${res.body}");
       }
     } catch (e) {
+      if (!mounted || _disposed) return;
       Get.snackbar("Upload lỗi", e.toString());
     }
 
-    if (mounted) {
-      setState(() => state = TestState.doneCapture);
-    }
+    _safeSetState(() => state = TestState.doneCapture);
   }
 
 
@@ -359,8 +464,10 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       onConfirm: () async {
         Get.back();
 
-        await controller?.dispose();
-        controller = null;
+        if (!mounted || _disposed) return;
+
+        await _disposeControllerSafe();
+        if (!mounted || _disposed) return;
 
         captured.clear();
         serialCtrl.clear();
@@ -368,10 +475,13 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         status = "PASS";
         product = null;
 
-        setState(() => state = TestState.idle);
+        _safeSetState(() => state = TestState.idle);
 
-        await Future.delayed(const Duration(milliseconds: 250));
-        await scanQr();
+        final int session = ++_scanSession;
+        Future.delayed(const Duration(milliseconds: 250), () {
+          if (!mounted || _disposed || session != _scanSession) return;
+          scanQr();
+        });
       },
     );
   }
@@ -399,16 +509,22 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   // PHONE UI
   // -----------------------------------------------------
   Widget _phoneUI() {
+    final bool isScanMode = widget.autoScan;
+
     return Stack(
       children: [
         Column(
           children: [
             Expanded(child: _cameraUI()),
-            _thumbnailRow(),
-            _phoneButtons(),
+
+            // In scan mode, hide capture thumbnails + buttons to avoid confusing UI.
+            if (!isScanMode) ...[
+              _thumbnailRow(),
+              _phoneButtons(),
+            ],
           ],
         ),
-        if (state == TestState.doneCapture) _formOverlay(),
+        if (state == TestState.doneCapture || state == TestState.captured) _formOverlay(),
         if (state == TestState.uploading)
           Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
       ],
@@ -419,6 +535,20 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   // TABLET UI
   // -----------------------------------------------------
   Widget _tabletUI() {
+    final bool isScanMode = widget.autoScan;
+
+    // When scanning, render a simple full camera view.
+    if (isScanMode) {
+      return Stack(
+        children: [
+          Positioned.fill(child: _cameraUI()),
+          if (state == TestState.doneCapture || state == TestState.captured) _formOverlay(),
+          if (state == TestState.uploading)
+            Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
+        ],
+      );
+    }
+
     return Stack(
       children: [
         Row(
@@ -446,7 +576,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             ),
           ],
         ),
-        if (state == TestState.doneCapture) _formOverlay(),
+        if (state == TestState.doneCapture || state == TestState.captured) _formOverlay(),
         if (state == TestState.uploading)
           Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
       ],
@@ -457,6 +587,17 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   // CAMERA + ZOOM
   // -----------------------------------------------------
   Widget _cameraUI() {
+    // In scan mode, before the user chooses to capture, don't show camera preview.
+    if (_isScanMode && (controller == null || !controller!.value.isInitialized)) {
+      return const Center(
+        child: Text(
+          "Quét QR xong. Vui lòng nhập thông tin và chọn Chụp ảnh/Chọn ảnh ở bên dưới.",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white70),
+        ),
+      );
+    }
+
     if (controller == null || !controller!.value.isInitialized) {
       return const Center(
         child: Text("Đang khởi tạo camera...", style: TextStyle(color: Colors.white70)),
@@ -468,10 +609,13 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         Positioned.fill(
           child: GestureDetector(
             onScaleUpdate: (details) async {
-              if (controller == null) return;
+              if (controller == null || !controller!.value.isInitialized) return;
+              if (!mounted || _disposed) return;
+
               zoomLevel = (zoomLevel * details.scale).clamp(minZoom, maxZoom);
               await controller!.setZoomLevel(zoomLevel);
 
+              if (!mounted || _disposed) return;
               setState(() {});
             },
             child: CameraPreview(controller!),
@@ -612,12 +756,12 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         FloatingActionButton(
           heroTag: "btn_done_phone",
           backgroundColor: Colors.green,
-          onPressed: () {
+          onPressed: () async {
             if (captured.isEmpty) {
               Get.snackbar("Lỗi", "Chưa chụp ảnh");
               return;
             }
-            finishCapture();
+            await finishCapture();
           },
           child: const Icon(Icons.check),
         ),
@@ -647,12 +791,12 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         FloatingActionButton(
           heroTag: "btn_done_tablet",
           backgroundColor: Colors.green,
-          onPressed: () {
+          onPressed: () async {
             if (captured.isEmpty) {
               Get.snackbar("Lỗi", "Chưa chụp ảnh");
               return;
             }
-            finishCapture();
+            await finishCapture();
           },
           child: const Icon(Icons.check),
         ),
@@ -667,53 +811,82 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     return Positioned.fill(
       child: Container(
         color: Colors.black87,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        child: SafeArea(
+          child: Stack(
             children: [
-              SizedBox(
-                height: 100,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: captured.length,
-                  itemBuilder: (_, i) => Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(File(captured[i].path),
-                          width: 90, height: 90, fit: BoxFit.cover),
-                    ),
+              // Content
+              Positioned.fill(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  child: Column(
+                    children: [
+                      _imagePreviewStrip(),
+                      const SizedBox(height: 16),
+                      _formContent(),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey.shade800,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () {
+                                captured.clear();
+                                state = TestState.readyToCapture;
+                                initCamera();
+                                setState(() {});
+                              },
+                              child: const Text("Hủy"),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () => sendToApi(captured),
+                              child: const Text("Gửi API"),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
                   ),
                 ),
               ),
 
-              const SizedBox(height: 20),
-              _formContent(),
-              const SizedBox(height: 20),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
-                      onPressed: () {
-                        captured.clear();
-                        state = TestState.readyToCapture;
-                        initCamera();
-                        setState(() {});
-                      },
-                      child: const Text("Hủy"),
+              // Close button (top-right)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: IconButton(
+                  tooltip: "Đóng",
+                  onPressed: () {
+                    _safeSetState(() {
+                      state = TestState.readyToCapture;
+                    });
+                  },
+                  icon: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.35),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(0.12)),
                     ),
+                    child: const Icon(Icons.close, color: Colors.white70, size: 18),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                      onPressed: () => sendToApi(captured),
-                      child: const Text("Gửi API"),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -722,6 +895,135 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     );
   }
 
+  Widget _imagePreviewStrip() {
+    if (captured.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF101014),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        child: const Text(
+          "Chưa có ảnh. Nếu FAIL, vui lòng chụp hoặc chọn ảnh ở bên dưới.",
+          style: TextStyle(color: Colors.white70),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF101014),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: SizedBox(
+        height: 96,
+        child: ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          scrollDirection: Axis.horizontal,
+          itemCount: captured.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (_, i) {
+            return Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(
+                    File(captured[i].path),
+                    width: 96,
+                    height: 96,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: GestureDetector(
+                    onTap: () => setState(() => captured.removeAt(i)),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.55),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withOpacity(0.2)),
+                      ),
+                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _imageActionRow() {
+    final caption = captured.isEmpty
+        ? "Chưa có ảnh"
+        : "Đã thêm ${captured.length} ảnh";
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF101014),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(caption, style: const TextStyle(color: Colors.white70)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withOpacity(0.18)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: capture,
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text("Chụp ảnh"),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withOpacity(0.18)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: pickImagesFromDevice,
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text("Chọn ảnh"),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // -----------------------------------------------------
+  // FORM CONTENT
+  // -----------------------------------------------------
   Widget _formContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -911,6 +1213,9 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             }
           }),
         ),
+
+        const SizedBox(height: 12),
+        _imageActionRow(),
 
         if (status == "FAIL") ...[
           const SizedBox(height: 14),
