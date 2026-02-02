@@ -47,7 +47,13 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
   String? selectedFactory;
   String? selectedFloor;
+// Xử lý ProductName và Model
+  List<String> productNames = [];
+  List<String> models = [];
 
+  String? selectedProductName;
+  String? selectedModel;
+// Load Factory và Floor từ API
   Future<void> loadFactories() async {
     try {
       final res = await http.get(
@@ -64,7 +70,6 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       Get.snackbar("Lỗi", "Không load được Factory");
     }
   }
-
   Future<void> loadFloors(String factory) async {
     try {
       final res = await http.get(
@@ -81,6 +86,53 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       Get.snackbar("Lỗi", "Không load được Floor");
     }
   }
+  // Load ProductName và Model từ API
+  Future<void> loadProductNames({
+    required String factory,
+    required String floor,
+  }) async {
+    try {
+      final res = await http.get(
+        Uri.parse(
+          "http://192.168.0.62:2020/api/Data/product-names"
+              "?factory=$factory&floor=$floor",
+        ),
+      );
+
+      if (res.statusCode == 200) {
+        final List data = jsonDecode(res.body);
+        setState(() {
+          productNames = data.cast<String>();
+        });
+      }
+    } catch (e) {
+      Get.snackbar("Lỗi", "Không load được ProductName");
+    }
+  }
+  Future<void> loadModels({
+    required String factory,
+    required String floor,
+    required String productName,
+  }) async {
+    try {
+      final res = await http.get(
+        Uri.parse(
+          "http://192.168.0.62:2020/api/Data/models"
+              "?factory=$factory&floor=$floor&productName=$productName",
+        ),
+      );
+
+      if (res.statusCode == 200) {
+        final List data = jsonDecode(res.body);
+        setState(() {
+          models = data.cast<String>();
+        });
+      }
+    } catch (e) {
+      Get.snackbar("Lỗi", "Không load được Model");
+    }
+  }
+
   // URL API upload
   final String apiUrl = "http://192.168.0.62:2020/api/Detail/upload";
 
@@ -213,11 +265,11 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
 
   // FINISH
-  void finishCapture() {
+  void finishCapture() async {
+    await loadFactories();
     setState(() {
       state = TestState.doneCapture;
     });
-    loadFactories();
   }
 
 
@@ -672,88 +724,89 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
   Widget _formContent() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // ---------- ROW: FACTORY / FLOOR / USER ----------
         Row(
           children: [
-            // ---------- FACTORY DROPDOWN ----------
             Expanded(
               flex: 2,
               child: DropdownButtonFormField<String>(
                 isExpanded: true,
                 value: selectedFactory,
-                dropdownColor: Colors.black,
                 decoration: _inputStyle("Factory"),
-                items: factories.isEmpty
-                    ? []
-                    : factories
-                    .map(
-                      (f) => DropdownMenuItem(
-                    value: f,
-                    child: Text(
-                      f,
-                      style: const TextStyle(color: Colors.white),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
+                dropdownColor: Colors.black,
+                items: factories
+                    .map((f) => DropdownMenuItem(
+                  value: f,
+                  child: Text(f,
+                      style: const TextStyle(color: Colors.white)),
+                ))
                     .toList(),
-                onChanged: factories.isEmpty
-                    ? null
-                    : (val) {
+                onChanged: (val) async {
+                  if (val == null) return;
+
                   setState(() {
                     selectedFactory = val;
-                    factoryCtrl.text = val ?? "";
+                    factoryCtrl.text = val;
 
                     selectedFloor = null;
+                    selectedProductName = null;
+                    selectedModel = null;
+
                     floorCtrl.clear();
-                    floors.clear();
+                    productNameCtrl.clear();
+                    modelCtrl.clear();
+
+                    floors = [];
+                    productNames = [];
+                    models = [];
                   });
 
-                  if (val != null) {
-                    loadFloors(val);
-                  }
+                  await loadFloors(val);
                 },
               ),
             ),
-
             const SizedBox(width: 12),
 
-            // ---------- FLOOR DROPDOWN ----------
             Expanded(
               flex: 2,
               child: DropdownButtonFormField<String>(
                 isExpanded: true,
                 value: selectedFloor,
-                dropdownColor: Colors.black,
                 decoration: _inputStyle("Floor"),
-                items: floors.isEmpty
-                    ? []
-                    : floors
-                    .map(
-                      (f) => DropdownMenuItem(
-                    value: f,
-                    child: Text(
-                      f,
-                      style: const TextStyle(color: Colors.white),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
+                dropdownColor: Colors.black,
+                items: floors
+                    .map((f) => DropdownMenuItem(
+                  value: f,
+                  child: Text(f,
+                      style: const TextStyle(color: Colors.white)),
+                ))
                     .toList(),
-                onChanged: floors.isEmpty
-                    ? null
-                    : (val) {
+                onChanged: (val) {
+                  if (val == null) return;
+
                   setState(() {
                     selectedFloor = val;
-                    floorCtrl.text = val ?? "";
+                    floorCtrl.text = val;
+
+                    selectedProductName = null;
+                    selectedModel = null;
+                    productNameCtrl.clear();
+                    modelCtrl.clear();
+                    productNames = [];
+                    models = [];
                   });
+
+                  loadProductNames(
+                    factory: selectedFactory!,
+                    floor: val,
+                  );
                 },
               ),
             ),
-
             const SizedBox(width: 12),
 
-            // ---------- USER ----------
             Expanded(
               flex: 3,
               child: TextField(
@@ -766,35 +819,86 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
           ],
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
 
-        // giữ nguyên các field còn lại
-        TextField(
-          controller: productNameCtrl,
-          style: const TextStyle(color: Colors.white),
+        // ---------- PRODUCT NAME ----------
+        DropdownButtonFormField<String>(
+          isExpanded: true,
+          value: selectedProductName,
           decoration: _inputStyle("ProductName"),
-        ),
-        const SizedBox(height: 12),
+          dropdownColor: Colors.black,
+          items: productNames
+              .map((p) => DropdownMenuItem(
+            value: p,
+            child: Text(p,
+                style: const TextStyle(color: Colors.white)),
+          ))
+              .toList(),
+          onChanged: productNames.isEmpty
+              ? null
+              : (val) {
+            if (val == null) return;
 
-        TextField(
-          controller: modelCtrl,
-          style: const TextStyle(color: Colors.white),
+            setState(() {
+              selectedProductName = val;
+              productNameCtrl.text = val;
+
+              selectedModel = null;
+              modelCtrl.clear();
+              models = [];
+            });
+
+            loadModels(
+              factory: selectedFactory!,
+              floor: selectedFloor!,
+              productName: val,
+            );
+          },
+        ),
+
+        const SizedBox(height: 14),
+
+        // ---------- MODEL ----------
+        DropdownButtonFormField<String>(
+          isExpanded: true,
+          value: selectedModel,
           decoration: _inputStyle("Model"),
+          dropdownColor: Colors.black,
+          items: models
+              .map((m) => DropdownMenuItem(
+            value: m,
+            child: Text(m,
+                style: const TextStyle(color: Colors.white)),
+          ))
+              .toList(),
+          onChanged: models.isEmpty
+              ? null
+              : (val) {
+            if (val == null) return;
+            setState(() {
+              selectedModel = val;
+              modelCtrl.text = val;
+            });
+          },
         ),
-        const SizedBox(height: 12),
 
+        const SizedBox(height: 14),
+
+        // ---------- SERIAL ----------
         TextField(
           controller: serialCtrl,
           style: const TextStyle(color: Colors.white),
           decoration: _inputStyle("Serial"),
         ),
-        const SizedBox(height: 12),
 
+        const SizedBox(height: 14),
+
+        // ---------- STATUS ----------
         DropdownButtonFormField<String>(
           value: status,
+          decoration: _inputStyle("Status"),
           dropdownColor: Colors.black,
           style: const TextStyle(color: Colors.white),
-          decoration: _inputStyle("Status"),
           items: const [
             DropdownMenuItem(value: "PASS", child: Text("PASS")),
             DropdownMenuItem(value: "FAIL", child: Text("FAIL")),
@@ -809,7 +913,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         ),
 
         if (status == "FAIL") ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TextField(
             controller: errorCodeCtrl,
             style: const TextStyle(color: Colors.white),
@@ -817,8 +921,9 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
           ),
         ],
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
 
+        // ---------- NOTE ----------
         TextField(
           controller: noteCtrl,
           maxLines: 3,
@@ -828,6 +933,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       ],
     );
   }
+
   InputDecoration _inputStyle(String label) {
     return InputDecoration(
       labelText: label,
