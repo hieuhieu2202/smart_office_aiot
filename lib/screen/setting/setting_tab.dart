@@ -8,6 +8,7 @@ import 'package:smart_factory/lang/controller/language_controller.dart';
 import 'package:smart_factory/screen/setting/widget/profile.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 import 'package:smart_factory/lang/language_selection_screen.dart';
+import 'package:smart_factory/screen/config/config_management_screen.dart';
 import 'package:smart_factory/generated/l10n.dart';
 import 'package:smart_factory/model/version_check_summary.dart';
 
@@ -206,6 +207,15 @@ class SettingTab extends StatelessWidget {
                     () => const LanguageSelectionScreen(),
                 arguments: {'fromSettings': true},
               ),
+            ),
+
+            _settingTile(
+              icon: Icons.settings,
+              color: accent,
+              title: 'Cấu hình hệ thống',
+              isDark: isDark,
+              trailing: Icons.arrow_forward_ios_rounded,
+              onTap: () => Get.to(() => const ConfigManagementScreen()),
             ),
 
             _buildVersionCard(settingController, isDark, accent, text),
