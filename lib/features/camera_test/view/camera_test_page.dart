@@ -648,13 +648,22 @@ class _CameraTestPageState extends State<CameraTestPage> {
                     separatorBuilder: (_, __) => const SizedBox(width: 10),
                     itemBuilder: (_, i) => Stack(
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(
-                            File(viewModel.captured[i].path),
-                            width: 86,
-                            height: 86,
-                            fit: BoxFit.cover,
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  FullImageView(path: viewModel.captured[i].path),
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(
+                              File(viewModel.captured[i].path),
+                              width: 86,
+                              height: 86,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                         Positioned(
