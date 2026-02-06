@@ -966,8 +966,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
           ],
         ),
         if (showFormOverlay) _formOverlay(),
-        if (viewModel.state == TestState.uploading)
-          Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
+        if (viewModel.state == TestState.uploading) _uploadOverlay(),
       ],
     );
   }
@@ -989,8 +988,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
         children: [
           Positioned.fill(child: _cameraUI()),
           if (showFormOverlay) _formOverlay(),
-          if (viewModel.state == TestState.uploading)
-            Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
+          if (viewModel.state == TestState.uploading) _uploadOverlay(),
         ],
       );
     }
@@ -1000,8 +998,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
       children: [
         Positioned.fill(child: _cameraUI()),
         if (showFormOverlay) _formOverlay(),
-        if (viewModel.state == TestState.uploading)
-          Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
+        if (viewModel.state == TestState.uploading) _uploadOverlay(),
       ],
     );
   }
@@ -1068,9 +1065,69 @@ class _CameraTestPageState extends State<CameraTestPage> {
       children: [
         const ColoredBox(color: Color(0xff0d0d11)),
         _formStandalone(),
-        if (viewModel.state == TestState.uploading)
-          Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
+        if (viewModel.state == TestState.uploading) _uploadOverlay(),
       ],
+    );
+  }
+
+  Widget _uploadOverlay() {
+    return ColoredBox(
+      color: Colors.black54,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B1B1F),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2D2D35),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.cloud_upload, color: Colors.white),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                "Đang gửi dữ liệu...",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "Vui lòng chờ trong giây lát",
+                style: TextStyle(color: Colors.white.withOpacity(0.7)),
+              ),
+              const SizedBox(height: 14),
+              const SizedBox(
+                width: 140,
+                child: LinearProgressIndicator(
+                  minHeight: 6,
+                  backgroundColor: Color(0xFF2E2E36),
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
