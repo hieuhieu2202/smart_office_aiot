@@ -10,7 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:smart_factory/config/global_color.dart';
-import 'package:smart_factory/service/camera/camera_service.dart';
+import 'package:smart_factory/features/camera_test/service/camera_service.dart';
 import 'package:smart_factory/service/winscp_upload_service.dart';
 
 class CameraCapturePage extends StatefulWidget {

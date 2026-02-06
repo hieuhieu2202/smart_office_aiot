@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'camera_capture_page.dart';
-import 'camera_test_tab.dart';
+import 'package:smart_factory/features/camera_test/view/camera_test_page.dart';
 
 class CameraMenuScreen extends StatelessWidget {
   const CameraMenuScreen({super.key});
@@ -23,7 +23,7 @@ class CameraMenuScreen extends StatelessWidget {
             icon: Icons.camera_alt,
             title: "TaiPanTab (Scan-Camera)",
             status: "Ready",
-            onTap: () => Get.to(() => const CameraTestTab(autoScan: true)),
+            onTap: () => Get.to(() => const CameraTestPage(autoScan: true)),
           ),
         ],
       ),
