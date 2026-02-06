@@ -936,8 +936,12 @@ class _CameraTestPageState extends State<CameraTestPage> {
 
     // In scan mode, NEVER show the form overlay on top of the camera preview.
     final bool showFormOverlay = isScanMode
-        ? (!viewModel.showCameraPreview && ((viewModel.state == TestState.doneCapture || viewModel.state == TestState.viewModel.captured) || viewModel.showScanForm))
-        : (viewModel.state == TestState.doneCapture || viewModel.state == TestState.viewModel.captured);
+        ? (!viewModel.showCameraPreview &&
+            ((viewModel.state == TestState.doneCapture ||
+                    viewModel.state == TestState.captured) ||
+                viewModel.showScanForm))
+        : (viewModel.state == TestState.doneCapture ||
+            viewModel.state == TestState.captured);
 
     return Stack(
       children: [
@@ -964,8 +968,12 @@ class _CameraTestPageState extends State<CameraTestPage> {
 
     // In scan mode, NEVER show the form overlay on top of the camera preview.
     final bool showFormOverlay = isScanMode
-        ? (!viewModel.showCameraPreview && ((viewModel.state == TestState.doneCapture || viewModel.state == TestState.viewModel.captured) || viewModel.showScanForm))
-        : (viewModel.state == TestState.doneCapture || viewModel.state == TestState.viewModel.captured);
+        ? (!viewModel.showCameraPreview &&
+            ((viewModel.state == TestState.doneCapture ||
+                    viewModel.state == TestState.captured) ||
+                viewModel.showScanForm))
+        : (viewModel.state == TestState.doneCapture ||
+            viewModel.state == TestState.captured);
 
     if (isScanMode) {
       return Stack(
