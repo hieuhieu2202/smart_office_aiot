@@ -1,15 +1,4 @@
-class ErrorItem {
-  final String code;
-  final String name;
-
-  const ErrorItem({
-    required this.code,
-    required this.name,
-  });
-
-  @override
-  String toString() => "$code - $name";
-}
+import 'package:smart_factory/features/camera_test/model/error_item.dart';
 
 
 class BanthaConfig {
