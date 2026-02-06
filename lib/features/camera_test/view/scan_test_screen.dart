@@ -86,7 +86,6 @@ class _ScanTestScreenState extends State<ScanTestScreen>
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -208,7 +207,6 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                 },
               ),
 
-
               Align(
                 alignment: Alignment.bottomCenter,
                 child: SafeArea(
@@ -222,11 +220,6 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // status
-                        // Text(
-                        //   _found ? "Found: $_foundCode" : "Move camera to QR/barcode - adjust scan box to help detect small codes",
-                        //   style: const TextStyle(color: Colors.white70),
-                        // ),
                         const SizedBox(height: 8),
 
                         Row(
@@ -238,49 +231,17 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                                 min: _minScale,
                                 max: _maxScale,
                                 divisions: 10,
-                                label: "${(_scanBoxScale * 100).round()}%",
-                                onChanged: (v) {
-                                  setState(() {
-                                    _scanBoxScale = v;
-                                    _emptyFrameCount = 0;
-                                    _candidateButNoDecodeCount = 0;
-                                  });
-                                },
+                                onChanged: (v) => setState(() => _scanBoxScale = v),
                               ),
                             ),
                             const Icon(Icons.zoom_in, color: Colors.white70),
                           ],
                         ),
-
-                        const SizedBox(height: 4),
-
-                        // Row(
-                        //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        //   children: [
-                        //     ElevatedButton.icon(
-                        //       style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                        //       onPressed: _toggleTorch,
-                        //       icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off),
-                        //       label: Text(_torchOn ? "Torch on" : "Torch off"),
-                        //     ),
-                        //
-                        //     ElevatedButton.icon(
-                        //       onPressed: () async {
-                        //         _resetScanState();
-                        //         try {
-                        //           await _controller.start();
-                        //         } catch (_) {}
-                        //       },
-                        //       icon: const Icon(Icons.refresh),
-                        //       label: const Text("Retry"),
-                        //     ),
-                        //   ],
-                        // ),
                       ],
                     ),
                   ),
                 ),
-              ),
+              )
             ],
           );
         },
@@ -289,48 +250,37 @@ class _ScanTestScreenState extends State<ScanTestScreen>
   }
 }
 
-// Overlay painter
 class _ScanOverlayPainter extends CustomPainter {
+  _ScanOverlayPainter({required this.rect, required this.t});
+
   final Rect rect;
   final double t;
 
-  _ScanOverlayPainter({required this.rect, required this.t});
-
   @override
   void paint(Canvas canvas, Size size) {
-    // Dark outside
-    final overlay = Paint()..color = Colors.black.withOpacity(0.55);
-    final full = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final hole = Path()
-      ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(18)));
+    final Paint bg = Paint()..color = Colors.black.withOpacity(0.45);
+    final Path path = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)))
+      ..fillType = PathFillType.evenOdd;
+    canvas.drawPath(path, bg);
 
-    final diff = Path.combine(PathOperation.difference, full, hole);
-    canvas.drawPath(diff, overlay);
-
-    // White border
-    final border = Paint()
-      ..color = Colors.white
+    final Paint border = Paint()
+      ..color = Colors.greenAccent
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(18)),
-      border,
-    );
+      ..strokeWidth = 2;
+    canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), border);
 
-    // Scan yellow line
-    final y = rect.top + rect.height * t;
-    final scanLine = Paint()
-      ..color = Colors.amber
-      ..strokeWidth = 3;
-    canvas.drawLine(
-      Offset(rect.left + 10, y),
-      Offset(rect.right - 10, y),
-      scanLine,
-    );
+    // scanning line
+    final Paint line = Paint()
+      ..color = Colors.greenAccent
+      ..strokeWidth = 2;
+    final double y = rect.top + rect.height * t;
+    canvas.drawLine(Offset(rect.left, y), Offset(rect.right, y), line);
   }
 
   @override
   bool shouldRepaint(covariant _ScanOverlayPainter oldDelegate) {
-    return oldDelegate.t != t || oldDelegate.rect != rect;
+    return oldDelegate.rect != rect || oldDelegate.t != t;
   }
 }

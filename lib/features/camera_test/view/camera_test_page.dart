@@ -8,21 +8,21 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:smart_factory/screen/home/widget/qr/scan_test_screen.dart';
+import 'package:smart_factory/features/camera_test/view/scan_test_screen.dart';
 import 'package:smart_factory/service/auth/token_manager.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
-class CameraTestTab extends StatefulWidget {
+class CameraTestPage extends StatefulWidget {
   final bool autoScan;
-  const CameraTestTab({super.key, this.autoScan = false});
+  const CameraTestPage({super.key, this.autoScan = false});
 
   @override
-  State<CameraTestTab> createState() => _CameraTestTabState();
+  State<CameraTestPage> createState() => _CameraTestPageState();
 }
 
 enum TestState { idle, productDetected, readyToCapture, captured, doneCapture, uploading }
 
-class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserver {
+class _CameraTestPageState extends State<CameraTestPage> with WidgetsBindingObserver {
   TestState state = TestState.idle;
 
   bool get _isScanMode => widget.autoScan;
