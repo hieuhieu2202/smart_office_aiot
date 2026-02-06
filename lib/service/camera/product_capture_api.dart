@@ -5,7 +5,7 @@ import '../../model/Camera/product_capture_response.dart';
 
 class ProductCaptureApi {
   static const String baseUrl =
-      "http://192.168.0.62:2020/api/Detail/upload";
+      "http://192.168.0.117:2222/api/NVIDIA/SFCService/APP_PassVIStation";
 
   static Future<ProductCaptureResponse> send(
       ProductCapturePayload data) async {

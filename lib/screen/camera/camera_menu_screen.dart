@@ -20,8 +20,8 @@ class CameraMenuScreen extends StatelessWidget {
             onTap: () => Get.to(() => const CameraCapturePage()),
           ),
           _menuItem(
-            icon: Icons.camera_alt,
-            title: "TaiPanTab (Scan-Camera)",
+            icon: Icons.qr_code_scanner,
+            title: "ScanTab",
             status: "Ready",
             onTap: () => Get.to(() => const CameraTestTab(autoScan: true)),
           ),

@@ -11,6 +11,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:smart_factory/screen/home/widget/qr/scan_test_screen.dart';
 import 'package:smart_factory/service/auth/token_manager.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:smart_factory/config/bantha.dart';
 
 class CameraTestTab extends StatefulWidget {
   final bool autoScan;
@@ -41,13 +42,14 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
   final factoryCtrl = TextEditingController();
   final floorCtrl = TextEditingController();
-  final productNameCtrl = TextEditingController();
-  final modelCtrl = TextEditingController();
+  final stationCtrl = TextEditingController();
   final serialCtrl = TextEditingController();
   final userCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
   final errorCodeCtrl = TextEditingController();
-  String status = "PASS";
+  final errorNameCtrl = TextEditingController();
+  final errorDescCtrl = TextEditingController();
+  String result = "PASS";
 
 // Xử lý Factory và Floor
   List<String> factories = [];
@@ -55,104 +57,11 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
   String? selectedFactory;
   String? selectedFloor;
-// Xử lý ProductName và Model
-  List<String> productNames = [];
-  List<String> models = [];
 
-  String? selectedProductName;
-  String? selectedModel;
-// Load Factory và Floor từ API
-  Future<void> loadFactories() async {
-    try {
-      final res = await http.get(
-        Uri.parse("http://192.168.0.62:2020/api/Data/factories"),
-      );
-      print("FACTORY API: ${res.body}");
-      if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
-        if (!mounted || _disposed) return;
-        setState(() {
-          factories = data.cast<String>();
-        });
-      }
-    } catch (e) {
-      if (!mounted || _disposed) return;
-      Get.snackbar("Lỗi", "Không load được Factory");
-    }
-  }
-  Future<void> loadFloors(String factory) async {
-    try {
-      final res = await http.get(
-        Uri.parse("http://192.168.0.62:2020/api/Data/floors?factory=$factory"),
-      );
+  // URL API
+  final String apiUrl = "http://192.168.0.117:2222/api/NVIDIA/SFCService/APP_PassVIStation";
 
-      if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
-        if (!mounted || _disposed) return;
-        setState(() {
-          floors = data.cast<String>();
-        });
-      }
-    } catch (e) {
-      if (!mounted || _disposed) return;
-      Get.snackbar("Lỗi", "Không load được Floor");
-    }
-  }
-  // Load ProductName và Model từ API
-  Future<void> loadProductNames({
-    required String factory,
-    required String floor,
-  }) async {
-    try {
-      final res = await http.get(
-        Uri.parse(
-          "http://192.168.0.62:2020/api/Data/product-names"
-              "?factory=$factory&floor=$floor",
-        ),
-      );
-
-      if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
-        if (!mounted || _disposed) return;
-        setState(() {
-          productNames = data.cast<String>();
-        });
-      }
-    } catch (e) {
-      if (!mounted || _disposed) return;
-      Get.snackbar("Lỗi", "Không load được ProductName");
-    }
-  }
-  Future<void> loadModels({
-    required String factory,
-    required String floor,
-    required String productName,
-  }) async {
-    try {
-      final res = await http.get(
-        Uri.parse(
-          "http://192.168.0.62:2020/api/Data/models"
-              "?factory=$factory&floor=$floor&productName=$productName",
-        ),
-      );
-
-      if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
-        if (!mounted || _disposed) return;
-        setState(() {
-          models = data.cast<String>();
-        });
-      }
-    } catch (e) {
-      if (!mounted || _disposed) return;
-      Get.snackbar("Lỗi", "Không load được Model");
-    }
-  }
-
-  // URL API upload
-  final String apiUrl = "http://192.168.0.62:2020/api/Detail/upload";
-
-  /// Used to cancel delayed callbacks (auto-scan / rescan) when screen is disposed.
+  // Used to cancel delayed callbacks (auto-scan / rescan) when screen is disposed.
   bool _disposed = false;
   int _scanSession = 0;
 
@@ -181,7 +90,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _fillUserFromToken();
-    loadFactories();
+
+    factories = BanthaConfig.factories;
 
     if (widget.autoScan) {
       final int session = ++_scanSession;
@@ -230,23 +140,28 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
     factoryCtrl.dispose();
     floorCtrl.dispose();
-    productNameCtrl.dispose();
-    modelCtrl.dispose();
+    stationCtrl.dispose();
+    errorDescCtrl.dispose();
     serialCtrl.dispose();
     userCtrl.dispose();
     noteCtrl.dispose();
     errorCodeCtrl.dispose();
+    errorNameCtrl.dispose();
     super.dispose();
   }
 
-  // -----------------------------------------------------
+
   // QR SCAN
-  // -----------------------------------------------------
   Future<void> scanQr() async {
     final int session = ++_scanSession;
 
     final qr = await Get.to(() => const ScanTestScreen());
     if (!mounted || _disposed || session != _scanSession) return;
+
+    if (qr != null && qr["manual"] == true) {
+      _enterManualSn();
+      return;
+    }
 
     if (qr == null) {
       if (_isScanMode) {
@@ -258,7 +173,6 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
           state = TestState.idle;
         });
 
-        // In scan mode: if user cancels scanning, just leave this page.
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         } else {
@@ -271,26 +185,33 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
       return;
     }
 
-    // 1) set product + fill serial
     product = qr;
     serialCtrl.text = product?["serial"] ?? "";
 
-    // Mark that QR has been scanned so we never show the scan prompt again in this cycle.
     _safeSetState(() {
       _hasScannedQr = true;
-      _showScanForm = true; // Always show form immediately after scan
+      _showScanForm = true;
       _showCameraPreview = false;
       state = TestState.doneCapture;
     });
-
-    unawaited(loadFactories());
   }
-
   bool _initializingCamera = false;
 
-  // -----------------------------------------------------
+
+  // MANUAL SN (Không quét được QR)
+  void _enterManualSn() {
+    _safeSetState(() {
+      product = null;
+      serialCtrl.clear();
+      _hasScannedQr = true;
+      _showScanForm = true;
+      _showCameraPreview = false;
+      state = TestState.doneCapture;
+    });
+  }
+
   // INIT CAMERA + ZOOM
-  // -----------------------------------------------------
+
   Future<void> initCamera() async {
     if (!mounted || _disposed || _disposingController || _initializingCamera) return;
 
@@ -357,9 +278,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     }
   }
 
-  // -----------------------------------------------------
+
   // ZOOM BUTTONS
-  // -----------------------------------------------------
   Future<void> zoomIn() async {
     if (controller == null) return;
     zoomLevel = min(maxZoom, zoomLevel + 0.2);
@@ -376,9 +296,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     setState(() {});
   }
 
-  // -----------------------------------------------------
+
   // CAPTURE
-  // -----------------------------------------------------
   Future<void> capture() async {
     // Two-step UX in scan mode: open preview AFTER a successful QR scan.
     if (_isScanMode) {
@@ -468,9 +387,104 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     });
   }
 
-  // -----------------------------------------------------
+  void _openErrorCodeSearch() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0F0F13),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) {
+        final searchCtrl = TextEditingController();
+        List<ErrorItem> filtered = BanthaConfig.errorCodes;
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            void onSearch(String q) {
+              setSheetState(() {
+                final s = q.toLowerCase();
+                filtered = BanthaConfig.errorCodes.where((e) {
+                  return e.code.toLowerCase().contains(s) ||
+                      e.name.toLowerCase().contains(s);
+                }).toList();
+              });
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextField(
+                      controller: searchCtrl,
+                      autofocus: true,
+                      onChanged: onSearch,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: "Tìm Error Code / Error Name",
+                        hintStyle: const TextStyle(color: Colors.white54),
+                        prefixIcon:
+                        const Icon(Icons.search, color: Colors.white54),
+                        filled: true,
+                        fillColor: const Color(0xFF1A1A1F),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                    child: ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final e = filtered[i];
+                        return ListTile(
+                          title: Text(
+                            e.code,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            e.name,
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          onTap: () {
+                            setState(() {
+                              errorCodeCtrl.text = e.code;
+                              errorNameCtrl.text = e.name;
+                            });
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   // CAMERA + ZOOM
-  // -----------------------------------------------------
   Widget _cameraUI() {
     // Scan mode: before scan -> show prompt. After scan -> show stable background.
     if (_isScanMode && !_showCameraPreview) {
@@ -754,8 +768,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                   child: Column(
                     children: [
-                      _imagePreviewStrip(),
-                      const SizedBox(height: 16),
+                      // _imagePreviewStrip(),
+                      // const SizedBox(height: 16),
                       _formContent(),
                       const SizedBox(height: 18),
                       Row(
@@ -775,7 +789,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
                                   captured.clear();
                                   errorCodeCtrl.clear();
                                   noteCtrl.clear();
-                                  status = "PASS";
+                                  result = "PASS";
                                   product = null;
                                   serialCtrl.clear();
                                   _safeSetState(() {
@@ -812,7 +826,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
                                 ),
                               ),
                               onPressed: () => sendToApi(captured),
-                              child: const Text("Gửi API"),
+                              child: const Text("🚀 Gửi dữ liệu"),
                             ),
                           ),
                         ],
@@ -831,81 +845,81 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     );
   }
 
-  Widget _imagePreviewStrip() {
-    if (captured.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFF101014),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withOpacity(0.06)),
-        ),
-        child: const Text(
-          "Chưa có ảnh. Nếu FAIL, vui lòng chụp hoặc chọn ảnh ở bên dưới.",
-          style: TextStyle(color: Colors.white70),
-        ),
-      );
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF101014),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
-      ),
-      child: SizedBox(
-        height: 96,
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          scrollDirection: Axis.horizontal,
-          itemCount: captured.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 10),
-          itemBuilder: (_, i) {
-            return Stack(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => FullImageView(path: captured[i].path),
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.file(
-                      File(captured[i].path),
-                      width: 96,
-                      height: 96,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: 6,
-                  top: 6,
-                  child: GestureDetector(
-                    onTap: () => setState(() => captured.removeAt(i)),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.55),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.2)),
-                      ),
-                      child: const Icon(Icons.close, size: 14, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
+  // Widget _imagePreviewStrip() {
+  //   if (captured.isEmpty) {
+  //     return Container(
+  //       width: double.infinity,
+  //       padding: const EdgeInsets.all(14),
+  //       decoration: BoxDecoration(
+  //         color: const Color(0xFF101014),
+  //         borderRadius: BorderRadius.circular(14),
+  //         border: Border.all(color: Colors.white.withOpacity(0.06)),
+  //       ),
+  //       child: const Text(
+  //         "Chưa có ảnh. Nếu FAIL, vui lòng chụp hoặc chọn ảnh ở bên dưới.",
+  //         style: TextStyle(color: Colors.white70),
+  //       ),
+  //     );
+  //   }
+  //
+  //   return Container(
+  //     width: double.infinity,
+  //     padding: const EdgeInsets.symmetric(vertical: 10),
+  //     decoration: BoxDecoration(
+  //       color: const Color(0xFF101014),
+  //       borderRadius: BorderRadius.circular(14),
+  //       border: Border.all(color: Colors.white.withOpacity(0.06)),
+  //     ),
+  //     child: SizedBox(
+  //       height: 96,
+  //       child: ListView.separated(
+  //         padding: const EdgeInsets.symmetric(horizontal: 10),
+  //         scrollDirection: Axis.horizontal,
+  //         itemCount: captured.length,
+  //         separatorBuilder: (_, __) => const SizedBox(width: 10),
+  //         itemBuilder: (_, i) {
+  //           return Stack(
+  //             children: [
+  //               GestureDetector(
+  //                 onTap: () => Navigator.push(
+  //                   context,
+  //                   MaterialPageRoute(
+  //                     builder: (_) => FullImageView(path: captured[i].path),
+  //                   ),
+  //                 ),
+  //                 child: ClipRRect(
+  //                   borderRadius: BorderRadius.circular(10),
+  //                   child: Image.file(
+  //                     File(captured[i].path),
+  //                     width: 96,
+  //                     height: 96,
+  //                     fit: BoxFit.cover,
+  //                   ),
+  //                 ),
+  //               ),
+  //               Positioned(
+  //                 right: 6,
+  //                 top: 6,
+  //                 child: GestureDetector(
+  //                   onTap: () => setState(() => captured.removeAt(i)),
+  //                   child: Container(
+  //                     padding: const EdgeInsets.all(4),
+  //                     decoration: BoxDecoration(
+  //                       color: Colors.black.withOpacity(0.55),
+  //                       shape: BoxShape.circle,
+  //                       border: Border.all(color: Colors.white.withOpacity(0.2)),
+  //                     ),
+  //                     child: const Icon(Icons.close, size: 14, color: Colors.white),
+  //                   ),
+  //                 ),
+  //               ),
+  //             ],
+  //           );
+  //         },
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _imageActionRow() {
     final caption = captured.isEmpty
@@ -965,223 +979,352 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     );
   }
 
-  // -----------------------------------------------------
+
   // FORM CONTENT
-  // -----------------------------------------------------
+
   Widget _formContent() {
+    final bool isFail = result == "FAIL";
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ---------- ROW: FACTORY / FLOOR / USER ----------
-        Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: DropdownButtonFormField<String>(
-                isExpanded: true,
-                value: selectedFactory,
-                decoration: _inputStyle("Factory"),
-                dropdownColor: Colors.black,
-                items: factories
-                    .map((f) => DropdownMenuItem(
-                  value: f,
-                  child: Text(f,
-                      style: const TextStyle(color: Colors.white)),
-                ))
-                    .toList(),
-                onChanged: (val) async {
-                  if (val == null) return;
 
-                  setState(() {
-                    selectedFactory = val;
-                    factoryCtrl.text = val;
-
-                    selectedFloor = null;
-                    selectedProductName = null;
-                    selectedModel = null;
-
-                    floorCtrl.clear();
-                    productNameCtrl.clear();
-                    modelCtrl.clear();
-
-                    floors = [];
-                    productNames = [];
-                    models = [];
-                  });
-
-                  await loadFloors(val);
-                },
-              ),
+        //  IMAGE CARD
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isFail ? const Color(0xFF1A0F0F) : const Color(0xFF0F1A12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isFail
+                  ? Colors.redAccent.withOpacity(0.6)
+                  : Colors.greenAccent.withOpacity(0.5),
+              width: 1.2,
             ),
-            const SizedBox(width: 12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
 
-            Expanded(
-              flex: 2,
-              child: DropdownButtonFormField<String>(
-                isExpanded: true,
-                value: selectedFloor,
-                decoration: _inputStyle("Floor"),
+              // HEADER
+              Row(
+                children: [
+                  Text(
+                    isFail
+                        ? "Ảnh lỗi (bắt buộc khi FAIL)"
+                        : "Ảnh kiểm tra",
+                    style: TextStyle(
+                      color: isFail ? Colors.redAccent : Colors.greenAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              // THUMBNAILS
+              if (captured.isNotEmpty)
+                SizedBox(
+                  height: 86,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: captured.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (_, i) => Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            File(captured[i].path),
+                            width: 86,
+                            height: 86,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () =>
+                                setState(() => captured.removeAt(i)),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    isFail
+                        ? "Chưa có ảnh. FAIL bắt buộc phải có ảnh."
+                        : "Chưa có ảnh.",
+                    style: TextStyle(
+                      color: isFail
+                          ? Colors.redAccent
+                          : Colors.white70,
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 12),
+
+              // ACTION BUTTONS
+              _imageActionRow(),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // PRODUCT INFO
+        _sectionCard(
+          title: "📦 Thông tin sản phẩm",
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: selectedFactory,
+                      decoration: _inputStyle("Factory"),
+                      dropdownColor: Colors.black,
+                      items: factories
+                          .map((f) => DropdownMenuItem(
+                        value: f,
+                        child: Text(
+                          f,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val == null) return;
+                        setState(() {
+                          selectedFactory = val;
+                          factoryCtrl.text = val;
+                          floors = BanthaConfig.floorsOf(val);
+                          selectedFloor = null;
+                          floorCtrl.clear();
+                          stationCtrl.clear();
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: selectedFloor,
+                      decoration: _inputStyle("Floor"),
+                      dropdownColor: Colors.black,
+                      items: floors
+                          .map((f) => DropdownMenuItem(
+                        value: f,
+                        child: Text(
+                          f,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val == null) return;
+                        setState(() {
+                          selectedFloor = val;
+                          floorCtrl.text = val;
+                          stationCtrl.clear();
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 3,
+                    child: TextField(
+                      controller: userCtrl,
+                      readOnly: true,
+                      style: const TextStyle(color: Colors.white54),
+                      decoration: _inputStyle("Username"),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<String>(
+                value:
+                stationCtrl.text.isEmpty ? null : stationCtrl.text,
+                decoration: _inputStyle("Station"),
                 dropdownColor: Colors.black,
-                items: floors
-                    .map((f) => DropdownMenuItem(
-                  value: f,
-                  child: Text(f,
-                      style: const TextStyle(color: Colors.white)),
+                items: BanthaConfig
+                    .stationsOf(
+                    selectedFactory ?? "", selectedFloor ?? "")
+                    .map((s) => DropdownMenuItem(
+                  value: s,
+                  child: Text(
+                    s,
+                    style:
+                    const TextStyle(color: Colors.white),
+                  ),
                 ))
                     .toList(),
                 onChanged: (val) {
                   if (val == null) return;
-
-                  setState(() {
-                    selectedFloor = val;
-                    floorCtrl.text = val;
-
-                    selectedProductName = null;
-                    selectedModel = null;
-                    productNameCtrl.clear();
-                    modelCtrl.clear();
-                    productNames = [];
-                    models = [];
-                  });
-
-                  loadProductNames(
-                    factory: selectedFactory!,
-                    floor: val,
-                  );
+                  setState(() => stationCtrl.text = val);
                 },
               ),
-            ),
-            const SizedBox(width: 12),
-
-            Expanded(
-              flex: 3,
-              child: TextField(
-                controller: userCtrl,
-                readOnly: true,
-                style: const TextStyle(color: Colors.white70),
-                decoration: _inputStyle("Người thực hiện"),
+              const SizedBox(height: 14),
+              TextField(
+                controller: serialCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputStyle("Serial Number"),
               ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 14),
-
-        // ---------- PRODUCT NAME ----------
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          value: selectedProductName,
-          decoration: _inputStyle("ProductName"),
-          dropdownColor: Colors.black,
-          items: productNames
-              .map((p) => DropdownMenuItem(
-            value: p,
-            child: Text(p,
-                style: const TextStyle(color: Colors.white)),
-          ))
-              .toList(),
-          onChanged: productNames.isEmpty
-              ? null
-              : (val) {
-            if (val == null) return;
-
-            setState(() {
-              selectedProductName = val;
-              productNameCtrl.text = val;
-
-              selectedModel = null;
-              modelCtrl.clear();
-              models = [];
-            });
-
-            loadModels(
-              factory: selectedFactory!,
-              floor: selectedFloor!,
-              productName: val,
-            );
-          },
-        ),
-
-        const SizedBox(height: 14),
-
-        // ---------- MODEL ----------
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          value: selectedModel,
-          decoration: _inputStyle("Model"),
-          dropdownColor: Colors.black,
-          items: models
-              .map((m) => DropdownMenuItem(
-            value: m,
-            child: Text(m,
-                style: const TextStyle(color: Colors.white)),
-          ))
-              .toList(),
-          onChanged: models.isEmpty
-              ? null
-              : (val) {
-            if (val == null) return;
-            setState(() {
-              selectedModel = val;
-              modelCtrl.text = val;
-            });
-          },
-        ),
-
-        const SizedBox(height: 14),
-
-        // ---------- SERIAL ----------
-        TextField(
-          controller: serialCtrl,
-          style: const TextStyle(color: Colors.white),
-          decoration: _inputStyle("Serial"),
-        ),
-
-        const SizedBox(height: 14),
-
-        // ---------- STATUS ----------
-        DropdownButtonFormField<String>(
-          value: status,
-          decoration: _inputStyle("Status"),
-          dropdownColor: Colors.black,
-          style: const TextStyle(color: Colors.white),
-          items: const [
-            DropdownMenuItem(value: "PASS", child: Text("PASS")),
-            DropdownMenuItem(value: "FAIL", child: Text("FAIL")),
-          ],
-          onChanged: (v) => setState(() {
-            status = v!;
-            if (status == "PASS") {
-              errorCodeCtrl.clear();
-              captured.clear();
-            }
-          }),
-        ),
-
-        const SizedBox(height: 12),
-        _imageActionRow(),
-
-        if (status == "FAIL") ...[
-          const SizedBox(height: 14),
-          TextField(
-            controller: errorCodeCtrl,
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputStyle("ErrorCode"),
+            ],
           ),
-        ],
+        ),
 
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
 
-        // ---------- NOTE ----------
-        TextField(
-          controller: noteCtrl,
-          maxLines: 3,
-          style: const TextStyle(color: Colors.white),
-          decoration: _inputStyle("Ghi chú"),
+        // RESULT
+        _sectionCard(
+          title: "🧪 Kết quả kiểm tra",
+          highlightFail: isFail,
+          child: Column(
+            children: [
+              DropdownButtonFormField<String>(
+                value: result,
+                decoration: _inputStyle("Result"),
+                dropdownColor: Colors.black,
+                items: const [
+                  DropdownMenuItem(value: "PASS", child: Text("PASS")),
+                  DropdownMenuItem(value: "FAIL", child: Text("FAIL")),
+                ],
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() {
+                    result = v;
+                    if (result == "PASS") {
+                      errorCodeCtrl.clear();
+                      errorNameCtrl.clear();
+                      errorDescCtrl.clear();
+                      captured.clear();
+                    }
+                  });
+                },
+              ),
+              if (isFail) ...[
+                const SizedBox(height: 14),
+                GestureDetector(
+                  onTap: _openErrorCodeSearch,
+                  child: AbsorbPointer(
+                    child: TextField(
+                      controller: errorCodeCtrl,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputStyle("Error Code").copyWith(
+                        suffixIcon: const Icon(Icons.search, color: Colors.white54),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                TextField(
+                  controller: errorNameCtrl,
+                  readOnly: true,
+                  style: const TextStyle(color: Colors.white70),
+                  decoration: _inputStyle("Error Name"),
+                ),
+
+                const SizedBox(height: 14),
+                TextField(
+                  controller: errorDescCtrl,
+                  maxLines: 2,
+                  style: const TextStyle(color: Colors.white),
+                  decoration:
+                  _inputStyle("Error Description"),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // COMMENT
+        _sectionCard(
+          title: "📝 Ghi chú",
+          child: TextField(
+            controller: noteCtrl,
+            maxLines: 3,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputStyle("Comment"),
+          ),
         ),
       ],
     );
   }
+
+  Widget _sectionCard({
+    required String title,
+    required Widget child,
+    bool highlightFail = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: highlightFail
+            ? const Color(0xFF1A0F0F)
+            : const Color(0xFF101014),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: highlightFail
+              ? Colors.redAccent.withOpacity(0.5)
+              : Colors.white.withOpacity(0.06),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  color: highlightFail
+                      ? Colors.redAccent
+                      : Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+
 
   InputDecoration _inputStyle(String label) {
     return InputDecoration(
@@ -1214,29 +1357,29 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
   // FINISH (used by old non-scan capture flow)
   Future<void> finishCapture() async {
-    await loadFactories();
     if (!mounted || _disposed) return;
     _safeSetState(() {
       state = TestState.doneCapture;
     });
   }
 
+
   // SEND API
   Future<void> sendToApi(List<XFile> images) async {
-    if (serialCtrl.text.trim().isEmpty) {
-      if (!mounted || _disposed) return;
-      Get.snackbar("Lỗi", "Serial không được để trống");
+    if (factoryCtrl.text.trim().isEmpty ||
+        floorCtrl.text.trim().isEmpty ||
+        stationCtrl.text.trim().isEmpty ||
+        serialCtrl.text.trim().isEmpty) {
+      Get.snackbar("Lỗi", "Vui lòng nhập đầy đủ Factory / Floor / Station / Serial");
       return;
     }
 
-    if (status == "FAIL") {
+    if (result == "FAIL") {
       if (errorCodeCtrl.text.trim().isEmpty) {
-        if (!mounted || _disposed) return;
-        Get.snackbar("Lỗi", "Vui lòng nhập ErrorCode");
+        Get.snackbar("Lỗi", "Vui lòng nhập Error Code");
         return;
       }
       if (images.isEmpty) {
-        if (!mounted || _disposed) return;
         Get.snackbar("Lỗi", "FAIL phải có ít nhất 1 ảnh");
         return;
       }
@@ -1245,63 +1388,64 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     _safeSetState(() => state = TestState.uploading);
 
     try {
-      final Map<String, dynamic> payload = {
+      final request = http.MultipartRequest(
+        "POST",
+        Uri.parse(apiUrl),
+      );
+
+      // Fields đúng DTO
+      request.fields.addAll({
         "factory": factoryCtrl.text.trim(),
         "floor": floorCtrl.text.trim(),
-        "productName": productNameCtrl.text.trim(),
-        "model": modelCtrl.text.trim(),
-        "sn": serialCtrl.text.trim(),
-        "time": DateTime.now().toIso8601String(),
-        "userName": userCtrl.text.trim(),
-        "status": status,
+        "serialNumber": serialCtrl.text.trim(),
+        "station": stationCtrl.text.trim(),
+        "result": result,
         "comment": noteCtrl.text.trim(),
-      };
+        "username": userCtrl.text.trim(),
+      });
 
-      if (status == "FAIL") {
-        final List<String> listBase64 = [];
+      if (result == "FAIL") {
+        request.fields["errorcode"] = errorCodeCtrl.text.trim();
+        request.fields["errorname"] = errorNameCtrl.text.trim();
+        request.fields["errordescription"] = errorDescCtrl.text.trim();
 
-        for (final file in images) {
-          final compressed = await FlutterImageCompress.compressWithFile(
-            file.path,
-            quality: 60,
-          );
-
-          listBase64.add(
-            base64Encode(
-              compressed ?? await File(file.path).readAsBytes(),
+        for (final img in images) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              "images",
+              img.path,
+              filename: img.name,
             ),
           );
         }
-
-        payload["errorCode"] = errorCodeCtrl.text.trim();
-        payload["images"] = listBase64;
       }
 
-      final res = await http.post(
-        Uri.parse(apiUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(payload),
-      );
+      final streamedRes = await request.send();
+      final resBody = await streamedRes.stream.bytesToString();
 
       if (!mounted || _disposed) return;
 
-      if (res.statusCode == 200) {
+      if (streamedRes.statusCode == 200) {
         Get.defaultDialog(
           title: "Thành công",
           content: const Text("Upload thành công"),
           textConfirm: "OK",
           onConfirm: () async {
             Get.back();
+
             if (!mounted || _disposed) return;
 
             await _disposeControllerSafe();
             if (!mounted || _disposed) return;
 
+            // Reset form
             captured.clear();
             serialCtrl.clear();
+            stationCtrl.clear();
             noteCtrl.clear();
             errorCodeCtrl.clear();
-            status = "PASS";
+            errorDescCtrl.clear();
+            result = "PASS";
             product = null;
             _showCameraPreview = false;
 
@@ -1321,7 +1465,10 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
           },
         );
       } else {
-        Get.snackbar("API lỗi", "Code: ${res.statusCode}\n${res.body}");
+        Get.snackbar(
+          "API lỗi",
+          "Code: ${streamedRes.statusCode}\n$resBody",
+        );
       }
     } catch (e) {
       if (!mounted || _disposed) return;
@@ -1399,8 +1546,8 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Column(
             children: [
-              _imagePreviewStrip(),
-              const SizedBox(height: 16),
+              // _imagePreviewStrip(),
+              // const SizedBox(height: 16),
               _formContent(),
               const SizedBox(height: 18),
               Row(
@@ -1419,7 +1566,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
                           captured.clear();
                           errorCodeCtrl.clear();
                           noteCtrl.clear();
-                          status = "PASS";
+                          result = "PASS";
                           product = null;
                           serialCtrl.clear();
                           _safeSetState(() {
@@ -1456,7 +1603,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
                         ),
                       ),
                       onPressed: () => sendToApi(captured),
-                      child: const Text("Gửi API"),
+                      child: const Text("🚀 Gửi dữ liệu"),
                     ),
                   ),
                 ],
@@ -1505,7 +1652,7 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
         captured.clear();
         errorCodeCtrl.clear();
         noteCtrl.clear();
-        status = "PASS";
+        result = "PASS";
         product = null;
         serialCtrl.clear();
 

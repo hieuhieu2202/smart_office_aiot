@@ -123,6 +123,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
           return Stack(
             fit: StackFit.expand,
             children: [
+              // CAMERA SCAN
               MobileScanner(
                 controller: _controller,
                 scanWindow: rect,
@@ -132,7 +133,6 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                   try {
                     final barcodes = capture.barcodes;
 
-                    // ---------- NO BARCODE IN FRAME ----------
                     if (barcodes.isEmpty) {
                       _emptyFrameCount++;
 
@@ -150,27 +150,18 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                       return;
                     }
 
-                    // ---------- HAVE BARCODE ----------
                     String? snCandidate;
-
                     for (final barcode in barcodes) {
                       final raw = barcode.rawValue?.trim() ?? "";
                       if (raw.isEmpty) continue;
-
-                      // BỎ PN (có dấu '-')
                       if (raw.contains('-')) continue;
-
-                      // RULE SN: chữ + số, không '-', độ dài >= 8
                       if (RegExp(r'^[A-Z0-9]{8,}$').hasMatch(raw)) {
                         snCandidate = raw;
                         break;
                       }
                     }
 
-                    // Chưa có SN → tiếp tục scan
-                    if (snCandidate == null) {
-                      return;
-                    }
+                    if (snCandidate == null) return;
 
                     _found = true;
                     _foundCode = snCandidate;
@@ -192,7 +183,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                 },
               ),
 
-              // animated overlay
+              //  OVERLAY
               AnimatedBuilder(
                 animation: _tween,
                 builder: (context, _) {
@@ -208,7 +199,41 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                 },
               ),
 
+              // MANUAL SN BUTTON
+              Positioned(
+                bottom: 110, // nằm trên slider
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context, {
+                        "manual": true,
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: const Text(
+                        "Không quét được QR? ✍️ Nhập SN thủ công",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
+              //  ZOOM BAR
               Align(
                 alignment: Alignment.bottomCenter,
                 child: SafeArea(
@@ -222,13 +247,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // status
-                        // Text(
-                        //   _found ? "Found: $_foundCode" : "Move camera to QR/barcode - adjust scan box to help detect small codes",
-                        //   style: const TextStyle(color: Colors.white70),
-                        // ),
                         const SizedBox(height: 8),
-
                         Row(
                           children: [
                             const Icon(Icons.zoom_out, color: Colors.white70),
@@ -251,31 +270,6 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                             const Icon(Icons.zoom_in, color: Colors.white70),
                           ],
                         ),
-
-                        const SizedBox(height: 4),
-
-                        // Row(
-                        //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        //   children: [
-                        //     ElevatedButton.icon(
-                        //       style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                        //       onPressed: _toggleTorch,
-                        //       icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off),
-                        //       label: Text(_torchOn ? "Torch on" : "Torch off"),
-                        //     ),
-                        //
-                        //     ElevatedButton.icon(
-                        //       onPressed: () async {
-                        //         _resetScanState();
-                        //         try {
-                        //           await _controller.start();
-                        //         } catch (_) {}
-                        //       },
-                        //       icon: const Icon(Icons.refresh),
-                        //       label: const Text("Retry"),
-                        //     ),
-                        //   ],
-                        // ),
                       ],
                     ),
                   ),
