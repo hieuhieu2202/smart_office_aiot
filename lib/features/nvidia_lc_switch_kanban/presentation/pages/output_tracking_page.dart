@@ -448,6 +448,17 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
               ? 'Đã cập nhật lúc ${_formatTime(lastUpdatedAt)}'
               : null;
 
+          void handleBack() {
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+              return;
+            }
+            if (Get.key.currentState?.canPop() ?? false) {
+              Get.back();
+            }
+          }
+
           return Scaffold(
             backgroundColor: _pageBackground,
             appBar: OtTopBar(
@@ -457,7 +468,7 @@ class _OutputTrackingPageState extends State<OutputTrackingPage> {
               useCompactHeader: useCompactChrome,
               showInlineFilters: showInlineFilters,
               useFullWidthFilters: isPhone,
-              onBack: Get.back,
+              onBack: handleBack,
               statusText: statusText,
               statusHighlight: statusHighlight,
               isRefreshing: isRefreshing,
@@ -842,6 +853,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.showInlineFilters,
     required this.useFullWidthFilters,
     required this.onBack,
+    this.showShiftField = true,
     this.statusText,
     this.statusHighlight = false,
     this.isRefreshing = false,
@@ -868,6 +880,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
             isTablet: isTablet,
             showInlineFilters: showInlineFilters,
             screenWidth: screenWidth,
+            showShiftField: showShiftField,
           ),
         );
 
@@ -878,6 +891,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showInlineFilters;
   final bool useFullWidthFilters;
   final VoidCallback? onBack;
+  final bool showShiftField;
   final String? statusText;
   final bool statusHighlight;
   final bool isRefreshing;
@@ -907,6 +921,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     required bool isTablet,
     required bool showInlineFilters,
     required double screenWidth,
+    required bool showShiftField,
   }) {
     const double desktopHeaderHeight = 54.0;
     const double compactHeaderHeight = 48.0;
@@ -929,6 +944,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
     final int filterRows = _estimateFilterRows(
       contentWidth: contentWidth,
       isTablet: isTablet,
+      showShiftField: showShiftField,
     );
 
     const double labelHeight = 20.0;
@@ -947,6 +963,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
   static int _estimateFilterRows({
     required double contentWidth,
     required bool isTablet,
+    required bool showShiftField,
   }) {
     if (contentWidth.isNaN || !contentWidth.isFinite || contentWidth <= 0) {
       return 1;
@@ -959,7 +976,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
 
     final List<double> fieldWidths = <double>[
       wideField,
-      compactField,
+      if (showShiftField) compactField,
       wideField,
       wideField,
       actionField,
@@ -1154,6 +1171,7 @@ class OtTopBar extends StatelessWidget implements PreferredSizeWidget {
                   searchText: searchText,
                   onSearchChanged: onSearchChanged,
                   onClearSearch: onClearSearch,
+                  showShiftField: showShiftField,
                 ),
               ],
             ],
@@ -1364,6 +1382,7 @@ class OtFilterToolbar extends StatelessWidget {
     required this.searchText,
     required this.onSearchChanged,
     required this.onClearSearch,
+    this.showShiftField = true,
   });
 
   final String dateText;
@@ -1383,6 +1402,7 @@ class OtFilterToolbar extends StatelessWidget {
   final String searchText;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
+  final bool showShiftField;
 
   static const Color _fieldColor = Color(0xFF1A2740);
   static const Color _borderColor = Color(0xFF2C3B5A);
@@ -1594,19 +1614,21 @@ class OtFilterToolbar extends StatelessWidget {
       );
     }
 
+    final children = <Widget>[
+      buildDateField(),
+      if (showShiftField) buildShiftField(),
+      buildModelField(),
+      buildSearchField(),
+      buildActions(),
+    ];
+
     return Wrap(
       spacing: 14,
       runSpacing: 14,
       crossAxisAlignment: WrapCrossAlignment.start,
       alignment:
           (useFullWidthLayout || isMobile) ? WrapAlignment.center : WrapAlignment.start,
-      children: [
-        buildDateField(),
-        buildShiftField(),
-        buildModelField(),
-        buildSearchField(),
-        buildActions(),
-      ],
+      children: children,
     );
   }
 
