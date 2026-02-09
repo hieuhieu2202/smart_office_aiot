@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:smart_factory/features/camera_test/service/scan_payload_extractor.dart';
+import 'package:smart_factory/features/camera_test/model/scan_result.dart';
 
 class ScanTestScreen extends StatefulWidget {
   const ScanTestScreen({Key? key}) : super(key: key);
@@ -13,9 +15,14 @@ class _ScanTestScreenState extends State<ScanTestScreen>
     with SingleTickerProviderStateMixin {
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
-    detectionTimeoutMs: 250,
-    formats: BarcodeFormat.values,
+    detectionTimeoutMs: 300,
+    formats: const [
+      BarcodeFormat.dataMatrix,
+      BarcodeFormat.qrCode,
+      BarcodeFormat.code128,
+    ],
   );
+
 
   late AnimationController _anim;
   late Animation<double> _tween;
@@ -50,7 +57,12 @@ class _ScanTestScreenState extends State<ScanTestScreen>
     );
     _tween = CurvedAnimation(parent: _anim, curve: Curves.linear);
     _anim.repeat(reverse: true);
+
+    _controller.start();
+    _controller.toggleTorch();
+    _torchOn = true;
   }
+
 
   @override
   void dispose() {
@@ -91,7 +103,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Quét QR"),
+        title: const Text("Scan Qr"),
         actions: [
           IconButton(
             tooltip: "Torch",
@@ -113,22 +125,22 @@ class _ScanTestScreenState extends State<ScanTestScreen>
       body: LayoutBuilder(
         builder: (context, constraints) {
           final size = constraints.biggest;
-          final double boxSize = math.min(size.width * _scanBoxScale, 400);
           final rect = Rect.fromCenter(
             center: Offset(size.width / 2, size.height / 2),
-            width: boxSize,
-            height: boxSize,
+            width: size.width * 0.75,
+            height: size.width * 0.75,
           );
 
           return Stack(
             fit: StackFit.expand,
             children: [
-              // CAMERA SCAN
+              // SCAN
               MobileScanner(
                 controller: _controller,
                 scanWindow: rect,
                 onDetect: (capture) async {
-                  if (_found) return;
+                  if (_found || _isProcessing) return;
+                  _isProcessing = true;
 
                   try {
                     final barcodes = capture.barcodes;
@@ -150,21 +162,31 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                       return;
                     }
 
-                    String? snCandidate;
+                    String? sn;
+
                     for (final barcode in barcodes) {
-                      final raw = barcode.rawValue?.trim() ?? "";
-                      if (raw.isEmpty) continue;
-                      if (raw.contains('-')) continue;
-                      if (RegExp(r'^[A-Z0-9]{8,}$').hasMatch(raw)) {
-                        snCandidate = raw;
-                        break;
+                      final raw = barcode.rawValue;
+                      if (raw == null || raw.isEmpty) continue;
+
+                      final ScanResult result = ScanPayloadExtractor.extract(raw);
+
+                      if (result.hasSerial) {
+                        Navigator.pop(context, {
+                          "serial": result.serial,
+                          "model": result.model,
+                        });
                       }
+
+                      if (sn != null) break;
                     }
 
-                    if (snCandidate == null) return;
+                    if (sn == null) {
+                      _isProcessing = false;
+                      return;
+                    }
 
                     _found = true;
-                    _foundCode = snCandidate;
+                    _foundCode = sn;
 
                     try {
                       await _controller.stop();
@@ -173,8 +195,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                     if (!mounted) return;
 
                     Navigator.pop(context, {
-                      "serial": _foundCode,
-                      "format": capture.barcodes.first.format.name,
+                      "serial": sn,
                     });
                   } catch (_) {
                     _emptyFrameCount++;
@@ -222,7 +243,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                         border: Border.all(color: Colors.white24),
                       ),
                       child: const Text(
-                        "Không quét được QR? ✍️ Nhập SN thủ công",
+                        "Không quét được mã => ✍️ Vui lòng nhập thủ công",
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 13,

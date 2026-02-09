@@ -802,6 +802,14 @@ class _CameraTestPageState extends State<CameraTestPage> {
                   viewModel.onStationChanged(val);
                 },
               ),
+
+              const SizedBox(height: 14),
+              TextField(
+                controller: viewModel.modelnameCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputStyle("Model Name"),
+              ),
+
               const SizedBox(height: 14),
               TextField(
                 controller: viewModel.serialCtrl,
@@ -929,14 +937,24 @@ class _CameraTestPageState extends State<CameraTestPage> {
   }
 
 
-
   InputDecoration _inputStyle(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
+      labelStyle: const TextStyle(
+        color: Colors.white70,
+        fontSize: 13,
+      ),
+      floatingLabelBehavior: FloatingLabelBehavior.auto,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 12,
+      ),
       filled: true,
       fillColor: const Color(0xFF111111),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
     );
   }
 
