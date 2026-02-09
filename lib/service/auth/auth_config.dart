@@ -1,4 +1,3 @@
-
 import 'package:smart_factory/service/auth/token_manager.dart';
 
 class AuthConfig {
