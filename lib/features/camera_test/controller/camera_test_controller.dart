@@ -385,7 +385,7 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
     if (factoryCtrl.text.trim().isEmpty ||
         floorCtrl.text.trim().isEmpty ||
         stationCtrl.text.trim().isEmpty ||
-        modelnameCtrl.text.trim().isEmpty ||
+        // modelnameCtrl.text.trim().isEmpty ||
         serialCtrl.text.trim().isEmpty) {
       Get.snackbar("Lỗi", "Vui lòng nhập đầy đủ Factory / Floor / Station / Serial");
       return;
@@ -408,7 +408,7 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
       final payload = CapturePayload(
         factory: factoryCtrl.text.trim(),
         floor: floorCtrl.text.trim(),
-        modelName: modelnameCtrl.text.trim(),
+        // modelName: modelnameCtrl.text.trim(),
         serialNumber: serialCtrl.text.trim(),
         station: stationCtrl.text.trim(),
         result: result,
@@ -440,7 +440,7 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
             if (_disposed) return;
 
             captured.clear();
-            modelnameCtrl.clear();
+            // modelnameCtrl.clear();
             serialCtrl.clear();
             stationCtrl.clear();
             noteCtrl.clear();

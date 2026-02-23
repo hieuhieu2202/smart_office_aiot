@@ -1,7 +1,7 @@
 class CapturePayload {
   final String factory;
   final String floor;
-  final String modelName;
+  // final String modelName;
   final String serialNumber;
   final String station;
   final String result;
@@ -14,7 +14,7 @@ class CapturePayload {
   const CapturePayload({
     required this.factory,
     required this.floor,
-    required this.modelName,
+    // required this.modelName,
     required this.serialNumber,
     required this.station,
     required this.result,
@@ -29,7 +29,7 @@ class CapturePayload {
     final fields = {
       "factory": factory,
       "floor": floor,
-      "modelName": modelName,
+      // "modelName": modelName,
       "serialNumber": serialNumber,
       "station": station,
       "result": result,

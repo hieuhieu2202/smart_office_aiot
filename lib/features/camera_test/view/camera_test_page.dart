@@ -803,12 +803,12 @@ class _CameraTestPageState extends State<CameraTestPage> {
                 },
               ),
 
-              const SizedBox(height: 14),
-              TextField(
-                controller: viewModel.modelnameCtrl,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputStyle("Model Name"),
-              ),
+              // const SizedBox(height: 14),
+              // TextField(
+              //   controller: viewModel.modelnameCtrl,
+              //   style: const TextStyle(color: Colors.white),
+              //   decoration: _inputStyle("Model Name"),
+              // ),
 
               const SizedBox(height: 14),
               TextField(
