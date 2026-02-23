@@ -29,7 +29,6 @@ class CapturePayload {
     final fields = {
       "factory": factory,
       "floor": floor,
-      // "modelName": modelName,
       "serialNumber": serialNumber,
       "station": station,
       "result": result,

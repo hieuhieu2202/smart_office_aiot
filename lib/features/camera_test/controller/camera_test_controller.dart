@@ -1,5 +1,5 @@
 import 'dart:math';
-
+import 'dart:convert';
 import 'package:camera/camera.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -385,9 +385,11 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
     if (factoryCtrl.text.trim().isEmpty ||
         floorCtrl.text.trim().isEmpty ||
         stationCtrl.text.trim().isEmpty ||
-        // modelnameCtrl.text.trim().isEmpty ||
         serialCtrl.text.trim().isEmpty) {
-      Get.snackbar("Lỗi", "Vui lòng nhập đầy đủ Factory / Floor / Station / Serial");
+      Get.snackbar(
+        "Lỗi",
+        "Vui lòng nhập đầy đủ Factory / Floor / Station / Serial",
+      );
       return;
     }
 
@@ -408,15 +410,20 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
       final payload = CapturePayload(
         factory: factoryCtrl.text.trim(),
         floor: floorCtrl.text.trim(),
-        // modelName: modelnameCtrl.text.trim(),
         serialNumber: serialCtrl.text.trim(),
         station: stationCtrl.text.trim(),
         result: result,
         comment: noteCtrl.text.trim(),
         username: userCtrl.text.trim(),
-        errorCode: result == "FAIL" ? errorCodeCtrl.text.trim() : null,
-        errorName: result == "FAIL" ? errorNameCtrl.text.trim() : null,
-        errorDescription: result == "FAIL" ? errorDescCtrl.text.trim() : null,
+        errorCode: result == "FAIL"
+            ? errorCodeCtrl.text.trim()
+            : "",
+        errorName: result == "FAIL"
+            ? errorNameCtrl.text.trim()
+            : "",
+        errorDescription: result == "FAIL"
+            ? errorDescCtrl.text.trim()
+            : "",
       );
 
       final response = await _captureApiService.sendCapture(
@@ -426,10 +433,26 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
 
       if (_disposed) return;
 
-      if (response.isSuccess) {
+      Map<String, dynamic> bodyJson = {};
+      try {
+        bodyJson = jsonDecode(response.body);
+      } catch (_) {
+        Get.snackbar("Lỗi", "Phản hồi server không hợp lệ");
+        _safeUpdate(() => state = TestState.doneCapture);
+        return;
+      }
+
+      final int apiCode =
+          bodyJson["Code"] ?? bodyJson["code"] ?? -1;
+      final String apiMessage =
+          bodyJson["Message"] ??
+              bodyJson["message"] ??
+              "Unknown error";
+
+      if (response.statusCode == 200 && apiCode == 0) {
         Get.defaultDialog(
           title: "Thành công",
-          content: const Text("Upload thành công"),
+          content: Text(apiMessage),
           textConfirm: "OK",
           onConfirm: () async {
             Get.back();
@@ -440,7 +463,6 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
             if (_disposed) return;
 
             captured.clear();
-            // modelnameCtrl.clear();
             serialCtrl.clear();
             stationCtrl.clear();
             noteCtrl.clear();
@@ -463,8 +485,9 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
         );
       } else {
         Get.snackbar(
-          "API lỗi",
-          "Code: ${response.statusCode}\n${response.body}",
+          "Thông báo",
+          apiMessage,
+          snackPosition: SnackPosition.BOTTOM,
         );
       }
     } catch (e) {
