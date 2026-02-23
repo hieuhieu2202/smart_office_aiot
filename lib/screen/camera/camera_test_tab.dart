@@ -42,13 +42,11 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   final factoryCtrl = TextEditingController();
   final floorCtrl = TextEditingController();
   final productNameCtrl = TextEditingController();
-  final stationCtrl = TextEditingController();
   final modelCtrl = TextEditingController();
   final serialCtrl = TextEditingController();
   final userCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
   final errorCodeCtrl = TextEditingController();
-  final errorDescCtrl = TextEditingController();
   String status = "PASS";
 
 // Xử lý Factory và Floor
@@ -233,32 +231,12 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     factoryCtrl.dispose();
     floorCtrl.dispose();
     productNameCtrl.dispose();
-    stationCtrl.dispose();
     modelCtrl.dispose();
     serialCtrl.dispose();
     userCtrl.dispose();
     noteCtrl.dispose();
     errorCodeCtrl.dispose();
-    errorDescCtrl.dispose();
     super.dispose();
-
-  }
-
-  void _clearForm() {
-    captured.clear();
-
-    factoryCtrl.clear();
-    floorCtrl.clear();
-    productNameCtrl.clear();
-    stationCtrl.clear();
-    modelCtrl.clear();
-    serialCtrl.clear();
-
-    noteCtrl.clear();
-    errorCodeCtrl.clear();
-    errorDescCtrl.clear();
-
-    status = "PASS";
   }
 
   // -----------------------------------------------------
@@ -794,8 +772,12 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
                               onPressed: () {
                                 // In scan mode: cancel should go back to scanning (not to camera/placeholder).
                                 if (_isScanMode) {
-                                  _clearForm();
+                                  captured.clear();
+                                  errorCodeCtrl.clear();
+                                  noteCtrl.clear();
+                                  status = "PASS";
                                   product = null;
+                                  serialCtrl.clear();
                                   _safeSetState(() {
                                     state = TestState.idle;
                                     _hasScannedQr = false;
@@ -1119,15 +1101,6 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             );
           },
         ),
-        const SizedBox(height: 14),
-
-       // ---------- STATION ----------
-        TextField(
-          controller: stationCtrl,
-          style: const TextStyle(color: Colors.white),
-          decoration: _inputStyle("Station"),
-        ),
-
 
         const SizedBox(height: 14),
 
@@ -1180,7 +1153,6 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
             status = v!;
             if (status == "PASS") {
               errorCodeCtrl.clear();
-              errorDescCtrl.clear();
               captured.clear();
             }
           }),
@@ -1191,25 +1163,12 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
 
         if (status == "FAIL") ...[
           const SizedBox(height: 14),
-
-          // ErrorCode
           TextField(
             controller: errorCodeCtrl,
             style: const TextStyle(color: Colors.white),
             decoration: _inputStyle("ErrorCode"),
           ),
-
-          const SizedBox(height: 14),
-
-          // ErrorDescription
-          TextField(
-            controller: errorDescCtrl,
-            maxLines: 2,
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputStyle("ErrorDescription"),
-          ),
         ],
-
 
         const SizedBox(height: 14),
 
@@ -1265,16 +1224,19 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
   // SEND API
   Future<void> sendToApi(List<XFile> images) async {
     if (serialCtrl.text.trim().isEmpty) {
+      if (!mounted || _disposed) return;
       Get.snackbar("Lỗi", "Serial không được để trống");
       return;
     }
 
     if (status == "FAIL") {
       if (errorCodeCtrl.text.trim().isEmpty) {
+        if (!mounted || _disposed) return;
         Get.snackbar("Lỗi", "Vui lòng nhập ErrorCode");
         return;
       }
       if (images.isEmpty) {
+        if (!mounted || _disposed) return;
         Get.snackbar("Lỗi", "FAIL phải có ít nhất 1 ảnh");
         return;
       }
@@ -1283,74 +1245,90 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
     _safeSetState(() => state = TestState.uploading);
 
     try {
-      final uri = Uri.parse(apiUrl);
-      final request = http.MultipartRequest("POST", uri);
-
-      // ===== TEXT FIELDS =====
-      request.fields["Factory"] = factoryCtrl.text.trim();
-      request.fields["Floor"] = floorCtrl.text.trim();
-      request.fields["ProductName"] = productNameCtrl.text.trim();
-      request.fields["Model"] = modelCtrl.text.trim();
-      request.fields["SerialNumber"] = serialCtrl.text.trim();
-      request.fields["Station"] = stationCtrl.text.trim();
-      request.fields["Status"] = status;
-      request.fields["UserName"] = userCtrl.text.trim();
-      request.fields["InStationTime"] = DateTime.now().toIso8601String();
-      request.fields["Comment"] = noteCtrl.text.trim();
+      final Map<String, dynamic> payload = {
+        "factory": factoryCtrl.text.trim(),
+        "floor": floorCtrl.text.trim(),
+        "productName": productNameCtrl.text.trim(),
+        "model": modelCtrl.text.trim(),
+        "sn": serialCtrl.text.trim(),
+        "time": DateTime.now().toIso8601String(),
+        "userName": userCtrl.text.trim(),
+        "status": status,
+        "comment": noteCtrl.text.trim(),
+      };
 
       if (status == "FAIL") {
-        request.fields["ErrorCode"] = errorCodeCtrl.text.trim();
-        request.fields["ErrorDescription"] = errorDescCtrl.text.trim();
-      }
+        final List<String> listBase64 = [];
 
-      // Xử lý PostFiles
-      for (final file in images) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            "Images", // PHẢI đúng tên backend
+        for (final file in images) {
+          final compressed = await FlutterImageCompress.compressWithFile(
             file.path,
-          ),
-        );
+            quality: 60,
+          );
+
+          listBase64.add(
+            base64Encode(
+              compressed ?? await File(file.path).readAsBytes(),
+            ),
+          );
+        }
+
+        payload["errorCode"] = errorCodeCtrl.text.trim();
+        payload["images"] = listBase64;
       }
 
-      final response = await request.send();
-      final body = await response.stream.bytesToString();
+      final res = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(payload),
+      );
 
-      if (response.statusCode == 200) {
+      if (!mounted || _disposed) return;
+
+      if (res.statusCode == 200) {
         Get.defaultDialog(
           title: "Thành công",
           content: const Text("Upload thành công"),
           textConfirm: "OK",
-          onConfirm: () {
+          onConfirm: () async {
             Get.back();
+            if (!mounted || _disposed) return;
 
-            _clearForm();
+            await _disposeControllerSafe();
+            if (!mounted || _disposed) return;
+
+            captured.clear();
+            serialCtrl.clear();
+            noteCtrl.clear();
+            errorCodeCtrl.clear();
+            status = "PASS";
             product = null;
+            _showCameraPreview = false;
 
             _safeSetState(() {
               state = TestState.idle;
               _hasScannedQr = false;
               _showScanForm = false;
-              _showCameraPreview = false;
             });
 
-            final int session = ++_scanSession;
-            Future.delayed(const Duration(milliseconds: 150), () {
-              if (!mounted || _disposed || session != _scanSession) return;
-              scanQr();
-            });
+            if (_isScanMode) {
+              final int session = ++_scanSession;
+              Future.delayed(const Duration(milliseconds: 250), () {
+                if (!mounted || _disposed || session != _scanSession) return;
+                scanQr();
+              });
+            }
           },
         );
       } else {
-        Get.snackbar("API lỗi", "Code: ${response.statusCode}\n$body");
+        Get.snackbar("API lỗi", "Code: ${res.statusCode}\n${res.body}");
       }
     } catch (e) {
+      if (!mounted || _disposed) return;
       Get.snackbar("Upload lỗi", e.toString());
     }
 
-    if (!_isScanMode) {
-      _safeSetState(() => state = TestState.doneCapture);
-    }
+    _safeSetState(() => state = TestState.doneCapture);
   }
 
   Widget _phoneUI() {
@@ -1438,8 +1416,12 @@ class _CameraTestTabState extends State<CameraTestTab> with WidgetsBindingObserv
                       ),
                       onPressed: () {
                         if (_isScanMode) {
-                          _clearForm();
+                          captured.clear();
+                          errorCodeCtrl.clear();
+                          noteCtrl.clear();
+                          status = "PASS";
                           product = null;
+                          serialCtrl.clear();
                           _safeSetState(() {
                             state = TestState.idle;
                             _hasScannedQr = false;
