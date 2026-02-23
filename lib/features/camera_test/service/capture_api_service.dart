@@ -5,7 +5,7 @@ import 'package:smart_factory/features/camera_test/model/capture_response.dart';
 
 class CaptureApiService {
   static const String baseUrl =
-      "http://192.168.0.117:2222/api/NVIDIA/SFCService/APP_PassVIStation";
+      "http://10.220.130.117:2222//api/APP/SFCNVIDIA/PassVIStation";
 
   Future<CaptureResponse> sendCapture({
     required CapturePayload payload,

@@ -408,7 +408,7 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
       final payload = CapturePayload(
         factory: factoryCtrl.text.trim(),
         floor: floorCtrl.text.trim(),
-        modelName: modelnameCtrl.text.trim(),
+        // modelName: modelnameCtrl.text.trim(),
         serialNumber: serialCtrl.text.trim(),
         station: stationCtrl.text.trim(),
         result: result,
