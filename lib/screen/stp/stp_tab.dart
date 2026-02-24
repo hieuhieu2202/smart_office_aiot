@@ -285,7 +285,7 @@ class _SftpScreenState extends State<SftpScreen> {
                             size: 32,
                             color: GlobalColors.accentByIsDark(isDark),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 5),
                           Text(
                             'Thông tin đăng nhập',
                             style: GlobalTextStyles.bodyLarge(isDark: isDark)

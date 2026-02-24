@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:smart_factory/features/camera_test/service/scan_payload_extractor.dart';
+import 'package:smart_factory/features/camera_test/model/scan_result.dart';
 
 class ScanTestScreen extends StatefulWidget {
   const ScanTestScreen({Key? key}) : super(key: key);
@@ -13,9 +15,14 @@ class _ScanTestScreenState extends State<ScanTestScreen>
     with SingleTickerProviderStateMixin {
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
-    detectionTimeoutMs: 250,
-    formats: BarcodeFormat.values,
+    detectionTimeoutMs: 300,
+    formats: const [
+      BarcodeFormat.dataMatrix,
+      BarcodeFormat.qrCode,
+      BarcodeFormat.code128,
+    ],
   );
+
 
   late AnimationController _anim;
   late Animation<double> _tween;
@@ -50,7 +57,12 @@ class _ScanTestScreenState extends State<ScanTestScreen>
     );
     _tween = CurvedAnimation(parent: _anim, curve: Curves.linear);
     _anim.repeat(reverse: true);
+
+    _controller.start();
+    _controller.toggleTorch();
+    _torchOn = true;
   }
+
 
   @override
   void dispose() {
@@ -91,7 +103,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Quét QR"),
+        title: const Text("Scan Qr"),
         actions: [
           IconButton(
             tooltip: "Torch",
@@ -113,26 +125,26 @@ class _ScanTestScreenState extends State<ScanTestScreen>
       body: LayoutBuilder(
         builder: (context, constraints) {
           final size = constraints.biggest;
-          final double boxSize = math.min(size.width * _scanBoxScale, 400);
           final rect = Rect.fromCenter(
             center: Offset(size.width / 2, size.height / 2),
-            width: boxSize,
-            height: boxSize,
+            width: size.width * 0.75,
+            height: size.width * 0.75,
           );
 
           return Stack(
             fit: StackFit.expand,
             children: [
+              // SCAN
               MobileScanner(
                 controller: _controller,
                 scanWindow: rect,
                 onDetect: (capture) async {
-                  if (_found) return;
+                  if (_found || _isProcessing) return;
+                  _isProcessing = true;
 
                   try {
                     final barcodes = capture.barcodes;
 
-                    // ---------- NO BARCODE IN FRAME ----------
                     if (barcodes.isEmpty) {
                       _emptyFrameCount++;
 
@@ -150,30 +162,31 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                       return;
                     }
 
-                    // ---------- HAVE BARCODE ----------
-                    String? snCandidate;
+                    String? sn;
 
                     for (final barcode in barcodes) {
-                      final raw = barcode.rawValue?.trim() ?? "";
-                      if (raw.isEmpty) continue;
+                      final raw = barcode.rawValue;
+                      if (raw == null || raw.isEmpty) continue;
 
-                      // BỎ PN (có dấu '-')
-                      if (raw.contains('-')) continue;
+                      final ScanResult result = ScanPayloadExtractor.extract(raw);
 
-                      // RULE SN: chữ + số, không '-', độ dài >= 8
-                      if (RegExp(r'^[A-Z0-9]{8,}$').hasMatch(raw)) {
-                        snCandidate = raw;
-                        break;
+                      if (result.hasSerial) {
+                        Navigator.pop(context, {
+                          "serial": result.serial,
+                          "model": result.model,
+                        });
                       }
+
+                      if (sn != null) break;
                     }
 
-                    // Chưa có SN → tiếp tục scan
-                    if (snCandidate == null) {
+                    if (sn == null) {
+                      _isProcessing = false;
                       return;
                     }
 
                     _found = true;
-                    _foundCode = snCandidate;
+                    _foundCode = sn;
 
                     try {
                       await _controller.stop();
@@ -182,8 +195,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                     if (!mounted) return;
 
                     Navigator.pop(context, {
-                      "serial": _foundCode,
-                      "format": capture.barcodes.first.format.name,
+                      "serial": sn,
                     });
                   } catch (_) {
                     _emptyFrameCount++;
@@ -192,7 +204,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                 },
               ),
 
-              // animated overlay
+              //  OVERLAY
               AnimatedBuilder(
                 animation: _tween,
                 builder: (context, _) {
@@ -208,7 +220,41 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                 },
               ),
 
+              // MANUAL SN BUTTON
+              Positioned(
+                bottom: 110, // nằm trên slider
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context, {
+                        "manual": true,
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: const Text(
+                        "Không quét được mã => ✍️ Vui lòng nhập thủ công",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
+              //  ZOOM BAR
               Align(
                 alignment: Alignment.bottomCenter,
                 child: SafeArea(
@@ -222,13 +268,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // status
-                        // Text(
-                        //   _found ? "Found: $_foundCode" : "Move camera to QR/barcode - adjust scan box to help detect small codes",
-                        //   style: const TextStyle(color: Colors.white70),
-                        // ),
                         const SizedBox(height: 8),
-
                         Row(
                           children: [
                             const Icon(Icons.zoom_out, color: Colors.white70),
@@ -251,31 +291,6 @@ class _ScanTestScreenState extends State<ScanTestScreen>
                             const Icon(Icons.zoom_in, color: Colors.white70),
                           ],
                         ),
-
-                        const SizedBox(height: 4),
-
-                        // Row(
-                        //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        //   children: [
-                        //     ElevatedButton.icon(
-                        //       style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                        //       onPressed: _toggleTorch,
-                        //       icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off),
-                        //       label: Text(_torchOn ? "Torch on" : "Torch off"),
-                        //     ),
-                        //
-                        //     ElevatedButton.icon(
-                        //       onPressed: () async {
-                        //         _resetScanState();
-                        //         try {
-                        //           await _controller.start();
-                        //         } catch (_) {}
-                        //       },
-                        //       icon: const Icon(Icons.refresh),
-                        //       label: const Text("Retry"),
-                        //     ),
-                        //   ],
-                        // ),
                       ],
                     ),
                   ),
