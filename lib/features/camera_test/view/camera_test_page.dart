@@ -5,6 +5,7 @@ import 'package:smart_factory/config/bantha.dart';
 import 'package:smart_factory/features/camera_test/controller/camera_test_controller.dart';
 import 'package:smart_factory/features/camera_test/model/error_item.dart';
 import 'camera_capture_screen.dart';
+import 'package:smart_factory/features/camera_test/service/pda_serial_parser.dart';
 
 class CameraTestPage extends StatefulWidget {
   const CameraTestPage({super.key});
@@ -16,11 +17,13 @@ class CameraTestPage extends StatefulWidget {
 class _CameraTestPageState extends State<CameraTestPage> {
   late final CameraTestController viewModel;
   final FocusNode serialFocus = FocusNode();
+  bool _isParsing = false;
 
   @override
   void initState() {
     super.initState();
     viewModel = Get.put(CameraTestController());
+    viewModel.serialCtrl.addListener(_handlePdaInput);
 
     Future.delayed(const Duration(milliseconds: 300), () {
       serialFocus.requestFocus();
@@ -29,9 +32,29 @@ class _CameraTestPageState extends State<CameraTestPage> {
 
   @override
   void dispose() {
+    viewModel.serialCtrl.removeListener(_handlePdaInput);
     Get.delete<CameraTestController>();
     serialFocus.dispose();
     super.dispose();
+  }
+
+  void _handlePdaInput() {
+    if (_isParsing) return;
+
+    final raw = viewModel.serialCtrl.text.trim();
+    if (raw.isEmpty) return;
+
+    final parsed = PdaSerialParser.extractSerial(raw);
+
+    if (parsed.isNotEmpty && parsed != raw) {
+      _isParsing = true;
+
+      viewModel.serialCtrl
+        ..text = parsed
+        ..selection = TextSelection.collapsed(offset: parsed.length);
+
+      _isParsing = false;
+    }
   }
 
   // ================= ERROR SEARCH =================
@@ -513,6 +536,14 @@ class _CameraTestPageState extends State<CameraTestPage> {
   Widget build(BuildContext context) {
     return GetBuilder<CameraTestController>(
       builder: (_) {
+        if (viewModel.state == TestState.idle) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              serialFocus.requestFocus();
+            }
+          });
+        }
+
         return Scaffold(
           backgroundColor: const Color(0xff0d0d11),
           appBar: AppBar(
@@ -522,11 +553,53 @@ class _CameraTestPageState extends State<CameraTestPage> {
           body: Stack(
             children: [
               _formContent(),
+
               if (viewModel.state == TestState.uploading)
-                const ColoredBox(
+                Container(
                   color: Colors.black54,
                   child: Center(
-                    child: CircularProgressIndicator(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A1F),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.08),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              valueColor:
+                              AlwaysStoppedAnimation<Color>(
+                                  Colors.greenAccent),
+                            ),
+                          ),
+                          SizedBox(height: 14),
+                          Text(
+                            "Đang gửi dữ liệu...",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            "Vui lòng chờ",
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
             ],

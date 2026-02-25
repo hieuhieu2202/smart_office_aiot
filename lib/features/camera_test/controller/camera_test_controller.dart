@@ -11,6 +11,7 @@ import 'package:smart_factory/features/camera_test/service/camera_service.dart';
 import 'package:smart_factory/features/camera_test/service/capture_api_service.dart';
 import 'package:smart_factory/service/auth/token_manager.dart';
 import '../view/camera_capture_screen.dart';
+import 'package:flutter/services.dart';
 
 enum TestState { idle, readyToCapture, doneCapture, uploading }
 
@@ -257,9 +258,9 @@ class CameraTestController extends GetxController
       }
     }
 
-    _safeUpdate(() => state = TestState.uploading);
-
     try {
+      _safeUpdate(() => state = TestState.uploading);
+
       final payload = CapturePayload(
         factory: factoryCtrl.text.trim(),
         floor: floorCtrl.text.trim(),
@@ -268,56 +269,60 @@ class CameraTestController extends GetxController
         result: result,
         comment: noteCtrl.text.trim(),
         username: userCtrl.text.trim(),
-        errorCode:
-        result == "FAIL" ? errorCodeCtrl.text.trim() : "",
-        errorName:
-        result == "FAIL" ? errorNameCtrl.text.trim() : "",
+        errorCode: result == "FAIL" ? errorCodeCtrl.text.trim() : "",
+        errorName: result == "FAIL" ? errorNameCtrl.text.trim() : "",
         errorDescription:
-        result == "FAIL"
-            ? errorDescCtrl.text.trim()
-            : "",
+        result == "FAIL" ? errorDescCtrl.text.trim() : "",
       );
 
-      final response =
-      await _captureApiService.sendCapture(
+      final response = await _captureApiService.sendCapture(
         payload: payload,
         images: images,
       );
 
       if (_disposed) return;
 
-      final bodyJson =
-      jsonDecode(response.body);
-
-      final apiCode =
-          bodyJson["Code"] ?? bodyJson["code"] ?? -1;
-
+      final bodyJson = jsonDecode(response.body);
+      final apiCode = bodyJson["Code"] ?? bodyJson["code"] ?? -1;
       final apiMessage =
-          bodyJson["Message"] ??
-              bodyJson["message"] ??
-              "Unknown error";
+          bodyJson["Message"] ?? bodyJson["message"] ?? "Unknown error";
 
-      if (response.statusCode == 200 &&
-          apiCode == 0) {
-        Get.snackbar("Thành công", apiMessage);
+      if (response.statusCode == 200 && apiCode == 0) {
 
+        // RUNG PDA
+        HapticFeedback.vibrate();
+
+        Get.snackbar(
+          "Thành công",
+          apiMessage,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+
+        //  RESET FORM DATA
         captured.clear();
         serialCtrl.clear();
         noteCtrl.clear();
         errorCodeCtrl.clear();
+        errorNameCtrl.clear();
         errorDescCtrl.clear();
         result = "PASS";
 
-        _safeUpdate(() => state = TestState.idle);
       } else {
-        Get.snackbar("Thông báo", apiMessage);
+        Get.snackbar(
+          "Thông báo",
+          apiMessage,
+          snackPosition: SnackPosition.BOTTOM,
+        );
       }
+
     } catch (e) {
       if (!_disposed) {
         Get.snackbar("Upload lỗi", e.toString());
       }
+    } finally {
+      if (!_disposed) {
+        _safeUpdate(() => state = TestState.idle);
+      }
     }
-
-    _safeUpdate(() => state = TestState.doneCapture);
   }
 }
