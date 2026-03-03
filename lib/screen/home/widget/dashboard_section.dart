@@ -15,16 +15,18 @@ class DashboardSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? Colors.white.withOpacity(0.12)
-            : Colors.white.withOpacity(0.55),
+            : Colors.white.withOpacity(0.95),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark
               ? Colors.white.withOpacity(0.18)
-              : const Color(0xFFB3E5FC).withOpacity(0.65),
+              : Colors.blue.withOpacity(0.15),
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.15 : 0.08),
+            color: isDark
+                ? Colors.black.withOpacity(0.15)
+                : Colors.blue.withOpacity(0.08),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),

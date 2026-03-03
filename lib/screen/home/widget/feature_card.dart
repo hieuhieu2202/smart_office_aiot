@@ -36,13 +36,13 @@ class _FeatureCardState extends State<FeatureCard> {
 
     final Color surfaceColor = isDark
         ? Colors.white.withOpacity(0.10)
-        : Colors.white.withOpacity(0.62);
+        : Colors.white.withOpacity(0.90);
     final Color borderColor = isDark
         ? Colors.cyanAccent.withOpacity(0.25)
-        : const Color(0xFF81D4FA).withOpacity(0.55);
+        : Colors.blue.withOpacity(0.20);
     final Color glowColor = isDark
         ? Colors.cyanAccent.withOpacity(0.18)
-        : const Color(0xFF4FC3F7).withOpacity(0.14);
+        : Colors.blue.withOpacity(0.10);
 
     return AnimatedScale(
       scale: _scale,
@@ -67,9 +67,11 @@ class _FeatureCardState extends State<FeatureCard> {
                   border: Border.all(color: borderColor, width: 1.1),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.22 : 0.08),
-                      blurRadius: 18,
-                      offset: const Offset(0, 10),
+                      color: isDark
+                          ? Colors.black.withOpacity(0.22)
+                          : Colors.blue.withOpacity(0.10),
+                      blurRadius: isDark ? 18 : 15,
+                      offset: isDark ? const Offset(0, 10) : const Offset(0, 8),
                     ),
                     BoxShadow(
                       color: glowColor,
@@ -86,7 +88,9 @@ class _FeatureCardState extends State<FeatureCard> {
                       Icon(
                         widget.icon,
                         size: 30,
-                        color: theme.colorScheme.primary,
+                        color: isDark
+                            ? theme.colorScheme.primary
+                            : const Color(0xFF5E6AD2),
                       ),
                       const SizedBox(height: 10),
                       Text(
@@ -95,7 +99,9 @@ class _FeatureCardState extends State<FeatureCard> {
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.onSurface,
+                          color: isDark
+                              ? theme.colorScheme.onSurface
+                              : Colors.blueGrey.shade800,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

@@ -23,8 +23,8 @@ class GlassHeader extends StatelessWidget {
             const Color(0xFF2D7FF9).withOpacity(0.16),
           ]
         : <Color>[
-            const Color(0xFF80DEEA).withOpacity(0.58),
-            const Color(0xFF90CAF9).withOpacity(0.56),
+            const Color(0xFFB3E5FC).withOpacity(0.92),
+            const Color(0xFFE1F5FE).withOpacity(0.90),
           ];
 
     final List<Color> accentGradient = isDark
@@ -33,8 +33,8 @@ class GlassHeader extends StatelessWidget {
             const Color(0xFF40C4FF).withOpacity(0.20),
           ]
         : <Color>[
-            const Color(0xFF4DD0E1).withOpacity(0.55),
-            const Color(0xFF64B5F6).withOpacity(0.26),
+            Colors.blue.withOpacity(0.40),
+            Colors.blue.withOpacity(0.16),
           ];
 
     final Color titleColor = isDark ? Colors.white : Colors.blueGrey.shade900;
@@ -46,7 +46,10 @@ class GlassHeader extends StatelessWidget {
         bottomRight: Radius.circular(20),
       ),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        filter: ImageFilter.blur(
+          sigmaX: isDark ? 16 : 10,
+          sigmaY: isDark ? 16 : 10,
+        ),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
@@ -58,7 +61,7 @@ class GlassHeader extends StatelessWidget {
             ),
             color: isDark
                 ? Colors.white.withOpacity(0.08)
-                : Colors.white.withOpacity(0.82),
+                : Colors.white.withOpacity(0.88),
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(20),
               bottomRight: Radius.circular(20),
@@ -67,7 +70,7 @@ class GlassHeader extends StatelessWidget {
               bottom: BorderSide(
                 color: isDark
                     ? Colors.cyanAccent.withOpacity(0.28)
-                    : const Color(0xFF4FC3F7).withOpacity(0.24),
+                    : Colors.blue.withOpacity(0.40),
                 width: 1,
               ),
             ),
