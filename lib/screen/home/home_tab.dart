@@ -8,7 +8,8 @@ import 'package:smart_factory/screen/home/widget/ai_chat/chatbot_fab.dart';
 import 'package:smart_factory/screen/home/widget/neon_network_background.dart';
 import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
 import 'package:smart_factory/screen/home/widget/glass_header.dart';
-import 'package:smart_factory/screen/home/widget/small_feature_card.dart';
+import 'package:smart_factory/screen/home/widget/dashboard_section.dart';
+import 'package:smart_factory/screen/home/widget/feature_card.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 
 class HomeTab extends StatefulWidget {
@@ -34,8 +35,6 @@ class _HomeTabState extends State<HomeTab> {
 
     return Obx(() {
       final bool isDark = settingController.isDarkMode.value;
-      final ThemeData theme = Theme.of(context);
-
       return Scaffold(
         body: Stack(
           fit: StackFit.expand,
@@ -54,7 +53,7 @@ class _HomeTabState extends State<HomeTab> {
                       title: text.welcome_factory,
                       subtitle: 'Thao tác nhanh để bắt đầu công việc',
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 18),
                       child: LayoutBuilder(
@@ -70,12 +69,12 @@ class _HomeTabState extends State<HomeTab> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             children: <Widget>[
-                              SmallFeatureCard(
+                              FeatureCard(
                                 title: 'Capture',
                                 icon: Icons.camera_alt_rounded,
                                 onTap: () => Get.to(() => const CameraMenuScreen()),
                               ),
-                              SmallFeatureCard(
+                              FeatureCard(
                                 title: 'QR Scan',
                                 icon: Icons.qr_code_scanner_rounded,
                                 onTap: () => Get.to(() => const QRScanScreen()),
@@ -86,33 +85,10 @@ class _HomeTabState extends State<HomeTab> {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    Expanded(
+                    const Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withOpacity(0.06)
-                                : Colors.white.withOpacity(0.38),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.white.withOpacity(0.12)
-                                  : Colors.white.withOpacity(0.55),
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Dashboard content placeholder',
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.7),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 18),
+                        child: DashboardSection(),
                       ),
                     ),
                   ],
