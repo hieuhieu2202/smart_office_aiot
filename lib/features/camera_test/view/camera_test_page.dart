@@ -57,7 +57,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
     }
   }
 
-  // ================= ERROR SEARCH =================
+  // ERROR SEARCH
 
   void _openErrorCodeSearch() {
     showModalBottomSheet(
@@ -147,7 +147,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
     );
   }
 
-  // ================= FORM =================
+  // FORM
 
   Widget _formContent() {
     final isFail = viewModel.result == "FAIL";
@@ -171,8 +171,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
     );
   }
 
-  // ================= IMAGE =================
-
+  // IMAGE
   Widget _imageSection(bool isFail) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -281,7 +280,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
     );
   }
 
-  // ================= PRODUCT =================
+  // PRODUCT
 
   Widget _productSection() {
     return _sectionCard(
@@ -382,7 +381,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
     );
   }
 
-  // ================= RESULT =================
+  // RESULT
 
   Widget _resultSection(bool isFail) {
     return _sectionCard(

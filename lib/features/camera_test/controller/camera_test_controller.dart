@@ -109,7 +109,7 @@ class CameraTestController extends GetxController
     } catch (_) {}
   }
 
-  // ================= CAMERA =================
+  // CAMERA
 
   Future<void> initCamera() async {
     if (_disposed || _cameraService.isDisposing || _initializingCamera)
@@ -166,7 +166,7 @@ class CameraTestController extends GetxController
     if (!_disposed) update();
   }
 
-  // ================= DROPDOWN =================
+  // DROPDOWN
 
   void onFactoryChanged(String? val) {
     _safeUpdate(() {
@@ -211,7 +211,7 @@ class CameraTestController extends GetxController
     update();
   }
 
-  // ================= IMAGE PICK =================
+  // IMAGE PICK
 
   Future<void> pickImagesFromDevice() async {
     final result = await FilePicker.platform.pickFiles(
@@ -233,7 +233,7 @@ class CameraTestController extends GetxController
     });
   }
 
-  // ================= API =================
+  //  API
 
   Future<void> sendToApi(List<XFile> images) async {
     if (factoryCtrl.text.trim().isEmpty ||
