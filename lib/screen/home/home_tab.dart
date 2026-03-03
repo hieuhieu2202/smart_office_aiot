@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -9,6 +7,7 @@ import 'package:smart_factory/screen/home/controller/ai_controller.dart';
 import 'package:smart_factory/screen/home/widget/ai_chat/chatbot_fab.dart';
 import 'package:smart_factory/screen/home/widget/neon_network_background.dart';
 import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
+import 'package:smart_factory/screen/home/widget/glass_header.dart';
 import 'package:smart_factory/screen/home/widget/small_feature_card.dart';
 import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 
@@ -51,10 +50,9 @@ class _HomeTabState extends State<HomeTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    _GlassHeader(
+                    GlassHeader(
                       title: text.welcome_factory,
                       subtitle: 'Thao tác nhanh để bắt đầu công việc',
-                      isDark: isDark,
                     ),
                     const SizedBox(height: 16),
                     Padding(
@@ -127,83 +125,5 @@ class _HomeTabState extends State<HomeTab> {
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       );
     });
-  }
-}
-
-class _GlassHeader extends StatelessWidget {
-  const _GlassHeader({
-    required this.title,
-    required this.subtitle,
-    required this.isDark,
-  });
-
-  final String title;
-  final String subtitle;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final Color borderColor = isDark
-        ? const Color(0xFF52D3FF).withOpacity(0.58)
-        : const Color(0xFF1FA4FF).withOpacity(0.45);
-    final Color titleColor = isDark
-        ? const Color(0xFFE9F9FF)
-        : const Color(0xFF0E365A);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withOpacity(0.10)
-                  : Colors.white.withOpacity(0.52),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: borderColor, width: 1.2),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: borderColor.withOpacity(isDark ? 0.32 : 0.20),
-                  blurRadius: 20,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: titleColor,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark ? Colors.white70 : Colors.black54,
-                    height: 1.25,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
