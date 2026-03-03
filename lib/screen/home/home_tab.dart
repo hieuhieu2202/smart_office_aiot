@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -49,15 +51,10 @@ class _HomeTabState extends State<HomeTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    _HomeHeader(title: text.welcome_factory, isDark: isDark),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
-                      child: Text(
-                        'Thao tác nhanh để bắt đầu công việc',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.82),
-                        ),
-                      ),
+                    _GlassHeader(
+                      title: text.welcome_factory,
+                      subtitle: 'Thao tác nhanh để bắt đầu công việc',
+                      isDark: isDark,
                     ),
                     const SizedBox(height: 16),
                     Padding(
@@ -133,51 +130,78 @@ class _HomeTabState extends State<HomeTab> {
   }
 }
 
-class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.title, required this.isDark});
+class _GlassHeader extends StatelessWidget {
+  const _GlassHeader({
+    required this.title,
+    required this.subtitle,
+    required this.isDark,
+  });
 
   final String title;
+  final String subtitle;
   final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final Color titleColor = isDark ? const Color(0xFF44B2FF) : const Color(0xFF0D79CF);
+    final Color borderColor = isDark
+        ? const Color(0xFF52D3FF).withOpacity(0.58)
+        : const Color(0xFF1FA4FF).withOpacity(0.45);
+    final Color titleColor = isDark
+        ? const Color(0xFFE9F9FF)
+        : const Color(0xFF0E365A);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: isDark
-              ? <Color>[
-                  const Color(0xFF132D4D).withOpacity(0.82),
-                  const Color(0xFF0A1A2E).withOpacity(0.58),
-                  Colors.transparent,
-                ]
-              : <Color>[
-                  const Color(0xFFE5F3FF).withOpacity(0.92),
-                  const Color(0xFFD1EBFF).withOpacity(0.65),
-                  Colors.transparent,
-                ],
-        ),
-        border: Border(
-          bottom: BorderSide(
-            color: titleColor.withOpacity(isDark ? 0.75 : 0.55),
-            width: 1.5,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.10)
+                  : Colors.white.withOpacity(0.52),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: borderColor, width: 1.2),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: borderColor.withOpacity(isDark ? 0.32 : 0.20),
+                  blurRadius: 20,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: titleColor,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark ? Colors.white70 : Colors.black54,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
-      child: Text(
-        title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.headlineSmall?.copyWith(
-          color: titleColor,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.2,
         ),
       ),
     );
