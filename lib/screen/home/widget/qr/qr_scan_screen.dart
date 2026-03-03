@@ -322,19 +322,36 @@ class _QRScanScreenState extends State<QRScanScreen>
     }
   }
 
+  Future<void> _handleBackNavigation() async {
+    final NavigatorState navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+
+    if (Get.isOverlaysOpen) {
+      Get.back();
+      return;
+    }
+
+    navbarController.changTab(0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        navbarController.changTab(0);
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (!didPop) {
+          _handleBackNavigation();
+        }
       },
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Quét QR"),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => navbarController.changTab(0),
+            onPressed: _handleBackNavigation,
           ),
           actions: [
             IconButton(
