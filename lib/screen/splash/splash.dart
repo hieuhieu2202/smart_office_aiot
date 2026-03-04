@@ -128,77 +128,80 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SlideTransition(
-                        position: _fAnimation,
-                        child: Image.asset(
-                          'assets/images/f.png',
-                          height: 160,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      SlideTransition(
-                        position: _iBeAnimation,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 0),
-                          child: Image.asset(
-                            'assets/images/ingan.png',
-                            height: 160,
-                            fit: BoxFit.contain,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SlideTransition(
+                            position: _fAnimation,
+                            child: Image.asset(
+                              'assets/images/f.png',
+                              height: 160,
+                              fit: BoxFit.contain,
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      SlideTransition(
-                        position: _iToAnimation,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 0),
-                          child: Image.asset(
-                            'assets/images/idai.png',
-                            height: 160,
-                            fit: BoxFit.contain,
+                          const SizedBox(width: 2),
+                          SlideTransition(
+                            position: _iBeAnimation,
+                            child: Image.asset(
+                              'assets/images/ingan.png',
+                              height: 160,
+                              fit: BoxFit.contain,
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 2),
+                          SlideTransition(
+                            position: _iToAnimation,
+                            child: Image.asset(
+                              'assets/images/idai.png',
+                              height: 160,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                   SlideTransition(
                     position: _textAnimation,
                     child: Padding(
-                      padding: const EdgeInsets.only(top: 0, left: 80),
-                      child: RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'MBD',
-                              style: GlobalTextStyles.contentStyle().copyWith(
-                                color: GlobalColors.mbdColor,
+                      padding: const EdgeInsets.only(top: 4),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'MBD',
+                                style: GlobalTextStyles.contentStyle().copyWith(
+                                  color: GlobalColors.mbdColor,
+                                ),
                               ),
-                            ),
-                            TextSpan(
-                              text: '-',
-                              style: GlobalTextStyles.contentStyle().copyWith(
-                                foreground: Paint()
-                                  ..shader = LinearGradient(
-                                    colors: [
-                                      GlobalColors.mbdColor,
-                                      GlobalColors.aiotColor,
-                                    ],
-                                  ).createShader(
-                                    const Rect.fromLTWH(0, 0, 200, 70),
-                                  ),
+                              TextSpan(
+                                text: '-',
+                                style: GlobalTextStyles.contentStyle().copyWith(
+                                  foreground: Paint()
+                                    ..shader = LinearGradient(
+                                      colors: [
+                                        GlobalColors.mbdColor,
+                                        GlobalColors.aiotColor,
+                                      ],
+                                    ).createShader(
+                                      const Rect.fromLTWH(0, 0, 200, 70),
+                                    ),
+                                ),
                               ),
-                            ),
-                            TextSpan(
-                              text: 'AIOT',
-                              style: GlobalTextStyles.contentStyle().copyWith(
-                                color: GlobalColors.aiotColor,
+                              TextSpan(
+                                text: 'AIOT',
+                                style: GlobalTextStyles.contentStyle().copyWith(
+                                  color: GlobalColors.aiotColor,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

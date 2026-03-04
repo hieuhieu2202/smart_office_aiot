@@ -23,7 +23,7 @@ class CameraMenuScreen extends StatelessWidget {
             icon: Icons.qr_code_scanner,
             title: "ScanTab",
             status: "Ready",
-            onTap: () => Get.to(() => const CameraTestPage(autoScan: true)),
+            onTap: () => Get.to(() => const CameraTestPage()),
           ),
         ],
       ),

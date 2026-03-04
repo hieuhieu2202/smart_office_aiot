@@ -29,6 +29,7 @@ class CapturePayload {
     final fields = {
       "factory": factory,
       "floor": floor,
+      // "modelName": modelName,
       "serialNumber": serialNumber,
       "station": station,
       "result": result,
@@ -39,9 +40,9 @@ class CapturePayload {
     if (errorCode != null) {
       fields["errorcode"] = errorCode!;
     }
-    if (errorName != null) {
-      fields["errorname"] = errorName!;
-    }
+    // if (errorName != null) {
+    //   fields["errorname"] = errorName!;
+    // }
     if (errorDescription != null) {
       fields["errordescription"] = errorDescription!;
     }

@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_builder/responsive_builder.dart';
-import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
+import 'package:smart_factory/generated/l10n.dart';
+import 'package:smart_factory/screen/home/controller/home_controller.dart';
 import 'package:smart_factory/screen/home/home_tab.dart';
+import 'package:smart_factory/screen/navbar/controller/navbar_controller.dart';
+import 'package:smart_factory/screen/notification/controller/notification_controller.dart';
 import 'package:smart_factory/screen/notification/notification_tab.dart';
+import 'package:smart_factory/screen/setting/controller/setting_controller.dart';
 import 'package:smart_factory/screen/setting/setting_tab.dart';
 import 'package:smart_factory/screen/stp/stp_tab.dart';
-import 'package:smart_factory/screen/camera/camera_capture_page.dart';
-import 'package:smart_factory/screen/camera/camera_menu_screen.dart';
-import '../home/controller/home_controller.dart';
-import '../setting/controller/setting_controller.dart';
-import 'package:smart_factory/generated/l10n.dart';
-import 'package:smart_factory/screen/home/widget/qr/qr_scan_screen.dart';
-import '../notification/controller/notification_controller.dart';
 
 final NavbarController navbarController = Get.put(NavbarController());
 
@@ -21,43 +18,29 @@ class NavbarScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('🟢 QRScanScreen được dựng lại!');
     Get.put(HomeController());
     final SettingController settingController = Get.find<SettingController>();
     final NotificationController notificationController =
         Get.find<NotificationController>();
     final S text = S.of(context);
 
-    // Danh sách nhãn (hỗ trợ đa ngôn ngữ)
-    final List<String> tabLabels = [
-      text.home,
-      "WinSCP",
-      'Capture',
-      'QR Scan',
-      text.notification,
-      text.settings,
+    final List<String> tabLabels = <String>[
+      'Trang chủ',
+      'WinSCP',
+      'Thông báo',
+      'Cài đặt',
     ];
-
-    // Lazy cache cho QRScreen để tránh rebuild liên tục
-    Widget? qrScreenCache;
-    Widget? cameraScreenCache;
 
     return ResponsiveBuilder(
       builder: (context, sizingInfo) {
         final bool useSideNavigation = sizingInfo.screenSize.width >= 900;
 
         return Obx(() {
-          final currentIndex = navbarController.currentIndex.value;
+          final int currentIndex = navbarController.currentIndex.value;
 
-          final pages = [
+          final List<Widget> pages = <Widget>[
             const HomeTab(),
             const SftpScreen(),
-            currentIndex == 2
-                ? (cameraScreenCache ??= const CameraMenuScreen())
-                : const SizedBox.shrink(),
-            currentIndex == 3
-                ? (qrScreenCache ??= const QRScanScreen())
-                : const SizedBox.shrink(),
             const NotificationTab(),
             const SettingTab(),
           ];
@@ -76,7 +59,7 @@ class NavbarScreen extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(18),
                   ),
-                  boxShadow: [
+                  boxShadow: <BoxShadow>[
                     BoxShadow(
                       color: settingController.isDarkMode.value
                           ? Colors.black.withOpacity(0.13)
@@ -101,11 +84,8 @@ class NavbarScreen extends StatelessWidget {
                       ? Colors.grey[400]
                       : Colors.grey[600],
                   currentIndex: currentIndex,
-                  onTap: (index) {
-                    print('🟦 Chuyển tab sang index: $index');
-                    navbarController.changTab(index);
-                  },
-                  items: [
+                  onTap: navbarController.changTab,
+                  items: <BottomNavigationBarItem>[
                     BottomNavigationBarItem(
                       icon: const Icon(Icons.home_rounded),
                       label: tabLabels[0],
@@ -115,22 +95,11 @@ class NavbarScreen extends StatelessWidget {
                       label: tabLabels[1],
                     ),
                     BottomNavigationBarItem(
-                      icon: const Text(
-                        '📸',
-                        style: TextStyle(fontSize: 22),
-                      ),
-                      label: tabLabels[2],
-                    ),
-                    BottomNavigationBarItem(
-                      icon: const Icon(Icons.qr_code_scanner),
-                      label: tabLabels[3],
-                    ),
-                    BottomNavigationBarItem(
                       icon: Obx(() {
-                        final count = notificationController.unreadCount.value;
+                        final int count = notificationController.unreadCount.value;
                         return Stack(
                           clipBehavior: Clip.none,
-                          children: [
+                          children: <Widget>[
                             const Icon(Icons.notifications_active_rounded),
                             if (count > 0)
                               Positioned(
@@ -158,11 +127,11 @@ class NavbarScreen extends StatelessWidget {
                           ],
                         );
                       }),
-                      label: tabLabels[4],
+                      label: tabLabels[2],
                     ),
                     BottomNavigationBarItem(
                       icon: const Icon(Icons.settings),
-                      label: tabLabels[5],
+                      label: tabLabels[3],
                     ),
                   ],
                 ),
@@ -172,14 +141,11 @@ class NavbarScreen extends StatelessWidget {
 
           return Scaffold(
             body: Row(
-              children: [
+              children: <Widget>[
                 _SideNavigationBar(
                   tabLabels: tabLabels,
                   currentIndex: currentIndex,
-                  onTap: (index) {
-                    print('🟦 Chuyển tab sang index: $index');
-                    navbarController.changTab(index);
-                  },
+                  onTap: navbarController.changTab,
                   isDarkMode: settingController.isDarkMode.value,
                   notificationController: notificationController,
                 ),
@@ -229,7 +195,7 @@ class _SideNavigationBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor.withOpacity(isDarkMode ? 0.92 : 0.96),
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [
+        boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.black.withOpacity(isDarkMode ? 0.22 : 0.10),
             blurRadius: 20,
@@ -238,99 +204,25 @@ class _SideNavigationBar extends StatelessWidget {
         ],
       ),
       child: Column(
-        children: [
-          for (int i = 0; i < tabLabels.length; i++)
-            _SideNavItem(
-              label: tabLabels[i],
-              icon: _iconForIndex(i),
-              isSelected: currentIndex == i,
-              onTap: () => onTap(i),
-              indicatorColor: indicatorColor,
-              inactiveColor: inactiveColor,
-              badgeCount: i == 4
-                  ? notificationController.unreadCount.value
-                  : 0,
-            ),
-        ],
-      ),
-    );
-  }
+        children: List<Widget>.generate(tabLabels.length, (int index) {
+          final bool selected = index == currentIndex;
+          Widget icon;
 
-  Widget _iconForIndex(int index) {
-    switch (index) {
-      case 0:
-        return const Icon(Icons.home_rounded);
-      case 1:
-        return const Icon(Icons.public_rounded);
-      case 2:
-        return const Text(
-          '📸',
-          style: TextStyle(fontSize: 24),
-        );
-      case 3:
-        return const Icon(Icons.qr_code_scanner);
-      case 4:
-        return const Icon(Icons.notifications_active_rounded);
-      case 5:
-      default:
-        return const Icon(Icons.settings);
-    }
-  }
-}
-
-class _SideNavItem extends StatelessWidget {
-  const _SideNavItem({
-    required this.label,
-    required this.icon,
-    required this.isSelected,
-    required this.onTap,
-    required this.indicatorColor,
-    required this.inactiveColor,
-    this.badgeCount = 0,
-  });
-
-  final String label;
-  final Widget icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final Color indicatorColor;
-  final Color inactiveColor;
-  final int badgeCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color baseColor = isSelected ? indicatorColor : inactiveColor;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
-          child: Ink(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(
-              color: isSelected ? indicatorColor.withOpacity(0.16) : null,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Stack(
+          switch (index) {
+            case 0:
+              icon = const Icon(Icons.home_rounded);
+              break;
+            case 1:
+              icon = const Icon(Icons.public_rounded);
+              break;
+            case 2:
+              icon = Obx(() {
+                final int count = notificationController.unreadCount.value;
+                return Stack(
                   clipBehavior: Clip.none,
-                  children: [
-                    IconTheme(
-                      data: IconThemeData(
-                        color: baseColor,
-                        size: 28,
-                      ),
-                      child: DefaultTextStyle.merge(
-                        style: TextStyle(color: baseColor, fontSize: 24),
-                        child: icon,
-                      ),
-                    ),
-                    if (badgeCount > 0)
+                  children: <Widget>[
+                    const Icon(Icons.notifications_active_rounded),
+                    if (count > 0)
                       Positioned(
                         right: -6,
                         top: -4,
@@ -344,7 +236,7 @@ class _SideNavItem extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            badgeCount > 99 ? '99+' : '$badgeCount',
+                            count > 99 ? '99+' : '$count',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -354,21 +246,56 @@ class _SideNavItem extends StatelessWidget {
                         ),
                       ),
                   ],
+                );
+              });
+              break;
+            default:
+              icon = const Icon(Icons.settings);
+          }
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => onTap(index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                width: 74,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? indicatorColor.withOpacity(isDarkMode ? 0.18 : 0.20)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: baseColor,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 12.5,
-                  ),
-                  textAlign: TextAlign.center,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    IconTheme(
+                      data: IconThemeData(
+                        color: selected ? indicatorColor : inactiveColor,
+                        size: 22,
+                      ),
+                      child: icon,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tabLabels[index],
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                        color: selected ? indicatorColor : inactiveColor,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        }),
       ),
     );
   }

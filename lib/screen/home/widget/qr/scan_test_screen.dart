@@ -222,7 +222,7 @@ class _ScanTestScreenState extends State<ScanTestScreen>
 
               // MANUAL SN BUTTON
               Positioned(
-                bottom: 110, // nằm trên slider
+                bottom: 110,
                 left: 0,
                 right: 0,
                 child: Center(
