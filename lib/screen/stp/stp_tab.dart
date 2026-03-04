@@ -242,14 +242,25 @@ class _SftpScreenState extends State<SftpScreen> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 410;
+          final EdgeInsets pagePadding = EdgeInsets.symmetric(
+            horizontal: isCompact ? 14 : 24,
+            vertical: isCompact ? 20 : 36,
+          );
+          final EdgeInsets formPadding = EdgeInsets.symmetric(
+            horizontal: isCompact ? 18 : 28,
+            vertical: isCompact ? 22 : 32,
+          );
+          final double titleIconSize = isCompact ? 24 : 32;
+          final double titleGap = isCompact ? 8 : 5;
+
           return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+            padding: pagePadding,
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+                  padding: formPadding,
                   decoration: BoxDecoration(
                     color: (isDark
                             ? GlobalColors.cardDarkBg.withOpacity(0.92)
@@ -282,14 +293,21 @@ class _SftpScreenState extends State<SftpScreen> {
                         children: [
                           Icon(
                             Icons.cloud_sync_rounded,
-                            size: 32,
+                            size: titleIconSize,
                             color: GlobalColors.accentByIsDark(isDark),
                           ),
-                          const SizedBox(width: 5),
-                          Text(
-                            'Thông tin đăng nhập',
-                            style: GlobalTextStyles.bodyLarge(isDark: isDark)
-                                .copyWith(fontWeight: FontWeight.w700),
+                          SizedBox(width: titleGap),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Thông tin đăng nhập',
+                                maxLines: 1,
+                                style: GlobalTextStyles.bodyLarge(isDark: isDark)
+                                    .copyWith(fontWeight: FontWeight.w700),
+                              ),
+                            ),
                           ),
                         ],
                       ),
