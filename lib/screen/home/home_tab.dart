@@ -167,7 +167,7 @@ class _HomeTabState extends State<HomeTab> {
             // ================== AI CHAT: NÚT TRÒN NỔI (BUBBLE) ==================
             // NOTE 1: Dùng ChatbotFab (mặc định là extended). Nếu bạn muốn NÚT TRÒN NHỎ:
             //   - Xem bên dưới "PHIÊN BẢN MINI" (đã comment).
-            floatingActionButton: ChatbotFab(controller: _ai),
+            // floatingActionButton: ChatbotFab(controller: _ai),
             floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
             // --- PHIÊN BẢN MINI (nút tròn nhỏ) ---
