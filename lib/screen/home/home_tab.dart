@@ -97,7 +97,7 @@ class _HomeTabState extends State<HomeTab> {
             ),
           ],
         ),
-        floatingActionButton: ChatbotFab(controller: _aiController),
+        // floatingActionButton: ChatbotFab(controller: _aiController),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       );
     });
