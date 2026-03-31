@@ -150,7 +150,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
   // FORM
 
   Widget _formContent() {
-    final isFail = viewModel.result == "FAIL";
+    final isFail = viewModel.result == "FAIL" || viewModel.result == "R_";
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -398,6 +398,8 @@ class _CameraTestPageState extends State<CameraTestPage> {
                   value: "PASS", child: Text("PASS")),
               DropdownMenuItem(
                   value: "FAIL", child: Text("FAIL")),
+              DropdownMenuItem(
+                  value: "R_", child: Text("R_")),
             ],
             onChanged: (v) {
               if (v == null) return;
@@ -433,6 +435,25 @@ class _CameraTestPageState extends State<CameraTestPage> {
               const TextStyle(color: Colors.white70),
               decoration: _inputStyle("Error Name"),
             ),
+
+            if (viewModel.result == "R_") ...[ 
+              const SizedBox(height: 14),
+
+              TextField(
+                controller: viewModel.locationCodeCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputStyle("Error Location"),
+              ),
+
+              const SizedBox(height: 14),
+
+              TextField(
+                controller: viewModel.errorCountCtrl,
+                style: const TextStyle(color: Colors.white),
+                keyboardType: TextInputType.number,
+                decoration: _inputStyle("Error Count"),
+              ),
+            ],
 
             const SizedBox(height: 14),
 
