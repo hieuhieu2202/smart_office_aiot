@@ -597,7 +597,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
   // FORM CONTENT
 
   Widget _formContent() {
-    final bool isFail = viewModel.result == "FAIL";
+    final bool isFail = viewModel.result == "FAIL" || viewModel.result == "R_";
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -825,7 +825,7 @@ class _CameraTestPageState extends State<CameraTestPage> {
         // RESULT
         _sectionCard(
           title: "🧪 Kết quả kiểm tra",
-          highlightFail: isFail,
+          highlightFail: isFail || viewModel.result == "R_",
           child: Column(
             children: [
               DropdownButtonFormField<String>(
@@ -835,13 +835,14 @@ class _CameraTestPageState extends State<CameraTestPage> {
                 items: const [
                   DropdownMenuItem(value: "PASS", child: Text("PASS")),
                   DropdownMenuItem(value: "FAIL", child: Text("FAIL")),
+                  DropdownMenuItem(value: "R_", child: Text("R_")),
                 ],
                 onChanged: (v) {
                   if (v == null) return;
                   viewModel.setResult(v);
                 },
               ),
-              if (isFail) ...[
+              if (isFail || viewModel.result == "R_") ...[
                 const SizedBox(height: 14),
                 GestureDetector(
                   onTap: _openErrorCodeSearch,
@@ -865,13 +866,28 @@ class _CameraTestPageState extends State<CameraTestPage> {
                   decoration: _inputStyle("Error Name"),
                 ),
 
+                if (viewModel.result == "R_") ...[
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: viewModel.locationCodeCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _inputStyle("Error Location"),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: viewModel.errorCountCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    keyboardType: TextInputType.number,
+                    decoration: _inputStyle("Error Count"),
+                  ),
+                ],
+
                 const SizedBox(height: 14),
                 TextField(
                   controller: viewModel.errorDescCtrl,
                   maxLines: 2,
                   style: const TextStyle(color: Colors.white),
-                  decoration:
-                  _inputStyle("Error Description"),
+                  decoration: _inputStyle("Error Description"),
                 ),
               ],
             ],

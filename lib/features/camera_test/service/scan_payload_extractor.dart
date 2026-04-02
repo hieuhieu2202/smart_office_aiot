@@ -5,49 +5,8 @@ class ScanPayloadExtractor {
     if (raw.trim().isEmpty) {
       return ScanResult();
     }
-
-    final text = raw.trim().toUpperCase();
-    final tokens = text.split(RegExp(r'\s+'));
-
-    String? model;
-    String? serial;
-
-    // Ưu tiên theo vị trí space
-    if (tokens.length >= 2) {
-      final t0 = tokens[0];
-      final t1 = tokens[1];
-
-      // Model: thường có dấu '-' và bắt đầu bằng số
-      if (_looksLikeModel(t0)) {
-        model = t0;
-      }
-
-      // Serial: thường dài, không có '-', không phải revision
-      if (_looksLikeSerial(t1)) {
-        serial = t1;
-      }
-    }
-
-    //  FALLBACK
-    for (final token in tokens) {
-      if (token.isEmpty) continue;
-
-      // bỏ revision
-      if (RegExp(r'^[A-Z][0-9]$').hasMatch(token)) continue;
-
-      if (model == null && _looksLikeModel(token)) {
-        model = token;
-        continue;
-      }
-
-      if (serial == null && _looksLikeSerial(token)) {
-        serial = token;
-      }
-    }
-
     return ScanResult(
-      model: model,
-      serial: serial,
+      serial: raw.trim(),
     );
   }
 

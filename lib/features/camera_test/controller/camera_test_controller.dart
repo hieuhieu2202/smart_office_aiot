@@ -53,6 +53,8 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
   final noteCtrl = TextEditingController();
   final errorCodeCtrl = TextEditingController();
   final errorNameCtrl = TextEditingController();
+  final locationCodeCtrl = TextEditingController();
+  final errorCountCtrl = TextEditingController();
   final errorDescCtrl = TextEditingController();
   String result = "PASS";
 
@@ -100,6 +102,8 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
     noteCtrl.dispose();
     errorCodeCtrl.dispose();
     errorNameCtrl.dispose();
+    locationCodeCtrl.dispose();
+    errorCountCtrl.dispose();
     super.onClose();
   }
 
@@ -391,13 +395,25 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
       return;
     }
 
-    if (result == "FAIL") {
+    if (result == "FAIL" || result == "R_") {
       if (errorCodeCtrl.text.trim().isEmpty) {
         Get.snackbar("Lỗi", "Vui lòng nhập Error Code");
         return;
       }
+      
+      if (result == "R_") {
+        if (locationCodeCtrl.text.trim().isEmpty) {
+          Get.snackbar("Lỗi", "Vui lòng nhập Error Location");
+          return;
+        }
+        if (errorCountCtrl.text.trim().isEmpty) {
+          Get.snackbar("Lỗi", "Vui lòng nhập Error Count");
+          return;
+        }
+      }
+
       if (images.isEmpty) {
-        Get.snackbar("Lỗi", "FAIL phải có ít nhất 1 ảnh");
+        Get.snackbar("Lỗi", "${result} phải có ít nhất 1 ảnh");
         return;
       }
     }
@@ -414,9 +430,11 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
         result: result,
         comment: noteCtrl.text.trim(),
         username: userCtrl.text.trim(),
-        errorCode: result == "FAIL" ? errorCodeCtrl.text.trim() : null,
-        errorName: result == "FAIL" ? errorNameCtrl.text.trim() : null,
-        errorDescription: result == "FAIL" ? errorDescCtrl.text.trim() : null,
+        errorCode: (result == "FAIL" || result == "R_") ? errorCodeCtrl.text.trim() : null,
+        errorName: (result == "FAIL" || result == "R_") ? errorNameCtrl.text.trim() : null,
+        locationCode: (result == "R_") ? locationCodeCtrl.text.trim() : null,
+        errorCount: (result == "R_") ? int.tryParse(errorCountCtrl.text.trim()) : null,
+        errorDescription: (result == "FAIL" || result == "R_") ? errorDescCtrl.text.trim() : null,
       );
 
       final response = await _captureApiService.sendCapture(
@@ -442,9 +460,11 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
             captured.clear();
             modelnameCtrl.clear();
             serialCtrl.clear();
-            stationCtrl.clear();
             noteCtrl.clear();
             errorCodeCtrl.clear();
+            errorNameCtrl.clear();
+            locationCodeCtrl.clear();
+            errorCountCtrl.clear();
             errorDescCtrl.clear();
             result = "PASS";
             product = null;
@@ -494,8 +514,13 @@ class CameraTestController extends GetxController with WidgetsBindingObserver {
       if (result == "PASS") {
         errorCodeCtrl.clear();
         errorNameCtrl.clear();
+        locationCodeCtrl.clear();
+        errorCountCtrl.clear();
         errorDescCtrl.clear();
         captured.clear();
+      } else if (result == "FAIL") {
+        locationCodeCtrl.clear();
+        errorCountCtrl.clear();
       }
     });
   }

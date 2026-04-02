@@ -9,6 +9,8 @@ class CapturePayload {
   final String username;
   final String? errorCode;
   final String? errorName;
+  final String? locationCode;
+  final int? errorCount;
   final String? errorDescription;
 
   const CapturePayload({
@@ -22,6 +24,8 @@ class CapturePayload {
     required this.username,
     this.errorCode,
     this.errorName,
+    this.locationCode,
+    this.errorCount,
     this.errorDescription,
   });
 
@@ -39,6 +43,12 @@ class CapturePayload {
 
     if (errorCode != null) {
       fields["errorcode"] = errorCode!;
+    }
+    if (locationCode != null && locationCode!.isNotEmpty) {
+      fields["locationcode"] = locationCode!;
+    }
+    if (errorCount != null) {
+      fields["errorcount"] = errorCount!.toString();
     }
     // if (errorName != null) {
     //   fields["errorname"] = errorName!;
