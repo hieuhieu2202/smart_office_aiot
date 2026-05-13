@@ -47,7 +47,7 @@ class ScanPayloadExtractor {
 
     return ScanResult(
       model: model,
-      serial: serial, // Muốn lấy hết chuỗi qr 692-9IAX0-0006L MT2545FT11063 A1 sửa thành serial: text,
+      serial: text, // Muốn lấy hết chuỗi qr 692-9IAX0-0006L MT2545FT11063 A1 sửa thành serial: text,
     );
   }
 
