@@ -18,7 +18,7 @@ class CaptureApiService {
 
     request.fields.addAll(payload.toFields());
 
-    if (payload.result == "FAIL") {
+    if (payload.result == "FAIL" || payload.result == "R_") {
       for (final img in images) {
         request.files.add(
           await http.MultipartFile.fromPath(

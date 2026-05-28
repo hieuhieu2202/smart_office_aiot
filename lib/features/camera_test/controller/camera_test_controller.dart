@@ -44,6 +44,8 @@ class CameraTestController extends GetxController
   final errorCodeCtrl = TextEditingController();
   final errorNameCtrl = TextEditingController();
   final errorDescCtrl = TextEditingController();
+  final locationCodeCtrl = TextEditingController();
+  final errorCountCtrl = TextEditingController();
 
   String result = "PASS";
 
@@ -83,6 +85,8 @@ class CameraTestController extends GetxController
     errorCodeCtrl.dispose();
     errorNameCtrl.dispose();
     errorDescCtrl.dispose();
+    locationCodeCtrl.dispose();
+    errorCountCtrl.dispose();
     super.onClose();
   }
 
@@ -205,7 +209,12 @@ class CameraTestController extends GetxController
       errorCodeCtrl.clear();
       errorNameCtrl.clear();
       errorDescCtrl.clear();
+      locationCodeCtrl.clear();
+      errorCountCtrl.clear();
       captured.clear();
+    } else if (result == "FAIL") {
+      locationCodeCtrl.clear();
+      errorCountCtrl.clear();
     }
 
     update();
@@ -247,13 +256,25 @@ class CameraTestController extends GetxController
       return;
     }
 
-    if (result == "FAIL") {
+    if (result == "FAIL" || result == "R_") {
       if (errorCodeCtrl.text.trim().isEmpty) {
         Get.snackbar("Lỗi", "Vui lòng nhập Error Code");
         return;
       }
+
+      if (result == "R_") {
+        if (locationCodeCtrl.text.trim().isEmpty) {
+          Get.snackbar("Lỗi", "Vui lòng nhập Error Location");
+          return;
+        }
+        if (errorCountCtrl.text.trim().isEmpty) {
+          Get.snackbar("Lỗi", "Vui lòng nhập Error Count");
+          return;
+        }
+      }
+
       if (images.isEmpty) {
-        Get.snackbar("Lỗi", "FAIL phải có ít nhất 1 ảnh");
+        Get.snackbar("Lỗi", "$result phải có ít nhất 1 ảnh");
         return;
       }
     }
@@ -269,10 +290,11 @@ class CameraTestController extends GetxController
         result: result,
         comment: noteCtrl.text.trim(),
         username: userCtrl.text.trim(),
-        errorCode: result == "FAIL" ? errorCodeCtrl.text.trim() : "",
-        errorName: result == "FAIL" ? errorNameCtrl.text.trim() : "",
-        errorDescription:
-        result == "FAIL" ? errorDescCtrl.text.trim() : "",
+        errorCode: (result == "FAIL" || result == "R_") ? errorCodeCtrl.text.trim() : null,
+        errorName: (result == "FAIL" || result == "R_") ? errorNameCtrl.text.trim() : null,
+        locationCode: (result == "R_") ? locationCodeCtrl.text.trim() : null,
+        errorCount: (result == "R_") ? int.tryParse(errorCountCtrl.text.trim()) : null,
+        errorDescription: (result == "FAIL" || result == "R_") ? errorDescCtrl.text.trim() : null,
       );
 
       final response = await _captureApiService.sendCapture(
@@ -305,6 +327,8 @@ class CameraTestController extends GetxController
         errorCodeCtrl.clear();
         errorNameCtrl.clear();
         errorDescCtrl.clear();
+        locationCodeCtrl.clear();
+        errorCountCtrl.clear();
         result = "PASS";
 
       } else {

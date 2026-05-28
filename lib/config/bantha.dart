@@ -29,7 +29,6 @@ class BanthaConfig {
     ErrorItem(code: "BTC25", name: "Bantha contamination 25%"),
     ErrorItem(code: "BTC10", name: "Bantha contamination 10%"),
     ErrorItem(code: "BRG", name: "Best regards"),
-    ErrorItem(code: "Tee Nb", name: ""),
     ErrorItem(code: "MBD-QA", name: ""),
   ];
 
@@ -43,7 +42,7 @@ class BanthaConfig {
   static List<String> stationsOf(String factory, String floor) =>
       stations[factory]?[floor] ?? [];
 
-  /// Helper: tìm ErrorItem theo code (dùng khi load data cũ )
+  /// Helper: tìm ErrorItem theo code
   static ErrorItem? errorByCode(String code) {
     try {
       return errorCodes.firstWhere((e) => e.code == code);
